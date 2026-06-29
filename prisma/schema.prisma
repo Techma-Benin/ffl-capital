@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum LeadType {
+  traditional_iul
+  high_intent_iul
+}
+
+enum PartnerStatus {
+  pending_approval
+  active
+  rejected
+  disabled
+}
+
+enum LeadStatus {
+  unmatched
+  delivered
+  integrity_posted
+  aged_listed
+  dead
+}
+
+enum DeliveryChannel {
+  realtime
+  aged
+}
+
+enum TransactionType {
+  top_up
+  lead_purchase
+  aged_purchase
+  refund
+  reprocessing_fee
+}
+
+enum RefundType {
+  wrong_filter
+  invalid_phone
+}
+
+enum RefundStatus {
+  pending
+  approved
+  rejected
+}
+
+enum ResaleMode {
+  realtime
+  storefront
+}
+
+enum ResaleStatus {
+  pending
+  sold
+  rejected
+  reconciled
+}
+
+enum MigrationJobStatus {
+  pending
+  running
+  completed
+  failed
+}
+
+enum BillingInterval {
+  weekly
+}
+
+model Partner {
+  id               String        @id @default(uuid()) @db.Uuid
+  clerkUserId      String?       @unique @map("clerk_user_id")
+  email            String
+  firstName        String        @map("first_name")
+  lastName         String        @map("last_name")
+  affiliation      String?
+  residenceState   String        @map("residence_state")
+  leadType         LeadType      @map("lead_type")
+  filterStates     String[]      @map("filter_states")
+  priority         Int           @default(5)
+  priceOverride    Decimal?      @map("price_override") @db.Decimal(10, 2)
+  walletBalance    Decimal       @default(0) @map("wallet_balance") @db.Decimal(10, 2)
+  status           PartnerStatus @default(pending_approval)
+  crmWebhookUrl    String?       @map("crm_webhook_url")
+  stripeCustomerId String?       @map("stripe_customer_id")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  leadDeliveries       LeadDelivery[]
+  refundRequests       RefundRequest[]
+  transactions         Transaction[]
+  billingRecurrences   BillingRecurrence[]
+  reviewedRefunds      RefundRequest[]     @relation("ReviewedBy")
+  createdMigrationJobs MigrationJob[]
+
+  @@index([status])
+  @@index([priority])
+  @@map("partners")
+}
+
+model Lead {
+  id                 String     @id @default(uuid()) @db.Uuid
+  firstName          String     @map("first_name")
+  lastName           String     @map("last_name")
+  email              String
+  phone              String
+  state              String
+  leadType           LeadType   @map("lead_type")
+  trustedformCertUrl String?    @map("trustedform_cert_url")
+  source             String     @default("meta_leadconduit")
+  receivedAt         DateTime   @default(now()) @map("received_at")
+  available          Boolean    @default(true)
+  refundable         Boolean    @default(true)
+  status             LeadStatus @default(unmatched)
+  externalId         String?    @map("external_id")
+  rawPayload         Json?      @map("raw_payload")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  leadDeliveries LeadDelivery[]
+  resalePostings ResalePosting[]
+
+  @@index([state, status, available])
+  @@index([receivedAt])
+  @@index([available, receivedAt])
+  @@map("leads")
+}
+
+model LeadDelivery {
+  id          String          @id @default(uuid()) @db.Uuid
+  leadId      String          @map("lead_id") @db.Uuid
+  partnerId   String          @map("partner_id") @db.Uuid
+  channel     DeliveryChannel
+  price       Decimal         @db.Decimal(10, 2)
+  deliveredAt DateTime        @default(now()) @map("delivered_at")
+  refundedAt  DateTime?       @map("refunded_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  lead            Lead             @relation(fields: [leadId], references: [id])
+  partner         Partner          @relation(fields: [partnerId], references: [id])
+  refundRequests  RefundRequest[]
+  transactions    Transaction[]
+
+  @@index([partnerId])
+  @@index([leadId])
+  @@index([refundedAt])
+  @@map("lead_deliveries")
+}
+
+model RefundRequest {
+  id              String       @id @default(uuid()) @db.Uuid
+  leadDeliveryId  String       @map("lead_delivery_id") @db.Uuid
+  partnerId       String       @map("partner_id") @db.Uuid
+  reason          String?
+  refundType      RefundType   @map("refund_type")
+  status          RefundStatus @default(pending)
+  reviewedById    String?      @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?    @map("reviewed_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  leadDelivery LeadDelivery @relation(fields: [leadDeliveryId], references: [id])
+  partner      Partner      @relation(fields: [partnerId], references: [id])
+  reviewedBy   Partner?     @relation("ReviewedBy", fields: [reviewedById], references: [id])
+
+  @@map("refund_requests")
+}
+
+model Transaction {
+  id                    String          @id @default(uuid()) @db.Uuid
+  partnerId             String          @map("partner_id") @db.Uuid
+  type                  TransactionType
+  amount                Decimal         @db.Decimal(10, 2)
+  balanceAfter          Decimal         @map("balance_after") @db.Decimal(10, 2)
+  stripePaymentIntentId String?         @map("stripe_payment_intent_id")
+  leadDeliveryId        String?         @map("lead_delivery_id") @db.Uuid
+  description           String?
+  createdAt             DateTime        @default(now()) @map("created_at")
+
+  partner      Partner       @relation(fields: [partnerId], references: [id])
+  leadDelivery LeadDelivery? @relation(fields: [leadDeliveryId], references: [id])
+
+  @@index([partnerId])
+  @@map("transactions")
+}
+
+model BillingRecurrence {
+  id                   String          @id @default(uuid()) @db.Uuid
+  partnerId            String          @map("partner_id") @db.Uuid
+  amount               Decimal         @db.Decimal(10, 2)
+  interval             BillingInterval
+  stripeSubscriptionId String?         @map("stripe_subscription_id")
+  active               Boolean         @default(true)
+  nextChargeAt         DateTime?       @map("next_charge_at")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  partner Partner @relation(fields: [partnerId], references: [id])
+
+  @@map("billing_recurrence")
+}
+
+model ResalePosting {
+  id           String       @id @default(uuid()) @db.Uuid
+  leadId       String       @map("lead_id") @db.Uuid
+  mode         ResaleMode
+  status       ResaleStatus @default(pending)
+  externalRef  String?      @map("external_ref")
+  postedAt     DateTime?    @map("posted_at")
+  soldAt       DateTime?    @map("sold_at")
+  revenueShare Decimal?     @map("revenue_share") @db.Decimal(10, 2)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  lead Lead @relation(fields: [leadId], references: [id])
+
+  @@map("resale_postings")
+}
+
+model AppSetting {
+  key   String @id
+  value Json
+
+  @@map("app_settings")
+}
+
+model MigrationJob {
+  id           String             @id @default(uuid()) @db.Uuid
+  status       MigrationJobStatus @default(pending)
+  fileName     String             @map("file_name")
+  totalRows    Int                @default(0) @map("total_rows")
+  successRows  Int                @default(0) @map("success_rows")
+  errorRows    Int                @default(0) @map("error_rows")
+  errorLog     Json?              @map("error_log")
+  createdById  String?            @map("created_by") @db.Uuid
+  createdAt    DateTime           @default(now()) @map("created_at")
+  completedAt  DateTime?          @map("completed_at")
+
+  createdBy Partner? @relation(fields: [createdById], references: [id])
+
+  @@map("migration_jobs")
+}

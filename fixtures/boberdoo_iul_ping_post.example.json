@@ -1,0 +1,54 @@
+{
+  "_comment": "Exemple pingPostLead IUL (Lead_Type=37) — spec https://capitalleads.leadportal.com/new_api/index.php?action=detail&func=pingPostLead&TYPE=37",
+  "ping": {
+    "Format": "JSON",
+    "Key": "API_KEY",
+    "API_Action": "pingPostLead",
+    "Mode": "ping",
+    "TYPE": "37",
+    "Return_Best_Price": "1",
+    "IP_Address": "203.0.113.10",
+    "SRC": "IUL_LeadConduit",
+    "State": "TX",
+    "DOB": "12/23/1980"
+  },
+  "post": {
+    "Format": "JSON",
+    "Key": "API_KEY",
+    "API_Action": "pingPostLead",
+    "Mode": "post",
+    "TYPE": "37",
+    "Lead_ID": "1234",
+    "IP_Address": "203.0.113.10",
+    "SRC": "IUL_LeadConduit",
+    "Landing_Page": "https://example.com/iul-landing",
+    "First_Name": "Jane",
+    "Last_Name": "Doe",
+    "State": "TX",
+    "Primary_Phone": "5125550100",
+    "Email": "jane.doe@example.com",
+    "DOB": "12/23/1980"
+  },
+  "full": {
+    "Format": "JSON",
+    "Key": "API_KEY",
+    "API_Action": "pingPostLead",
+    "Mode": "full",
+    "TYPE": "37",
+    "IP_Address": "203.0.113.10",
+    "SRC": "IUL_LeadConduit",
+    "Landing_Page": "https://example.com/iul-landing",
+    "First_Name": "Jane",
+    "Last_Name": "Doe",
+    "State": "TX",
+    "Primary_Phone": "5125550100",
+    "Email": "jane.doe@example.com",
+    "DOB": "12/23/1980"
+  },
+  "_endpoints": {
+    "live_json": "https://capitalleads.leadportal.com/apiJSON.php",
+    "live_post": "https://capitalleads.leadportal.com/new_api/api.php",
+    "test_json": "https://capitalleads.leadportal.com/apiJSON.php (Test_Lead=1)",
+    "test_post": "https://capitalleads.leadportal.com/new_api/api.php?Test_Lead=1"
+  }
+}

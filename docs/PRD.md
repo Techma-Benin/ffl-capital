@@ -1,0 +1,1002 @@
+# PRD — Plateforme de distribution de leads FFL Capital
+
+> **Document de spécification produit** — point de départ pour l’implémentation.  
+> Public : développeurs, collègues TECHMA, agents IA.  
+> **Pas de code** — explications structurées uniquement.  
+> Version : 1.2 — 29 juin 2026 (décisions équipe Bill)
+
+**Documents liés :**
+- `docs/PROJECT.md` — mémoire projet / décisions / FAQ
+- `docs/TECHMA - Lead Distribution Platform Proposal.md` — scope contractuel client
+- `first review with client` — transcript call review #1 (29 juin 2026, Sami Esquivias)
+
+---
+
+## Table des matières
+
+1. [Vision & objectifs](#1-vision--objectifs)
+2. [Utilisateurs & rôles](#2-utilisateurs--rôles)
+3. [Stack technique & déploiement](#3-stack-technique--déploiement)
+4. [Architecture applicative](#4-architecture-applicative)
+5. [Fonctionnalités détaillées](#5-fonctionnalités-détaillées)
+6. [User flows](#6-user-flows)
+7. [Règles métier](#7-règles-métier)
+8. [Schéma de base de données](#8-schéma-de-base-de-données)
+9. [Intégrations externes](#9-intégrations-externes)
+10. [Stratégie de tests & mocks](#10-stratégie-de-tests--mocks)
+11. [Design & UX](#11-design--ux)
+12. [Phases de livraison](#12-phases-de-livraison)
+13. [Hors scope V1](#13-hors-scope-v1)
+14. [Décisions figées](#14-décisions-figées)
+15. [Questions ouvertes](#15-questions-ouvertes)
+
+---
+
+## 1. Vision & objectifs
+
+### Contexte
+
+FFL Capital (cliente Integrity Marketing) génère des **leads IUL** (assurance vie) via **Meta Ads** (~500/jour). Aujourd’hui, la distribution passe par **Boberdoo** : matching par état, priorité, wallet Stripe, revente **IntegrityCONNECT**.
+
+**Limites Boberdoo** qui motivent le build :
+- Impossible de gérer correctement les **aged leads** (30+ jours) en self-service
+- Processus manuel : export, réimport, construction de commandes à la main
+- Interface vieillotte
+
+### Objectif produit
+
+Construire une **plateforme web propriétaire** (usage interne client, **pas un SaaS**) qui :
+
+1. **Réplique** le fonctionnel Boberdoo (intake, matching, wallet, revente, portails)
+2. **Ajoute** une marketplace **aged leads** en self-service (innovation principale)
+3. Offre un **design moderne** aligné sur la charte Integrity
+
+### Critères de succès
+
+- Un lead Meta → livré à un agent actif **sans intervention admin** (flux normal)
+- Un agent achète des aged leads **depuis son portail** sans email à l’admin
+- L’admin supervise, configure, rembourse — ne reconstruit plus de commandes à la main
+- Migration historique Boberdoo **possible** (feature livrée même si exécutée plus tard)
+
+### Contraintes projet
+
+| Contrainte | Valeur |
+|------------|--------|
+| Budget client | 5 000 USD |
+| Délai indicatif | 4–6 semaines |
+| Cliente | Non technique — pas de questions JSON / API |
+| Domaine | **Mono-domaine** unique pour tous les agents |
+
+---
+
+## 2. Utilisateurs & rôles
+
+### Acteurs hors plateforme
+
+| Acteur | Interaction |
+|--------|-------------|
+| **Prospect** | Remplit formulaire Meta — ne se connecte jamais à notre app |
+| **LeadConduit / TrustedForm** | Envoient le lead + certificat via webhook |
+| **IntegrityCONNECT** | Acheteur externe de leads non distribués en interne |
+| **Stripe** | Encaisse les recharges wallet |
+
+### Rôles dans l’application
+
+#### Admin (opérateur cliente)
+
+- Contrôle total : agents, leads, prix, priorités, remboursements, revente
+- Rôle **superviseur** : le flux normal ne requiert aucune action
+- Un ou quelques utilisateurs internes FFL Capital
+
+#### Partner (acheteur de leads)
+
+> **Vocabulaire UI** : utiliser **« Partner »** partout (parité Boberdoo). En code Prisma : modèle `Partner` (table `partners`). Ne pas afficher « Agent » à l’utilisateur.
+
+- Personne physique, **un compte = une personne** (pas de compte partagé par agence)
+- Champ texte **affiliation** : nom de l’agence / company pour laquelle il travaille
+- Self-service : wallet, leads reçus, achat aged leads, config CRM
+
+### Matrice des permissions
+
+| Action | Admin | Agent |
+|--------|:-----:|:-----:|
+| Voir tous les leads | ✓ | — |
+| Voir ses propres leads | ✓ | ✓ |
+| Gérer agents (CRUD, priorité, prix) | ✓ | — |
+| Approuver inscription agent | ✓ | — |
+| Recharger wallet | — | ✓ |
+| Recevoir leads temps réel (auto) | — | ✓ |
+| Acheter aged leads | — | ✓ |
+| Demander remboursement | — | ✓ |
+| Approuver remboursement | ✓ | — |
+| Config globale (prix aged, etc.) | ✓ | — |
+| Migration historique | ✓ | — |
+| Lancer import Boberdoo | ✓ | — |
+
+---
+
+## 3. Stack technique & déploiement
+
+### Philosophie
+
+- **PostgreSQL standard** partout — pas de lock-in Supabase Auth / Realtime
+- **Auth externe** (Clerk) — portable vers Replit
+- **ORM avec migrations** — switch BDD = changer `DATABASE_URL`
+- **Mode mock/live** pour toutes les intégrations sortantes
+
+### Stack retenue (décision équipe, 29 juin)
+
+| Couche | Choix | Justification |
+|--------|-------|---------------|
+| **IDE / dev** | Cursor | Décision équipe |
+| **Framework** | **Next.js 14** (App Router) + TypeScript | Monorepo full-stack : API webhooks + UI ; déploiement fluide Netlify → Replit |
+| **UI** | **Tailwind CSS + shadcn/ui** | Composants accessibles, charte Integrity customisable |
+| **ORM** | **Prisma** + migrations | Choix équipe ; DX familière, migrations versionnées |
+| **Base de données** | **Supabase PostgreSQL** (dev + staging) | Pas de Docker local ; Postgres standard portable |
+| **Auth** | **Clerk** | Rôles admin/partner, signup, approbation ; indépendant de Supabase |
+| **Paiements** | **Stripe** mode test d’abord | Clés prod client plus tard — hors priorité immédiate |
+| **Emails** | **Resend** (ou SendGrid) | Notifications lead livré |
+| **Jobs planifiés** | Supabase **pg_cron** *ou* cron externe (cron-job.org) | Retraitement 24 h, aging 30 jours |
+| **Repo** | GitHub | CI, collaboration |
+| **Phase 1 deploy** | **Netlify** (Next.js) + **Supabase** | Preview PR, webhooks staging |
+| **Phase 2 deploy** | **Replit** + Postgres Replit | Hébergement final client ; `DATABASE_URL` + Prisma migrate |
+
+*Anciennes options écartées : Drizzle (→ Prisma), Docker Postgres local (→ Supabase), Vite+Hono séparé (→ Next.js unifié).*
+
+### Parcours de déploiement
+
+```
+Phase A — Développement (Cursor + Supabase)
+  ├── Supabase projet dev (pas Docker)
+  ├── Clerk dev instance
+  ├── Stripe test keys (compte TECHMA) — plus tard
+  └── INTEGRATIONS_MODE=mock
+
+Phase B — Staging (Netlify + Supabase)
+  ├── Preview deploys sur chaque PR
+  ├── Supabase projet staging
+  ├── Webhooks LeadConduit → URL Netlify staging (ngrok si besoin en local)
+  └── Stripe test
+
+Phase C — Production initiale (Netlify + Supabase)
+  ├── Domaine mono-domaine client
+  ├── Supabase prod OU migration données
+  └── Stripe prod client
+
+Phase D — Migration Replit (livraison client)
+  ├── Import repo GitHub dans Replit
+  ├── Replit PostgreSQL — export/import depuis Supabase (pg_dump)
+  ├── Variables d’env Replit
+  ├── Reconfig webhooks LeadConduit + Stripe → URL Replit
+  └── Netlify désactivé ou gardé en backup selon choix client
+```
+
+### Variables d’environnement clés
+
+| Variable | Usage |
+|----------|-------|
+| `DATABASE_URL` | Postgres (Supabase → Replit) |
+| `CLERK_*` | Auth |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Paiements |
+| `RESEND_API_KEY` | Emails |
+| `INTEGRATIONS_MODE` | `mock` \| `live` |
+| `INTEGRITY_*` | Credentials ping/post (live only) |
+| `ADMIN_APPROVAL_REQUIRED` | `true` par défaut — désactivable |
+
+### Ce qu’on n’utilise PAS volontairement
+
+- Supabase Auth (Clerk à la place)
+- Supabase Realtime / Storage (sauf si besoin futur fichiers)
+- Stripe Connect (pas de marketplace multi-vendeur)
+- Meta API directe (LeadConduit fait le pont)
+
+---
+
+## 4. Architecture applicative
+
+### Vue d’ensemble
+
+```
+                    ┌─────────────────┐
+                    │   Meta Lead Ads  │
+                    └────────┬────────┘
+                             ▼
+                    ┌─────────────────┐
+                    │   LeadConduit    │
+                    │  + TrustedForm   │
+                    └────────┬────────┘
+                             │ POST webhook
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│              PLATEFORME FFL CAPITAL                       │
+│                                                          │
+│  ┌─────────────┐    ┌──────────────┐    ┌────────────┐ │
+│  │ Portail     │    │ Moteur       │    │ Portail    │ │
+│  │ Admin       │◄──►│ matching +   │◄──►│ Agent      │ │
+│  │             │    │ aging + jobs │    │            │ │
+│  └─────────────┘    └──────┬───────┘    └────────────┘ │
+│                            │                             │
+│                     ┌──────┴───────┐                     │
+│                     │  PostgreSQL  │                     │
+│                     └──────────────┘                     │
+└──────────────────────────┬───────────────────────────────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         ▼                 ▼                 ▼
+   ┌──────────┐     ┌────────────┐    ┌──────────┐
+   │  Stripe  │     │ Integrity  │    │ CRM agent│
+   │  wallet  │     │ CONNECT    │    │ webhooks │
+   └──────────┘     └────────────┘    └──────────┘
+```
+
+### Modules logiciels
+
+| Module | Responsabilité |
+|--------|----------------|
+| **Auth & onboarding** | Clerk, rôles, approbation admin, profil agent |
+| **Lead intake** | Webhook LeadConduit, validation, persistance |
+| **Matching engine** | Routage temps réel état + type + priorité + wallet |
+| **Wallet & billing** | Stripe top-up, ledger, statut actif |
+| **Aged marketplace** | Listing J+30, filtres, achat unitaire + checkboxes |
+| **Refund workflow** | Demande agent → validation admin → routage post-remboursement |
+| **Resale** | IntegrityCONNECT ping/post, storefront, réconciliation |
+| **Notifications** | Email lead livré ; alertes admin optionnelles |
+| **CRM delivery** | Push webhook vers CRM agent (Ringy, HubSpot, etc.) |
+| **Migration** | Import leads/agents depuis export Boberdoo |
+| **Admin config** | Prix globaux, frais (futur), feature flags |
+
+---
+
+## 5. Fonctionnalités détaillées
+
+### 5.1 Authentification & inscription agent
+
+**Comportement validé (call review #1, 29 juin)** : approbation admin obligatoire avant réception de leads — comme Boberdoo aujourd’hui. Désactivable via `ADMIN_APPROVAL_REQUIRED=false` si la cliente change d’avis.
+
+**Flow cible (auth → onboarding → activation) :**
+1. Agent accède à la page signup publique (Clerk)
+2. Crée son compte (email + mot de passe — géré par Clerk, **pas d’email identifiants maison**)
+3. **Accès immédiat au portail** en statut `pending_approval` / non actif :
+   - Peut voir dashboard, « Mes leads », ajouter une carte Stripe
+   - **Ne peut pas** être débité ni recevoir de leads
+   - Peut contacter l’admin via l’app (« activez-moi »)
+4. Agent complète **onboarding** (formulaire post-signup) :
+   - Nom, affiliation (texte), état de résidence
+   - Type lead : Traditional IUL ou High-Intent IUL
+   - Sélection des états US ciblés
+5. Admin approuve et passe l’agent **actif** ; refuse → `rejected`
+6. Agent actif peut **modifier ses états** dans les paramètres du portail (amélioration vs Boberdoo)
+7. Agent recharge wallet (manuel ou récurrent)
+8. Agent **éligible** au matching quand : `status=active` + **≥ 15 états** sélectionnés + `wallet_balance ≥ prix_effectif`
+
+**Filtres agent V1 :** **sélection d’états uniquement**. Le filtre « heure de réception » présent sur l’ancien formulaire Boberdoo n’est **plus utilisé** (confirmé cliente).
+
+### 5.2 Portail admin
+
+#### Dashboard
+- Vue synthèse : leads du jour, unmatched, agents actifs/inactifs, soldes bas
+- Alertes optionnelles (pics unmatched)
+
+#### Gestion agents
+- Liste tous les agents : statut, priorité, solde, états, type lead
+- Actions : approuver/rejeter inscription, activer/désactiver, modifier priorité (1–10), prix personnalisé, voir historique
+
+#### Gestion leads
+- Liste tous les leads avec filtres : statut, état, date, available
+- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity
+- Actions manuelles : reprocesser (relancer matching), voir file unmatched
+
+#### Remboursements
+- File des `refund_requests` en attente (écran « Approve Refunds », parité Boberdoo)
+- Admin **vérifie** la demande (ex. appeler le numéro pour confirmer hors service)
+- Approuver → crédit wallet + routage selon **type de remboursement** (voir §5.8 et §7)
+- Refuser → notification agent
+- Suivi optionnel du **buffer 15 %** sur remboursements « numéro invalide » (voir §7)
+
+#### Configuration globale
+- Prix lead temps réel par type (défaut IUL = 25 $)
+- Prix aged lead (défaut 5 $)
+- *(Futur)* frais de retraitement
+
+#### Migration historique
+- Écran import : upload export Boberdoo (CSV/API selon format découvert)
+- Mapping champs, preview, import batch
+- **Feature livrée en V1** même si exécution différée
+
+#### Revente Integrity
+- Vue postings : statut, mode realtime/storefront
+- Réconciliation storefront (import log journalier — manuel ou auto selon API)
+
+### 5.3 Portail agent
+
+#### Dashboard
+- Solde wallet, statut actif/inactif
+- Leads reçus récemment
+- Lien rapide marketplace aged
+
+#### Mes leads
+- Liste des leads livrés (temps réel + aged achetés)
+- Détail : contact, état, date, prix payé, certificat TrustedForm
+- Bouton **demander remboursement** (si delivery `refundable`)
+
+#### Wallet
+- Solde en temps réel
+- **Recharge manuelle** : montant libre
+- **Recharge récurrente** : ex. 500 $/semaine, carte enregistrée
+- Historique transactions (pas de PDF facture obligatoire V1)
+
+#### Marketplace aged leads
+- Filtres : état(s), type IUL, budget max
+- Liste leads `available=true`, âge ≥ 30 jours, prix 5 $
+- **Achat unitaire** : bouton acheter sur une ligne
+- **Sélection multiple** : checkboxes + « Acheter la sélection »
+- Débit wallet, livraison email + CRM
+- *(V2)* panier persistant
+
+#### Paramètres
+- URL webhook CRM personnelle
+- **Modifier états ciblés** (sélection / désélection) — **validé cliente** ; minimum **15 états** pour rester éligible aux achats
+- Modifier type lead (Traditional / High-Intent)
+- Config récurrence wallet
+- Message bloquant si < 15 états : « Veuillez sélectionner au moins 15 états »
+
+### 5.4 Pipeline d’intake leads
+
+**Endpoint :** `POST /api/leads/intake` (nom indicatif)
+
+**Déclencheur :** LeadConduit envoie POST à chaque soumission Meta.
+
+**Traitement :**
+1. Valider payload (champs minimum : contact, state, lead_type, trustedform_cert_url)
+2. Créer lead : `received_at=now()`, `available=true`, `refundable=true`, `status=unmatched`
+3. Répondre `{ "outcome": "success" }` (format LeadConduit)
+4. Déclencher matching engine asynchrone
+
+**Source champs :** déduire depuis Boberdoo / LeadConduit — ne pas demander à la cliente.
+
+### 5.5 Moteur de matching (temps réel)
+
+**Déclenchement :** à chaque nouveau lead + job retraitement 24 h + retour file après remboursement **type A** (mauvais critère — voir §5.8).
+
+**Critères temps réel V1 (tous requis) :**
+1. État du lead ∈ `filter_states` du partner
+2. `lead_type` partner = type du lead
+3. Partner `status = active` (approuvé + non désactivé)
+4. `length(filter_states) ≥ 15`
+5. `wallet_balance ≥ prix_effectif` (prix global ou `price_override`)
+6. Lead `available = true`
+
+**Sélection gagnant :** priorité la plus haute (1–10). **Égalité de priorité → FIFO** (partner inscrit le plus tôt en premier — confirmé équipe).
+
+**Actions post-match :**
+1. Créer `lead_delivery` (channel=realtime, price, delivered_at)
+2. Débiter wallet + transaction ledger
+3. `lead.available = false`, `lead.status = delivered`
+4. Email agent
+5. Push CRM si configuré
+
+**L’agent ne clique pas pour accepter** — distribution 100 % automatique.
+
+### 5.6 File unmatched & retraitement
+
+**Si aucun agent éligible :**
+1. Lead reste `status=unmatched`, `available=true`
+2. Job toutes les X minutes pendant **24 h** : réessayer matching
+3. Après 24 h sans match → module IntegrityCONNECT
+4. Lead reste en base pour aging J+30
+
+### 5.7 Marketplace aged leads
+
+**Éligibilité listing (séparée de `available`) :**
+- `now - received_at ≥ 30 jours`
+- `status != dead`
+- **Pas de condition `available = true`** — un lead déjà vendu en temps réel (`available=false`) peut être listé
+- Filtres partner : état, type IUL, wallet, ≥ 15 états
+
+**Achat partner :**
+- Manuel (unitaire ou checkboxes)
+- Débit wallet 5 $ (ou prix config admin)
+- Créer `lead_delivery` channel=`aged`
+- `available` **reste `false`** (déjà vendu ou non — inchangé)
+- Email + CRM
+
+**Pas de plafond** de ventes aged par lead (décision équipe). Un lead = un acheteur aged à la fois (verrou via transaction ou flag dédié si besoin).
+
+### 5.8 Remboursements
+
+**Workflow in-app obligatoire** (confirmé call review #1). Deux **types** distincts :
+
+#### Type A — Mauvais critère / mauvais état
+
+Ex. : l’agent voulait le Texas, a reçu un lead Californie.
+
+```
+Agent → demande remboursement (raison : wrong_filter)
+  → Admin approuve
+       - delivery.refunded_at = now
+       - Crédit wallet agent (montant delivery.price)
+       - lead.available = true
+       - Rematch immédiat vers le partner/agent suivant (même critères, priorité inférieure)
+       - Prix de revente = prix d’origine (ex. 25 $)
+```
+
+#### Type B — Numéro invalide / hors service
+
+Ex. : numéro Meta incorrect ; admin appelle et confirme.
+
+```
+Agent → demande remboursement (raison : invalid_phone)
+  → Admin vérifie (appel) → approuve ou refuse
+  → Si approuvé :
+       - delivery.refunded_at = now
+       - Crédit wallet agent (montant delivery.price)
+       - lead.available = false, status = dead (ou équivalent)
+       - Lead **non redistribué** — mort définitivement
+```
+
+**Buffer 15 % :** règle métier **verbale** de la cliente (leads Meta) — **non automatisée dans Boberdoo** (vérifié browser 29 juin). V1 : workflow manuel identique à Boberdoo ; pas de compteur ni blocage auto dans l’app.
+
+**Cycle remboursement + revente (type A) :** après revente post-remboursement, `refundable = false` — plus de second remboursement sur ce lead.
+
+**Note :** l’ancienne règle interne TECHMA « routage post-remboursement par âge (< 2 j / Integrity / aged) » est **remplacée** par ce modèle validé cliente (voir §7).
+
+### 5.9 Wallet Stripe
+
+**Modèle : wallet prépayé (stored value)**
+
+```
+Recharge Stripe → argent compte Stripe cliente → webhook → +wallet_balance BDD
+Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
+```
+
+**Modes recharge :** manuelle ponctuelle + récurrente hebdomadaire (les deux en V1).
+
+**Statut actif :** `wallet_balance >= prix_effectif_agent`.
+
+### 5.10 Notifications email
+
+- Agent : email à chaque lead livré (temps réel ou aged)
+- Admin : optionnel — spike unmatched, demandes remboursement
+- Pas d’email mot de passe (Clerk)
+
+### 5.11 CRM custom delivery
+
+- Chaque agent configure une **URL webhook**
+- À chaque livraison : POST JSON (contact, état, type, ids)
+- Format déduit de Boberdoo — pas de question cliente
+- Mode mock : log local / webhook.site en dev
+
+### 5.12 Revente IntegrityCONNECT
+
+**Modes :**
+- **Real-time ping/post** : vente immédiate, statut `sold` auto
+- **Storefront** : envoi lot, réconciliation journalière
+
+**Déclenchement :** lead unmatched après fenêtre retraitement 24 h.
+
+**Implémentation :** adapter mock/live ; specs depuis Boberdoo.
+
+### 5.13 Migration historique Boberdoo
+
+**Décision :** fonctionnalité **prévue et livrée** en V1, exécution quand export disponible.
+
+**Scope import :**
+- Leads historiques (contact, état, dates, TrustedForm si présent, statuts)
+- Optionnel : agents existants (mapping vers Clerk manuel ou invite)
+
+**Écran admin :**
+- Upload fichier
+- Preview & validation
+- Import batch avec rapport erreurs
+- Ne pas bloquer le reste du build si import non exécuté jour 1
+
+---
+
+## 6. User flows
+
+### 6.1 Flux système — lead entrant
+
+```
+LeadConduit POST webhook
+  → Créer lead (available=true)
+  → Matching engine
+       ├─ Agent éligible trouvé (priorité max)
+       │    → Débit wallet, delivery, email, CRM, available=false
+       └─ Aucun agent
+            → unmatched, file 24 h
+                 ├─ Match ultérieur → livraison
+                 └─ 24 h écoulées → IntegrityCONNECT
+  → [Parallèle temps] J+30 → éligible marketplace aged si available
+```
+
+### 6.2 Flux agent — inscription à première lead
+
+```
+Signup Clerk → accès portail (non actif)
+  → Onboarding (états, type, affiliation) — peut ajouter carte, pas de débit
+  → Admin approuve → status active
+  → Agent ajuste états si besoin (≥ 15 requis)
+  → Stripe : recharge wallet
+  → wallet OK + ≥ 15 états
+  → [Automatique] prochain lead matching → email + portail "Mes leads"
+```
+
+### 6.3 Flux agent — achat aged
+
+```
+Portail → Marketplace aged
+  → Filtres (état, type, budget)
+  → Liste leads disponibles
+  → Sélection (unitaire ou checkboxes)
+  → Confirmer achat
+  → Débit wallet, delivery, email, CRM
+```
+
+### 6.4 Flux remboursement
+
+```
+Agent : demande remboursement sur delivery (+ type / raison)
+  → Admin : file pending → vérifie (appel si numéro invalide)
+  → Approuve
+       ├─ Type A (mauvais critère)
+       │    ├─ Crédit wallet
+       │    ├─ available=true
+       │    └─ Rematch temps réel (priorité suivante, prix d’origine)
+       └─ Type B (numéro invalide)
+            ├─ Crédit wallet
+            └─ Lead mort (available=false, pas de redistribution)
+  → Si lead revendu après type A → refundable=false
+```
+
+### 6.5 Flux admin — journée type
+
+```
+Connexion → Dashboard (lecture seule si tout va bien)
+  → Éventuellement : approuver nouvel agent, traiter remboursement
+  → Pas d'export manuel, pas de construction commande aged
+```
+
+---
+
+## 7. Règles métier
+
+### Prix
+
+| Type | Défaut | Override |
+|------|--------|----------|
+| IUL temps réel | 25 $ | Par agent (ex. Dominic 20 $) |
+| Aged lead | 5 $ | Global admin |
+
+### Priorité
+
+- Défaut nouvel agent : **5**
+- Admin règle 1–10 selon interne/externe
+- Plus haut gagne à état égal
+
+### Disponibilité lead (`available`)
+
+> **`available` pilote uniquement le matching temps réel** — pas la marketplace aged (décision équipe).
+
+| Événement | `available` (temps réel) | Aged marketplace |
+|-----------|--------------------------|------------------|
+| Création | `true` | non éligible (< 30 j) |
+| Vente temps réel ou aged | `false` | — |
+| Remboursement type A approuvé | `true` (rematch, même si > 30 j) | inchangé |
+| Remboursement type B approuvé | `false` (lead mort) | exclu |
+| J+30, lead vendu (cycle normal) | **`false`** (reste vendu) | **éligible** via critère âge, pas via `available` |
+| Revente après remboursement type A | `false` après vente | selon âge / statut |
+
+### Aged leads — critères (séparés de `available`)
+
+Un lead peut apparaître en marketplace aged quand :
+- `now - received_at ≥ 30 jours`
+- `status != dead`
+- **sans** exiger `available = true` (un lead déjà vendu en temps réel reste `available=false` mais peut être proposé en aged à 5 $)
+
+Requête indicative : âge + état + type IUL + filtres partner — **pas** le booléen `available`.
+
+Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste `false`.
+
+### Filtres agent
+
+- **Seul filtre V1 :** sélection d’états US (`filter_states`)
+- **Minimum 15 états** pour être éligible aux achats / matching
+- Pas de filtre « heure de réception » (abandonné côté cliente)
+- Agent actif peut **modifier** ses états en self-service (paramètres portail)
+
+### Aging (lead vendu — cycle normal, hors remboursement)
+
+- Âge = `now - received_at`
+- Lead **vendu** en temps réel : `available` reste **`false`**
+- À **J+30** : le lead devient listable en **marketplace aged** (5 $) via critère d’âge — **sans** repasser `available` à `true`
+- Listing aged : ≥ **30 jours**
+- Tranches d’âge affichées (15–30 j, etc.) : **V2**
+
+### Remboursement type A et âge du lead
+
+- Remboursement **type A** (mauvais critère) : `available=true` **immédiatement**, rematch temps réel — **même si le lead a plus de 30 jours** (confirmé équipe)
+- Remboursement **type B** (numéro invalide) : lead mort, `available=false` — pas de redistribution, quel que soit l’âge
+
+### Post-remboursement — routage (validé cliente, review #1)
+
+| Type | Après approbation admin |
+|------|-------------------------|
+| **A — Mauvais critère** | Rematch temps réel, partner priorité suivante, **prix d’origine** |
+| **B — Numéro invalide** | Crédit wallet ; lead **mort**, aucune redistribution |
+
+*Ancienne hypothèse équipe (âge < 2 j → temps réel ; ≥ 2 j → Integrity ; ≥ 30 j → aged) : **non validée** par la cliente — retirée des décisions figées.*
+
+### Retraitement unmatched
+
+- Fenêtre : **24 h** après entrée
+- Puis IntegrityCONNECT si toujours unmatched
+
+### Volume
+
+- ~500 leads/jour — concevoir intake et matching pour ce débit
+
+---
+
+## 8. Schéma de base de données
+
+### Diagramme relationnel (conceptuel)
+
+```
+agents ──────────────┬──── lead_deliveries ──── leads
+  │                  │            │
+  │                  │            ├── resale_postings
+  │                  │            │
+  ├── transactions   │            │
+  ├── refund_requests┘            │
+  │                               │
+  └── billing_recurrence          │
+                                  │
+app_settings (singleton)          │
+migration_jobs                    │
+```
+
+### Table `agents`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| clerk_user_id | string unique | Lien Clerk |
+| email | string | |
+| first_name, last_name | string | |
+| affiliation | string nullable | Nom agence partenaire |
+| residence_state | string | État US résidence |
+| lead_type | enum | traditional_iul \| high_intent_iul |
+| filter_states | string[] | Codes état US ; **minimum 15** pour éligibilité achat |
+| priority | int | 1–10, défaut 5 |
+| price_override | decimal nullable | Prix custom (ex. 20.00) |
+| wallet_balance | decimal | Solde courant, défaut 0 |
+| status | enum | pending_approval \| active \| rejected \| disabled |
+| crm_webhook_url | string nullable | |
+| stripe_customer_id | string nullable | |
+| created_at, updated_at | timestamp | |
+
+**Index :** status, priority, filter_states (GIN)
+
+### Table `leads`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| first_name, last_name | string | |
+| email, phone | string | |
+| state | string | Code état US |
+| lead_type | enum | |
+| trustedform_cert_url | string nullable | |
+| source | string | ex. meta_leadconduit |
+| received_at | timestamp | **Référence aging** |
+| available | boolean | Défaut true |
+| refundable | boolean | Défaut true |
+| status | enum | unmatched \| delivered \| integrity_posted \| aged_listed |
+| external_id | string nullable | ID LeadConduit / Boberdoo migration |
+| raw_payload | jsonb nullable | Payload webhook brut (debug) |
+| created_at, updated_at | timestamp | |
+
+**Index :** state, status, available, received_at, (available, received_at) pour aged query
+
+### Table `lead_deliveries`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| lead_id | FK leads | |
+| agent_id | FK agents | |
+| channel | enum | realtime \| aged |
+| price | decimal | Prix facturé |
+| delivered_at | timestamp | |
+| refunded_at | timestamp nullable | |
+| created_at | timestamp | |
+
+**Index :** agent_id, lead_id, refunded_at
+
+### Table `refund_requests`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| lead_delivery_id | FK | |
+| agent_id | FK | |
+| reason | text nullable | Détail libre |
+| refund_type | enum | wrong_filter \| invalid_phone |
+| status | enum | pending \| approved \| rejected |
+| reviewed_by | FK agents nullable | Admin |
+| reviewed_at | timestamp nullable | |
+| created_at | timestamp | |
+
+### Table `transactions`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| agent_id | FK | |
+| type | enum | top_up \| lead_purchase \| aged_purchase \| refund \| reprocessing_fee |
+| amount | decimal | Positif = crédit, négatif = débit |
+| balance_after | decimal | Snapshot solde |
+| stripe_payment_intent_id | string nullable | |
+| lead_delivery_id | FK nullable | |
+| description | string nullable | |
+| created_at | timestamp | |
+
+**Règle :** ledger append-only — jamais modifier une transaction passée.
+
+### Table `billing_recurrence`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| agent_id | FK | |
+| amount | decimal | ex. 500.00 |
+| interval | enum | weekly |
+| stripe_subscription_id | string nullable | Si via Subscription |
+| active | boolean | |
+| next_charge_at | timestamp nullable | |
+
+### Table `resale_postings`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| lead_id | FK | |
+| mode | enum | realtime \| storefront |
+| status | enum | pending \| sold \| rejected \| reconciled |
+| external_ref | string nullable | |
+| posted_at, sold_at | timestamp nullable | |
+| revenue_share | decimal nullable | |
+
+### Table `app_settings`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| key | string PK | |
+| value | jsonb | |
+
+**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`
+
+### Table `migration_jobs`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| status | enum | pending \| running \| completed \| failed |
+| file_name | string | |
+| total_rows, success_rows, error_rows | int | |
+| error_log | jsonb nullable | |
+| created_by | FK admin | |
+| created_at, completed_at | timestamp | |
+
+---
+
+## 9. Intégrations externes
+
+| Service | Direction | Rôle | Dev sans client |
+|---------|-----------|------|-----------------|
+| LeadConduit | Entrée | Webhook leads | Simulateur + fixtures |
+| TrustedForm | Entrée (via LC) | Certificat dans payload | URL factice |
+| Clerk | Auth | Login, rôles | Instance dev |
+| Stripe | Entrée | Top-up wallet | sk_test TECHMA |
+| Resend | Sortie | Emails | Mailtrap / log |
+| IntegrityCONNECT | Sortie | Revente leads | Mock server |
+| CRM agent | Sortie | Webhook JSON | webhook.site |
+
+**Contrat réponse LeadConduit :** `{ "outcome": "success", "reason": "" }`
+
+---
+
+## 10. Stratégie de tests & mocks
+
+### Simulateur lead (dev)
+
+Page interne `/dev/lead-simulator` (masquée en prod) :
+- Formulaire : nom, email, phone, state, lead_type
+- Génère trustedform_cert_url factice
+- POST vers `/api/leads/intake`
+
+### Fixtures
+
+Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo une fois exploré.
+
+### `INTEGRATIONS_MODE=mock`
+
+| Service | Comportement mock |
+|---------|-------------------|
+| Integrity | Accepte tout, log |
+| CRM | Log payload |
+| Email | Console / Mailtrap |
+| Stripe | Vraies clés test (pas mock) |
+
+### Tests manuels checklist
+
+- [ ] Lead entre → match agent CA priorité 10
+- [ ] Wallet insuffisant → pas de livraison
+- [ ] Unmatched 24 h → Integrity mock
+- [ ] J+30 → aged listing **sans** `available=true`
+- [ ] Achat aged checkboxes → débit wallet
+- [ ] Remboursement type A → rematch priorité suivante, prix d’origine
+- [ ] Remboursement type B → crédit wallet, lead mort (pas de redistribution)
+- [ ] Signup → portail non actif → onboarding → admin approve → ≥ 15 états → active
+- [ ] Migration import dry-run
+
+---
+
+## 11. Design & UX
+
+### Références
+
+- Site **Integrity Marketing** (bleu, typo) — pas document formel
+- Instance **Boberdoo** client — parité fonctionnelle écrans
+- Ambition : **moderne**, nettement au-dessus de Boberdoo actuel
+
+### Principes
+
+- Admin dense mais lisible (tables, filtres, statuts colorés)
+- Agent simple : wallet visible, leads clairs, aged marketplace intuitive
+- Mobile-responsive souhaitable (agents consultent leads sur téléphone)
+
+### Composants clés agent
+
+- Badge **Actif** / **Inactif** (wallet)
+- Liste leads avec état US en évidence
+- Marketplace aged : filtres en haut, checkboxes, CTA achat
+
+---
+
+## 12. Phases de livraison
+
+### Phase 1 — Fondations (semaine 1)
+
+- Repo GitHub, **Next.js + Prisma** + Supabase dev
+- Clerk auth, rôles admin/agent
+- Schéma BDD migrations
+- Shells UI Admin + Agent (design de base)
+- Onboarding agent + **approbation admin**
+- Feature flag `ADMIN_APPROVAL_REQUIRED`
+
+### Phase 2 — Intake & matching (semaine 2)
+
+- Webhook intake + simulateur
+- Moteur matching complet
+- File unmatched + job retraitement 24 h
+- Admin : liste leads, agents CRUD
+
+### Phase 3 — Wallet & notifications (semaine 3)
+
+- Stripe test top-up manuel + récurrent
+- Ledger transactions, statut actif
+- Emails lead livré
+- Portail agent : mes leads, wallet
+
+### Phase 4 — Aged & remboursements (semaine 4)
+
+- Job aging J+30
+- Marketplace aged (unitaire + checkboxes)
+- Workflow remboursement in-app
+- Routage post-remboursement
+
+### Phase 5 — Intégrations & migration (semaines 5–6)
+
+- IntegrityCONNECT live (si specs OK)
+- CRM webhook agent
+- **Migration Boberdoo** (écran import)
+- Deploy Netlify + Supabase staging
+- Tests charge, corrections
+- Préparation migration Replit
+
+### Phase 6 — Livraison Replit
+
+- Export Supabase → Replit Postgres
+- Deploy Replit, reconfig webhooks
+- Stripe prod client
+- Formation admin cliente
+
+---
+
+## 13. Hors scope V1
+
+- Frais de retraitement (montant à définir plus tard)
+- Factures PDF
+- Panier aged leads persistant
+- Tranches d'âge aged affinées dans les filtres
+- Filtres matching au-delà état + type IUL
+- Plafond ventes aged
+- Accès Meta Ads Manager
+- App mobile native
+- Multi-langue
+
+---
+
+## 14. Décisions figées
+
+| # | Décision |
+|---|----------|
+| D1 | Mono-domaine pour tous les agents |
+| D2 | Clerk pour auth — pas d'email identifiants maison |
+| D3 | **Approbation admin après signup** — défaut oui, désactivable |
+| D4 | **Migration historique** — feature livrée V1 |
+| D5 | Matching V1 : état + type IUL + wallet + **≥ 15 états** + priorité |
+| D6 | `available` booléen pilote le matching **temps réel** ; aged utilise critère **âge J+30** séparé |
+| D7 | Un remboursement max par cycle ; `refundable=false` après revente (type A) |
+| D8 | Remboursement in-app obligatoire ; admin vérifie (appel si numéro invalide) |
+| D9 | **Deux types remboursement** : A = rematch prix origine ; B = lead mort, pas redistribution |
+| D10 | Aged : achat unitaire + checkboxes V1 |
+| D11 | Pas de plafond ventes aged |
+| D12 | Recharge wallet manuelle + récurrente |
+| D13 | Payload/champs/API : sourcer via Boberdoo — pas demander à cliente |
+| D14 | Dev Cursor → deploy Netlify+Supabase → migration Replit |
+| D15 | PostgreSQL portable — pas Supabase Auth |
+| D16 | **Minimum 15 états** pour éligibilité agent ; agent peut modifier ses états après activation |
+| D17 | **Filtre unique V1** : états US — pas de filtre horaire |
+| D18 | **Pas de sous-domaines** par agence — mono-domaine validé (review #1) |
+| D19 | **Égalité de priorité → FIFO** (partner le plus ancien en premier) |
+| D20 | Stack : **Next.js + Prisma + Supabase + shadcn/ui** ; pas Docker |
+| D21 | **Vocabulaire UI = Boberdoo** : « Partner » (pas « Agent » en interface) |
+
+---
+
+## 15. Questions ouvertes
+
+### Cliente (simple)
+
+| # | Question | Statut |
+|---|----------|--------|
+| Q1 | Frais de retraitement — montant ? | **Reporté** — hors V1 |
+| Q2 | Clés Stripe production — quand ? | **Reporté** — mode test TECHMA d’abord |
+| Q3 | Désactiver approbation admin si souhait ? | Feature flag prêt — **confirmé : approbation requise** (review #1) |
+
+### Interne TECHMA
+
+| # | Question | Statut |
+|---|----------|--------|
+| Q4 | ~~Seuil 2 jours post-remboursement~~ | **Retiré** — modèle deux types (review #1) |
+| Q5 | Next.js vs Vite+Hono | **Résolu : Next.js** |
+| Q6 | Partner modifie ses `filter_states` après onboarding ? | **Résolu : oui** (review #1) |
+| Q7 | Format exact export migration Boberdoo | **Résolu** — `BOBERDOO_EXPLORATION.md` §35 |
+| Q8 | Égalité de priorité — tie-breaker ? | **Résolu : FIFO** |
+| Q9 | Buffer 15 % — implémentation ? | **Résolu** : règle métier manuelle uniquement — pas d’automatisation V1 (parité Boberdoo) |
+| Q10 | `available` pour aged leads ? | **Résolu** : `available` = temps réel seulement ; aged = critère âge J+30 |
+| Q11 | Vocabulaire UI Partner vs Agent ? | **Résolu : Partner** (vocabulaire Boberdoo) |
+| Q12 | Prisma vs Drizzle ? | **Résolu : Prisma** |
+| Q13 | Supabase vs Docker local ? | **Résolu : Supabase** |
+
+---
+
+## Annexe — Lecture pour agents IA
+
+**Ordre de lecture :**
+1. Ce fichier (`PRD.md`) — spec implémentation
+2. `PROJECT.md` — contexte, décisions, FAQ
+3. `capital_solu_initial_call_transcript.txt` — call découverte
+4. `first review with client` — review #1 (29 juin 2026)
+5. Proposition TECHMA — scope contractuel
+
+**Ne pas faire :**
+- Demander JSON/payload à la cliente
+- Utiliser Supabase Auth
+- Implémenter Stripe Connect
+- Bloquer le dev en attendant Meta ou Integrity
+
+**Commencer par :**
+- Schéma BDD + Clerk + shells UI + simulateur webhook + matching mock

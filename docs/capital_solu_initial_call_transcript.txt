@@ -1,0 +1,155 @@
+00:48 Hey, can you hear me? Hi, yes, can you hear me? Yes, they can hear you. How are you? I'm doing well.
+00:55 How about yourself? I'm doing good. I'm doing good. Nice to meet you. Nice to meet you as well. And thank you so much for taking the time to meet with me.
+01:04 That's perfect. I'm pretty happy to help. So, yeah, I think, I think you were looking to build a sort of, like, uh, application, right?
+01:15 Um, can you tell me more about it? Yes. So we are a leads generating company. We are currently partnered with Bobberter.
+01:24 I don't know if you're familiar with their system, but essentially they store all of our lead sources that come in.
+01:31 They have a feature where we're able to distribute them through their portal. So they have kind of like a matching phase, a priority phase, we're able to filter said so based off states for the leads that are coming in.
+01:51 And it's really accessible for our partners who purchase leads from ICE because they're able to, you know, just add the money to their account.
+01:59 Their accounts already active. So those leads that are being generated are automatically distributed. There's not really much front end work that I have to necessarily do.
+02:10 But one thing we are looking to do is that they just have a few caps on what it is that we need our site to generate.
+02:19 So an example of that is when our leads hit kind of that 30-day mark, we need them to be resold as an age lead per se.
+02:28 Their system just doesn't allow that kind of storage for up to 30 days. So we're currently manually doing it, which has been fine, but we did do a few consultations with a few other people.
+02:43 and they made it seem like it was super easy to do, very doable. And then part of it was like, well, if it's super easy, is it potentially something that we could just build on our own application?
+02:57 Now we can have a little bit more control and not continue with these setbacks. And, you know, those barriers of like, oh, well, now we can't do this and then have to find a new software to be using.
+03:09 So that's just kind of where we're at, and I've been working, you know, on perplexity AI trying to kind of build something.
+03:20 It's a little bit more out of my scope of realm of what I know. So, but I mean essentially, like, it does seem like it is doable.
+03:32 Just, you know, I don't have that knowledge. Right, right. Yeah, I mean, absolutely. It's 100% doable. I mean, we have also many, so many applications, you know, so.
+03:45 And in a generation, I think you have both even one recently, a generation application like that. But I always say, I still need to see what this platform look like, because you want to do something similar to them, but for your own usage internally, right?
+04:04 This is not necessarily to be sold for the people, correct? It's only me. All right. Yeah. So do you have like, can you show me what the platform looks like and work me through that very quickly?
+04:19 most definitely. I'm going to go ahead and share my screen. So this is Bob Purdue System. It's very intricate, very detailed oriented.
+04:33 It looks like a hot mess. But rather so it is, it is simple once you get the hang of it.
+04:41 So we generate IUL leads which is life insurance and the way that we have it set up is we generate our leads through meta.
+04:51 They actually go to lead conduit, trusted form, and then we have a field build out that then sends the lead to Bob-Redu system with the trusted form.
+05:06 And I don't know if you're familiar with trusted form, but it just basically captures, yeah, captures them filling it out for legal reasons.
+05:14 So once it does hit our system, It automatically will go to a partner who's active and where that is stored is in our partners So these are all of our partners that are signed up with us To give you a client.
+05:29 Yes, which is our clients. Yes So they sign up with us. They When they first sign up, they filter out what lead type they want So if they want IUL or mortgage protection and then from there they get to select their states So basically you add them as a user on this platform and then they go through an
+05:52 onboarding process of filling out whatever information you want them to fill out. And then it's from user from there. Okay, correct.
+06:00 So then once they fill it out, they add their credit card payment as well. And then from there, we're connected with Stripe.
+06:07 So like, let's say they want to add $200 to their wallet, which is like their lead buying. It'll automatically populate.
+06:15 It'll hit our Stripe account and then it'll generate how much credit they have here. With that credit because like example, this agent is currently active.
+06:26 It has $15 left. Our leads are based out of $20. So this won't spend until he adds, let's say, $5 more to get that 20.
+06:36 But it'll, because he is active, if he adds credit to it, it'll automatically start pushing leads to this agent. And then again, the leads are generated here and they do a weight system.
+06:50 So like, if I have two agents, one of them is more of a priority, we fill his orders. He'd be like a priority 10 versus another, the other agent who's not as much as a priority, he'd be a priority eight.
+07:02 So if they both want California leads, it would go to the priority 10 versus the priority 8. How has the priority been defined?
+07:12 The priorities normally just define based on my selection of it. So like we have clients that are directly with our company versus outside of our company.
+07:23 So for us, we see those clients as more a priority versus clients who are outside of our company. Got it.
+07:32 Okay, let's do. And then so this is kind of that portion of it. We do also have custom deliveries. So we are partnered with a bigger company called Integrity Marketing.
+07:47 And from there, we have this direct being post with them, that is kind of a resale of our leads. So if our leads don't match with any partners that we have directly with us, we send those to this other company who sells them at a higher cost, and then we just get a percentage.
+08:09 Okay, how do you know, like, if they sold the lead, which you show them together percentage. How do you know?
+08:18 Yes, so they have two different type of lead systems when they're posted. So there's a real time lead and then there is a storefront lead.
+08:27 So a real time lead, they sell automatically and it lets our system know when it hits real time. So like right here it hit real time.
+08:36 So we know those automatically sold. Verse it went to storefront, we get a daily log sent from the company, letting us know which one sold.
+08:46 Got it. And then that is kind of the basics. The easy lead, those are just filtering, filter leads, refound all those.
+09:04 I'm not needed. Correct. Yes. Yeah. So like I can even show you this agent for example like this is his lead filter set So we can go in here and I mean other than he gets an email when he gets a lead We also have the option to Set up like a custom delivery.
+09:26 So if they wanted to go to their own CRM such as ringy or or an HCMS, I'm trying to think of like HubSpot, kind of where else, like they store their leads, they have the option to set that up.
+09:42 So we're looking to do that as well to have the age and be able to link that on their end.
+09:49 Again, here's that like match priority, whether it's higher or low, they automatically, when they're signed up, they're automatically set up to a five priority and then from there, I edit it on my end and then this is that filter set.
+10:04 So again, it's just states really that lets them determine where they're getting their leads. Yeah. So then you use those steps to kind of find the lead for them on Meta, is that how you do it?
+10:21 And then you send the lead from there. Yeah. So the way that we have it, we have one ad that is generating 500 leads daily.
+10:31 So when the leads come in realistically, we have it open-ended for all states. We just like, and you'll see like right here, like we have leads that come in that don't go to anybody because they don't match.
+10:46 And then what I will normally do is I, for the real time, we get a 24-hour gap period where we can reprocess these leads to see if it'll match again later on.
+10:59 And if it doesn't match within that 24-hour window, I then submit them to storefront. And storefront, we get a 48-hour window to submit those leads.
+11:09 Okay, so storefront, I guess they probably have an API, we're okay. Yeah, for storefront, and I can show you those deliveries.
+11:23 Let's see, that'll be here. So this is how we have storefront setup. So like they have their ping post, all their APIs, everything that's needed to submit and post.
+11:38 How do you say it? Got it. Okay. Thanks. Thanks. So you do have also a contact whether we can talk with us.
+11:48 Yes. And I do have that file if we need to start linking things up and kind of progressing through them.
+11:57 I do have that file saved on R and so I can always send that over. All right. Okay. Um, and that's, that's really it.
+12:10 I mean, we have an eight, we kind of have an age leads portal and this is the process that we're really hoping to hone in on and allow agents to purchase on their own.
+12:22 They don't have access to this and I can show you what their portal looks like. But for me, for example, what I have to do is I have to export all of our leads that come in, upload them here, and then I have to build out everyone's orders.
+12:38 So, like, if somebody emails me and is like, hey, I want California age leads that are 15 to 30 days old.
+12:46 Can I get this purchased? I have to go in here, I then filter the leads, go to states, figure out what their budget is, all that good stuff, we're just looking more than doing it.
+13:00 So you want to allow basically the agents or the client to just be able to see those age leads. So age leads, what do you consider that age leads?
+13:11 Have those leads, which is just like not assigned to anyone, is that what you consider as age leads? An age lead, I would say, is anything that has been sitting in our system past 30 days, which has not been matched really.
+13:24 Or they or they have been matched. Whether it's matched or unmatched, if they've been sitting in our system for 30 days, we just sell them at discounted price of $5.
+13:36 Okay. So if they've been matched and then it's so and then it's already assigned to a partner. It should not show up anymore right within your leads.
+13:46 Correct. It won't show up in leads. Like, I won't be able to reprocess it to anybody, but I do want it to show up in age leads.
+13:57 I got it. Okay. I see. I see. Okay. That makes sense. And then you want them to be able to purchase it themselves.
+14:06 Yes. So they have already like a credit card on on on towels. I mean, they already, you know, add some balance to their wallet.
+14:14 And then you just need to pay from the wallet they already have, okay? Exactly, exactly. And even, and I know there are some times where there's an error and somebody purchases a lead and they're like, wait, I didn't actually want to apply the amount that I put in my wallet towards real time leads.
+14:34 I would rather have it for age leads. I do, if it's possible to have this built out, I do still want there to be like a reprocessing fee or reprocessing for the lead.
+14:46 So if I need to send it to another partner, I can send it to multiple partners, if needed. Right, go on there.
+14:55 I think. I was like, I think they have it set up like this where it's like a source vendor setting so I can actually manually go in and change it and say like, oh, I actually wanted to go to five partners per say per lead.
+15:13 but like we have it set up to automatically go to one so like if there is ever a lead that comes in and a client's like oh wait I didn't want this lead I refund them but then I resell the lead and I have to go in here edit how many people can own this lead and then I apply to and then I go back I edit
+15:30 it's a little bit tedious but it's been working it just like there are a few gaps where we're looking to grow a little bit bigger and it's requiring more manual work than it really should need so we're looking to have it more automated and flow and have the partner have access to purchasing what they
+15:52 need because right now I'll show you what their portals look like right now their portals look like this so they see like their leads, their transactions if needed, they can add their own funds.
+16:09 So like, if they had a card on file, for example, they'd be able to add their money and they would get active leads, they just wouldn't be able to get age leads.
+16:18 So we want them to be able to see what's available for age leads after 30 days. Got it. Got it.
+16:25 And let's say there's an any match for like based on the criteria and then match with that partner. So does the partner still need to make a specific action to purchase that lead?
+16:43 Or it is automatically assigned to them because they get matched based on also the priority which you set to them as well.
+16:51 How does that works? It is automatic. So if everything matches correctly which realistically the only filter is that state so if it matches their state and they're that lead priority it automatically will go to them.
+17:08 I can give you somewhat an example for real time for real time just so you can see this like you'll see there was no valid campaign for real time, which means nobody wants Wisconsin state.
+17:23 So it was rejected from real time, and there was no one for it to match with. So it goes unmatched.
+17:32 But normally, if real time is the priority, and real time gets rejected, it would then go to the next person and match with them.
+17:43 And like they pay for a lead to charge them, I mean, they subscribe directly from the wallet, the price of the lead.
+17:52 So is all the lead worth the same thing? Is it the same price for all the lead? Yes, so for IUL.
+18:00 And like you'll see here, we have different types of lead. So each lead type is a different price. IUL is our biggest, I mean, we're not even producing any other leads.
+18:12 But so for these leads, like these leads are a flat $25. We do have the option and I can show you this as well.
+18:22 So automatically every IUL lead is set to $25. We have a really big partner with us. His name is Dominic.
+18:32 And we discount his leads. So like his leads, for example, are set to $20 versus $25. So like we can edit per partner what their lead cost will be.
+18:48 Okay, let me see. So what do you take one partner? One partner to have multiple agents for each of those agents need to have access to the platform as well.
+18:56 Correct. Yes. And the way we've been doing it is rather than like one partner as an agency and then they have employees with them have access to one account.
+19:11 We just make everybody make their own accounts because once the lead hits their system there's no way to distribute who was getting access to that lead.
+19:23 So we just let everybody know just create your own account that way. These are your leads and there's no mix up.
+19:30 and how their account creation works? Are you adding them in here or is this the admin of that organization who is actually creating their account for each of those agents?
+19:42 So they are actually creating their own account and let me see if I can so they sign up here with the new client form so once they sign up with this form their portal is automatically created and they populate here.
+20:04 Okay, okay, okay, okay, okay, and then they can choose from the form they can choose they can choose the partner.
+20:13 Yes, yes. So on their form, if they're like with a specific company, like they can put their company name in there, they can put what state they're located in.
+20:25 For company, we normally just tell them to like put their partner who they're with, and then they can select their lead type which we have a traditional IUL and a high intent IUL, and then from here they can select their 15 states.
+20:41 So, rather than looking at the filter. Okay, next thing. Any pictures weekly, because they can see these weekly charges. What is that?
+20:56 Yeah, so if they want their billing to be automatic, they can always set their account to be automatic. So then if they're like, oh, I know that every single week, I want to be charged $500 and start receiving leads.
+21:09 They can set that up on their account or if they're like, oh no, I'm going to take, like I'm going to do it manually on my own and they have the option to.
+21:18 So like that's what a one time or like a weekly billing is for them. Okay, got it. Okay, makes sense.
+21:26 Makes sense. Okay, that's good. Sorry, that's a lot. No, I think makes sense. I mean, that's why I'm asking those portions to make sure I understand like how the actual app works.
+21:42 Yes. So all of them, that day's no other feature which is needed. That's it. So the empty days compliance, days report, days refund, so none of those are.
+21:56 No. Okay. And if you decide to work with us and vice versa, we move forward. I can always, if it's easiest, I can always give you access to this site.
+22:14 Yeah, because essentially we really do want to almost replicate this site and just add more to it. Right, right, right, got it.
+22:25 Yeah, so yeah, you can you will be able to share the platform we once and then we'll do all those features and everything.
+22:33 And we can have detailed conversation in, you know, later on also, once the project started, unlike if there's any other things which need to be considered, for each of those sections.
+22:47 Okay. Yeah, I mean, that's something we can absolutely help with. We have a lot of similar solutions in the past, so we shouldn't be able to build that out as well.
+22:58 Perfect. Thank you so much. I mean, that that is music to my ears because I'm telling you, I try to do it and so be it the knowledge that you guys have is impeccable and out of this world because I was getting some codes.
+23:15 If I was to show you what I was doing, I was getting codes and I was like, I do not know what this means.
+23:22 Oh my goodness. It takes practice, you will say, I don't think you have time to do that. You have to run some ads.
+23:30 Yes, we are on a bit of a time crunch. And like I said, I started this maybe last week. And I barely have a button that works.
+23:40 And I was like, it took me two weeks to get a button to work. This is no, this is not in my realm.
+23:46 I need a professional. Absolutely. Yeah, I mean, happy to help with that. So the way we typically work, just just spline is usually put together a sort of proposal, right, scope of work, which is quite typical details.
+24:03 That's why usually when we have those interesting call, it helps us kind of grasping more in terms of what the client is looking to build as a solution.
+24:13 And then from there, we can just put together very details proposal. I'll say I can already give you a range of pricing typically, but this kind of build out to be very transparent.
+24:25 So in average, you know, for it's because this is typically considered as a self-application, we'll charge 5,000 in average for this build out, usually the average pricing to charge for it.
+24:38 Obviously, depending on the complexity in the client, it could be higher and stuff like that, but in average, this is what you could expect for such kind of project.
+24:50 So, and then we'll put together a very detailed proposal with, you know, all the different features and everything which we'll be building within the system.
+24:59 And once we start to build out, typically we'll have like every week, kind of a meeting, you know, where we'll work through how things are progressing on our end.
+25:09 answering any questions which might have any doubt you also get access obviously to our booking links where you can actually book a meeting anytime with us basically so that way if you have any doubt or any question as you are using the system then you can always book any meeting anytime so we see this
+25:28 as more like a collaborative work than just like you know us just building everything and then 30 days later we show you how it works you know it's really collaborative work, like, you know, we are building a system and every week we are meeting and then we show you the program to give us feedback, there's
+25:45 anything you'd like to try and make this change of and so on until it's become perfect, right? So, um, so yeah, that's how it typically works.
+25:53 I hope that's also some of your question we should might have, I think if not you can also ask a little question if you'd like to.
+26:00 No, I mean, that covers everything and that's great to know. I know oftentimes you're kind of just thrown into a system and it's like, here, hopefully that works.
+26:08 So it's great to know that I'll be still kind of with you throughout this building process and we can really fix and smooth out everything so that it doesn't look this ugly.
+26:21 Exactly. Yeah. Yeah. That's one of the main priorities as well. Usually when we build those versions, we're trying to be as ecstatic as possible.
+26:30 You know, I can show you some examples app we should have built and just show you quickly. So we're trying to be as as sticky as possible, obviously using the client team's coders and things like that which they are already already using.
+26:48 So let me show you okay. So this is is a bit different than your industry, but this will give you some idea just internal design wise.
+27:06 So this is something which we are connected building from one of our clients. So this is the client which, what they do is they sell, they have a list of customers, to pick your recurring customers, which is restaurant in general, which they want to buy bread from them from our clients.
+27:30 In those customers have access to this portal. In case this is what the portal looks like, so this is as an admin, this is what they will see.
+27:38 So my client whenever they log in, his name is that, we will be able to see this thing here, where he can see all his products, you know.
+27:47 So in your case, it will be leaked, you know, it's not product, right? So it's not like, I'm proud of using things like that, but in this case, for them, the product is actually, you know brownies and you know both things which they have they can pick on it to see more information the pictures what that
+28:02 looks like you know they can edit it if they would like to edit anything on that on that view go back to the per view you know they can create a new press they would like to as well so they have the capability of managing you know the whole event right here obviously in your case it would be different
+28:18 because everything will come from the form submission right so I have to integrate the form with the app so every time there is an any search on the phone, get pushed as lead within the app directly.
+28:31 So in here, they have leads of the customer. You know, they can click on those customer ready, you can see the profile information.
+28:37 They can edit the customer details, they can disable the customer access. They don't want the customer to still have access to the app anymore.
+28:45 As I mentioned, the customer have access to the app, so they can, you know, remove them, and simple them, make them inactive.
+28:51 They don't want those customers to have access anymore. And the customer will be able to make orders. Those orders will show up here, invoices.
+29:01 The customer will be able to see their invoices which they have been built for. So there's a lot of features, which is really in the app for the admin to work on.
+29:10 And there's different photo here. So in your case, you only have two photo. So you have a customer portal, which is what your partner actually seeing, which is the agent portal basically.
+29:26 And then you have the admin portal, which is what you see in us how yours works. It's this one is a bit complex where we have not only the customer portal, but also they also, I can switch to that, but there's also the production because they need to produce to deliver the product to the customer.
+29:45 And then they also the driver portal. So what the driver will see whenever someone is, whenever they can order the professional finish the work, then the driver take it from there and then go deliver the order to the client basically.
+30:00 And the client can see all of that happening and can see the status of the order in the system directly whenever the order come in.
+30:06 If the order is out for delivery, will be able to see directly within the dashboard as well. So that is kind of just in a nutshell, this is an example for one of our clients, which we are constantly building.
+30:20 I mean, that alone, I mean, it's beautiful, it's simple. It's to the point that this looks great. No, this I'm very excited.
+30:29 Absolutely. All right. So if you're not having any other questions, what I would do is I would just put together the document.
+30:39 And we'll share that with you probably today. And we'll also share the date on fiber. Then you can order, and then you can tick it from there.
+30:49 The only thing you will be paying for typically is for the hosting of the platform. So typically, we will use things like repeat for the deployment, because it's fast, and it is for our client to manage everything in one place.
+31:02 So in the future, we're going to make some small changes. You're not necessarily going to reach out to us. you know, you can do that pretty easily and usually we train our client on how to do that.
+31:12 What we can also be also available whenever those issues happen or you have something which you want to change, you're always available for our client does well for that.
+31:21 So you just need to pay for that, I think it's like $23 or something per month, which you will need to pay for.
+31:28 I think that's the only thing, honestly. Um, then you have a stroke intuition, obviously, you can just write all later on once we have a thing done there.
+31:41 Actually, let me see if I have something I want something else which I could show you. What is it there?
+32:00 I'm going to find it then, I found this one.

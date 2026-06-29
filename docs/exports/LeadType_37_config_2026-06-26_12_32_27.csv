@@ -1,0 +1,30 @@
+friendly,csvname,type,size,price,isCriterion,showInBrowser,showInClientBrowser,showInBrowserVendor,isVisible,isVisibleVendor,isRequired,pingRequired,checkDuplicity,isSearch,isVendorFilter,isCleanupField,hideFromApiSpec,memoryDupeCheckForPings,pingPostOverwriteFieldsInPost,hideInForm,isDeleteWithSensitive,enums,filters,displayType,range,filterGrpID,filterORGrpID,group,id,isEnumGroup,colText,map
+Match_With_Partner_ID,Match_With_Partner_ID,TEXT,5,0.00,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+Test_Lead,Test_Lead,TEXT,1,0.00,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+Return_Best_Price,Return_Best_Price,TEXT,1,0.00,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+"IP Address",IP_Address,TEXT,100,0.00,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0,,0,-,-,1,,1,0,"Internal Info",0,0,,mappedIP
+SRC,SRC,TEXT,100,0.00,0,1,0,0,0,1,1,1,0,0,0,0,0,0,0,,0,-,-,1,,1,0,"Internal Info",0,0,,mappedSource
+"Landing Page",Landing_Page,TEXT,100,0.00,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,0,-,-,1,,1,0,"Internal Info",0,0,,reportsLandingPage
+"Sub ID",Sub_ID,"WILDCARD STRING",30,0.00,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+"Pub ID",Pub_ID,"WILDCARD STRING",30,0.00,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+Optout,Optout,TEXT,20,0.00,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+"Unique Identifier",Unique_Identifier,TEXT,40,0.00,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+"User Agent",User_Agent,TEXT,500,0.00,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+"TCPA Consent",TCPA_Consent,ENUM,0,0.00,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,,0,2x,1x,3,,1,0,"Internal Info",0,0,,
+"TCPA Language",TCPA_Language,TEXT,1000,0.00,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+"Trusted Form URL",Trusted_Form_URL,TEXT,500,0.00,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+"LeadiD Token",LeadiD_Token,TEXT,100,0.00,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,,0,-,-,3,,1,0,"Internal Info",0,0,,
+Intent,Intent,ENUM,0,0.00,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,0,2x,1x,4,,1,0,"Internal Info",0,0,,
+"First Name",First_Name,TEXT,100,0.00,0,1,1,0,1,0,1,0,0,0,0,1,0,0,0,,0,-,-,1,,1,0,"Contact Info",0,0,,mappedFirstName
+"Last Name",Last_Name,TEXT,100,0.00,0,1,1,0,1,0,1,0,0,1,0,1,0,0,0,,0,-,-,1,,1,0,"Contact Info",0,0,,mappedLastName
+Address,Address,TEXT,100,0.00,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,,0,-,-,1,,1,0,"Contact Info",0,0,,mappedAddress
+City,City,TEXT,100,0.00,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,,0,-,-,1,,1,0,"Contact Info",0,0,,mappedCity
+State,State,STATE,0,0.00,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,,0,-,1x,1,,1,0,"Contact Info",0,0,,mappedState
+Zip,Zip,"ZIP/POSTAL CODE",5,0.00,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,,0,-,-,1,,1,0,"Contact Info",0,0,,mappedZip
+"Primary Phone",Primary_Phone,PHONE,10,0.00,0,1,1,1,1,1,1,0,1,1,0,1,0,0,1,,0,-,-,1,,1,0,"Contact Info",0,0,,mappedPhone
+Email,Email,EMAIL,100,0.00,0,1,1,0,1,0,1,0,0,1,0,1,0,0,1,,0,-,-,1,,1,0,"Contact Info",0,0,,mappedEmail
+DOB,DOB,SQLDATE,0,0.00,0,1,1,0,1,1,1,1,0,0,0,0,0,0,0,,1,-,-,3,,1,0,"Contact Info",0,0,,mappedDob
+Age,Age,INTEGER,0,0.00,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,,0,-,-,5,"##validate[custom[integer],min[0],max[]]##",1,0,"Contact Info",0,0,,mappedAge
+"Have IUL",Have_IUL,ENUM,0,0.00,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,,0,2x,1x,4,,1,0,"Other Info",0,0,,
+"State You Currently Live In",State_You_Currently_Live_In,STATE,0,0.00,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,,0,-,1x,4,,1,0,"Other Info",0,0,,
+"Primary Goal",Primary_Goal,TEXT,100,0.00,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,,0,-,-,4,,1,0,"Other Info",0,0,,

@@ -1,0 +1,148 @@
+# FFL Capital — Backend
+
+> Journal d'implémentation backend — Phase 0 (fondations)  
+> Dernière mise à jour : 29 juin 2026
+
+## État actuel
+
+| Composant | Statut |
+|-----------|--------|
+| Next.js 14 + TypeScript | ✅ |
+| Prisma schema (9 tables) | ✅ |
+| Migrations SQL versionnées | ✅ |
+| RLS Supabase (sans policies anon) | ✅ migration `enable_rls` |
+| API `GET /api/health` | ✅ |
+| API `POST /api/leads/intake` | ✅ |
+| Moteur matching V1 (FIFO) | ✅ |
+| Wallet ledger append-only | ✅ |
+| Seed partners test | ✅ `npm run seed` |
+| Simulateur dev `/dev/lead-simulator` | ✅ (masqué en prod) |
+| Projet Supabase dédié | ⚠️ **Bloqué** — voir § Infra |
+
+## Convention de nommage
+
+Le PRD §8 utilise encore le terme `agents`, mais le code utilise **`Partner` / `partners`** (décision D21). Les clés étrangères sont `partner_id`.
+
+## Architecture
+
+```
+LeadConduit / simulateur dev
+        │
+        ▼
+POST /api/leads/intake
+        │
+        ├── validate-intake.ts (Zod)
+        ├── normalize-lead.ts (Boberdoo → modèle interne)
+        ├── process-intake.ts (persist + match)
+        └── matching/engine.ts (priorité DESC, created_at ASC FIFO)
+                │
+                ▼
+           PostgreSQL (Prisma)
+```
+
+## Schéma base de données
+
+Tables : `partners`, `leads`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
+
+Migrations :
+- `20250629190000_init` — schéma complet + index
+- `20250629190100_enable_rls` — GIN sur `filter_states` + RLS
+
+## Mapping intake Boberdoo
+
+| Champ Boberdoo | Champ interne |
+|----------------|---------------|
+| `First_Name` / `Last_Name` | `first_name` / `last_name` |
+| `Email` | `email` |
+| `Primary_Phone` | `phone` |
+| `State` ou `State_You_Currently_Live_In` | `state` (uppercase) |
+| `Intent` = "High Intent" | `high_intent_iul` |
+| `Trusted_Form_URL` | `trustedform_cert_url` |
+| `Unique_Identifier` | `external_id` |
+| Payload complet | `raw_payload` (jsonb) |
+
+Réponse LeadConduit : `{ "outcome": "success", "reason": "" }`.
+
+## Moteur de matching V1
+
+Critères d'éligibilité partner :
+1. `status = active`
+2. `filter_states` contient l'état du lead
+3. `lead_type` compatible
+4. **≥ 15 états** dans `filter_states`
+5. `wallet_balance >= prix_effectif` (`price_override` ou `default_realtime_price`)
+
+Tri : `priority DESC`, puis `created_at ASC` (FIFO).
+
+Transaction atomique à la livraison :
+- INSERT `lead_deliveries`
+- UPDATE `partners.wallet_balance`
+- INSERT `transactions` (type `lead_purchase`)
+- UPDATE `leads` (`available=false`, `status=delivered`)
+
+## Infra Supabase
+
+**29 juin 2026** — Création du projet « FFL Capital » bloquée :
+> *The following organization members have reached their maximum limits for the number of active free projects (2 project limit).*
+
+**Action requise** : mettre en pause ou supprimer un projet Supabase existant, puis créer « FFL Capital » dans l'org « Techma hosted db ». Ensuite :
+
+1. Copier `.env.example` → `.env`
+2. Renseigner `DATABASE_URL` (pooler, port 6543) et `DIRECT_URL` (direct, port 5432) depuis le dashboard Supabase
+3. Appliquer les migrations :
+   ```bash
+   npx prisma migrate deploy
+   npm run seed
+   ```
+4. Vérifier : `curl http://localhost:3000/api/health`
+
+## Commandes dev
+
+```bash
+npm install
+cp .env.example .env   # puis remplir DATABASE_URL
+npx prisma generate
+npx prisma migrate deploy
+npm run seed
+npm run dev
+npm run test:matching   # tests logique sans DB
+npm run seed:lead       # POST fixture vers intake (serveur dev requis)
+```
+
+## Partners de test (seed)
+
+| Email | Rôle test |
+|-------|-----------|
+| `tx-priority10@ffl-test.local` | TX, priorité 10 — gagne le match |
+| `fifo-older@ffl-test.local` | TX, priorité 8, créé en premier (FIFO) |
+| `fifo-newer@ffl-test.local` | TX, priorité 8, créé après |
+| `ca-partner@ffl-test.local` | CA uniquement |
+| `low-balance@ffl-test.local` | Solde 5 $ — exclu |
+| `few-states@ffl-test.local` | 5 états — exclu (< 15) |
+| `pending@ffl-test.local` | `pending_approval` — exclu |
+
+## Journal des décisions
+
+| Date | Décision |
+|------|----------|
+| 2026-06-29 | Table `partners` (pas `agents`) |
+| 2026-06-29 | Accès DB serveur uniquement — RLS sans policies PostgREST |
+| 2026-06-29 | Scripts seed en `.mjs` (évite dépendance esbuild/tsx) |
+| 2026-06-29 | Jobs cron (24h, J+30) documentés mais hors scope Phase 0 |
+
+## Hors scope Phase 0 (Phase 1b+)
+
+- Clerk auth + portails Admin/Partner
+- Stripe webhooks
+- Jobs cron retraitement 24h / aging J+30
+- IntegrityCONNECT live
+- Migration import Boberdoo
+
+## Stratégie jobs planifiés (à implémenter)
+
+Option A : `pg_cron` Supabase  
+Option B : cron externe (cron-job.org) appelant des routes API protégées
+
+Jobs prévus :
+- Retraitement leads unmatched (fenêtre 24h)
+- Marquage aged leads (J+30)
