@@ -18,6 +18,9 @@
 | Seed partners test | ✅ `npm run seed` |
 | Simulateur dev `/dev/lead-simulator` | ✅ (masqué en prod) |
 | Projet Supabase dédié | ✅ `wbzvyvtlopoghvdqltxm` (eu-west-3) |
+| Prisma baseline (migrations MCP) | ✅ `migrate resolve` |
+| Vérification E2E locale | ✅ `npm run verify` |
+| Clerk + shells Admin/Partner | ✅ (clés Clerk requises pour activer) |
 
 ## Convention de nommage
 
@@ -120,7 +123,7 @@ npx prisma generate
 npx prisma migrate deploy
 npm run seed
 npm run dev
-npm run test:matching   # tests logique sans DB
+npm run verify        # tests health + matching TX/CA
 npm run seed:lead       # POST fixture vers intake (serveur dev requis)
 ```
 

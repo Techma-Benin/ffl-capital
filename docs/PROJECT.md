@@ -569,6 +569,18 @@ Lors d’une reprise de contexte :
 | Wallet ledger | ✅ |
 | Seed partners test | ✅ |
 | Projet Supabase dédié | ✅ `wbzvyvtlopoghvdqltxm` |
+| Vérification locale (`npm run verify`) | ✅ |
 
-**Prochaines étapes (Phase 1b) :** Clerk auth, portails Admin/Partner, Stripe test.
+**Phase 1b — auth + shells (29 juin 2026) :**
+
+| Livrable | Statut |
+|----------|--------|
+| Clerk SDK + middleware | ✅ (clés `.env` requises) |
+| Sign-in / Sign-up | ✅ |
+| Onboarding partner (≥15 états) | ✅ |
+| Shell Admin (dashboard, partners, leads) | ✅ |
+| Shell Partner (dashboard, leads, wallet) | ✅ |
+| API approbation admin | ✅ |
+
+**Prochaines étapes (Phase 2+) :** Stripe test, jobs cron 24h/J+30, UI remboursements.
 
