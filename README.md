@@ -74,4 +74,7 @@ docs/             # Documentation projet
 
 ## Note Supabase
 
-Un projet Supabase dédié « FFL Capital » doit être créé (voir [BACKEND.md § Infra](docs/BACKEND.md)). Si la limite de projets gratuits est atteinte, mettre en pause un projet existant avant de créer le nouveau.
+Projet **FFL Capital** : ref `wbzvyvtlopoghvdqltxm`, région `eu-west-3`.  
+Dashboard : https://supabase.com/dashboard/project/wbzvyvtlopoghvdqltxm
+
+Copier `.env.example` → `.env`, remplacer `[YOUR-PASSWORD]` par le mot de passe DB (Project Settings → Database).

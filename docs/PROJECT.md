@@ -568,7 +568,7 @@ Lors d’une reprise de contexte :
 | Moteur matching V1 (FIFO) | ✅ |
 | Wallet ledger | ✅ |
 | Seed partners test | ✅ |
-| Projet Supabase dédié | ⚠️ En attente (limite projets gratuits) |
+| Projet Supabase dédié | ✅ `wbzvyvtlopoghvdqltxm` |
 
 **Prochaines étapes (Phase 1b) :** Clerk auth, portails Admin/Partner, Stripe test.
 

@@ -17,7 +17,7 @@
 | Wallet ledger append-only | ✅ |
 | Seed partners test | ✅ `npm run seed` |
 | Simulateur dev `/dev/lead-simulator` | ✅ (masqué en prod) |
-| Projet Supabase dédié | ⚠️ **Bloqué** — voir § Infra |
+| Projet Supabase dédié | ✅ `wbzvyvtlopoghvdqltxm` (eu-west-3) |
 
 ## Convention de nommage
 
@@ -82,19 +82,34 @@ Transaction atomique à la livraison :
 
 ## Infra Supabase
 
-**29 juin 2026** — Création du projet « FFL Capital » bloquée :
-> *The following organization members have reached their maximum limits for the number of active free projects (2 project limit).*
+**29 juin 2026** — Projet créé dans l'org **billos-e's Org** :
 
-**Action requise** : mettre en pause ou supprimer un projet Supabase existant, puis créer « FFL Capital » dans l'org « Techma hosted db ». Ensuite :
+| Champ | Valeur |
+|-------|--------|
+| Nom | FFL Capital |
+| Project ref | `wbzvyvtlopoghvdqltxm` |
+| Région | `eu-west-3` |
+| URL API | https://wbzvyvtlopoghvdqltxm.supabase.co |
+| Dashboard | https://supabase.com/dashboard/project/wbzvyvtlopoghvdqltxm |
 
-1. Copier `.env.example` → `.env`
-2. Renseigner `DATABASE_URL` (pooler, port 6543) et `DIRECT_URL` (direct, port 5432) depuis le dashboard Supabase
-3. Appliquer les migrations :
-   ```bash
-   npx prisma migrate deploy
-   npm run seed
-   ```
-4. Vérifier : `curl http://localhost:3000/api/health`
+Migrations appliquées via Supabase MCP : `init` + `enable_rls`.  
+Seed initial (app_settings + 7 partners test) appliqué le 29 juin 2026.
+
+### Connexion locale (Prisma)
+
+1. Dashboard → **Project Settings → Database** → copier le mot de passe
+2. Copier `.env.example` → `.env` et remplir :
+
+```
+DATABASE_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:6543/postgres?pgbouncer=true
+DIRECT_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:5432/postgres
+```
+
+3. `npx prisma generate && npm run dev`
+
+### Sécurité RLS
+
+RLS est **activé** sur toutes les tables, **sans policies** `anon`/`authenticated` — accès intentionnellement limité au serveur Next.js via Prisma (pas de clé anon côté client). L'advisor Supabase signale « RLS enabled no policy » : c'est voulu pour Phase 0.
 
 ## Commandes dev
 
