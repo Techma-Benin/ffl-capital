@@ -1,60 +1,130 @@
 import Link from "next/link";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { isClerkConfigured } from "@/lib/auth/roles";
+import { Zap, Shield, TrendingUp, Users, ArrowRight, CheckCircle } from "lucide-react";
 
-export default function Home() {
-  const clerkReady = isClerkConfigured();
-
+export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <h1 className="text-2xl font-semibold">FFL Capital</h1>
-      <p className="mt-2 text-neutral-600">Lead distribution platform</p>
+    <div className="min-h-screen bg-white">
+      {/* Nav */}
+      <nav className="flex h-16 items-center justify-between border-b border-slate-100 px-8">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700">
+            <Zap size={16} className="text-white" />
+          </div>
+          <span className="text-sm font-bold text-slate-900">FFL Capital</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/sign-in"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            Sign In
+          </Link>
+          <Link href="/sign-up" className="btn-primary btn-sm">
+            Get Started
+          </Link>
+        </div>
+      </nav>
 
-      {!clerkReady && (
-        <p className="mt-4 rounded border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
-          Clerk non configuré — ajoutez les clés dans <code>.env</code> pour activer l&apos;auth.
+      {/* Hero */}
+      <section className="mx-auto max-w-5xl px-8 py-20 text-center">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+          Internal Lead Distribution Platform
+        </div>
+        <h1 className="text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
+          IUL Lead Distribution,
+          <br />
+          <span className="text-brand-700">Built for Scale</span>
+        </h1>
+        <p className="mx-auto mt-5 max-w-xl text-lg text-slate-500">
+          Automatically route ~500 daily Meta leads to your agents based on state, priority, and wallet balance. Plus a self-service aged leads marketplace.
         </p>
-      )}
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <Link href="/sign-up" className="btn-primary">
+            Partner Sign-Up
+            <ArrowRight size={16} />
+          </Link>
+          <Link href="/sign-in" className="btn-secondary">
+            Admin Login
+          </Link>
+        </div>
+      </section>
 
-      <div className="mt-8 flex gap-4">
-        {clerkReady && (
-          <>
-            <SignedOut>
-              <Link href="/sign-in" className="rounded bg-blue-600 px-4 py-2 text-white">
-                Sign in
-              </Link>
-              <Link href="/sign-up" className="rounded border px-4 py-2">
-                Sign up (Partner)
-              </Link>
-            </SignedOut>
-            <SignedIn>
-              <Link href="/partner" className="rounded border px-4 py-2">
-                Partner portal
-              </Link>
-              <Link href="/admin" className="rounded border px-4 py-2">
-                Admin
-              </Link>
-              <UserButton />
-            </SignedIn>
-          </>
-        )}
-      </div>
+      {/* Features */}
+      <section className="border-t border-slate-100 bg-slate-50 py-16">
+        <div className="mx-auto max-w-5xl px-8">
+          <h2 className="mb-10 text-center text-2xl font-bold text-slate-900">
+            Everything you need to distribute leads efficiently
+          </h2>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                icon: Zap,
+                color: "bg-brand-50 text-brand-600",
+                title: "Real-Time Matching",
+                desc: "Leads matched instantly to the highest-priority eligible agent — state, wallet, priority all considered.",
+              },
+              {
+                icon: TrendingUp,
+                color: "bg-emerald-50 text-emerald-600",
+                title: "Aged Lead Marketplace",
+                desc: "Self-service marketplace for leads 30+ days old at just $5 each. No admin required.",
+              },
+              {
+                icon: Shield,
+                color: "bg-violet-50 text-violet-600",
+                title: "TrustedForm Compliance",
+                desc: "Every lead carries a TrustedForm certificate for legal proof of consent.",
+              },
+              {
+                icon: Users,
+                color: "bg-sky-50 text-sky-600",
+                title: "Partner Self-Service",
+                desc: "Partners manage their own target states, wallet, and CRM webhook — no admin overhead.",
+              },
+              {
+                icon: CheckCircle,
+                color: "bg-amber-50 text-amber-600",
+                title: "Refund Workflow",
+                desc: "In-app refund requests with Type A (wrong filter) and Type B (invalid phone) handling.",
+              },
+              {
+                icon: ArrowRight,
+                color: "bg-red-50 text-red-500",
+                title: "Integrity Fallback",
+                desc: "Unmatched leads auto-route to IntegrityCONNECT after 24h via ping/post.",
+              },
+            ].map((f) => (
+              <div key={f.title} className="card p-5">
+                <div className={`mb-3 inline-flex rounded-xl p-2.5 ${f.color}`}>
+                  <f.icon size={20} />
+                </div>
+                <h3 className="font-semibold text-slate-900">{f.title}</h3>
+                <p className="mt-1 text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      <ul className="mt-8 space-y-2 text-sm text-neutral-500">
-        <li>
-          <a href="/api/health" className="text-blue-600 hover:underline">
-            GET /api/health
-          </a>
-        </li>
-        <li>POST /api/leads/intake</li>
-        {process.env.NODE_ENV !== "production" && (
-          <li>
-            <a href="/dev/lead-simulator" className="text-blue-600 hover:underline">
-              /dev/lead-simulator
-            </a>
-          </li>
-        )}
-      </ul>
-    </main>
+      {/* CTA */}
+      <section className="py-16 text-center">
+        <div className="mx-auto max-w-xl px-8">
+          <h2 className="text-2xl font-bold text-slate-900">Ready to start buying leads?</h2>
+          <p className="mt-3 text-slate-500">
+            Create a partner account, complete onboarding, and fund your wallet to receive IUL leads automatically.
+          </p>
+          <Link href="/sign-up" className="btn-primary mt-6 inline-flex">
+            Create Partner Account
+            <ArrowRight size={16} />
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-100 py-6 text-center text-xs text-slate-400">
+        © 2026 FFL Capital · Internal Platform · Powered by TECHMA
+      </footer>
+    </div>
   );
 }

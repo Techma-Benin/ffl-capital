@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import {
@@ -6,6 +5,8 @@ import {
   isPartnerActive,
   isAdminApprovalRequired,
 } from "@/lib/auth/session";
+import { PartnerSidebar } from "@/components/partner/sidebar";
+import { Bell, AlertCircle } from "lucide-react";
 
 export default async function PartnerLayout({
   children,
@@ -17,44 +18,58 @@ export default async function PartnerLayout({
 
   const active = isPartnerActive(partner);
   const approvalRequired = isAdminApprovalRequired();
+  const isPending = partner.status === "pending_approval";
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <header className="border-b bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/partner" className="font-semibold">
-              Partner Portal
-            </Link>
-            <nav className="flex gap-4 text-sm text-neutral-600">
-              <Link href="/partner">Dashboard</Link>
-              <Link href="/partner/leads">My leads</Link>
-              <Link href="/partner/wallet">Wallet</Link>
-              <Link href="/partner/aged">Aged leads</Link>
-            </nav>
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      <PartnerSidebar
+        partnerName={`${partner.firstName} ${partner.lastName}`}
+        affiliation={partner.affiliation}
+        status={partner.status}
+        balance={Number(partner.walletBalance)}
+      />
+
+      {/* Right column */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
+          <div className="flex items-center gap-2">
+            {active ? (
+              <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Lead buying active
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                <span className="h-2 w-2 rounded-full bg-slate-300" />
+                Lead buying inactive
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3">
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                active
-                  ? "bg-green-100 text-green-800"
-                  : "bg-neutral-200 text-neutral-700"
-              }`}
-            >
-              {active ? "Active" : "Inactive"}
-            </span>
-            <UserButton />
+            <button className="btn-ghost btn-sm rounded-full p-2" aria-label="Notifications">
+              <Bell size={17} className="text-slate-500" />
+            </button>
+            <UserButton afterSignOutUrl="/sign-in" />
           </div>
-        </div>
-      </header>
+        </header>
 
-      {approvalRequired && partner.status === "pending_approval" && (
-        <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-900">
-          Votre compte est en attente d&apos;approbation admin. Vous ne recevrez pas de leads tant qu&apos;il n&apos;est pas activé.
-        </div>
-      )}
+        {/* Pending approval banner */}
+        {approvalRequired && isPending && (
+          <div className="flex items-center gap-3 border-b border-amber-200 bg-amber-50 px-6 py-3">
+            <AlertCircle size={15} className="flex-shrink-0 text-amber-600" />
+            <p className="text-sm text-amber-800">
+              <span className="font-semibold">Account pending approval.</span>{" "}
+              You won&apos;t receive leads until an admin activates your account. Please ensure you have at least 15 states selected.
+            </p>
+          </div>
+        )}
 
-      <main className="mx-auto max-w-6xl p-6">{children}</main>
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

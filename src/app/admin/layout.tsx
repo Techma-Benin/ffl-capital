@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/session";
+import { AdminSidebar } from "@/components/admin/sidebar";
+import { Bell } from "lucide-react";
 
 export default async function AdminLayout({
   children,
@@ -15,24 +16,29 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <header className="border-b bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/admin" className="font-semibold">
-              FFL Capital Admin
-            </Link>
-            <nav className="flex gap-4 text-sm text-neutral-600">
-              <Link href="/admin">Dashboard</Link>
-              <Link href="/admin/partners">Partners</Link>
-              <Link href="/admin/leads">Leads</Link>
-              <Link href="/admin/refunds">Refunds</Link>
-            </nav>
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      <AdminSidebar />
+
+      {/* Right column */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Admin</span>
           </div>
-          <UserButton />
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl p-6">{children}</main>
+          <div className="flex items-center gap-3">
+            <button className="btn-ghost btn-sm rounded-full p-2" aria-label="Notifications">
+              <Bell size={17} className="text-slate-500" />
+            </button>
+            <UserButton afterSignOutUrl="/sign-in" />
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
