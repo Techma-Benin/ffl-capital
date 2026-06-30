@@ -4,7 +4,8 @@
 > URL : `https://capitalleads.leadportal.com`  
 > Début : 26 juin 2026 | Mise à jour : 26 juin 2026 (session 8 — exploration **100 %**)  
 > Explorateur : Bill (TECHMA) via Cursor Browser  
-> **Consigne respectée** : aucune modification de données prod (pas de save, register, reprocess, refund, delete).
+> **Consigne respectée** : aucune modification de données prod (pas de save, register, reprocess, refund, delete).  
+> **Gap analysis (build vs Boberdoo)** : voir [`BOBERDOO_GAP_ANALYSIS.md`](./BOBERDOO_GAP_ANALYSIS.md) — inventaire complet + statut implémentation (30 juin 2026).
 
 ---
 
@@ -726,6 +727,8 @@ Vue admin paginée (~25 filter sets/page) — colonnes : Partner, Company, Filte
 | ~12:44 | Edit delivery id=**291** | Ringy directpost — mapping complet §38 |
 | ~12:45 | Matched Leads Last 90 Days | **No records found** — confirme absence match partner FFL (§39) |
 | ~12:46 | Fin session 8 | Exploration Boberdoo **100 %** — prêt implémentation V1 |
+| ~10:51 | **Session 9** — All Leads IUL (live) | Toolbar complet : Lead ID search, Select Template, Filter Leads, Show reprocess window, export panel. Row actions confirmés + **Outside Services result**. Destinations live : Integrity Realtime 22 $, Telymonde 20 $, **Twardowski (FFL) 25 $** lead **70191** — **premier match partner direct** observé en prod récente (corrige §39). Session expirée sur navigate direct → Partners. |
+| ~10:59 | Session 9 suite | Partners list + detail brID=323, Filter List, Refunds, Aged Leads, Settings submenu complet, Billing, Reports, Partner portal + Add Funds Stripe — voir `BOBERDOO_GAP_ANALYSIS.md` §10. |
 
 ---
 
@@ -1059,7 +1062,7 @@ La **1ʳᵉ icône** edit sur la ligne IUL (type 37) ouvre **Lead Type Export To
 
 ---
 
-## 39. Absence de livraison directe partner FFL (session 8 — clôturé)
+## 39. Livraison directe partner FFL (session 8 + **corrigé session 9**)
 
 **Recherches effectuées (session 8, lecture seule) :**
 
@@ -1069,12 +1072,21 @@ La **1ʳᵉ icône** edit sur la ligne IUL (type 37) ouvre **Lead Type Export To
 | **Matched Leads** IUL | Last 90 Days | **No records found** |
 | Filtre texte | Austin Roberts, Matthew Stewart, Freya Lewis | **Aucune occurrence** |
 
-**Conclusion définitive :**
+**Session 9 (30 juin 2026, live All Leads IUL, date = today) :**
 
-- Les **3 partners FFL actifs** (filter sets §25) n'apparaissent **pas** comme destinataires directs sur les leads IUL récents.
-- Flux prod confirmé : **unmatched → reprocess → vendors** (Integrity, Telymonde) — §33, §34.
-- Hypothèse cohérente : **balance 0 $** sur partners actifs + priorité vendors plus élevée empêchent le match direct agent FFL.
-- **Pas de Lead Log** « matched partner FFL » disponible à documenter — acceptable pour V1 ; le modèle de livraison agent repose sur les patterns GHL (§31) et Ringy (§38).
+| Lead ID | Destination | Prix | Statut livraison |
+|---------|-------------|------|------------------|
+| **70191** | **Twardowski (Family First Life)** | **25 $** | **Processed** |
+| 70193 | Telymonde (Future Nest Life) | 20 $ | Lead successfully delivered |
+| 70201, 70199, 70197… | Realtime (Integrity) | 22 $ | Lead successfully delivered |
+
+→ **Match partner direct confirmé** pour au moins un agent FFL (Twardowski) sur flux du jour. Les filter sets actifs §25 (Austin Roberts, Matthew Stewart, Freya Lewis) n'apparaissent pas dans l'échantillon du jour — flux majoritaire reste **vendors** (Integrity, Telymonde).
+
+**Conclusion mise à jour :**
+
+- Le modèle de livraison agent (email/CRM après match) est **validé en prod** via lead 70191 — capturer **Show Lead Log** sur ce lead en session suivante pour parité GHL/email.
+- L'échantillon session 8 (Matched 90 j = empty) ne généralise pas : utiliser **All Leads + date du jour** pour observer le mix partner/vendor.
+- **Pas encore documenté :** Lead Log complet lead 70191 (Twardowski / FFL direct).
 
 ---
 
