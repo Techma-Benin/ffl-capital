@@ -17,14 +17,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await processLeadIntake(parsed.data);
+    await processLeadIntake(parsed.data);
 
+    // LeadConduit contract: success with empty reason string
     return NextResponse.json({
       outcome: "success",
-      reason: result.matched
-        ? `Lead matched to ${result.partnerEmail}`
-        : result.reason ?? "Lead stored as unmatched",
-      leadId: result.leadId,
+      reason: "",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Internal error";

@@ -6,6 +6,7 @@ import {
   TransactionType,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { debitWallet } from "@/lib/wallet/ledger";
 import { findEligiblePartners } from "./eligibility";
 
 export interface MatchResult {
@@ -59,8 +60,6 @@ export async function matchLead(leadId: string): Promise<MatchResult> {
       return null;
     }
 
-    const newBalance = Number(freshPartner.walletBalance) - price;
-
     const delivery = await tx.leadDelivery.create({
       data: {
         leadId: freshLead.id,
@@ -70,20 +69,10 @@ export async function matchLead(leadId: string): Promise<MatchResult> {
       },
     });
 
-    await tx.partner.update({
-      where: { id: freshPartner.id },
-      data: { walletBalance: newBalance },
-    });
-
-    await tx.transaction.create({
-      data: {
-        partnerId: freshPartner.id,
-        type: TransactionType.lead_purchase,
-        amount: -price,
-        balanceAfter: newBalance,
-        leadDeliveryId: delivery.id,
-        description: `Realtime lead purchase: ${freshLead.state}`,
-      },
+    await debitWallet(freshPartner.id, price, TransactionType.lead_purchase, {
+      tx,
+      leadDeliveryId: delivery.id,
+      description: `Realtime lead purchase: ${freshLead.state}`,
     });
 
     const updatedLead = await tx.lead.update({

@@ -64,7 +64,7 @@ Migrations :
 | `Unique_Identifier` | `external_id` |
 | Payload complet | `raw_payload` (jsonb) |
 
-Réponse LeadConduit : `{ "outcome": "success", "reason": "" }`.
+Réponse LeadConduit : `{ "outcome": "success", "reason": "" }` (chaîne vide en cas de succès).
 
 ## Moteur de matching V1
 
@@ -123,7 +123,7 @@ npx prisma generate
 npx prisma migrate deploy
 npm run seed
 npm run dev
-npm run verify        # tests health + matching TX/CA
+npm run verify        # tests health + checklist PRD §10 (TX/CA, wallet, <15 états, FIFO)
 npm run seed:lead       # POST fixture vers intake (serveur dev requis)
 ```
 
