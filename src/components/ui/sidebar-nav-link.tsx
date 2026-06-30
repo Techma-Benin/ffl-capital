@@ -1,0 +1,61 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { clsx } from "clsx";
+import type { LucideIcon } from "lucide-react";
+import { usePortal } from "@/components/layout/portal-provider";
+
+export function SidebarNavLink({
+  href,
+  label,
+  icon: Icon,
+  exact,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+}) {
+  const pathname = usePathname();
+  const { sidebarCollapsed, startNavigation } = usePortal();
+
+  const active = exact ? pathname === href : pathname.startsWith(href);
+
+  return (
+    <Link
+      href={href}
+      onClick={() => startNavigation(href)}
+      title={sidebarCollapsed ? label : undefined}
+      className={clsx("nav-item group relative", active && "active")}
+    >
+      <span
+        className={clsx(
+          "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors",
+          active ? "bg-white/10" : "bg-transparent group-hover:bg-white/5",
+        )}
+      >
+        <Icon size={16} />
+      </span>
+
+      <span
+        className={clsx(
+          "truncate transition-all duration-300",
+          sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100",
+        )}
+      >
+        {label}
+      </span>
+
+      {!sidebarCollapsed && active && (
+        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-300" />
+      )}
+
+      {sidebarCollapsed && (
+        <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+          {label}
+        </span>
+      )}
+    </Link>
+  );
+}

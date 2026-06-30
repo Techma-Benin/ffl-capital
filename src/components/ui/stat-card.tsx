@@ -7,6 +7,9 @@ interface StatCardProps {
   subtitle?: string;
   icon?: LucideIcon;
   iconColor?: string;
+  iconBgClassName?: string;
+  valueClassName?: string;
+  subtitleClassName?: string;
   trend?: { value: string; up: boolean };
   className?: string;
 }
@@ -17,6 +20,9 @@ export function StatCard({
   subtitle,
   icon: Icon,
   iconColor = "text-brand-600",
+  iconBgClassName = "bg-slate-100",
+  valueClassName,
+  subtitleClassName,
   trend,
   className,
 }: StatCardProps) {
@@ -27,11 +33,18 @@ export function StatCard({
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             {label}
           </p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+          <p
+            className={clsx(
+              "mt-2 text-3xl font-bold tracking-tight text-slate-900",
+              valueClassName
+            )}
+          >
             {value}
           </p>
           {subtitle && (
-            <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+            <p className={clsx("mt-1 text-sm text-slate-500", subtitleClassName)}>
+              {subtitle}
+            </p>
           )}
           {trend && (
             <p
@@ -45,7 +58,7 @@ export function StatCard({
           )}
         </div>
         {Icon && (
-          <div className={clsx("rounded-xl bg-slate-100 p-2.5", iconColor)}>
+          <div className={clsx("rounded-xl p-2.5", iconBgClassName, iconColor)}>
             <Icon size={20} />
           </div>
         )}

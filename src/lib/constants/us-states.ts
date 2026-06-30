@@ -18,3 +18,10 @@ export const CA_STATES = [
 ];
 
 export const FEW_STATES = ["TX", "CA", "FL", "NY", "IL"];
+
+export const US_REGION_STATES = {
+  southeast: ["AL", "AR", "FL", "GA", "KY", "LA", "MS", "NC", "SC", "TN", "VA", "WV"],
+  northeast: ["CT", "DE", "MA", "MD", "ME", "NH", "NJ", "NY", "PA", "RI", "VT"],
+  midwest: ["IA", "IL", "IN", "KS", "MI", "MN", "MO", "ND", "NE", "OH", "SD", "WI"],
+  west: ["AK", "AZ", "CA", "CO", "HI", "ID", "MT", "NM", "NV", "OR", "UT", "WA", "WY"],
+} as const satisfies Record<string, readonly (typeof US_STATE_CODES)[number][]>;

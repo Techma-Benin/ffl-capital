@@ -1,16 +1,17 @@
-import { getCurrentPartner } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BarChart2 } from "lucide-react";
 
 export default async function PartnerReportsPage() {
-  const partner = await getCurrentPartner();
-  if (!partner) return null;
+  const partnerId = await getPartnerId();
+  if (!partnerId) redirect("/onboarding");
 
   const transactions = await prisma.transaction.findMany({
-    where:   { partnerId: partner.id },
+    where: { partnerId },
     orderBy: { createdAt: "desc" },
     take: 100,
   });

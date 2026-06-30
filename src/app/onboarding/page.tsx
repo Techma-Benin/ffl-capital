@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
+import { UserButton } from "@clerk/nextjs";
 import { getCurrentPartner } from "@/lib/auth/session";
 import OnboardingForm from "./onboarding-form";
 import { Zap } from "lucide-react";
-import Link from "next/link";
 
 export default async function OnboardingPage() {
   const partner = await getCurrentPartner();
@@ -18,9 +18,10 @@ export default async function OnboardingPage() {
           </div>
           <span className="text-sm font-bold text-slate-900">FFL Capital</span>
         </div>
-        <Link href="/sign-in" className="text-xs font-medium text-slate-500 hover:text-slate-700">
-          Already have an account? Sign in →
-        </Link>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-500">Signed in</span>
+          <UserButton afterSignOutUrl="/" />
+        </div>
       </header>
 
       <div className="mx-auto max-w-2xl px-6 py-12">

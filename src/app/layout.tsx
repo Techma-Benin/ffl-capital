@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { clerkAppearance } from "@/lib/auth/clerk-appearance";
 import { isClerkConfigured } from "@/lib/auth/roles";
 
 const inter = Inter({
@@ -30,5 +31,5 @@ export default function RootLayout({
     return body;
   }
 
-  return <ClerkProvider>{body}</ClerkProvider>;
+  return <ClerkProvider appearance={clerkAppearance}>{body}</ClerkProvider>;
 }

@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { Zap, Shield, TrendingUp, Users, ArrowRight, CheckCircle } from "lucide-react";
+import { getPostAuthRedirectPath } from "@/lib/auth/redirect";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { userId } = await auth();
+  if (userId) redirect(await getPostAuthRedirectPath());
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}

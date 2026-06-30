@@ -154,7 +154,7 @@
 
   /* ── Sidebar nav item ── */
   .nav-item {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text transition-all;
+    @apply flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium text-sidebar-text transition-all;
   }
 
   .nav-item:hover {
@@ -172,5 +172,10 @@
   /* ── Empty state ── */
   .empty-state {
     @apply flex flex-col items-center justify-center py-16 text-center;
+  }
+
+  /* ── Skeleton ── */
+  .skeleton {
+    @apply animate-pulse bg-slate-200 motion-reduce:animate-none motion-reduce:bg-slate-300;
   }
 }

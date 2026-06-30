@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
-import { AlertCircle, Check, MapPin } from "lucide-react";
+import { ActionButton } from "@/components/ui/action-button";
+import { FormSkeleton } from "@/components/ui/form-skeleton";
+import { StatusStrip } from "@/components/ui/status-strip";
+import { AlertCircle, ArrowRight, Check, MapPin } from "lucide-react";
 
 const US_STATE_NAMES: Record<string, string> = {
   AL:"Alabama", AK:"Alaska", AZ:"Arizona", AR:"Arkansas", CA:"California",
@@ -18,12 +21,28 @@ const US_STATE_NAMES: Record<string, string> = {
   VA:"Virginia", WA:"Washington", WV:"West Virginia", WI:"Wisconsin", WY:"Wyoming",
 };
 
+type ProfileFields = {
+  firstName: string;
+  lastName: string;
+  affiliation: string;
+  residenceState: string;
+  leadType: "traditional_iul" | "high_intent_iul";
+};
+
 export default function OnboardingForm() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [step, setStep] = useState<1 | 2>(1);
+  const [profile, setProfile] = useState<ProfileFields>({
+    firstName: "",
+    lastName: "",
+    affiliation: "",
+    residenceState: "",
+    leadType: "high_intent_iul",
+  });
 
   function toggleState(code: string) {
     setSelectedStates((prev) =>
@@ -34,6 +53,28 @@ export default function OnboardingForm() {
   function selectAll() { setSelectedStates([...US_STATE_CODES]); }
   function clearAll()  { setSelectedStates([]); }
 
+  function continueToStates(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+
+    const form = new FormData(e.currentTarget);
+    const nextProfile: ProfileFields = {
+      firstName: String(form.get("firstName") ?? "").trim(),
+      lastName: String(form.get("lastName") ?? "").trim(),
+      affiliation: String(form.get("affiliation") ?? "").trim(),
+      residenceState: String(form.get("residenceState") ?? ""),
+      leadType: (form.get("leadType") as ProfileFields["leadType"]) ?? "high_intent_iul",
+    };
+
+    if (!nextProfile.firstName || !nextProfile.lastName || !nextProfile.affiliation || !nextProfile.residenceState) {
+      setError("Please fill in all profile fields before continuing.");
+      return;
+    }
+
+    setProfile(nextProfile);
+    setStep(2);
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
@@ -43,14 +84,9 @@ export default function OnboardingForm() {
     }
     setLoading(true);
 
-    const form = new FormData(e.currentTarget);
     const payload = {
-      firstName:      form.get("firstName"),
-      lastName:       form.get("lastName"),
-      affiliation:    form.get("affiliation"),
-      residenceState: form.get("residenceState"),
-      leadType:       form.get("leadType"),
-      filterStates:   selectedStates,
+      ...profile,
+      filterStates: selectedStates,
     };
 
     try {
@@ -64,6 +100,8 @@ export default function OnboardingForm() {
         setError(data.error ?? "Onboarding failed");
         return;
       }
+      setSuccess(true);
+      await new Promise((resolve) => setTimeout(resolve, 700));
       router.push("/partner");
       router.refresh();
     } catch {
@@ -76,18 +114,30 @@ export default function OnboardingForm() {
   const isEligible = selectedStates.length >= 15;
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={step === 2 ? handleSubmit : continueToStates}>
       {/* Step 1 — Profile */}
       {step === 1 && (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="form-label">First Name</label>
-              <input name="firstName" required className="form-input" placeholder="James" />
+              <input
+                name="firstName"
+                required
+                className="form-input"
+                placeholder="James"
+                defaultValue={profile.firstName}
+              />
             </div>
             <div>
               <label className="form-label">Last Name</label>
-              <input name="lastName" required className="form-input" placeholder="Wilson" />
+              <input
+                name="lastName"
+                required
+                className="form-input"
+                placeholder="Wilson"
+                defaultValue={profile.lastName}
+              />
             </div>
           </div>
           <div>
@@ -97,6 +147,7 @@ export default function OnboardingForm() {
               required
               className="form-input"
               placeholder="e.g. Family First Life"
+              defaultValue={profile.affiliation}
             />
             <p className="mt-1 text-xs text-slate-400">
               The agency or company you work with
@@ -105,7 +156,12 @@ export default function OnboardingForm() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="form-label">Residence State</label>
-              <select name="residenceState" required className="form-select">
+              <select
+                name="residenceState"
+                required
+                className="form-select"
+                defaultValue={profile.residenceState}
+              >
                 <option value="">Select state…</option>
                 {US_STATE_CODES.map((s) => (
                   <option key={s} value={s}>{US_STATE_NAMES[s]} ({s})</option>
@@ -114,27 +170,39 @@ export default function OnboardingForm() {
             </div>
             <div>
               <label className="form-label">Lead Type</label>
-              <select name="leadType" required className="form-select">
+              <select
+                name="leadType"
+                required
+                className="form-select"
+                defaultValue={profile.leadType}
+              >
                 <option value="high_intent_iul">High Intent IUL</option>
                 <option value="traditional_iul">Traditional IUL</option>
               </select>
             </div>
           </div>
 
+          {error && (
+            <StatusStrip
+              status="error"
+              title="Could not save your profile"
+              message={error}
+            />
+          )}
+
           <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => setStep(2)}
-              className="btn-primary w-full justify-center"
-            >
-              Continue — Select Target States →
-            </button>
+            <ActionButton type="submit" className="w-full justify-center" icon={<ArrowRight size={15} />}>
+              Continue — Select Target States
+            </ActionButton>
           </div>
         </div>
       )}
 
       {/* Step 2 — State selection */}
       {step === 2 && (
+        loading ? (
+          <FormSkeleton />
+        ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -193,40 +261,46 @@ export default function OnboardingForm() {
             })}
           </div>
 
-          {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-              <AlertCircle size={14} />
-              {error}
-            </div>
+          {success && (
+            <StatusStrip
+              status="success"
+              title="Profile created"
+              message="Redirecting you to your partner dashboard…"
+            />
+          )}
+
+          {error && !loading && (
+            <StatusStrip
+              status="error"
+              title="Onboarding failed"
+              message={error}
+            />
           )}
 
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setStep(1)}
+              onClick={() => { setError(""); setStep(1); }}
               className="btn-secondary"
+              disabled={loading || success}
             >
               ← Back
             </button>
-            <button
+            <ActionButton
               type="submit"
-              disabled={loading || !isEligible}
-              className="btn-primary flex-1 justify-center"
+              className="flex-1 justify-center"
+              disabled={!isEligible}
+              loading={loading}
+              success={success}
+              loadingText="Setting up your account…"
+              successText="Welcome aboard!"
+              icon={<Check size={15} />}
             >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Setting up your account…
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Check size={15} />
-                  Complete Onboarding
-                </span>
-              )}
-            </button>
+              Complete Onboarding
+            </ActionButton>
           </div>
         </div>
+        )
       )}
     </form>
   );

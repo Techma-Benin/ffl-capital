@@ -1,8 +1,13 @@
 import { SignIn } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { Zap } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getPostAuthRedirectPath } from "@/lib/auth/redirect";
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  const { userId } = await auth();
+  if (userId) redirect(await getPostAuthRedirectPath());
   return (
     <div className="flex min-h-screen">
       {/* Left panel */}
@@ -64,6 +69,7 @@ export default function SignInPage() {
           </p>
 
           <SignIn
+            forceRedirectUrl="/auth/continue"
             appearance={{
               elements: {
                 card: "shadow-none border-0 p-0 bg-transparent",

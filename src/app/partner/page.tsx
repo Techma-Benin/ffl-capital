@@ -1,257 +1,46 @@
-import { getCurrentPartner, isPartnerActive } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatCard } from "@/components/ui/stat-card";
-import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Wallet,
-  FileText,
-  TrendingUp,
-  ShoppingBag,
-  MapPin,
-  AlertCircle,
-} from "lucide-react";
-import Link from "next/link";
+import { getPartnerId } from "@/lib/partner/session";
+import { PartnerDashboard } from "@/components/partner/partner-dashboard";
 
 export default async function PartnerDashboardPage() {
-  const partner = await getCurrentPartner();
-  if (!partner) return null;
-
-  const active = isPartnerActive(partner);
-  const balance = Number(partner.walletBalance);
+  const partnerId = await getPartnerId();
+  if (!partnerId) redirect("/onboarding");
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [deliveriesAll, deliveriesToday, totalSpent] = await Promise.all([
-    prisma.leadDelivery.count({ where: { partnerId: partner.id } }),
+  const [deliveriesAll, deliveriesToday, recentDeliveries] = await Promise.all([
+    prisma.leadDelivery.count({ where: { partnerId } }),
     prisma.leadDelivery.count({
-      where: { partnerId: partner.id, deliveredAt: { gte: today } },
+      where: { partnerId, deliveredAt: { gte: today } },
     }),
-    prisma.transaction.aggregate({
-      where: { partnerId: partner.id, type: { in: ["lead_purchase", "aged_purchase"] } },
-      _sum: { amount: true },
+    prisma.leadDelivery.findMany({
+      where: { partnerId },
+      include: { lead: true },
+      orderBy: { deliveredAt: "desc" },
+      take: 5,
     }),
   ]);
 
-  const recentDeliveries = await prisma.leadDelivery.findMany({
-    where:   { partnerId: partner.id },
-    include: { lead: true },
-    orderBy: { deliveredAt: "desc" },
-    take: 5,
-  });
-
-  const statesOk = partner.filterStates.length >= 15;
-  const walletOk = balance >= 25;
-
   return (
-    <div>
-      <PageHeader
-        title={`Welcome back, ${partner.firstName}`}
-        subtitle={partner.affiliation ?? "Partner Dashboard"}
-      />
-
-      {/* Activation checklist (if not active) */}
-      {!active && (
-        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle size={18} className="mt-0.5 flex-shrink-0 text-amber-600" />
-            <div>
-              <p className="text-sm font-semibold text-amber-900">Complete your setup to start receiving leads</p>
-              <div className="mt-2 space-y-1.5">
-                <ChecklistItem
-                  done={partner.status !== "pending_approval"}
-                  label="Account approved by admin"
-                />
-                <ChecklistItem
-                  done={statesOk}
-                  label={`At least 15 target states selected (${partner.filterStates.length} selected)`}
-                  actionHref="/partner/settings"
-                  actionLabel="Edit states"
-                />
-                <ChecklistItem
-                  done={walletOk}
-                  label="Wallet funded ($25+ to purchase a lead)"
-                  actionHref="/partner/wallet"
-                  actionLabel="Add funds"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stat cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Wallet Balance"
-          value={`$${balance.toFixed(2)}`}
-          icon={Wallet}
-          iconColor={walletOk ? "text-brand-600" : "text-red-500"}
-          subtitle={walletOk ? "Ready to purchase" : "Add funds to buy leads"}
-        />
-        <StatCard
-          label="Total Leads Received"
-          value={deliveriesAll}
-          icon={FileText}
-          iconColor="text-violet-600"
-        />
-        <StatCard
-          label="Received Today"
-          value={deliveriesToday}
-          icon={TrendingUp}
-          iconColor="text-emerald-600"
-        />
-        <StatCard
-          label="Target States"
-          value={partner.filterStates.length}
-          icon={MapPin}
-          iconColor={statesOk ? "text-sky-600" : "text-amber-600"}
-          subtitle={statesOk ? "Eligible for matching" : "Need 15+ to be eligible"}
-        />
-      </div>
-
-      {/* Quick actions */}
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <Link
-          href="/partner/wallet"
-          className="card flex items-center gap-4 p-4 transition-all hover:shadow-card-hover hover:border-brand-200"
-        >
-          <div className="rounded-xl bg-brand-50 p-3">
-            <Wallet size={20} className="text-brand-600" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900">Add Funds</p>
-            <p className="text-xs text-slate-500">Top up your wallet via Stripe</p>
-          </div>
-        </Link>
-        <Link
-          href="/partner/aged"
-          className="card flex items-center gap-4 p-4 transition-all hover:shadow-card-hover hover:border-brand-200"
-        >
-          <div className="rounded-xl bg-violet-50 p-3">
-            <ShoppingBag size={20} className="text-violet-600" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900">Aged Marketplace</p>
-            <p className="text-xs text-slate-500">Browse leads 30+ days old from $5</p>
-          </div>
-        </Link>
-        <Link
-          href="/partner/settings"
-          className="card flex items-center gap-4 p-4 transition-all hover:shadow-card-hover hover:border-brand-200"
-        >
-          <div className="rounded-xl bg-slate-100 p-3">
-            <MapPin size={20} className="text-slate-500" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900">Target States</p>
-            <p className="text-xs text-slate-500">
-              {partner.filterStates.length} states • edit your targeting
-            </p>
-          </div>
-        </Link>
-      </div>
-
-      {/* Recent leads */}
-      <div className="mt-6 card">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Recent Leads</h2>
-          <Link href="/partner/leads" className="text-xs font-medium text-brand-600 hover:text-brand-700">
-            View all →
-          </Link>
-        </div>
-        <div className="overflow-x-auto">
-          {recentDeliveries.length === 0 ? (
-            <EmptyState
-              icon={FileText}
-              title="No leads yet"
-              description="Once your account is active and your wallet is funded, leads will be distributed here automatically."
-            />
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>State</th>
-                  <th>Type</th>
-                  <th>Channel</th>
-                  <th>Price</th>
-                  <th>Delivered</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentDeliveries.map((d) => (
-                  <tr key={d.id}>
-                    <td className="font-medium text-slate-900">
-                      {d.lead.firstName} {d.lead.lastName}
-                    </td>
-                    <td>
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                        {d.lead.state}
-                      </span>
-                    </td>
-                    <td>
-                      <Badge variant="blue">
-                        {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                      </Badge>
-                    </td>
-                    <td>
-                      <Badge variant={d.channel === "realtime" ? "green" : "slate"}>
-                        {d.channel === "realtime" ? "Real-time" : "Aged"}
-                      </Badge>
-                    </td>
-                    <td className="font-semibold text-slate-900">${Number(d.price).toFixed(2)}</td>
-                    <td className="text-xs text-slate-400">
-                      {new Date(d.deliveredAt).toLocaleString("en-US", {
-                        month: "short",
-                        day:   "numeric",
-                        hour:  "2-digit",
-                        minute:"2-digit",
-                      })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ChecklistItem({
-  done,
-  label,
-  actionHref,
-  actionLabel,
-}: {
-  done: boolean;
-  label: string;
-  actionHref?: string;
-  actionLabel?: string;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-          done
-            ? "bg-emerald-500 text-white"
-            : "border-2 border-amber-400 text-amber-600"
-        }`}
-      >
-        {done ? "✓" : "!"}
-      </span>
-      <span className={`text-xs ${done ? "text-slate-500 line-through" : "text-amber-900"}`}>
-        {label}
-      </span>
-      {!done && actionHref && (
-        <Link href={actionHref} className="text-xs font-medium text-brand-600 hover:underline">
-          {actionLabel} →
-        </Link>
-      )}
-    </div>
+    <PartnerDashboard
+      stats={{
+        deliveriesAll,
+        deliveriesToday,
+        recentDeliveries: recentDeliveries.map((d) => ({
+          id: d.id,
+          price: Number(d.price),
+          channel: d.channel,
+          deliveredAt: d.deliveredAt.toISOString(),
+          lead: {
+            firstName: d.lead.firstName,
+            lastName: d.lead.lastName,
+            state: d.lead.state,
+            leadType: d.lead.leadType,
+          },
+        })),
+      }}
+    />
   );
 }

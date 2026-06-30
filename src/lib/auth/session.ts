@@ -1,19 +1,13 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { PartnerStatus } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import { getPartnerId, getPartnerSession } from "@/lib/partner/session";
+import { isPartnerActive } from "@/lib/partner/active";
 import { getRoleFromMetadata } from "./roles";
 
+export { isPartnerActive } from "@/lib/partner/active";
+
+/** @deprecated Use getPartnerSession in layout or getPartnerId in pages. */
 export async function getCurrentPartner() {
-  const user = await currentUser();
-  if (!user) return null;
-
-  const partner = await prisma.partner.findFirst({
-    where: {
-      OR: [{ clerkUserId: user.id }, { email: user.emailAddresses[0]?.emailAddress }],
-    },
-  });
-
-  return partner;
+  return getPartnerSession();
 }
 
 export async function requireAdmin() {
@@ -31,20 +25,13 @@ export async function requirePartner() {
   const { userId } = await auth();
   if (!userId) return { error: "unauthenticated" as const };
 
-  const partner = await getCurrentPartner();
+  const partnerId = await getPartnerId();
+  if (!partnerId) return { error: "no_profile" as const };
+
+  const partner = await getPartnerSession();
   if (!partner) return { error: "no_profile" as const };
 
   return { userId, partner };
-}
-
-export function isPartnerActive(partner: {
-  status: PartnerStatus;
-  filterStates: string[];
-  walletBalance: { toString(): string } | number;
-}, minLeadPrice = 25): boolean {
-  if (partner.status !== PartnerStatus.active) return false;
-  if (partner.filterStates.length < 15) return false;
-  return Number(partner.walletBalance) >= minLeadPrice;
 }
 
 export function isAdminApprovalRequired(): boolean {

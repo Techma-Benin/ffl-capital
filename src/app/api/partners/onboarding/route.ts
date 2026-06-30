@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { LeadType, PartnerStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -59,6 +59,13 @@ export async function POST(request: NextRequest) {
       filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
       status,
     },
+  });
+
+  const client = await clerkClient();
+  await client.users.updateUser(userId, {
+    firstName: parsed.data.firstName,
+    lastName: parsed.data.lastName,
+    publicMetadata: { partnerId: partner.id },
   });
 
   return NextResponse.json({ partnerId: partner.id, status: partner.status });

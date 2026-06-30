@@ -1,8 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
+import { Zap } from "lucide-react";
+import { usePortal } from "@/components/layout/portal-provider";
+import { SidebarNavLink } from "@/components/ui/sidebar-nav-link";
+import {
+  SidebarCollapseButton,
+  useSidebarEmptyAreaClick,
+} from "@/components/ui/sidebar-toggle";
 import {
   LayoutDashboard,
   Users,
@@ -11,8 +16,6 @@ import {
   Archive,
   BarChart2,
   Settings,
-  ChevronRight,
-  Zap,
 } from "lucide-react";
 
 const navSections = [
@@ -47,56 +50,80 @@ const navSections = [
 ];
 
 export function AdminSidebar() {
-  const pathname = usePathname();
-
-  function isActive(href: string, exact?: boolean) {
-    if (exact) return pathname === href;
-    return pathname.startsWith(href);
-  }
+  const { sidebarCollapsed } = usePortal();
+  const handleEmptyAreaClick = useSidebarEmptyAreaClick();
 
   return (
-    <aside className="flex h-screen w-60 flex-col bg-sidebar-bg">
+    <aside
+      onClick={handleEmptyAreaClick}
+      aria-label={sidebarCollapsed ? undefined : "Click empty area to collapse sidebar"}
+      className={clsx(
+        "flex h-screen flex-shrink-0 flex-col bg-sidebar-bg transition-[width] duration-300 ease-out motion-reduce:transition-none",
+        sidebarCollapsed ? "w-[72px]" : "w-60",
+      )}
+    >
       {/* Brand */}
-      <div className="flex h-16 items-center gap-2.5 border-b border-white/5 px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700">
+      <div
+        className={clsx(
+          "flex h-16 items-center border-b border-white/5",
+          sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-5",
+        )}
+      >
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-700">
           <Zap size={16} className="text-white" />
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold text-white leading-tight">FFL Capital</span>
-          <span className="text-[10px] font-medium text-sidebar-text leading-tight uppercase tracking-wider">Admin Portal</span>
+        <div
+          className={clsx(
+            "min-w-0 flex-col overflow-hidden transition-all duration-300",
+            sidebarCollapsed ? "w-0 opacity-0" : "flex w-auto opacity-100",
+          )}
+        >
+          <span className="truncate text-sm font-semibold leading-tight text-white">
+            FFL Capital
+          </span>
+          <span className="text-[10px] font-medium uppercase leading-tight tracking-wider text-sidebar-text">
+            Admin Portal
+          </span>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-3">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
         {navSections.map((section) => (
           <div key={section.label}>
-            <p className="nav-item-group-label">{section.label}</p>
+            <p
+              className={clsx(
+                "nav-item-group-label transition-all duration-300",
+                sidebarCollapsed ? "h-0 overflow-hidden py-0 opacity-0" : "opacity-100",
+              )}
+            >
+              {section.label}
+            </p>
             <div className="space-y-0.5">
-              {section.items.map((item) => {
-                const active = isActive(item.href, item.exact);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={clsx("nav-item", active && "active")}
-                  >
-                    <item.icon size={16} />
-                    <span>{item.label}</span>
-                    {active && (
-                      <ChevronRight size={14} className="ml-auto opacity-60" />
-                    )}
-                  </Link>
-                );
-              })}
+              {section.items.map((item) => (
+                <SidebarNavLink
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  exact={item.exact}
+                />
+              ))}
             </div>
           </div>
         ))}
       </nav>
 
-      {/* Footer hint */}
-      <div className="border-t border-white/5 px-4 py-3">
-        <p className="text-xs text-sidebar-heading">FFL Capital Platform v1.0</p>
+      <div className="border-t border-white/5 px-3 py-3">
+        <SidebarCollapseButton />
+        <p
+          className={clsx(
+            "mt-2 px-3 text-xs text-sidebar-heading transition-all duration-300",
+            sidebarCollapsed ? "h-0 overflow-hidden opacity-0" : "opacity-100",
+          )}
+        >
+          FFL Capital Platform v1.0
+        </p>
       </div>
     </aside>
   );

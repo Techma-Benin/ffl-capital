@@ -1,16 +1,17 @@
-import { getCurrentPartner } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileText, ShieldCheck, RotateCcw } from "lucide-react";
 
 export default async function PartnerLeadsPage() {
-  const partner = await getCurrentPartner();
-  if (!partner) return null;
+  const partnerId = await getPartnerId();
+  if (!partnerId) redirect("/onboarding");
 
   const deliveries = await prisma.leadDelivery.findMany({
-    where:   { partnerId: partner.id },
+    where: { partnerId },
     include: { lead: true, refundRequests: { orderBy: { createdAt: "desc" }, take: 1 } },
     orderBy: { deliveredAt: "desc" },
     take: 100,
