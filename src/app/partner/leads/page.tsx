@@ -4,7 +4,8 @@ import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FileText, ShieldCheck, RotateCcw } from "lucide-react";
+import { PartnerRefundButton } from "@/components/partner/partner-refund-button";
+import { FileText, ShieldCheck } from "lucide-react";
 
 export default async function PartnerLeadsPage() {
   const partnerId = await getPartnerId();
@@ -133,10 +134,7 @@ export default async function PartnerLeadsPage() {
                       <td>
                         <div className="flex justify-end">
                           {canRefund && (
-                            <button className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors">
-                              <RotateCcw size={11} />
-                              Refund
-                            </button>
+                            <PartnerRefundButton leadDeliveryId={d.id} />
                           )}
                         </div>
                       </td>

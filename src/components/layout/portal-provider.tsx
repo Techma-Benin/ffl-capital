@@ -7,7 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type PortalContextValue = {
   sidebarCollapsed: boolean;
@@ -23,9 +23,14 @@ const STORAGE_KEY = "ffl-sidebar-collapsed";
 
 export function PortalProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+
+  const currentPath = searchParams.toString()
+    ? `${pathname}?${searchParams.toString()}`
+    : pathname;
 
   useEffect(() => {
     setHydrated(true);
@@ -35,7 +40,7 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setPendingPath(null);
-  }, [pathname]);
+  }, [pathname, searchParams]);
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
@@ -47,9 +52,9 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
 
   const startNavigation = useCallback(
     (href: string) => {
-      if (href !== pathname) setPendingPath(href);
+      if (href !== currentPath) setPendingPath(href);
     },
-    [pathname],
+    [currentPath],
   );
 
   return (

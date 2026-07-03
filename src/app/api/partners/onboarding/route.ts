@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
   await client.users.updateUser(userId, {
     firstName: parsed.data.firstName,
     lastName: parsed.data.lastName,
+  });
+  await client.users.updateUserMetadata(userId, {
     publicMetadata: { partnerId: partner.id },
   });
 

@@ -41,7 +41,7 @@ export function PartnerSidebar() {
   return (
     <aside
       onClick={handleEmptyAreaClick}
-      aria-label={sidebarCollapsed ? undefined : "Click empty area to collapse sidebar"}
+      aria-label="Click empty area to toggle sidebar"
       className={clsx(
         "flex h-screen flex-shrink-0 flex-col bg-sidebar-bg transition-[width] duration-300 ease-out motion-reduce:transition-none",
         sidebarCollapsed ? "w-[72px]" : "w-60",

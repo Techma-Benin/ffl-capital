@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import LeadSimulator from "./simulator-form";
-import Link from "next/link";
-import { Zap, ArrowLeft, Terminal } from "lucide-react";
+import { DevBackLink, DevNavLink } from "@/components/dev/dev-nav-link";
+import { Zap, Terminal } from "lucide-react";
 
 export default function DevLeadSimulatorPage() {
   if (process.env.NODE_ENV === "production") {
@@ -30,13 +30,10 @@ export default function DevLeadSimulatorPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/admin/leads" className="btn-secondary btn-sm">
-              <ArrowLeft size={13} />
-              Admin Leads
-            </Link>
-            <Link href="/admin" className="btn-secondary btn-sm">
+            <DevBackLink href="/admin/leads" label="Admin Leads" />
+            <DevNavLink href="/admin" className="btn-secondary btn-sm">
               Dashboard
-            </Link>
+            </DevNavLink>
           </div>
         </div>
 

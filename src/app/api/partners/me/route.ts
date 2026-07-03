@@ -46,9 +46,9 @@ export async function PATCH(request: NextRequest) {
   const data: { filterStates?: string[]; crmWebhookUrl?: string | null } = {};
 
   if (parsed.data.filterStates) {
-    data.filterStates = [
-      ...new Set(parsed.data.filterStates.map((s) => s.toUpperCase())),
-    ];
+    data.filterStates = Array.from(
+      new Set(parsed.data.filterStates.map((s) => s.toUpperCase())),
+    );
   }
 
   if (parsed.data.crmWebhookUrl !== undefined) {

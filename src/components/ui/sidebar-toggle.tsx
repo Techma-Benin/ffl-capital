@@ -5,17 +5,16 @@ import { clsx } from "clsx";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { usePortal } from "@/components/layout/portal-provider";
 
-/** Collapse the sidebar when clicking empty nav space (not links or buttons). */
+/** Toggle the sidebar when clicking empty space (not links or buttons). */
 export function useSidebarEmptyAreaClick() {
-  const { sidebarCollapsed, toggleSidebar } = usePortal();
+  const { toggleSidebar } = usePortal();
 
   return useCallback(
     (e: React.MouseEvent<HTMLElement>) => {
-      if (sidebarCollapsed) return;
       if ((e.target as HTMLElement).closest("a, button")) return;
       toggleSidebar();
     },
-    [sidebarCollapsed, toggleSidebar],
+    [toggleSidebar],
   );
 }
 

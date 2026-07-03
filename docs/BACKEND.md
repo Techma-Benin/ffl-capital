@@ -146,7 +146,7 @@ npm run seed:lead       # POST fixture vers intake (serveur dev requis)
 | 2026-06-29 | Table `partners` (pas `agents`) |
 | 2026-06-29 | Accès DB serveur uniquement — RLS sans policies PostgREST |
 | 2026-06-29 | Scripts seed en `.mjs` (évite dépendance esbuild/tsx) |
-| 2026-06-29 | Jobs cron (24h, J+30) documentés mais hors scope Phase 0 |
+| 2026-07-03 | PRD V1 build : delivery (email/CRM), refunds Type A/B, Stripe wallet, aged marketplace, admin pages, cron + Integrity |
 
 ## Hors scope Phase 0 (Phase 1b+)
 
@@ -156,11 +156,16 @@ npm run seed:lead       # POST fixture vers intake (serveur dev requis)
 - IntegrityCONNECT live
 - Migration import Boberdoo
 
-## Stratégie jobs planifiés (à implémenter)
+## Stratégie jobs planifiés
+
+Routes protégées par `Authorization: Bearer $CRON_SECRET` :
+
+| Route | Fréquence suggérée | Rôle |
+|-------|-------------------|------|
+| `POST /api/cron/reprocess-unmatched` | 5–15 min | Retente le matching sur leads unmatched < 24h ; poste vers Integrity au-delà |
+| `POST /api/cron/integrity-post` | 15–30 min | Poste les leads unmatched > 24h vers IntegrityCONNECT |
 
 Option A : `pg_cron` Supabase  
-Option B : cron externe (cron-job.org) appelant des routes API protégées
+Option B : cron externe (cron-job.org) ou Vercel Cron
 
-Jobs prévus :
-- Retraitement leads unmatched (fenêtre 24h)
-- Marquage aged leads (J+30)
+Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`

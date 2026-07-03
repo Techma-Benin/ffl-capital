@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,10 +28,63 @@ export function PartnerAgedView({
   agedPrice: number;
 }) {
   const { partner } = usePartner();
-  const canBuy = partner.status === "active" && partner.walletBalance >= 5;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const canBuy = partner.status === "active" && partner.walletBalance >= agedPrice;
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pending, setPending] = useState(false);
+
+  const [stateFilter, setStateFilter] = useState(searchParams.get("state") ?? "");
+  const [typeFilter, setTypeFilter] = useState(searchParams.get("type") ?? "");
+  const [ageFilter, setAgeFilter] = useState(searchParams.get("age") ?? "");
 
   function getAgeDays(receivedAt: string) {
     return Math.floor((Date.now() - new Date(receivedAt).getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  function applyFilters() {
+    const params = new URLSearchParams();
+    if (stateFilter) params.set("state", stateFilter);
+    if (typeFilter) params.set("type", typeFilter);
+    if (ageFilter) params.set("age", ageFilter);
+    router.push(`/partner/aged?${params.toString()}`);
+  }
+
+  function toggleLead(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (selected.size === agedLeads.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(agedLeads.map((l) => l.id)));
+    }
+  }
+
+  async function purchase(leadIds: string[]) {
+    if (!canBuy || leadIds.length === 0) return;
+    setPending(true);
+    try {
+      const res = await fetch("/api/leads/aged/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds }),
+      });
+      if (!res.ok) throw new Error("Purchase failed");
+      setSelected(new Set());
+      router.refresh();
+    } catch {
+      // allow retry
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -45,24 +100,38 @@ export function PartnerAgedView({
             <Filter size={13} />
             Filters:
           </div>
-          <select className="form-select w-40 py-1.5 text-xs">
+          <select
+            value={stateFilter}
+            onChange={(e) => setStateFilter(e.target.value)}
+            className="form-select w-40 py-1.5 text-xs"
+          >
             <option value="">All States</option>
             {partner.filterStates.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          <select className="form-select w-44 py-1.5 text-xs">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="form-select w-44 py-1.5 text-xs"
+          >
             <option value="">All Types</option>
             <option value="traditional_iul">Traditional IUL</option>
             <option value="high_intent_iul">High Intent IUL</option>
           </select>
-          <select className="form-select w-36 py-1.5 text-xs">
+          <select
+            value={ageFilter}
+            onChange={(e) => setAgeFilter(e.target.value)}
+            className="form-select w-36 py-1.5 text-xs"
+          >
             <option value="">Any Age</option>
             <option value="30">30–60 days</option>
             <option value="60">60–90 days</option>
             <option value="90">90+ days</option>
           </select>
-          <button className="btn-secondary btn-sm ml-auto">Apply</button>
+          <button type="button" onClick={applyFilters} className="btn-secondary btn-sm ml-auto">
+            Apply
+          </button>
         </div>
       </div>
 
@@ -74,9 +143,16 @@ export function PartnerAgedView({
               {agedLeads.length}
             </span>
           </div>
-          {agedLeads.length > 0 && canBuy && (
-            <button className="btn-primary btn-sm">
-              Buy Selected (${agedPrice}/each)
+          {selected.size > 0 && canBuy && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => purchase(Array.from(selected))}
+              className="btn-primary btn-sm"
+            >
+              {pending
+                ? "Purchasing…"
+                : `Buy Selected (${selected.size}) — $${(selected.size * agedPrice).toFixed(2)}`}
             </button>
           )}
         </div>
@@ -89,7 +165,7 @@ export function PartnerAgedView({
               description={
                 partner.filterStates.length === 0
                   ? "You have no target states selected. Set up your states in Settings to see leads."
-                  : "No aged leads match your target states right now. Check back later."
+                  : "No aged leads match your filters right now. Check back later."
               }
             />
           ) : (
@@ -97,7 +173,12 @@ export function PartnerAgedView({
               <thead>
                 <tr>
                   <th className="w-8">
-                    <input type="checkbox" className="rounded border-slate-300" />
+                    <input
+                      type="checkbox"
+                      checked={selected.size === agedLeads.length && agedLeads.length > 0}
+                      onChange={toggleAll}
+                      className="rounded border-slate-300"
+                    />
                   </th>
                   <th>Lead</th>
                   <th>State</th>
@@ -115,7 +196,12 @@ export function PartnerAgedView({
                   return (
                     <tr key={lead.id}>
                       <td>
-                        <input type="checkbox" className="rounded border-slate-300" />
+                        <input
+                          type="checkbox"
+                          checked={selected.has(lead.id)}
+                          onChange={() => toggleLead(lead.id)}
+                          className="rounded border-slate-300"
+                        />
                       </td>
                       <td>
                         <p className="font-medium text-slate-900">
@@ -169,12 +255,14 @@ export function PartnerAgedView({
                       <td>
                         <div className="flex justify-end">
                           <button
+                            type="button"
+                            disabled={!canBuy || pending}
+                            onClick={() => purchase([lead.id])}
                             className={`btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                               canBuy
                                 ? "bg-brand-700 text-white hover:bg-brand-800"
                                 : "bg-slate-100 text-slate-400 cursor-not-allowed"
                             }`}
-                            disabled={!canBuy}
                           >
                             Buy — ${agedPrice}
                           </button>

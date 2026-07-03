@@ -20,13 +20,9 @@ export async function syncPartnerToClerk(
     }
 
     if (needsId) {
-      const metadata: Record<string, unknown> = {};
-      if (user.publicMetadata && typeof user.publicMetadata === "object") {
-        Object.assign(metadata, user.publicMetadata);
-      }
-      metadata.partnerId = partner.id;
-
-      await client.users.updateUser(user.id, { publicMetadata: metadata });
+      await client.users.updateUserMetadata(user.id, {
+        publicMetadata: { partnerId: partner.id },
+      });
     }
   } catch (error) {
     // Don't block app load if Clerk rejects the update (e.g. instance policy).

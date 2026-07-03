@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Zap, CheckCircle, AlertCircle } from "lucide-react";
+import { ActionButton } from "@/components/ui/action-button";
+import { Spinner } from "@/components/ui/spinner";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
@@ -123,19 +125,9 @@ export default function LeadSimulator() {
           <input name="trustedform" className="form-input" placeholder="https://cert.trustedform.com/…" />
         </div>
 
-        <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              Submitting…
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Zap size={15} />
-              Submit Lead to Intake
-            </span>
-          )}
-        </button>
+        <ActionButton type="submit" loading={loading} loadingText="Submitting…" icon={<Zap size={15} />}>
+          Submit Lead to Intake
+        </ActionButton>
       </form>
 
       {/* Result panel */}
@@ -148,7 +140,7 @@ export default function LeadSimulator() {
         )}
         {loading && (
           <div className="flex h-48 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
+            <Spinner size="lg" />
           </div>
         )}
         {result && (

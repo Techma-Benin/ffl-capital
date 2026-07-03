@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { debitWallet } from "@/lib/wallet/ledger";
+import { deliverLead } from "@/lib/delivery/deliver-lead";
 import { findEligiblePartners } from "./eligibility";
 
 export interface MatchResult {
@@ -17,7 +18,10 @@ export interface MatchResult {
   reason?: string;
 }
 
-export async function matchLead(leadId: string): Promise<MatchResult> {
+export async function matchLead(
+  leadId: string,
+  options?: { excludePartnerIds?: string[] },
+): Promise<MatchResult> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) {
     throw new Error(`Lead not found: ${leadId}`);
@@ -31,7 +35,7 @@ export async function matchLead(leadId: string): Promise<MatchResult> {
     };
   }
 
-  const eligible = await findEligiblePartners(lead.state, lead.leadType);
+  const eligible = await findEligiblePartners(lead.state, lead.leadType, options);
   if (eligible.length === 0) {
     return {
       matched: false,
@@ -98,9 +102,12 @@ export async function matchLead(leadId: string): Promise<MatchResult> {
     };
   }
 
-  if (process.env.INTEGRATIONS_MODE === "mock") {
-    console.info(
-      `[mock] Lead ${result.lead.id} delivered to partner ${result.partner.email}`,
+  try {
+    await deliverLead(result.deliveryId);
+  } catch (err) {
+    console.error(
+      `[matchLead] deliverLead failed for ${result.deliveryId}:`,
+      err,
     );
   }
 

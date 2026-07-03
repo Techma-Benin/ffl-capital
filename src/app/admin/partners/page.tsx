@@ -2,8 +2,10 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Users, CheckCircle, XCircle, MapPin } from "lucide-react";
 import Link from "next/link";
+import { Users, MapPin } from "lucide-react";
+import { FilterTabLink } from "@/components/ui/filter-tab-link";
+import { PartnerApprovalActions } from "@/components/admin/partner-approval-actions";
 
 export default async function AdminPartnersPage({
   searchParams,
@@ -52,20 +54,16 @@ export default async function AdminPartnersPage({
         {/* Filter tabs */}
         <div className="flex items-center gap-1 border-b border-slate-100 px-4 py-2">
           {statusTabs.map((tab) => (
-            <Link
+            <FilterTabLink
               key={tab.label}
               href={tab.value ? `/admin/partners?status=${tab.value}` : "/admin/partners"}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                statusFilter === tab.value || (!statusFilter && !tab.value)
-                  ? "bg-brand-50 text-brand-700"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
+              active={statusFilter === tab.value || (!statusFilter && !tab.value)}
             >
               {tab.label}
               <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
                 {tab.count}
               </span>
-            </Link>
+            </FilterTabLink>
           ))}
         </div>
 
@@ -101,12 +99,12 @@ export default async function AdminPartnersPage({
                   return (
                     <tr key={p.id}>
                       <td>
-                        <div>
+                        <Link href={`/admin/partners/${p.id}`} className="hover:text-brand-600">
                           <p className="font-medium text-slate-900">
                             {p.firstName} {p.lastName}
                           </p>
                           <p className="text-xs text-slate-400">{p.email}</p>
-                        </div>
+                        </Link>
                       </td>
                       <td className="text-slate-500">{p.affiliation ?? "—"}</td>
                       <td>
@@ -142,37 +140,11 @@ export default async function AdminPartnersPage({
                         </Badge>
                       </td>
                       <td>
-                        <div className="flex items-center justify-end gap-2">
-                          {p.status === "pending_approval" && (
-                            <>
-                              <form action={`/api/admin/partners/approve`} method="POST">
-                                <input type="hidden" name="partnerId" value={p.id} />
-                                <input type="hidden" name="action" value="approve" />
-                                <button
-                                  type="submit"
-                                  className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
-                                >
-                                  <CheckCircle size={12} />
-                                  Approve
-                                </button>
-                              </form>
-                              <form action={`/api/admin/partners/approve`} method="POST">
-                                <input type="hidden" name="partnerId" value={p.id} />
-                                <input type="hidden" name="action" value="reject" />
-                                <button
-                                  type="submit"
-                                  className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
-                                >
-                                  <XCircle size={12} />
-                                  Reject
-                                </button>
-                              </form>
-                            </>
-                          )}
-                          {p.status === "active" && (
-                            <span className="text-xs text-slate-300 italic">—</span>
-                          )}
-                        </div>
+                        {p.status === "pending_approval" ? (
+                          <PartnerApprovalActions partnerId={p.id} />
+                        ) : p.status === "active" ? (
+                          <span className="text-xs text-slate-300 italic">—</span>
+                        ) : null}
                       </td>
                     </tr>
                   );

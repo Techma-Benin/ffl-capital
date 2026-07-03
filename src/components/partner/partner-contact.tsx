@@ -50,6 +50,7 @@ export function PartnerContactView() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+  const [opening, setOpening] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,8 +62,10 @@ export function PartnerContactView() {
       return;
     }
 
+    setOpening(true);
     window.location.href = buildMailto(subject, message, partner);
     setSent(true);
+    setOpening(false);
   }
 
   return (
@@ -149,7 +152,13 @@ export function PartnerContactView() {
             <p className="text-xs text-slate-400">
               {partner.firstName} {partner.lastName} · {partner.email}
             </p>
-            <ActionButton type="submit" icon={<Send size={15} />} className="flex-shrink-0">
+            <ActionButton
+              type="submit"
+              icon={<Send size={15} />}
+              className="flex-shrink-0"
+              loading={opening}
+              loadingText="Opening email…"
+            >
               Send
             </ActionButton>
           </div>

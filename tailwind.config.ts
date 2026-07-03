@@ -40,6 +40,15 @@ const config: Config = {
         card: "0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07)",
         "card-hover": "0 4px 12px 0 rgb(0 0 0 / 0.1)",
       },
+      keyframes: {
+        "nav-progress": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(400%)" },
+        },
+      },
+      animation: {
+        "nav-progress": "nav-progress 1s ease-in-out infinite",
+      },
     },
   },
   plugins: [],

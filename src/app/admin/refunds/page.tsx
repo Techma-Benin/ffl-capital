@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { RotateCcw, CheckCircle, XCircle } from "lucide-react";
+import { RefundReviewActions } from "@/components/admin/refund-review-actions";
+import { RotateCcw } from "lucide-react";
 
 export default async function AdminRefundsPage() {
   const [pending, history] = await Promise.all([
@@ -97,16 +98,7 @@ export default async function AdminRefundsPage() {
                       })}
                     </td>
                     <td>
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors">
-                          <CheckCircle size={12} />
-                          Approve
-                        </button>
-                        <button className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors">
-                          <XCircle size={12} />
-                          Reject
-                        </button>
-                      </div>
+                      <RefundReviewActions refundId={r.id} />
                     </td>
                   </tr>
                 ))}

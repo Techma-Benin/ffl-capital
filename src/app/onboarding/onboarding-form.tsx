@@ -101,12 +101,10 @@ export default function OnboardingForm() {
         return;
       }
       setSuccess(true);
-      await new Promise((resolve) => setTimeout(resolve, 700));
       router.push("/partner");
       router.refresh();
     } catch {
       setError("Request failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   }

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import type { LucideIcon } from "lucide-react";
 import { usePortal } from "@/components/layout/portal-provider";
+import { Spinner } from "@/components/ui/spinner";
 
 export function SidebarNavLink({
   href,
@@ -18,16 +19,22 @@ export function SidebarNavLink({
   exact?: boolean;
 }) {
   const pathname = usePathname();
-  const { sidebarCollapsed, startNavigation } = usePortal();
+  const { sidebarCollapsed, pendingPath, startNavigation } = usePortal();
 
   const active = exact ? pathname === href : pathname.startsWith(href);
+  const pending = pendingPath === href;
 
   return (
     <Link
       href={href}
       onClick={() => startNavigation(href)}
       title={sidebarCollapsed ? label : undefined}
-      className={clsx("nav-item group relative", active && "active")}
+      aria-busy={pending}
+      className={clsx(
+        "nav-item group relative",
+        active && "active",
+        pending && "pointer-events-none opacity-80",
+      )}
     >
       <span
         className={clsx(
@@ -35,7 +42,11 @@ export function SidebarNavLink({
           active ? "bg-white/10" : "bg-transparent group-hover:bg-white/5",
         )}
       >
-        <Icon size={16} />
+        {pending ? (
+          <Spinner size="xs" variant="white" />
+        ) : (
+          <Icon size={16} />
+        )}
       </span>
 
       <span
@@ -47,7 +58,7 @@ export function SidebarNavLink({
         {label}
       </span>
 
-      {!sidebarCollapsed && active && (
+      {!sidebarCollapsed && active && !pending && (
         <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-300" />
       )}
 

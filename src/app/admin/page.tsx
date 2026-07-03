@@ -11,7 +11,7 @@ import {
   CheckCircle,
   Activity,
 } from "lucide-react";
-import Link from "next/link";
+import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
 
 export default async function AdminDashboardPage() {
@@ -126,12 +126,12 @@ export default async function AdminDashboardPage() {
           <p className="mt-2 text-3xl font-bold text-slate-900">{pendingPartners}</p>
           <p className="mt-1 text-sm text-slate-500">Partners awaiting activation</p>
           {pendingPartners > 0 && (
-            <Link
+            <PortalLink
               href="/admin/partners?status=pending_approval"
               className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
             >
               Review now →
-            </Link>
+            </PortalLink>
           )}
         </div>
 
@@ -146,12 +146,12 @@ export default async function AdminDashboardPage() {
           <p className="mt-2 text-3xl font-bold text-slate-900">{unmatchedLeads}</p>
           <p className="mt-1 text-sm text-slate-500">Unmatched, pending 24h retry</p>
           {unmatchedLeads > 0 && (
-            <Link
+            <PortalLink
               href="/admin/leads?status=unmatched"
               className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
             >
               View queue →
-            </Link>
+            </PortalLink>
           )}
         </div>
       </div>
@@ -160,12 +160,12 @@ export default async function AdminDashboardPage() {
       <div className="mt-6 card">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-slate-900">Recent Leads</h2>
-          <Link
+          <PortalLink
             href="/admin/leads"
             className="text-xs font-medium text-brand-600 hover:text-brand-700"
           >
             View all →
-          </Link>
+          </PortalLink>
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">

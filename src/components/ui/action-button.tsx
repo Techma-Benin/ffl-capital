@@ -2,6 +2,8 @@
 
 import { clsx } from "clsx";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { Check } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
@@ -17,6 +19,12 @@ const variants = {
   primary: "btn-primary",
   secondary: "btn-secondary",
   danger: "btn-danger",
+};
+
+const spinnerVariants = {
+  primary: "white" as const,
+  secondary: "slate" as const,
+  danger: "white" as const,
 };
 
 export function ActionButton({
@@ -37,13 +45,14 @@ export function ActionButton({
     <button
       {...props}
       disabled={disabled || busy}
-      className={clsx(variants[variant], busy && "opacity-80", className)}
+      aria-busy={loading}
+      className={clsx(variants[variant], busy && "opacity-90", className)}
     >
       <span className="flex items-center justify-center gap-2">
+        {loading && <Spinner size="sm" variant={spinnerVariants[variant]} />}
+        {!loading && success && <Check size={16} className="flex-shrink-0" />}
         {!loading && !success && icon}
-        <span>
-          {loading ? loadingText : success ? successText : children}
-        </span>
+        <span>{loading ? loadingText : success ? successText : children}</span>
       </span>
     </button>
   );

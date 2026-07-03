@@ -40,7 +40,52 @@ export function PartnerWalletView({
     : selectedAmount;
 
   const checkoutValid =
-    Number.isFinite(checkoutAmount) && checkoutAmount >= 25;
+    checkoutAmount !== null &&
+    Number.isFinite(checkoutAmount) &&
+    checkoutAmount >= 25;
+
+  const [checkoutPending, setCheckoutPending] = useState(false);
+  const [subscribePending, setSubscribePending] = useState(false);
+  const [weeklyAmount, setWeeklyAmount] = useState("500");
+
+  async function startCheckout() {
+    if (!checkoutValid || !checkoutAmount) return;
+    setCheckoutPending(true);
+    try {
+      const res = await fetch("/api/wallet/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: checkoutAmount }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Checkout failed");
+      if (data.url) window.location.href = data.url;
+    } catch {
+      // allow retry
+    } finally {
+      setCheckoutPending(false);
+    }
+  }
+
+  async function startSubscribe() {
+    const amount = Number(weeklyAmount);
+    if (!Number.isFinite(amount) || amount < 25) return;
+    setSubscribePending(true);
+    try {
+      const res = await fetch("/api/wallet/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Subscribe failed");
+      if (data.url) window.location.href = data.url;
+    } catch {
+      // allow retry
+    } finally {
+      setSubscribePending(false);
+    }
+  }
 
   return (
     <div>
@@ -147,55 +192,54 @@ export function PartnerWalletView({
 
             <button
               type="button"
-              disabled={!checkoutValid}
+              disabled={!checkoutValid || checkoutPending}
+              onClick={startCheckout}
               className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
-              title={
-                checkoutValid
-                  ? "Stripe checkout will open here"
-                  : "Enter at least $25 to continue"
-              }
             >
-              {checkoutValid
-                ? `Pay $${checkoutAmount!.toFixed(2)} with Stripe`
-                : "Enter amount to continue"}
+              {checkoutPending
+                ? "Redirecting to Stripe…"
+                : checkoutValid
+                  ? `Pay $${checkoutAmount!.toFixed(2)} with Stripe`
+                  : "Enter amount to continue"}
             </button>
             <p className="mt-2 text-center text-[11px] text-slate-400">
               Minimum top-up $25 · Secured by Stripe
             </p>
           </div>
 
-          <div className="rounded-xl border border-dashed border-slate-200 bg-white p-5 opacity-90">
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-xl bg-violet-50 p-2.5">
                 <RefreshCw size={18} className="text-violet-600" />
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div>
                 <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>
-                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">
-                  Coming soon
-                </span>
+                <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
               </div>
             </div>
             <p className="mb-4 text-xs leading-relaxed text-slate-500">
               Set a weekly amount and never miss a lead because your balance ran low.
             </p>
             <div className="relative mb-3">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-300">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
                 $
               </span>
               <input
                 type="number"
+                min={25}
                 placeholder="500"
-                className="form-input w-full cursor-not-allowed pl-7 opacity-60"
-                disabled
+                value={weeklyAmount}
+                onChange={(e) => setWeeklyAmount(e.target.value)}
+                className="form-input w-full pl-7"
               />
             </div>
             <button
               type="button"
-              className="btn-secondary w-full cursor-not-allowed opacity-50"
-              disabled
+              onClick={startSubscribe}
+              disabled={subscribePending || Number(weeklyAmount) < 25}
+              className="btn-secondary w-full disabled:opacity-50"
             >
-              Enable auto-recharge
+              {subscribePending ? "Redirecting…" : "Enable auto-recharge"}
             </button>
           </div>
         </div>

@@ -14,8 +14,9 @@ import {
   FileText,
   RotateCcw,
   Archive,
-  BarChart2,
   Settings,
+  Shield,
+  Upload,
 } from "lucide-react";
 
 const navSections = [
@@ -26,19 +27,14 @@ const navSections = [
       { href: "/admin/leads", label: "Leads", icon: FileText },
       { href: "/admin/aged", label: "Aged Leads", icon: Archive },
       { href: "/admin/refunds", label: "Refunds", icon: RotateCcw },
+      { href: "/admin/integrity", label: "Integrity", icon: Shield },
     ],
   },
   {
     label: "Management",
     items: [
       { href: "/admin/partners", label: "Partners", icon: Users },
-      { href: "/admin/filter-list", label: "Filter List", icon: Zap },
-    ],
-  },
-  {
-    label: "Analytics",
-    items: [
-      { href: "/admin/reports", label: "Reports", icon: BarChart2 },
+      { href: "/admin/migration", label: "Migration", icon: Upload },
     ],
   },
   {
@@ -56,7 +52,7 @@ export function AdminSidebar() {
   return (
     <aside
       onClick={handleEmptyAreaClick}
-      aria-label={sidebarCollapsed ? undefined : "Click empty area to collapse sidebar"}
+      aria-label="Click empty area to toggle sidebar"
       className={clsx(
         "flex h-screen flex-shrink-0 flex-col bg-sidebar-bg transition-[width] duration-300 ease-out motion-reduce:transition-none",
         sidebarCollapsed ? "w-[72px]" : "w-60",

@@ -33,14 +33,17 @@ export function isPartnerEligibleForLead(
 export async function findEligiblePartners(
   leadState: string,
   leadType: LeadType,
+  options?: { excludePartnerIds?: string[] },
 ): Promise<Array<PartnerWithBalance & { effectivePrice: number }>> {
   const defaultPrice = await getDefaultRealtimePrice();
+  const exclude = new Set(options?.excludePartnerIds ?? []);
 
   const candidates = await prisma.partner.findMany({
     where: {
       status: PartnerStatus.active,
       leadType,
       filterStates: { has: leadState },
+      ...(exclude.size > 0 ? { id: { notIn: Array.from(exclude) } } : {}),
     },
     orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
   });

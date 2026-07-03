@@ -1,57 +1,82 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { LeadType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PartnerAgedView } from "@/components/partner/partner-aged";
+import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
+import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 
-export default async function PartnerAgedPage() {
+export default async function PartnerAgedPage({
+  searchParams,
+}: {
+  searchParams: { state?: string; type?: string; age?: string };
+}) {
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
   const targeting = await prisma.partner.findUnique({
     where: { id: partnerId },
-    select: { filterStates: true },
+    select: { filterStates: true, leadType: true },
   });
   if (!targeting) redirect("/onboarding");
 
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const extra: Prisma.LeadWhereInput = {
+    state: {
+      in: targeting.filterStates.length > 0 ? targeting.filterStates : ["__none__"],
+    },
+    leadType: targeting.leadType,
+  };
 
-  const [agedLeads, agedPriceResult] = await Promise.all([
+  if (searchParams.state) extra.state = searchParams.state;
+  if (searchParams.type) extra.leadType = searchParams.type as LeadType;
+
+  if (searchParams.age) {
+    const minDays = Number(searchParams.age);
+    const maxCutoff = new Date();
+    maxCutoff.setDate(maxCutoff.getDate() - minDays);
+
+    if (searchParams.age === "30") {
+      const minCutoff = new Date();
+      minCutoff.setDate(minCutoff.getDate() - 60);
+      extra.receivedAt = { lte: maxCutoff, gte: minCutoff };
+    } else if (searchParams.age === "60") {
+      const minCutoff = new Date();
+      minCutoff.setDate(minCutoff.getDate() - 90);
+      extra.receivedAt = { lte: maxCutoff, gte: minCutoff };
+    } else {
+      extra.receivedAt = { lte: maxCutoff };
+    }
+  }
+
+  const [agedLeads, agedPrice] = await Promise.all([
     prisma.lead.findMany({
-      where: {
-        receivedAt: { lte: thirtyDaysAgo },
-        status: { not: "dead" },
-        state: {
-          in: targeting.filterStates.length > 0 ? targeting.filterStates : ["__none__"],
-        },
-      },
+      where: buildAgedLeadWhere(extra),
       orderBy: { receivedAt: "asc" },
       take: 100,
     }),
-    prisma.appSetting.findUnique({ where: { key: "default_aged_price" } }),
+    getDefaultAgedPrice(),
   ]);
 
-  const agedPrice = agedPriceResult
-    ? Number((agedPriceResult.value as { value: number }).value)
-    : 5;
-
   return (
-    <PartnerAgedView
-      agedPrice={agedPrice}
-      agedLeads={agedLeads.map((lead) => {
-        const rawPayload = lead.rawPayload as Record<string, string> | null;
-        return {
-          id: lead.id,
-          firstName: lead.firstName,
-          lastName: lead.lastName,
-          state: lead.state,
-          leadType: lead.leadType,
-          receivedAt: lead.receivedAt.toISOString(),
-          trustedformCertUrl: lead.trustedformCertUrl,
-          intent: rawPayload?.intent ?? rawPayload?.Intent ?? "—",
-          primaryGoal: rawPayload?.primary_goal ?? rawPayload?.PrimaryGoal ?? null,
-        };
-      })}
-    />
+    <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading…</div>}>
+      <PartnerAgedView
+        agedPrice={agedPrice}
+        agedLeads={agedLeads.map((lead) => {
+          const rawPayload = lead.rawPayload as Record<string, string> | null;
+          return {
+            id: lead.id,
+            firstName: lead.firstName,
+            lastName: lead.lastName,
+            state: lead.state,
+            leadType: lead.leadType,
+            receivedAt: lead.receivedAt.toISOString(),
+            trustedformCertUrl: lead.trustedformCertUrl,
+            intent: rawPayload?.intent ?? rawPayload?.Intent ?? "—",
+            primaryGoal: rawPayload?.primary_goal ?? rawPayload?.PrimaryGoal ?? null,
+          };
+        })}
+      />
+    </Suspense>
   );
 }
