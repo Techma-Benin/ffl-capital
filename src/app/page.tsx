@@ -50,6 +50,9 @@ export default async function HomePage() {
             <ArrowRight size={16} />
           </Link>
           <Link href="/sign-in" className="btn-secondary">
+            Partner Sign In
+          </Link>
+          <Link href="/admin/sign-in" className="btn-ghost text-sm font-medium text-slate-600">
             Admin Login
           </Link>
         </div>

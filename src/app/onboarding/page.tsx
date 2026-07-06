@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 import { getCurrentPartner } from "@/lib/auth/session";
 import OnboardingForm from "./onboarding-form";
 import { Zap } from "lucide-react";
@@ -7,6 +8,15 @@ import { Zap } from "lucide-react";
 export default async function OnboardingPage() {
   const partner = await getCurrentPartner();
   if (partner) redirect("/partner");
+
+  const user = await currentUser();
+  const fullName = user?.fullName?.trim() ?? "";
+  const [fallbackFirst = "", ...fallbackRest] = fullName ? fullName.split(/\s+/) : [];
+  const initialProfile = {
+    firstName: user?.firstName ?? fallbackFirst,
+    lastName: user?.lastName ?? fallbackRest.join(" "),
+    email: user?.emailAddresses[0]?.emailAddress ?? "",
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -65,7 +75,7 @@ export default async function OnboardingPage() {
             </p>
           </div>
 
-          <OnboardingForm />
+          <OnboardingForm initialProfile={initialProfile} />
         </div>
       </div>
     </div>

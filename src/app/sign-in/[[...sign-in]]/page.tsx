@@ -5,11 +5,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLeftPanel } from "@/components/auth/auth-left-panel";
 import { authClerkAppearance } from "@/lib/auth/auth-clerk-appearance";
-import { getPostAuthRedirectPath } from "@/lib/auth/redirect";
+import { getPartnerPostAuthRedirectPath } from "@/lib/auth/redirect";
+import { AUTH_CONTINUE_PARTNER } from "@/lib/auth/portal";
 
 export default async function SignInPage() {
   const { userId } = await auth();
-  if (userId) redirect(await getPostAuthRedirectPath());
+  if (userId) redirect(await getPartnerPostAuthRedirectPath());
   return (
     <div className="flex min-h-screen">
       <AuthLeftPanel subtitle="Lead Distribution Platform">
@@ -50,15 +51,15 @@ export default async function SignInPage() {
             </Link>
           </div>
 
-          <h2 className="mb-2 text-2xl font-bold text-slate-900">Welcome back</h2>
+          <h2 className="mb-2 text-2xl font-bold text-slate-900">Partner sign in</h2>
           <p className="mb-6 text-sm text-slate-500">
-            Sign in to access your portal.{" "}
+            Sign in to access your partner portal.{" "}
             <Link href="/sign-up" className="font-medium text-brand-600 hover:underline">
               New partner? Sign up
             </Link>
           </p>
 
-          <SignIn forceRedirectUrl="/auth/continue" appearance={authClerkAppearance} />
+          <SignIn forceRedirectUrl={AUTH_CONTINUE_PARTNER} appearance={authClerkAppearance} />
         </div>
       </div>
     </div>

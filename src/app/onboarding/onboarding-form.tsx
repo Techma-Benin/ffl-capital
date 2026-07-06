@@ -29,7 +29,15 @@ type ProfileFields = {
   leadType: "traditional_iul" | "high_intent_iul";
 };
 
-export default function OnboardingForm() {
+type InitialProfile = Partial<ProfileFields> & {
+  email?: string;
+};
+
+type Props = {
+  initialProfile?: InitialProfile;
+};
+
+export default function OnboardingForm({ initialProfile }: Props) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,12 +45,13 @@ export default function OnboardingForm() {
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [step, setStep] = useState<1 | 2>(1);
   const [profile, setProfile] = useState<ProfileFields>({
-    firstName: "",
-    lastName: "",
-    affiliation: "",
-    residenceState: "",
-    leadType: "high_intent_iul",
+    firstName: initialProfile?.firstName ?? "",
+    lastName: initialProfile?.lastName ?? "",
+    affiliation: initialProfile?.affiliation ?? "",
+    residenceState: initialProfile?.residenceState ?? "",
+    leadType: initialProfile?.leadType ?? "high_intent_iul",
   });
+  const accountEmail = initialProfile?.email ?? "";
 
   function toggleState(code: string) {
     setSelectedStates((prev) =>
@@ -116,6 +125,20 @@ export default function OnboardingForm() {
       {/* Step 1 — Profile */}
       {step === 1 && (
         <div className="space-y-4">
+          {accountEmail && (
+            <div>
+              <label className="form-label">Account Email</label>
+              <input
+                type="email"
+                readOnly
+                className="form-input bg-slate-50 text-slate-600"
+                value={accountEmail}
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                From your sign-up — used for lead delivery and account notifications
+              </p>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="form-label">First Name</label>

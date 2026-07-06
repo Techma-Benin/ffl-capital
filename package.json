@@ -12,9 +12,11 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "seed": "node scripts/seed.mjs",
+    "create-admin": "node scripts/create-admin.mjs",
     "seed:lead": "node scripts/seed-lead.mjs",
     "test:matching": "node scripts/test-matching.mjs",
-    "verify": "node scripts/verify-backend.mjs"
+    "verify": "node scripts/verify-backend.mjs",
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.7.5",

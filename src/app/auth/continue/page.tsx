@@ -1,9 +1,17 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { getPostAuthRedirectPath } from "@/lib/auth/redirect";
+import { parseAuthPortal } from "@/lib/auth/portal";
+import { getPostAuthRedirectPathForPortal } from "@/lib/auth/redirect";
 
-export default async function AuthContinuePage() {
+type Props = {
+  searchParams: Promise<{ portal?: string }>;
+};
+
+export default async function AuthContinuePage({ searchParams }: Props) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
-  redirect(await getPostAuthRedirectPath());
+
+  const params = await searchParams;
+  const portal = parseAuthPortal(params.portal);
+  redirect(await getPostAuthRedirectPathForPortal(portal));
 }

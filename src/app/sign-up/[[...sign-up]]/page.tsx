@@ -5,11 +5,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLeftPanel } from "@/components/auth/auth-left-panel";
 import { authClerkAppearance } from "@/lib/auth/auth-clerk-appearance";
-import { getPostAuthRedirectPath } from "@/lib/auth/redirect";
+import { getPartnerPostAuthRedirectPath } from "@/lib/auth/redirect";
+import { AUTH_CONTINUE_PARTNER } from "@/lib/auth/portal";
 
 export default async function SignUpPage() {
   const { userId } = await auth();
-  if (userId) redirect(await getPostAuthRedirectPath());
+  if (userId) redirect(await getPartnerPostAuthRedirectPath());
   return (
     <div className="flex min-h-screen">
       <AuthLeftPanel subtitle="Partner Signup">
@@ -57,7 +58,7 @@ export default async function SignUpPage() {
             Join FFL Capital and start purchasing qualified IUL leads.
           </p>
 
-          <SignUp forceRedirectUrl="/auth/continue" appearance={authClerkAppearance} />
+          <SignUp forceRedirectUrl={AUTH_CONTINUE_PARTNER} appearance={authClerkAppearance} />
         </div>
       </div>
     </div>
