@@ -138,6 +138,22 @@ body {
   color: var(--slate-900);
 }
 
+.api-status {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slate-500);
+}
+
+.api-status.ok {
+  color: var(--emerald-600, #059669);
+}
+
+.api-status.fail {
+  color: #dc2626;
+}
+
 /* Tabs */
 .tabs {
   display: flex;

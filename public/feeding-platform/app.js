@@ -24,8 +24,46 @@ function getApiUrl() {
   return stored || defaultApiUrl();
 }
 
+function isFileProtocol() {
+  return window.location.protocol === "file:";
+}
+
+function formatFetchError(err, apiUrl) {
+  if (!(err instanceof Error)) return "Network error";
+  if (err.message === "Failed to fetch") {
+    if (isFileProtocol()) {
+      return `Cannot reach ${apiUrl}. Use http://localhost:3000/feeding-platform while npm run dev is running.`;
+    }
+    return `Cannot reach ${apiUrl}. Ensure npm run dev is running and the intake API URL is correct.`;
+  }
+  return err.message;
+}
+
+async function checkApiConnection(apiUrl) {
+  try {
+    const res = await fetch(apiUrl, { method: "OPTIONS" });
+    return res.ok || res.status === 204;
+  } catch {
+    return false;
+  }
+}
+
 function saveApiUrl(url) {
   localStorage.setItem("ffl_feed_api_url", url);
+}
+
+function setConnectionStatus(ok, apiUrl) {
+  const el = $("#api-status");
+  if (!el) return;
+  if (ok) {
+    el.textContent = "API reachable";
+    el.className = "api-status ok";
+    return;
+  }
+  el.textContent = isFileProtocol()
+    ? "API unreachable — open http://localhost:3000/feeding-platform instead of this file"
+    : `API unreachable — check ${apiUrl} and npm run dev`;
+  el.className = "api-status fail";
 }
 
 function buildPayload(lead) {
@@ -258,10 +296,12 @@ function initTabs() {
 function initConfig() {
   const input = $("#api-url");
   input.value = getApiUrl();
-  $("#save-api").addEventListener("click", () => {
+  $("#save-api").addEventListener("click", async () => {
     saveApiUrl(input.value.trim() || defaultApiUrl());
     input.value = getApiUrl();
+    setConnectionStatus(await checkApiConnection(getApiUrl()), getApiUrl());
   });
+  checkApiConnection(getApiUrl()).then((ok) => setConnectionStatus(ok, getApiUrl()));
 }
 
 function initSingle() {
@@ -291,7 +331,7 @@ function initSingle() {
         {
           ok: false,
           label: `${lead.firstName} ${lead.lastName}`,
-          data: { reason: err instanceof Error ? err.message : "Network error" },
+          data: { reason: formatFetchError(err, getApiUrl()) },
           status: 0,
         },
       ]);
@@ -367,7 +407,7 @@ function initBulk() {
         results.push({
           ok: false,
           label: `${lead.firstName} ${lead.lastName} (${lead.state})`,
-          data: { reason: err instanceof Error ? err.message : "Network error" },
+          data: { reason: formatFetchError(err, getApiUrl()) },
           status: 0,
         });
       }
