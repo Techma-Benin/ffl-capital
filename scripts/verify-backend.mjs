@@ -80,14 +80,23 @@ async function main() {
   }
   console.log("OK: TX matched + events logged");
 
-  // 2. Duplicate rejection
-  const externalId = `dup-test-${Date.now()}`;
-  const first = await postLead("CA", { Unique_Identifier: externalId });
+  // 2. Duplicate rejection (same email+phone, different externalId)
+  const dupEmail = `dup-${Date.now()}@example.com`;
+  const dupPhone = "5125550888";
+  const first = await postLead("CA", {
+    Email: dupEmail,
+    Primary_Phone: dupPhone,
+    Unique_Identifier: `dup-first-${Date.now()}`,
+  });
   if (first.body.outcome !== "success") {
     console.error("FAIL: first intake for duplicate test");
     process.exit(1);
   }
-  const dup = await postLead("CA", { Unique_Identifier: externalId });
+  const dup = await postLead("CA", {
+    Email: dupEmail,
+    Primary_Phone: dupPhone,
+    Unique_Identifier: `dup-second-${Date.now()}`,
+  });
   if (dup.body.outcome !== "error" || dup.status !== 409) {
     console.error("FAIL: duplicate should be rejected", dup);
     process.exit(1);
