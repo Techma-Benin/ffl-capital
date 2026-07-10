@@ -22,12 +22,12 @@ const STATUS_TABS: { label: string; value: StatusFilter }[] = [
   { label: "Aged Listed", value: "aged_listed" },
 ];
 
-function buildWhere(
+async function buildWhere(
   statusFilter: StatusFilter | undefined,
   state?: string,
   from?: string,
   to?: string,
-): Prisma.LeadWhereInput {
+): Promise<Prisma.LeadWhereInput> {
   let where: Prisma.LeadWhereInput = {};
 
   if (statusFilter === "matched") {
@@ -37,7 +37,7 @@ function buildWhere(
   } else if (statusFilter === "integrity_posted") {
     where.status = LeadStatus.integrity_posted;
   } else if (statusFilter === "aged_listed") {
-    where = buildAgedLeadWhere();
+    where = await buildAgedLeadWhere();
   }
 
   if (state) where.state = state;
@@ -60,7 +60,7 @@ export default async function AdminLeadsPage({
   searchParams: { status?: string; state?: string; from?: string; to?: string };
 }) {
   const statusFilter = searchParams.status as StatusFilter | undefined;
-  const whereClause = buildWhere(
+  const whereClause = await buildWhere(
     statusFilter,
     searchParams.state,
     searchParams.from,
@@ -84,7 +84,7 @@ export default async function AdminLeadsPage({
       STATUS_TABS.map(async (tab) => ({
         value: tab.value,
         count: await prisma.lead.count({
-          where: buildWhere(tab.value === "all" ? undefined : tab.value),
+          where: await buildWhere(tab.value === "all" ? undefined : tab.value),
         }),
       })),
     ),
@@ -152,6 +152,7 @@ export default async function AdminLeadsPage({
                   <th>Phone</th>
                   <th>State</th>
                   <th>Type</th>
+                  <th>Intent</th>
                   <th>Status</th>
                   <th>Partner</th>
                   <th>Price</th>
@@ -183,6 +184,9 @@ export default async function AdminLeadsPage({
                         <Badge variant="blue">
                           {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
                         </Badge>
+                      </td>
+                      <td className="text-xs text-slate-500">
+                        {lead.intent ?? "—"}
                       </td>
                       <td>
                         <LeadStatusBadge status={lead.status} />

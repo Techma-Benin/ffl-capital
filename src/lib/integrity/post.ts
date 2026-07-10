@@ -1,6 +1,11 @@
-import { LeadStatus, ResaleMode, ResaleStatus } from "@prisma/client";
+import { LeadEventType, LeadStatus, ResaleMode, ResaleStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { getIntegrationsMode } from "@/lib/settings/app-settings";
+import {
+  buildIntegrityLeadPayload,
+  buildIntegrityStorefrontPayload,
+} from "./build-payload";
 import { integrityPing } from "./ping";
 
 export interface IntegrityPostResult {
@@ -9,7 +14,12 @@ export interface IntegrityPostResult {
   reason?: string;
 }
 
-export async function integrityPostLead(leadId: string): Promise<IntegrityPostResult> {
+export async function integrityPostLead(
+  leadId: string,
+  options?: { mode?: ResaleMode },
+): Promise<IntegrityPostResult> {
+  const resaleMode = options?.mode ?? ResaleMode.realtime;
+
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return { posted: false, reason: "Lead not found" };
   if (lead.status !== LeadStatus.unmatched || !lead.available) {
@@ -17,7 +27,7 @@ export async function integrityPostLead(leadId: string): Promise<IntegrityPostRe
   }
 
   const existing = await prisma.resalePosting.findFirst({
-    where: { leadId, mode: ResaleMode.realtime },
+    where: { leadId, mode: resaleMode },
   });
   if (existing && existing.status !== ResaleStatus.rejected) {
     return { posted: false, reason: "Already posted to Integrity" };
@@ -37,18 +47,15 @@ export async function integrityPostLead(leadId: string): Promise<IntegrityPostRe
       return { posted: false, reason: "INTEGRITY_POST_URL not configured" };
     }
 
+    const body =
+      resaleMode === ResaleMode.storefront
+        ? buildIntegrityStorefrontPayload(lead)
+        : buildIntegrityLeadPayload(lead);
+
     const res = await fetch(postUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        leadId: lead.id,
-        firstName: lead.firstName,
-        lastName: lead.lastName,
-        email: lead.email,
-        phone: lead.phone,
-        state: lead.state,
-        leadType: lead.leadType,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -58,7 +65,7 @@ export async function integrityPostLead(leadId: string): Promise<IntegrityPostRe
     const data = (await res.json()) as { ref?: string };
     externalRef = data.ref ?? externalRef;
   } else {
-    console.info(`[mock] Integrity post for lead ${leadId}`);
+    console.info(`[mock] Integrity ${resaleMode} post for lead ${leadId}`);
   }
 
   const posting = existing
@@ -73,7 +80,7 @@ export async function integrityPostLead(leadId: string): Promise<IntegrityPostRe
     : await prisma.resalePosting.create({
         data: {
           leadId,
-          mode: ResaleMode.realtime,
+          mode: resaleMode,
           status: ResaleStatus.pending,
           externalRef,
           postedAt: new Date(),
@@ -85,5 +92,17 @@ export async function integrityPostLead(leadId: string): Promise<IntegrityPostRe
     data: { status: LeadStatus.integrity_posted },
   });
 
+  await emitLeadEvent(leadId, LeadEventType.integrity_posted, {
+    postingId: posting.id,
+    mode: resaleMode,
+    externalRef,
+  });
+
   return { posted: true, postingId: posting.id };
+}
+
+export async function integrityPostStorefrontLead(
+  leadId: string,
+): Promise<IntegrityPostResult> {
+  return integrityPostLead(leadId, { mode: ResaleMode.storefront });
 }

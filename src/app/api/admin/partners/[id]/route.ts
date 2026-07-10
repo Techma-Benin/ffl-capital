@@ -7,7 +7,10 @@ import { requireAdmin } from "@/lib/auth/session";
 const patchSchema = z.object({
   priority: z.number().int().min(1).max(10).optional(),
   priceOverride: z.number().positive().nullable().optional(),
-  status: z.enum(["active", "disabled", "pending_approval", "rejected"]).optional(),
+  crmWebhookUrl: z.string().url().nullable().optional(),
+  crmProvider: z.enum(["webhook", "ringy", "email_only"]).optional(),
+  ringySid: z.string().nullable().optional(),
+  ringyAuthToken: z.string().nullable().optional(),
 });
 
 export async function GET(
@@ -57,6 +60,10 @@ export async function PATCH(
     priority?: number;
     priceOverride?: number | null;
     status?: PartnerStatus;
+    crmWebhookUrl?: string | null;
+    crmProvider?: "webhook" | "ringy" | "email_only";
+    ringySid?: string | null;
+    ringyAuthToken?: string | null;
   } = {};
 
   if (parsed.data.priority !== undefined) data.priority = parsed.data.priority;
@@ -65,6 +72,16 @@ export async function PATCH(
   }
   if (parsed.data.status !== undefined) {
     data.status = parsed.data.status as PartnerStatus;
+  }
+  if (parsed.data.crmWebhookUrl !== undefined) {
+    data.crmWebhookUrl = parsed.data.crmWebhookUrl;
+  }
+  if (parsed.data.crmProvider !== undefined) {
+    data.crmProvider = parsed.data.crmProvider;
+  }
+  if (parsed.data.ringySid !== undefined) data.ringySid = parsed.data.ringySid;
+  if (parsed.data.ringyAuthToken !== undefined) {
+    data.ringyAuthToken = parsed.data.ringyAuthToken;
   }
 
   const partner = await prisma.partner.update({

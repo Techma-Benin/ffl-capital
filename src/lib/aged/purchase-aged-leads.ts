@@ -1,5 +1,6 @@
 import {
   DeliveryChannel,
+  LeadEventType,
   LeadStatus,
   LeadType,
   PartnerStatus,
@@ -8,6 +9,7 @@ import {
 import { prisma } from "@/lib/db";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
+import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { debitWallet } from "@/lib/wallet/ledger";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 
@@ -65,11 +67,12 @@ async function purchaseSingleAgedLead(
   partnerLeadType: LeadType,
   agedPrice: number,
 ): Promise<string> {
+  const agedWhere = await buildAgedLeadWhere();
   const result = await prisma.$transaction(async (tx) => {
     const lead = await tx.lead.findFirst({
       where: {
         id: leadId,
-        ...buildAgedLeadWhere(),
+        ...agedWhere,
       },
     });
 
@@ -108,5 +111,15 @@ async function purchaseSingleAgedLead(
   });
 
   await deliverLead(result);
+
+  const delivery = await prisma.leadDelivery.findUnique({ where: { id: result } });
+  if (delivery) {
+    await emitLeadEvent(leadId, LeadEventType.aged_purchased, {
+      deliveryId: result,
+      partnerId,
+      price: agedPrice,
+    });
+  }
+
   return result;
 }

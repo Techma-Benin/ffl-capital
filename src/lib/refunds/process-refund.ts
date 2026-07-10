@@ -1,5 +1,6 @@
-import { LeadStatus } from "@prisma/client";
+import { LeadEventType } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { creditWallet } from "@/lib/wallet/ledger";
 import { matchLead } from "@/lib/matching/engine";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
@@ -40,12 +41,12 @@ export async function processRefundApproval(
     if (request.refundType === "invalid_phone") {
       await tx.lead.update({
         where: { id: leadDelivery.leadId },
-        data: { available: false, status: LeadStatus.dead },
+        data: { available: false, status: "dead" },
       });
     } else {
       await tx.lead.update({
         where: { id: leadDelivery.leadId },
-        data: { available: true, status: LeadStatus.unmatched },
+        data: { available: true, status: "unmatched" },
       });
     }
   });
@@ -53,6 +54,13 @@ export async function processRefundApproval(
   await creditWallet(partner.id, price, "refund", {
     leadDeliveryId: leadDelivery.id,
     description: `Refund approved: ${request.refundType}`,
+  });
+
+  await emitLeadEvent(leadDelivery.leadId, LeadEventType.refunded, {
+    refundRequestId,
+    refundType: request.refundType,
+    partnerId: partner.id,
+    amount: price,
   });
 
   if (request.refundType === "wrong_filter") {

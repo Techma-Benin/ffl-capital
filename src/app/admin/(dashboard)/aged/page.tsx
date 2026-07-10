@@ -8,27 +8,29 @@ import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 
 export default async function AdminAgedPage() {
-  const [leads, agedPrice, stateCounts] = await Promise.all([
+  const agedWhere = await buildAgedLeadWhere();
+  const [leads, agedPrice, stateCounts, agedDays] = await Promise.all([
     prisma.lead.findMany({
-      where: buildAgedLeadWhere(),
+      where: agedWhere,
       orderBy: { receivedAt: "asc" },
       take: 100,
     }),
     getDefaultAgedPrice(),
     prisma.lead.groupBy({
       by: ["state"],
-      where: buildAgedLeadWhere(),
+      where: agedWhere,
       _count: { id: true },
       orderBy: { _count: { id: "desc" } },
       take: 10,
     }),
+    import("@/lib/settings/app-settings").then((m) => m.getAgedDaysThreshold()),
   ]);
 
   return (
     <div>
       <PageHeader
         title="Aged Leads"
-        subtitle={`Leads 30+ days old — default price $${agedPrice}`}
+        subtitle={`Leads ${agedDays}+ days old — default price $${agedPrice}`}
       />
 
       <div className="mb-5 grid gap-3 sm:grid-cols-3">

@@ -58,6 +58,14 @@ export async function POST(request: NextRequest) {
       leadType: parsed.data.leadType as LeadType,
       filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
       status,
+      filterSets: {
+        create: {
+          name: "Default",
+          leadType: parsed.data.leadType as LeadType,
+          filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
+          active: status === PartnerStatus.active,
+        },
+      },
     },
   });
 

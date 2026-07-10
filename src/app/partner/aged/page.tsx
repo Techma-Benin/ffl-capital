@@ -51,7 +51,7 @@ export default async function PartnerAgedPage({
 
   const [agedLeads, agedPrice] = await Promise.all([
     prisma.lead.findMany({
-      where: buildAgedLeadWhere(extra),
+      where: await buildAgedLeadWhere(extra),
       orderBy: { receivedAt: "asc" },
       take: 100,
     }),
@@ -62,20 +62,19 @@ export default async function PartnerAgedPage({
     <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading…</div>}>
       <PartnerAgedView
         agedPrice={agedPrice}
-        agedLeads={agedLeads.map((lead) => {
-          const rawPayload = lead.rawPayload as Record<string, string> | null;
-          return {
-            id: lead.id,
-            firstName: lead.firstName,
-            lastName: lead.lastName,
-            state: lead.state,
-            leadType: lead.leadType,
-            receivedAt: lead.receivedAt.toISOString(),
-            trustedformCertUrl: lead.trustedformCertUrl,
-            intent: rawPayload?.intent ?? rawPayload?.Intent ?? "—",
-            primaryGoal: rawPayload?.primary_goal ?? rawPayload?.PrimaryGoal ?? null,
-          };
-        })}
+        agedLeads={agedLeads.map((lead) => ({
+          id: lead.id,
+          firstName: lead.firstName,
+          lastName: lead.lastName,
+          state: lead.state,
+          address: lead.address,
+          leadType: lead.leadType,
+          receivedAt: lead.receivedAt.toISOString(),
+          trustedformCertUrl: lead.trustedformCertUrl,
+          intent: lead.intent ?? (lead.leadType === "high_intent_iul" ? "High Intent" : "Traditional"),
+          haveIul: lead.haveIul,
+          primaryGoal: lead.primaryGoal,
+        }))}
       />
     </Suspense>
   );

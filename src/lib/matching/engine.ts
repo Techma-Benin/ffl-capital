@@ -1,20 +1,23 @@
 import {
   DeliveryChannel,
   Lead,
+  LeadEventType,
   LeadStatus,
   Partner,
   TransactionType,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { debitWallet } from "@/lib/wallet/ledger";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
-import { findEligiblePartners } from "./eligibility";
+import { findEligibleFilterSets } from "./eligibility";
 
 export interface MatchResult {
   matched: boolean;
   lead: Lead;
   partner?: Partner;
   deliveryId?: string;
+  filterSetId?: string;
   reason?: string;
 }
 
@@ -35,7 +38,11 @@ export async function matchLead(
     };
   }
 
-  const eligible = await findEligiblePartners(lead.state, lead.leadType, options);
+  const eligible = await findEligibleFilterSets(
+    lead.state,
+    lead.leadType,
+    options,
+  );
   if (eligible.length === 0) {
     return {
       matched: false,
@@ -56,7 +63,7 @@ export async function matchLead(
     }
 
     const freshPartner = await tx.partner.findUniqueOrThrow({
-      where: { id: winner.id },
+      where: { id: winner.partnerId },
     });
 
     const price = winner.effectivePrice;
@@ -68,6 +75,7 @@ export async function matchLead(
       data: {
         leadId: freshLead.id,
         partnerId: freshPartner.id,
+        filterSetId: winner.id,
         channel: DeliveryChannel.realtime,
         price,
       },
@@ -87,10 +95,24 @@ export async function matchLead(
       },
     });
 
+    await emitLeadEvent(
+      freshLead.id,
+      LeadEventType.matched,
+      {
+        partnerId: freshPartner.id,
+        filterSetId: winner.id,
+        price,
+        deliveryId: delivery.id,
+      },
+      undefined,
+      tx,
+    );
+
     return {
       lead: updatedLead,
       partner: freshPartner,
       deliveryId: delivery.id,
+      filterSetId: winner.id,
     };
   });
 
@@ -116,5 +138,6 @@ export async function matchLead(
     lead: result.lead,
     partner: result.partner,
     deliveryId: result.deliveryId,
+    filterSetId: result.filterSetId,
   };
 }

@@ -1,35 +1,90 @@
 # FFL Capital — Backend
 
-> Journal d'implémentation backend — Phase 0 (fondations)  
-> Dernière mise à jour : 29 juin 2026
+> Journal d'implémentation backend  
+> Dernière mise à jour : 10 juillet 2026
+
+**Plan en cours :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — terminer le backend core à parité Boberdoo avant la passe UI.
+
+---
 
 ## État actuel
+
+### Fondations (Phase 0 — fait)
 
 | Composant | Statut |
 |-----------|--------|
 | Next.js 14 + TypeScript | ✅ |
 | Prisma schema (9 tables) | ✅ |
 | Migrations SQL versionnées | ✅ |
-| RLS Supabase (sans policies anon) | ✅ migration `enable_rls` |
+| RLS Supabase (sans policies anon) | ✅ |
 | API `GET /api/health` | ✅ |
 | API `POST /api/leads/intake` | ✅ |
 | Moteur matching V1 (FIFO) | ✅ |
 | Wallet ledger append-only | ✅ |
 | Seed partners test | ✅ `npm run seed` |
-| Simulateur dev `/dev/lead-simulator` | ✅ (masqué en prod) |
-| Projet Supabase dédié | ✅ `wbzvyvtlopoghvdqltxm` (eu-west-3) |
-| Prisma baseline (migrations MCP) | ✅ `migrate resolve` |
+| Simulateur dev `/dev/lead-simulator` | ✅ |
+| Feeding platform `/feeding-platform` | ✅ |
+| Projet Supabase `wbzvyvtlopoghvdqltxm` | ✅ eu-west-3 |
 | Vérification E2E locale | ✅ `npm run verify` |
-| Clerk + shells Admin/Partner | ✅ (clés Clerk requises pour activer) |
+
+### Portails + intégrations (juillet 2026 — fait)
+
+| Composant | Statut |
+|-----------|--------|
+| Clerk auth (admin / partner séparés) | ✅ |
+| Onboarding partner + approbation admin | ✅ |
+| Stripe Checkout top-up + webhook | ✅ |
+| Auto-recharge hebdomadaire (abonnement Stripe) | ✅ |
+| Email livraison lead (Resend) | ✅ (si `RESEND_API_KEY`) |
+| Webhook CRM générique (`crmWebhookUrl`) | ✅ |
+| Remboursements Type A / Type B | ✅ |
+| Marketplace aged (achat + débit wallet) | ✅ |
+| Migration import CSV Boberdoo | ✅ |
+| Cron reprocess unmatched + Integrity post | ✅ (routes ; scheduler prod à configurer) |
+| IntegrityCONNECT ping/post | ✅ mode mock ; live en attente specs client |
+
+### Core backend completion (juillet 2026 — fait)
+
+| Composant | Statut |
+|-----------|--------|
+| Champs lead Boberdoo étendus (~25 champs) | ✅ migration `20250706190000` |
+| Table `lead_events` (audit log) | ✅ |
+| Table `partner_filter_sets` + backfill | ✅ migration `20250710140000` |
+| Credentials livraison (`crmProvider`, Ringy) | ✅ |
+| Clés `app_settings` étendues | ✅ |
+| Détection doublons + idempotence intake | ✅ |
+| Validation TrustedForm (optionnelle) | ✅ |
+| Matching v2 (filter sets + limites H/J) | ✅ |
+| APIs admin filter-list + filter-sets CRUD | ✅ |
+| APIs admin leads (search, edit, export, timeline, redeliver, delete) | ✅ |
+| Remboursements bulk + admin-initiated | ✅ |
+| Driver Ringy + logging livraison | ✅ |
+| Integrity payload builders + mode storefront | ✅ mock |
+| Seuil aged configurable | ✅ `aged_days_threshold` |
+| `scripts/verify-cron.mjs` | ✅ |
+| `scripts/verify-backend.mjs` étendu | ✅ |
+
+### Reporté / hors scope
+
+| Zone | Statut |
+|------|--------|
+| Auto-recharge au seuil de solde | ⏸ reporté |
+| IntegrityCONNECT live | ⏸ specs client |
+| Stripe prod | ⏳ après validation test keys |
+| Polish UI | ⏳ après backend core |
+
+---
 
 ## Convention de nommage
 
 Le PRD §8 utilise encore le terme `agents`, mais le code utilise **`Partner` / `partners`** (décision D21). Les clés étrangères sont `partner_id`.
 
+---
+
 ## Architecture
 
 ```
-LeadConduit / simulateur dev
+Meta / LeadConduit / feeding-platform / simulateur dev
         │
         ▼
 POST /api/leads/intake
@@ -39,17 +94,28 @@ POST /api/leads/intake
         ├── process-intake.ts (persist + match)
         └── matching/engine.ts (priorité DESC, created_at ASC FIFO)
                 │
-                ▼
-           PostgreSQL (Prisma)
+                ├── deliverLead → Resend email + CRM webhook
+                └── unmatched → cron reprocess (< 24h) → Integrity post (> 24h)
+                        │
+                        ▼
+                   PostgreSQL (Prisma)
 ```
+
+**Cible post-plan :** matching sur `partner_filter_sets`, événements dans `lead_events`, intake avec doublons + TrustedForm — **implémenté**.
+
+---
 
 ## Schéma base de données
 
-Tables : `partners`, `leads`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
+**Tables actuelles :** `partners`, `partner_filter_sets`, `leads`, `lead_events`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
 
-Migrations :
+**Migrations :**
 - `20250629190000_init` — schéma complet + index
 - `20250629190100_enable_rls` — GIN sur `filter_states` + RLS
+- `20250706190000_lead_boberdoo_fields` — champs lead étendus
+- `20250710140000_core_backend_schema` — `lead_events`, `partner_filter_sets`, credentials, TrustedForm
+
+---
 
 ## Mapping intake Boberdoo
 
@@ -58,15 +124,25 @@ Migrations :
 | `First_Name` / `Last_Name` | `first_name` / `last_name` |
 | `Email` | `email` |
 | `Primary_Phone` | `phone` |
+| `Address`, `City`, `Zip`, `DOB`, `Age` | colonnes homonymes |
 | `State` ou `State_You_Currently_Live_In` | `state` (uppercase) |
 | `Intent` = "High Intent" | `high_intent_iul` |
+| `Have_IUL`, `Primary_Goal` | `have_iul`, `primary_goal` |
 | `Trusted_Form_URL` | `trustedform_cert_url` |
+| `TCPA_Consent`, `TCPA_Language`, `LeadiD_Token` | colonnes homonymes |
+| `SRC`, `Landing_Page`, `Sub_ID`, `Pub_ID` | tracking |
 | `Unique_Identifier` | `external_id` |
+| `Lead_Type` | `boberdoo_lead_type` |
+| `IP_Address`, `User_Agent` | colonnes homonymes |
 | Payload complet | `raw_payload` (jsonb) |
 
 Réponse LeadConduit : `{ "outcome": "success", "reason": "" }` (chaîne vide en cas de succès).
 
-## Moteur de matching V1
+**Note TrustedForm :** le certificat arrive dans le payload webhook (Meta → LeadConduit → plateforme). Pas besoin d'accès admin TrustedForm pour l'intake — il suffit de rediriger le webhook vers `/api/leads/intake` quand on coupe Boberdoo.
+
+---
+
+## Moteur de matching V1 (actuel)
 
 Critères d'éligibilité partner :
 1. `status = active`
@@ -83,49 +159,84 @@ Transaction atomique à la livraison :
 - INSERT `transactions` (type `lead_purchase`)
 - UPDATE `leads` (`available=false`, `status=delivered`)
 
-## Infra Supabase
+**V2 (implémenté) :** éligibilité via `partner_filter_sets` actifs + limites horaires/journalières ; `filterSetId` sur `lead_deliveries`.
 
-**29 juin 2026** — Projet créé dans l'org **billos-e's Org** :
+---
+
+## Auth admin
+
+- Comptes **admin** et **partner** sont **séparés** (URLs et flux Clerk distincts).
+- Admin : allowlist email `ADMIN_EMAILS` → promotion automatique au login (`promote-admin.ts`).
+- **Pas de promotion** partner → admin — une personne qui a les deux rôles a deux comptes.
+
+---
+
+## Intégrations
+
+| Intégration | Mode | Variables / notes |
+|-------------|------|-------------------|
+| Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
+| Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` |
+| CRM webhook | par partner | `partners.crm_webhook_url` |
+| Ringy | ✅ | `partners.ringy_sid`, `ringy_auth_token`, `crm_provider=ringy` |
+| IntegrityCONNECT | mock / live | `INTEGRITY_PING_URL`, `INTEGRITY_POST_URL`, `integrations_mode` dans app_settings |
+| Cron jobs | routes prêtes | `CRON_SECRET` + `npm run verify:cron` (ajouter script) |
+
+---
+
+## Stratégie jobs planifiés
+
+Routes protégées par `Authorization: Bearer $CRON_SECRET` :
+
+| Route | Fréquence suggérée | Rôle |
+|-------|-------------------|------|
+| `POST /api/cron/reprocess-unmatched` | 5–15 min | Retente match < 24h ; poste Integrity au-delà |
+| `POST /api/cron/integrity-post` | 15–30 min | Poste leads unmatched > 24h vers IntegrityCONNECT |
+
+Options : `pg_cron` Supabase, Vercel Cron, cron-job.org.
+
+Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`
+
+---
+
+## Infra Supabase
 
 | Champ | Valeur |
 |-------|--------|
 | Nom | FFL Capital |
 | Project ref | `wbzvyvtlopoghvdqltxm` |
 | Région | `eu-west-3` |
-| URL API | https://wbzvyvtlopoghvdqltxm.supabase.co |
 | Dashboard | https://supabase.com/dashboard/project/wbzvyvtlopoghvdqltxm |
 
-Migrations appliquées via Supabase MCP : `init` + `enable_rls`.  
-Seed initial (app_settings + 7 partners test) appliqué le 29 juin 2026.
-
 ### Connexion locale (Prisma)
-
-1. Dashboard → **Project Settings → Database** → copier le mot de passe
-2. Copier `.env.example` → `.env` et remplir :
 
 ```
 DATABASE_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:6543/postgres?pgbouncer=true
 DIRECT_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:5432/postgres
 ```
 
-3. `npx prisma generate && npm run dev`
-
 ### Sécurité RLS
 
-RLS est **activé** sur toutes les tables, **sans policies** `anon`/`authenticated` — accès intentionnellement limité au serveur Next.js via Prisma (pas de clé anon côté client). L'advisor Supabase signale « RLS enabled no policy » : c'est voulu pour Phase 0.
+RLS activé sur toutes les tables, **sans policies** `anon`/`authenticated` — accès serveur Next.js via Prisma uniquement.
+
+---
 
 ## Commandes dev
 
 ```bash
 npm install
-cp .env.example .env   # puis remplir DATABASE_URL
+cp .env.example .env
 npx prisma generate
 npx prisma migrate deploy
 npm run seed
 npm run dev
-npm run verify        # tests health + checklist PRD §10 (TX/CA, wallet, <15 états, FIFO)
-npm run seed:lead       # POST fixture vers intake (serveur dev requis)
+npm run verify          # checklist backend
+node scripts/verify-cron.mjs  # smoke test cron routes
+npm run seed:lead       # POST fixture intake
+stripe:listen           # webhook Stripe local
 ```
+
+---
 
 ## Partners de test (seed)
 
@@ -139,33 +250,22 @@ npm run seed:lead       # POST fixture vers intake (serveur dev requis)
 | `few-states@ffl-test.local` | 5 états — exclu (< 15) |
 | `pending@ffl-test.local` | `pending_approval` — exclu |
 
+**Test aged marketplace :** créer des leads avec `received_at` backdaté de 31+ jours (pas besoin d'attendre 30 jours réels).
+
+---
+
 ## Journal des décisions
 
 | Date | Décision |
 |------|----------|
 | 2026-06-29 | Table `partners` (pas `agents`) |
 | 2026-06-29 | Accès DB serveur uniquement — RLS sans policies PostgREST |
-| 2026-06-29 | Scripts seed en `.mjs` (évite dépendance esbuild/tsx) |
-| 2026-07-03 | PRD V1 build : delivery (email/CRM), refunds Type A/B, Stripe wallet, aged marketplace, admin pages, cron + Integrity |
-
-## Hors scope Phase 0 (Phase 1b+)
-
-- Clerk auth + portails Admin/Partner
-- Stripe webhooks
-- Jobs cron retraitement 24h / aging J+30
-- IntegrityCONNECT live
-- Migration import Boberdoo
-
-## Stratégie jobs planifiés
-
-Routes protégées par `Authorization: Bearer $CRON_SECRET` :
-
-| Route | Fréquence suggérée | Rôle |
-|-------|-------------------|------|
-| `POST /api/cron/reprocess-unmatched` | 5–15 min | Retente le matching sur leads unmatched < 24h ; poste vers Integrity au-delà |
-| `POST /api/cron/integrity-post` | 15–30 min | Poste les leads unmatched > 24h vers IntegrityCONNECT |
-
-Option A : `pg_cron` Supabase  
-Option B : cron externe (cron-job.org) ou Vercel Cron
-
-Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`
+| 2026-06-29 | Scripts seed en `.mjs` |
+| 2026-07-03 | Build V1 : delivery, refunds, Stripe, aged, cron, Integrity mock |
+| 2026-07-06 | Démo client — flux partner + admin validé ; refunds codés post-call |
+| 2026-07-10 | Plan core backend validé — voir [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) |
+| 2026-07-10 | Filter sets multiples (parité Boberdoo), pas profil unique long terme |
+| 2026-07-10 | Auto-recharge au seuil de solde reportée ; garder abonnement hebdo |
+| 2026-07-10 | Pas de promotion partner → admin ; comptes séparés |
+| 2026-07-10 | Integrity live bloqué sur specs client ; mock en place |
+| 2026-07-10 | Core backend 9 phases implémentées — voir journal ci-dessus |

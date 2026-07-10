@@ -68,19 +68,36 @@ function setConnectionStatus(ok, apiUrl) {
 
 function buildPayload(lead) {
   const id = lead.id || `feed-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const state = lead.state.toUpperCase();
   return {
+    Lead_Type: "37",
+    SRC: lead.source || "feeding_platform",
+    Landing_Page: lead.landingPage || "https://example.com/iul-landing",
+    Sub_ID: lead.subId || `feed-sub-${id}`,
+    Pub_ID: lead.pubId || `feed-pub-${id}`,
+    Unique_Identifier: id,
     First_Name: lead.firstName.trim(),
     Last_Name: lead.lastName.trim(),
-    Email: lead.email.trim(),
+    Address: lead.address || "123 Main St",
+    City: lead.city || "Austin",
+    State: state,
+    Zip: lead.zip || "78701",
     Primary_Phone: lead.phone.trim(),
-    State: lead.state.toUpperCase(),
+    Email: lead.email.trim(),
+    DOB: lead.dob || "1985-06-15",
+    Age: lead.age || "41",
+    Have_IUL: lead.haveIul || "No",
+    State_You_Currently_Live_In: state,
+    Primary_Goal: lead.primaryGoal || "Retirement income",
     Intent: lead.intent || "High Intent",
+    TCPA_Consent: lead.tcpaConsent || "Yes",
+    TCPA_Language: lead.tcpaLanguage || "I agree to be contacted by phone or text.",
     Trusted_Form_URL:
       lead.trustedform?.trim() ||
       `https://cert.trustedform.com/feed-${id}`,
-    Unique_Identifier: id,
-    SRC: "feeding_platform",
-    Lead_Type: "37",
+    LeadiD_Token: lead.leadidToken || "",
+    IP_Address: lead.ipAddress || "203.0.113.10",
+    User_Agent: lead.userAgent || "Mozilla/5.0 (feeding-platform)",
   };
 }
 
@@ -126,6 +143,11 @@ function randomLead(index = 0) {
     phone: `512555${n}`,
     state,
     intent: index % 2 === 0 ? "High Intent" : "Traditional",
+    address: `${100 + index} Main St`,
+    city: "Austin",
+    zip: "78701",
+    haveIul: index % 3 === 0 ? "Yes" : "No",
+    primaryGoal: index % 2 === 0 ? "Retirement income" : "College funding",
   };
 }
 

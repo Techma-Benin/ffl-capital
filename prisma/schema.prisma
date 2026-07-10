@@ -26,6 +26,33 @@ enum LeadStatus {
   integrity_posted
   aged_listed
   dead
+  review
+}
+
+enum LeadEventType {
+  received
+  matched
+  delivered
+  delivery_failed
+  refunded
+  integrity_posted
+  aged_purchased
+  reprocessed
+  duplicate_rejected
+  trustedform_failed
+  deleted
+}
+
+enum CrmProvider {
+  webhook
+  ringy
+  email_only
+}
+
+enum FilterSetDeliveryChannel {
+  email
+  webhook
+  ringy
 }
 
 enum DeliveryChannel {
@@ -90,6 +117,9 @@ model Partner {
   walletBalance    Decimal       @default(0) @map("wallet_balance") @db.Decimal(10, 2)
   status           PartnerStatus @default(pending_approval)
   crmWebhookUrl    String?       @map("crm_webhook_url")
+  crmProvider      CrmProvider   @default(email_only) @map("crm_provider")
+  ringySid         String?       @map("ringy_sid")
+  ringyAuthToken   String?       @map("ringy_auth_token")
   stripeCustomerId String?       @map("stripe_customer_id")
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
@@ -100,57 +130,122 @@ model Partner {
   billingRecurrences   BillingRecurrence[]
   reviewedRefunds      RefundRequest[]     @relation("ReviewedBy")
   createdMigrationJobs MigrationJob[]
+  filterSets           PartnerFilterSet[]
 
   @@index([status])
   @@index([priority])
   @@map("partners")
 }
 
+model PartnerFilterSet {
+  id              String                   @id @default(uuid()) @db.Uuid
+  partnerId       String                   @map("partner_id") @db.Uuid
+  name            String                   @default("Default")
+  leadType        LeadType                 @map("lead_type")
+  filterStates    String[]                 @map("filter_states")
+  priority        Int                      @default(5)
+  priceOverride   Decimal?                 @map("price_override") @db.Decimal(10, 2)
+  active          Boolean                  @default(true)
+  hourlyLimit     Int?                     @map("hourly_limit")
+  dailyLimit      Int?                     @map("daily_limit")
+  deliveryChannel FilterSetDeliveryChannel @default(email) @map("delivery_channel")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  partner        Partner        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  leadDeliveries LeadDelivery[]
+
+  @@index([partnerId, active])
+  @@index([leadType])
+  @@map("partner_filter_sets")
+}
+
 model Lead {
-  id                 String     @id @default(uuid()) @db.Uuid
-  firstName          String     @map("first_name")
-  lastName           String     @map("last_name")
-  email              String
-  phone              String
-  state              String
-  leadType           LeadType   @map("lead_type")
-  trustedformCertUrl String?    @map("trustedform_cert_url")
-  source             String     @default("meta_leadconduit")
-  receivedAt         DateTime   @default(now()) @map("received_at")
-  available          Boolean    @default(true)
-  refundable         Boolean    @default(true)
-  status             LeadStatus @default(unmatched)
-  externalId         String?    @map("external_id")
-  rawPayload         Json?      @map("raw_payload")
-  createdAt          DateTime   @default(now()) @map("created_at")
-  updatedAt          DateTime   @updatedAt @map("updated_at")
+  id                      String     @id @default(uuid()) @db.Uuid
+  firstName               String     @map("first_name")
+  lastName                String     @map("last_name")
+  email                   String
+  phone                   String
+  address                 String?
+  city                    String?
+  state                   String
+  zip                     String?
+  dob                     String?
+  age                     String?
+  leadType                LeadType   @map("lead_type")
+  intent                  String?
+  haveIul                 String?    @map("have_iul")
+  primaryGoal             String?    @map("primary_goal")
+  stateYouCurrentlyLiveIn String?    @map("state_you_currently_live_in")
+  trustedformCertUrl      String?    @map("trustedform_cert_url")
+  trustedformValid        Boolean?   @map("trustedform_valid")
+  trustedformCheckedAt    DateTime?  @map("trustedform_checked_at")
+  tcpaConsent             String?    @map("tcpa_consent")
+  tcpaLanguage            String?    @map("tcpa_language")
+  leadidToken             String?    @map("leadid_token")
+  source                  String     @default("meta_leadconduit")
+  landingPage             String?    @map("landing_page")
+  subId                   String?    @map("sub_id")
+  pubId                   String?    @map("pub_id")
+  boberdooLeadType        String?    @map("boberdoo_lead_type")
+  ipAddress               String?    @map("ip_address")
+  userAgent               String?    @map("user_agent")
+  receivedAt              DateTime   @default(now()) @map("received_at")
+  available               Boolean    @default(true)
+  refundable              Boolean    @default(true)
+  status                  LeadStatus @default(unmatched)
+  externalId              String?    @map("external_id")
+  rawPayload              Json?      @map("raw_payload")
+  createdAt               DateTime   @default(now()) @map("created_at")
+  updatedAt               DateTime   @updatedAt @map("updated_at")
 
   leadDeliveries LeadDelivery[]
   resalePostings ResalePosting[]
+  events         LeadEvent[]
 
   @@index([state, status, available])
   @@index([receivedAt])
   @@index([available, receivedAt])
+  @@index([externalId])
+  @@index([email, phone])
   @@map("leads")
 }
 
-model LeadDelivery {
-  id          String          @id @default(uuid()) @db.Uuid
-  leadId      String          @map("lead_id") @db.Uuid
-  partnerId   String          @map("partner_id") @db.Uuid
-  channel     DeliveryChannel
-  price       Decimal         @db.Decimal(10, 2)
-  deliveredAt DateTime        @default(now()) @map("delivered_at")
-  refundedAt  DateTime?       @map("refunded_at")
-  createdAt   DateTime        @default(now()) @map("created_at")
+model LeadEvent {
+  id        String        @id @default(uuid()) @db.Uuid
+  leadId    String        @map("lead_id") @db.Uuid
+  type      LeadEventType
+  payload   Json?
+  actorId   String?       @map("actor_id") @db.Uuid
+  createdAt DateTime      @default(now()) @map("created_at")
 
-  lead            Lead             @relation(fields: [leadId], references: [id])
-  partner         Partner          @relation(fields: [partnerId], references: [id])
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@map("lead_events")
+}
+
+model LeadDelivery {
+  id                String          @id @default(uuid()) @db.Uuid
+  leadId            String          @map("lead_id") @db.Uuid
+  partnerId         String          @map("partner_id") @db.Uuid
+  filterSetId       String?         @map("filter_set_id") @db.Uuid
+  channel           DeliveryChannel
+  price             Decimal         @db.Decimal(10, 2)
+  deliveredAt       DateTime        @default(now()) @map("delivered_at")
+  refundedAt        DateTime?       @map("refunded_at")
+  lastDeliveryError String?         @map("last_delivery_error")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  lead            Lead              @relation(fields: [leadId], references: [id])
+  partner         Partner           @relation(fields: [partnerId], references: [id])
+  filterSet       PartnerFilterSet? @relation(fields: [filterSetId], references: [id])
   refundRequests  RefundRequest[]
   transactions    Transaction[]
 
   @@index([partnerId])
   @@index([leadId])
+  @@index([filterSetId])
   @@index([refundedAt])
   @@map("lead_deliveries")
 }

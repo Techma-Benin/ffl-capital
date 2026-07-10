@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processLeadIntake } from "@/lib/intake/process-intake";
+import {
+  IntakeRejectedError,
+  processLeadIntake,
+} from "@/lib/intake/process-intake";
 import { intakePayloadSchema } from "@/lib/intake/validate-intake";
 
 const CORS_HEADERS = {
@@ -38,6 +41,12 @@ export async function POST(request: NextRequest) {
       { headers: CORS_HEADERS },
     );
   } catch (error) {
+    if (error instanceof IntakeRejectedError) {
+      return NextResponse.json(
+        { outcome: "error", reason: error.message },
+        { status: 409, headers: CORS_HEADERS },
+      );
+    }
     const message = error instanceof Error ? error.message : "Internal error";
     console.error("[intake] error:", message);
     return NextResponse.json(

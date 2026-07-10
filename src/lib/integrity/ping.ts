@@ -1,4 +1,5 @@
 import { getIntegrationsMode } from "@/lib/settings/app-settings";
+import { buildIntegrityPingPayload } from "./build-payload";
 
 export interface IntegrityPingResult {
   accepted: boolean;
@@ -18,10 +19,16 @@ export async function integrityPing(leadId: string): Promise<IntegrityPingResult
     return { accepted: false, message: "INTEGRITY_PING_URL not configured" };
   }
 
+  const { prisma } = await import("@/lib/db");
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead) {
+    return { accepted: false, message: "Lead not found" };
+  }
+
   const res = await fetch(pingUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ leadId }),
+    body: JSON.stringify(buildIntegrityPingPayload(lead)),
   });
 
   if (!res.ok) {

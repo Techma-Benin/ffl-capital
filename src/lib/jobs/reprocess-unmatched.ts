@@ -1,5 +1,6 @@
-import { LeadStatus } from "@prisma/client";
+import { LeadEventType, LeadStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { matchLead } from "@/lib/matching/engine";
 import { integrityPostLead } from "@/lib/integrity/post";
 
@@ -35,6 +36,10 @@ export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
         const result = await matchLead(lead.id);
         if (result.matched && result.deliveryId) {
           matched++;
+          await emitLeadEvent(lead.id, LeadEventType.reprocessed, {
+            deliveryId: result.deliveryId,
+            cron: true,
+          });
         }
         continue;
       }

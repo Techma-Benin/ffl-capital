@@ -14,10 +14,16 @@ const US_STATES = [
 ];
 
 const SAMPLE_LEADS = [
-  { firstName: "Jane", lastName: "Doe",      email: "jane@example.com",  phone: "5125550100", state: "TX", intent: "High Intent" },
-  { firstName: "Marcus", lastName: "Johnson", email: "marcus@test.com",   phone: "4045551234", state: "GA", intent: "Traditional" },
-  { firstName: "Sarah", lastName: "Williams", email: "sarah@lead.test",   phone: "3235559876", state: "CA", intent: "High Intent" },
-  { firstName: "Robert", lastName: "Davis",   email: "rdavis@example.com",phone: "2125550001", state: "NY", intent: "Traditional" },
+  {
+    firstName: "Jane", lastName: "Doe", email: "jane@example.com", phone: "5125550100",
+    state: "TX", intent: "High Intent", address: "123 Main St", city: "Austin", zip: "78701",
+    haveIul: "No", primaryGoal: "Retirement income",
+  },
+  {
+    firstName: "Marcus", lastName: "Johnson", email: "marcus@test.com", phone: "4045551234",
+    state: "GA", intent: "Traditional", address: "456 Oak Ave", city: "Atlanta", zip: "30301",
+    haveIul: "Yes", primaryGoal: "College funding",
+  },
 ];
 
 export default function LeadSimulator() {
@@ -31,16 +37,35 @@ export default function LeadSimulator() {
     setResult(null);
 
     const form = new FormData(e.currentTarget);
+    const id = `sim-${Date.now()}`;
+    const state = String(form.get("state"));
     const payload = {
-      First_Name:        form.get("firstName"),
-      Last_Name:         form.get("lastName"),
-      Email:             form.get("email"),
-      Primary_Phone:     form.get("phone"),
-      State:             form.get("state"),
-      Intent:            form.get("intent"),
-      Trusted_Form_URL:  form.get("trustedform") || `https://cert.trustedform.com/dev-${Date.now()}`,
-      Unique_Identifier: `sim-${Date.now()}`,
-      SRC:               "dev_simulator",
+      Lead_Type: "37",
+      SRC: "dev_simulator",
+      Landing_Page: "https://example.com/iul-landing",
+      Sub_ID: `sim-sub-${id}`,
+      Pub_ID: `sim-pub-${id}`,
+      Unique_Identifier: id,
+      First_Name: form.get("firstName"),
+      Last_Name: form.get("lastName"),
+      Email: form.get("email"),
+      Primary_Phone: form.get("phone"),
+      Address: form.get("address") || "123 Main St",
+      City: form.get("city") || "Austin",
+      State: state,
+      Zip: form.get("zip") || "78701",
+      DOB: form.get("dob") || "1985-06-15",
+      Age: form.get("age") || "41",
+      Have_IUL: form.get("haveIul") || "No",
+      State_You_Currently_Live_In: state,
+      Primary_Goal: form.get("primaryGoal") || "Retirement income",
+      Intent: form.get("intent"),
+      TCPA_Consent: "Yes",
+      TCPA_Language: "I agree to be contacted by phone or text.",
+      Trusted_Form_URL: form.get("trustedform") || `https://cert.trustedform.com/dev-${id}`,
+      LeadiD_Token: "",
+      IP_Address: "127.0.0.1",
+      User_Agent: "Mozilla/5.0 (lead-simulator)",
     };
 
     try {
@@ -60,9 +85,7 @@ export default function LeadSimulator() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-5">
-      {/* Form */}
       <form onSubmit={handleSubmit} className="lg:col-span-3 space-y-4">
-        {/* Quick sample selector */}
         <div>
           <label className="form-label">Quick Fill (sample leads)</label>
           <div className="flex flex-wrap gap-2">
@@ -103,6 +126,20 @@ export default function LeadSimulator() {
             <input name="phone" required className="form-input" defaultValue={sample.phone} key={`ph-${sample.phone}`} />
           </div>
         </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="form-label">Address</label>
+            <input name="address" className="form-input" defaultValue={sample.address} key={`ad-${sample.address}`} />
+          </div>
+          <div>
+            <label className="form-label">City</label>
+            <input name="city" className="form-input" defaultValue={sample.city} key={`ci-${sample.city}`} />
+          </div>
+          <div>
+            <label className="form-label">Zip</label>
+            <input name="zip" className="form-input" defaultValue={sample.zip} key={`zi-${sample.zip}`} />
+          </div>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="form-label">State</label>
@@ -120,6 +157,19 @@ export default function LeadSimulator() {
             </select>
           </div>
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="form-label">Have IUL</label>
+            <select name="haveIul" className="form-select" defaultValue={sample.haveIul} key={`hi-${sample.haveIul}`}>
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Primary Goal</label>
+            <input name="primaryGoal" className="form-input" defaultValue={sample.primaryGoal} key={`pg-${sample.primaryGoal}`} />
+          </div>
+        </div>
         <div>
           <label className="form-label">TrustedForm URL (auto-generated if empty)</label>
           <input name="trustedform" className="form-input" placeholder="https://cert.trustedform.com/…" />
@@ -130,7 +180,6 @@ export default function LeadSimulator() {
         </ActionButton>
       </form>
 
-      {/* Result panel */}
       <div className="lg:col-span-2">
         <label className="form-label">Response</label>
         {!result && !loading && (
