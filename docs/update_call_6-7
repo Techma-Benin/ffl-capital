@@ -1,0 +1,179 @@
+Impromptu Zoom Meeting - July 06
+VIEW RECORDING - 87 mins (No highlights): https://fathom.video/share/zFTYAhrxasWtiVvCSPWzfeLzv_Rc3qNu
+
+---
+
+0:00 - Masdouk Adelakoun
+  Hey, can you hear me?
+
+0:05 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  Yes, I can hear you.
+
+0:09 - Masdouk Adelakoun
+  Were you about to fix the issue?
+
+0:13 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  Yes, actually I fixed the swipe issue and the leads also issue. Actually I didn't, I was not able to fix completely the design.
+
+0:26 - Masdouk Adelakoun
+  Okay, let's get started. Hey, can you hear us?
+
+0:38 - Sami Esquivias
+  Yes, can you hear me?
+
+0:39 - Masdouk Adelakoun
+  Yes, I can hear you.
+
+0:41 - Sami Esquivias
+  How are you doing? I'm doing well. How about yourself?
+
+0:44 - Masdouk Adelakoun
+  Doing good. Doing good. All right, so let's get started. So I'm to show you all the progress so far on how things are going on our side.  So Bill, do you want to share a screen and let's get started. We'll start. So basically, we start building the system.
+  SCREEN SHARING: Bill started screen sharing - WATCH: https://fathom.video/share/zFTYAhrxasWtiVvCSPWzfeLzv_Rc3qNu?timestamp=68.889204  we have an admin section, you know, like an admin page for the app. And then we have also the partner page.  So we'll start, let's say, with the flow for the partner for now. Please keep in mind, this is still like at the beginning.  we haven't, the design is not there yet, right? So we're still working on like the functionality first. Typically, when we start those projects, we focus first on the functionality.  And then once the functionality is perfect, everything is great, then we start adding more design capability of it to it.  So and so that means this design will definitely change a lot as we continue building this. So basically, the partner, whenever they log in, basically, to the page, they will have this section where they can sign up, right?  So they don't have an... If they already have an account, they can sign in basically. So if they don't have an account, they will enter the information.  So we can just fill out this basic information to create an account. partner. So this, you can feel like this is a bit slow.  It's normal for now because we are still using our kind of like database, which is hosted locally. But once we deploy it in the cloud, then it should be faster.
+
+2:38 - Sami Esquivias
+  All right. No worries. I'm like, this is already great.
+
+2:44 - Masdouk Adelakoun
+  So you can see it sent us the code. Then we can enter the code to log in to create that account.  So the account has now been created. So after that, we redirect basically to an onboarding form. And this onboarding form, you will see the design will complete this as well in the future, so that we just need to fill out whatever information is left.  So they sign up and then they fill out the actual onboarding form where we ask them the question regarding, you know, how they want things to be matched to their, you know, to how they want the lead to be matched to their profile, basically.
+
+3:25 - Sami Esquivias
+  Okay.
+
+3:26 - Masdouk Adelakoun
+  Okay, next. And in here, we can obviously add any additional fields which you would like, you know, let's say we want to, you know, we want them to select any other things other than the state, we need more questions which you want to ask them, can add them as well in the future as we go.  So they can select all the states, you know, maybe right now the states are showing up just showing those two letters, but we can also show it as, you know, full state name, if we prefer as well.  Well, And then once that is completed, then they get redirected basically to, obviously they will have a screen which is saying, you know, thank you for submitting the onboarding things.  And then they will redirect directly to this profile basically. This will be their kind of like portal. So this is a partner portal where they can see actually like what are the different steps which will need to be completed for the account to be fully active, right?  So they know that the next step could be adding found to their account, right? So they can click on add found and they can then put some found there.  So we have currently integrated Stripe, but we are currently using, you know, some Stripe sandbox. They give you kind of some text sandbox when we are building an application with Stripe.  So let's say they want to add $250. They can just click on 250 or they can enter the custom amount if they prefer as well.  So they do that. If we direct them to Stripe, where they can complete the permit.
+
+5:03 - Sami Esquivias
+  Okay, perfect.
+
+5:07 - Masdouk Adelakoun
+  Loading the Stripe page, where we'll just enter some credit card information, and then we'll pay. While the permit is completed, you can see the balance now is now $250.  Directly, they can see how much, how many funding they have, you know, added. You can see the balance as we use those balance, and you can see how much they have spent also as total spent on that screen.  And we have a section where they can also enable basically auto charge, if they want to get auto charge as they reach certain minimum in the balance.  They can say they want to be charged, I don't know, like $500 or $50 automatically every time, and the system will just keep adding that amount to the balance after they reach that level of minimum, which they said.  So that is that section there. We can see the transaction history where they can see everything, which all the transaction.  So whenever they add amount, whenever they get with your certain amount, they will be able to see all of them there as well.  So, and then we have the My Lead, under the My Lead section, they will be able to see the lead, which is going to be matched to them.  So right now, the account is still under the approval process, so they won't be able to do anything other than just view for now, right, until we approve the account.  So that means we now need to switch to the admin interface to show you what the admin interface looks like.  So we'll log in as another user, in this case, as. An admin to show you how the admin interface currently looks like.  So that would mean this is going to be the interface in which you will be logging in as an admin, basically.  This is the admin interface. So the admin, once again, here at the dashboard, we'll change a bit. So in here, we'll have some stats, basically, where we can see the total leads, you know, how many leads today came in in the app, how many leads been delivered, active partners which we have in the system, how many of them are pending approval.  As you can see, we currently have two pending approvals. I think the new one which we just created, where is it, Bill?  The new one which just came in. Yeah, perfect. So then under the partner, have a management section where under the partner will be able to see the one which we just created.  You know, this partner is just joined. You can see his information. We can see he added 250. Then if we're good with it, we can approve it basically.  Once he approved, then he will have like the capability. Now if you switch back to that partner profile, so now if you refresh, normally that notification of pending approval should disappeared from there, as you can see, and his account is now active basically to start receiving leads as they match with his profile basically.  So let's switch back to the admin view so we can continue on the admin side. So on the admin side,  Right now, since we don't have access, I think you were using TrustForm, and also you were also using another platform, right?  So once they submit information on the TrustForm, I think you said the information goes to another platform, which verifies first the data before landing into the current application which you are currently using.  Is that correct?
+
+9:26 - Sami Esquivias
+  So it goes from TrustedForm straight to Bobradue's platform.
+
+9:31 - Masdouk Adelakoun
+  Okay, straight to there. Okay. So then, right now, since we don't have access to the TrustForm, and we don't need to have access right away right now, but I think it will still be good to give us access, basically, but we won't be doing integration right away since we are still building the system.  But the way we're going to show you how the late coming in in the admin interface right now is we just create a simple form on our  That will show up as a lead inside of the admin profile. Once we have access to the trust form, the data will automatically go from the trusted form into the lead module of the admin page, basically.  So we'll need access to that trust form at some point as well.
+
+10:30 - Sami Esquivias
+  Yes, and I can send those logins shortly after this meeting.
+
+10:35 - Masdouk Adelakoun
+  Awesome. So let's say we send the data into, let's assume this one is a trusted form, and then we are submitting information from here from the trusted form.  That means that information will land into our lead module. That seems to have failed. I think you have to change maybe some ID or something there.  So basically. basically. that lead will kind of like show up inside of the lead module within our admin interface.
+
+11:10 - Sami Esquivias
+  Okay.
+
+11:14 - Masdouk Adelakoun
+  Wait for you to show. Mm-hmm. Okay. So now if you go to the admin, Kim, so we show up there directly.  Okay. So that is the lead, which he just submitted. And we can see things that lead seems to match with the criteria of that partner.  So then, uh, it gets assigned basically to that partner. Uh, and, um, currently we haven't, I don't think we have a developer.  All the pricing, because I think we have the pricing per partner. Um, so we'll add that capability where we can definitely change the pricing per partner.  Um, but for now, that's it. Say by default everyone is $25, just to show you how this works, and then that person get a sign if they match, and with the priority, and which priority they are as partner, basically.  So if we go to that partner profile, so we can see now the lead is showing up on his screen, then he can see what the lead is coming from and everything.  And if you want to get a refund, then we haven't worked on that flow yet, but there is going to be some action there, similar to the older app, where they can also request a refund and things like that as well.  So let's navigate to the older section, so basically we have the settings section there, on the settings where they can also be able to edit.  So some of the criteria they have selected. So when they were submitting the onboarding, they can clear those up.  They can enter some specific criteria there if they would like to. As I was mentioning, we can add more fields in here as well.  Then there is also the report section. I think the report is more the place where they can see all the transactions which is happening.  So whenever they get subtracted, you know, a certain lead, as you can see, they get subtracted $25 because they purchased that lead.  So we can see all of them there. Then we'll have a contact us section where they can have information if they want to contact us or something.  Which will still need to be analyzed as well. And then we will have the age marketplace. So that. This one is still in the build-out as well, but once we finish the full build-out of the lead, then we will continue working on the age, but right now there is no age lead because there is no lead older than 30 days, which has not been assigned, but if there is one, it will show up here, and they will be able to purchase it based on the price which we set on that age lead, which is currently, I think, $5 each.  So that's how it will work. So we'll go back to the admin view. So that's kind of how the view of the partner works, you know, the different actions they will be able to take.  Now on the admin view, we also have the age lead there. So right now there is no lead which is above 30 days right now, so that's why we don't see them there.  If there is one, will automatically show up right away in here as well. know. can do So we have a refund section, and where we can see all the refund, which has been given, and the request, which we need to approve the refund, or reduce the refund if you want to approve.  This still works in progress, we haven't fully tested yet. Then under the settings for the partner, sorry for the admin.  So in here we'll be able to change things here as well. So right now this is just the default settings, where we set up $25 by default for all the lead, $5 for the age pricing.  But for the partner level, if you click on the partner, then under the partner level we have the capability, click on the partner, we have the capability where we  So be able to edit how much each partner will be paying. there is going to be settings on the partner side of it as well, where we can assign the pricing per partner.  And you can see we have a priority there. Yeah, exactly. So we have the priority where we can set up a priority for each partner and we can set up the pricing there.  So if you want a partner instead of being $25 to be like $50 or $200 for every lead, we can set it up there as well.  We have the status of the partner, which is active in this case also. I think that's pretty much where we are currently.  As you can see, it's still a lot of work to be done, but it's progressing very well.
+
+17:47 - Sami Esquivias
+  So I don't know if you have any questions so far. No, I mean, everything looks great. And we're really excited.  If you guys have any more questions or need anything else, please let me know. Like I said, I'll send.  takiard. I'm così And you guys, the trusted form and exactly what we're using for that, but it's, it's looking great.  I'm, I'm very excited.
+
+18:08 - Masdouk Adelakoun
+  Thank you. I'm happy to hear that. So yeah, we'll continue working on that. So you can schedule the next meeting also for next week.  And there, should have something, you know, closer to the end as well by then. So we'll be able to show you how things are going.
+
+18:24 - Sami Esquivias
+  Perfect. Thank you so much. I do appreciate it.
+
+18:27 - Masdouk Adelakoun
+  All right. Thank you so, so much, Sami.
+
+18:30 - Sami Esquivias
+  All right. Take care. You too.
+
+18:32 - Masdouk Adelakoun
+  All right.-bye. Bye-bye. You have to stay on the floor, okay? Do you hear me?
+
+18:46 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  Hello? Yes, I hear you.
+
+18:48 - Masdouk Adelakoun
+  Okay, perfect. So you can see a little bit how I'm show you. It's really like that when you're doing presentations with clients, you have to always have a flow fluid.  I'm show you much. I'm going to show you. I'm We about it works, this presentation. Because otherwise, when the client does it, it doesn't work habitually.  You can have a bad experience. So you want assure that the flow is clear in the way you present the system.
+
+19:17 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  I understand, that makes sense.
+
+19:23 - Masdouk Adelakoun
+  So, I don't I had seen the partner where we could set up the press. That's why we call before this presentation.  It's important because it allows me to be surprised when I show or explain it to the client on the flow.  So, I think that's it. This is a good job so far. You can see that she doesn't anything to say.  Principally because the flow makes sense to what we were discussing. You can see that she doesn't anything to So, she doesn't have anything to say.  Generally, it's what you always want to When you work with a client, it's how you do it in order that the client has nothing to say about your presentation or about what you've created for her because it's so perfect that she's just happy to see the progress.  But generally, she's going to the hope to use it, to start testing So it's not just expectation, but you have to faster, make the changes that you need make faster so that the client is satisfied.  So that's a bit of it. So continue to work on this. And then you can work on the other project first.  Maybe we can talk about the design and all that.
+
+20:47 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  But maybe not related to this. I was not muted for not to interrupt, but I had already done the reference and I was testing...  from That's ÓSTER don't you. Les deux cas de refunds, c'est pourquoi il y a ces deux lignes-là.
+
+21:04 - Masdouk Adelakoun
+  Je venais de tester ça. avais déjà testé le refund, ok, j'ai pas vu ça.
+
+21:09 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  Ça, ça marche déjà. Ah ouais, à part cela, il y a l'integrity. La manière dont son système marche, c'est que si un nouveau lead entre dans la plateforme et qu'il n'est pas matché sous les 24 heures, le lendemain, est remis dans le flow encore pour essayer de matcher un autre utilisateur.  Et si après ce lendemain-là, ce n toujours pas matché, ce qui se passe, c'est que le lead est directement envoyé vers une plateforme Integrity Connect, qu'elle avait dit.  Et en fait, c une marketplace externe à la plateforme de base. Et le lead est vendu sur cette marketplace-là.  Je pense à un prix un peu plus cheap. Merci. Merci. So for the moment, I haven't integrated Integrity Connect because I don't yet how it works, I don't know if there is an API or a webbook on which we would have to send the leads.
+  ACTION ITEM: Email Sami re: TrustedForm/Integrity Connect API; request access + Integrity contact/docs - WATCH: https://fathom.video/share/zFTYAhrxasWtiVvCSPWzfeLzv_Rc3qNu?timestamp=1323.9999
+
+22:14 - Masdouk Adelakoun
+  Well, on the phone, she said that there was call and that on the other phone, there was an API that she put in contact with the person who spoke to that.  So just to prepare an email to ask first the form, the information that we have to send, then you can add this point of integrity if you can give the contact, or to give us the information to be able to connect Integrity to the platform.
+
+22:48 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  D'accord, so basically it's all. The real problem here, it's really the design. D'accord. You
+
+23:00 - Masdouk Adelakoun
+  Est-ce qu'en termes de fonctionnalités, est terminé ? Ou je pense qu'il y avait plus de fonctionnalités que ça, non ?
+
+23:08 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  Ouais. Alors, les fonctionnalités en question, c'est plus des filtres. Je n'ai pas ça ici. Mais en fait, il y avait des pages dédiées à des filtres, en fait, sur la plateforme.
+
+23:25 - Masdouk Adelakoun
+  Est-ce que ouvrez la plateforme ? va passer rapidement à travers.
+
+23:29 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  Ouais. Qu'est que c'est Euh... ... ... ... ... ... ... ... ... ... ... ... ... ... ... Okay, so, here's a little bit, in fact, we have the support page with the dashboard, the KPI, and the filters here, there's the settings page.  We have the settings, which allows us to add information. Ensuite... ... ... ... ...
+
+25:00 - Masdouk Adelakoun
+  On a d'autres. Click sur la pass settings. Encore une fois en plus, je juste voir un truc. Tooth, FA, email, Twilio.
+
+25:08 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  C'est quoi le Twilio settings? Parce qu'ils envoient des SMS. C'est des informations.
+
+25:16 - Masdouk Adelakoun
+  Ouais, je pense. Et ils n'utilisent pas ça actuellement? Ok, je pense que'est vide actuellement.
+  ACTION ITEM: Review old platform; add missing lead-related features - WATCH: https://fathom.video/share/zFTYAhrxasWtiVvCSPWzfeLzv_Rc3qNu?timestamp=1519.9999
+
+25:20 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  Ouais, c'est Ok, c'est vrai que j'aurais peut-être demandé s'ils ont besoin de tout ceci.
+
+25:30 - Masdouk Adelakoun
+  En fait, c'est vraiment de voir.-ce qu'il y des endroits où ils l'utilisent et dont on n'avait pas discuté? Même si c'est pas vraiment discuter sur l'appel, il faut quand même les considérer.  Donc, par exemple, t'as vu, t'as le H. Ça, elle en avait parlé de ce truc de vendor settings. H, I, U, L, puis tout ce truc-là.  Je me souviens plus trop ce qu'elle avait expliqué par rapport à ça, mais tu pourras regarder.
+
+26:00 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  I remember that for the age, what they did was export the data. I thought it would create this category of data to be able to import the leads and filter.
+
+26:16 - Masdouk Adelakoun
+  And since we are automatically automated, we will not have to do that. Yes. Okay, good. I wanted to you the option in the settings, because here, the age lead is limited to more than 30 days.  Ok, it will change. If it's in the settings, it's just 25 days, it will send it to the age lead.  It will able to make this change easily.
+
+26:40 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  want to... Okay. So, there are other things here on the settings.
+
+27:12 - Masdouk Adelakoun
+  Ok, have Lead Source, Lead Type, I don't know what this is, but you can see. I think it's like the way they can add more leads.  They want to add more categories. Yeah, more categories. Because it's important that the interface can be user friendly for them, as admin, so that every time we don't to go into code for this change, it's important to manage admin users.
+  ACTION ITEM: Add admin Users tab w/ role mgmt; add partner Block action - WATCH: https://fathom.video/share/zFTYAhrxasWtiVvCSPWzfeLzv_Rc3qNu?timestamp=1664.9999  So, it's like having a user interface. Because if you... want to an admin, because you have an interface partner, but can you say they want to able to assign someone as an admin, so you can change the role of the partner in admin, and the person will have access to admin.  So there is probably in the settings, a tab called users, where you can see all the users. So you see all the users logged in, so the security is also interesting to add.  So I think, yeah, I think that the level of settings, I think it's probably a tab users where you can see all the users that are logged in, which can be very interesting to consider.
+
+28:42 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  I just wanted to start this morning, because for the moment there is no interface. I in fact, I would split it.  Sinon, between the the admin and the partners were logged via the same URL. But I changed it this morning.  In fact, for that... ... So end, there is a part of the admin management, and the user users, like this.  So I just want you that. So that's the growth user, account, blog account. On a plus une fonctionnalité de désactiver les gens.  Mais c'est vrai qu'il n'y a pas la section filtrée comme ça.
+
+29:41 - Masdouk Adelakoun
+  Peut-être juste ajouter comme une... Parce qu'au niveau de partner, tu peux filtrer déjà. Tu as une...
+
+29:50 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  Au niveau de la laser partner. Je suis pas sûr.
+
+29:57 - Masdouk Adelakoun
+  Tu as vu, as...
+
+29:59 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  tu vu. But not related to those who are active, I don't know.
+
+30:06 - Masdouk Adelakoun
+  Ok, you're just active, you're just active, but I think you can just add blocked as a thing, and add the action to be able to block a partner.  Actualement, you have any action, but...
+
+30:20 - Osee Bill AHOGNONVI (billahognonvi@gmail.com)
+  Well, fact, it's on the details here. Well, it's on the UI, we're going to ingress it from the other side.
+
+30:35 - Masdouk Adelakoun
+  Anyway, the UI will be changed, so it will be improved, highly improved. One the things that I do generally for the UI, it's what?

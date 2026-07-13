@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 29 juin 2026 (v5 — décisions stack + FIFO + vocabulaire Partner)
+> Dernière mise à jour : 10 juillet 2026 (v6 — plan backend core + filter sets)
 
 ---
 
@@ -478,8 +478,23 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 - [x] **Prisma** (pas Drizzle)
 - [x] **Supabase** dev (pas Docker)
 - [x] **Next.js** full-stack
-- [ ] `INTEGRATIONS_MODE=mock|live`
+- [x] `INTEGRATIONS_MODE=mock|live` (app_settings)
 - [x] Approbation admin après signup — `ADMIN_APPROVAL_REQUIRED`
+
+### Juillet 2026 — backend core
+
+| Sujet | Décision |
+|-------|----------|
+| Priorité build | **Backend core d'abord**, UI/design ensuite |
+| Filter sets | **Multiples par partner** (parité Boberdoo), pas un seul profil |
+| Auto-recharge solde | **Reportée** — abonnement Stripe hebdomadaire conservé |
+| Admin vs partner | **Comptes séparés** — pas de promotion partner → admin |
+| IntegrityCONNECT live | Code mock prêt ; **specs/API client** requises pour live |
+| TrustedForm | Certificat dans le payload webhook ; pas d'accès admin TF requis pour intake |
+| Seuil aged | Sera **configurable** en admin (défaut 30 jours) |
+| Stripe | **Test keys d'abord**, prod après validation E2E |
+
+Plan détaillé : [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md)
 
 ---
 
@@ -487,11 +502,14 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 
 Lors d’une reprise de contexte :
 1. Lire ce fichier en premier
-2. Consulter la proposition (scope contractuel)
-3. `capital_solu_initial_call_transcript.txt` — call découverte
-4. `first review with client` — review #1 (29 juin 2026)
-5. Le call équipe pour les décisions TECHMA (design prioritaire, Clerk, GitHub→Replit)
-6. Ne pas confondre avec le **portail étudiant** (autre projet, 1 semaine)
+2. [BACKEND.md](BACKEND.md) — état technique actuel
+3. [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — travail backend restant (9 phases)
+4. Consulter la proposition (scope contractuel)
+5. `capital_solu_initial_call_transcript.txt` — call découverte
+6. `first review with client` — review #1 (29 juin 2026)
+7. `update_call_6-7` — démo client + débrief équipe (6 juil. 2026)
+8. Le call équipe pour les décisions TECHMA (design prioritaire, Clerk, GitHub→Replit)
+9. Ne pas confondre avec le **portail étudiant** (autre projet, 1 semaine)
 
 ---
 

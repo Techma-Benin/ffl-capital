@@ -13,10 +13,12 @@ type AgedLead = {
   firstName: string;
   lastName: string;
   state: string;
+  address: string | null;
   leadType: string;
   receivedAt: string;
   trustedformCertUrl: string | null;
   intent: string;
+  haveIul: string | null;
   primaryGoal: string | null;
 };
 
@@ -182,6 +184,7 @@ export function PartnerAgedView({
                   </th>
                   <th>Lead</th>
                   <th>State</th>
+                  <th>Have IUL</th>
                   <th>Type</th>
                   <th>Age</th>
                   <th>Intent</th>
@@ -207,6 +210,9 @@ export function PartnerAgedView({
                         <p className="font-medium text-slate-900">
                           {lead.firstName} {lead.lastName}
                         </p>
+                        {lead.address && (
+                          <p className="text-xs text-slate-400">{lead.address}</p>
+                        )}
                         {lead.primaryGoal && (
                           <p className="text-xs text-slate-400">{lead.primaryGoal}</p>
                         )}
@@ -215,6 +221,9 @@ export function PartnerAgedView({
                         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
                           {lead.state}
                         </span>
+                      </td>
+                      <td className="text-xs text-slate-600">
+                        {lead.haveIul ?? "—"}
                       </td>
                       <td>
                         <Badge variant="blue">
@@ -228,8 +237,8 @@ export function PartnerAgedView({
                         </div>
                       </td>
                       <td>
-                        {lead.intent !== "—" ? (
-                          <Badge variant={lead.intent === "high" ? "green" : "yellow"}>
+                        {lead.intent ? (
+                          <Badge variant={lead.leadType === "high_intent_iul" ? "green" : "yellow"}>
                             {lead.intent}
                           </Badge>
                         ) : (

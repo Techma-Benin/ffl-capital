@@ -7,6 +7,7 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 - [PRD](docs/PRD.md) — spécification produit complète
 - [PROJECT](docs/PROJECT.md) — mémoire projet et décisions
 - [BACKEND](docs/BACKEND.md) — architecture backend et journal d'implémentation
+- [CORE_BACKEND_PLAN](docs/CORE_BACKEND_PLAN.md) — plan de complétion backend core (en cours)
 - [Boberdoo exploration](docs/BOBERDOO_EXPLORATION.md) — parité fonctionnelle
 
 ## Stack

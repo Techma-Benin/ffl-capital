@@ -56,8 +56,11 @@ export default async function PartnerLeadsPage() {
                 <tr>
                   <th>Lead</th>
                   <th>Contact</th>
-                  <th>State</th>
+                  <th>Location</th>
                   <th>Type</th>
+                  <th>Intent</th>
+                  <th>Have IUL</th>
+                  <th>Goal</th>
                   <th>Channel</th>
                   <th>Price</th>
                   <th>Status</th>
@@ -85,12 +88,18 @@ export default async function PartnerLeadsPage() {
                         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
                           {d.lead.state}
                         </span>
+                        {d.lead.address && (
+                          <p className="mt-0.5 text-xs text-slate-400">{d.lead.address}</p>
+                        )}
                       </td>
                       <td>
                         <Badge variant="blue">
                           {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
                         </Badge>
                       </td>
+                      <td className="text-xs text-slate-500">{d.lead.intent ?? "—"}</td>
+                      <td className="text-xs text-slate-500">{d.lead.haveIul ?? "—"}</td>
+                      <td className="text-xs text-slate-500">{d.lead.primaryGoal ?? "—"}</td>
                       <td>
                         <Badge variant={d.channel === "realtime" ? "green" : "purple"}>
                           {d.channel === "realtime" ? "Real-time" : "Aged"}

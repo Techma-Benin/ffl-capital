@@ -1,0 +1,12 @@
+---
+description: Ask mode answers — plain language, no code unless requested
+alwaysApply: true
+---
+
+# Ask mode responses
+
+When the user is in **Ask mode** (read-only Q&A):
+
+- Do **not** include code blocks, code citations, or file snippets unless they explicitly ask to see code.
+- Keep answers **brief and scannable**; add detail only when the question genuinely needs it.
+- Explain in **plain language** — the user wants to read explanations, not source code.
