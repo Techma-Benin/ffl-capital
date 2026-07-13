@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { PartnerEditForm } from "@/components/admin/partner-edit-form";
+import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
 import { ArrowLeft } from "lucide-react";
 
 export default async function AdminPartnerDetailPage({
@@ -62,58 +63,23 @@ export default async function AdminPartnerDetailPage({
         }}
       />
 
-      <div className="mt-6 card">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Filter Sets</h2>
-        </div>
-        <div className="overflow-x-auto">
-          {partner.filterSets.length === 0 ? (
-            <p className="px-5 py-8 text-sm text-slate-400">No filter sets configured.</p>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Lead Type</th>
-                  <th>States</th>
-                  <th>Priority</th>
-                  <th>Price Override</th>
-                  <th>Limits</th>
-                  <th>Delivery</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {partner.filterSets.map((fs) => (
-                  <tr key={fs.id}>
-                    <td className="font-medium">{fs.name}</td>
-                    <td>
-                      <Badge variant="blue">
-                        {fs.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                      </Badge>
-                    </td>
-                    <td>{fs.filterStates.length}</td>
-                    <td>{fs.priority}</td>
-                    <td>
-                      {fs.priceOverride
-                        ? `$${Number(fs.priceOverride).toFixed(2)}`
-                        : "—"}
-                    </td>
-                    <td className="text-xs text-slate-500">
-                      {fs.hourlyLimit ?? "∞"}/hr · {fs.dailyLimit ?? "∞"}/day
-                    </td>
-                    <td className="text-xs capitalize">{fs.deliveryChannel ?? "email"}</td>
-                    <td>
-                      <Badge variant={fs.active ? "green" : "slate"}>
-                        {fs.active ? "Active" : "Inactive"}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+      <div className="mt-6">
+        <PartnerFilterSetsPanel
+          partnerId={partner.id}
+          defaultStates={partner.filterStates}
+          filterSets={partner.filterSets.map((fs) => ({
+            id: fs.id,
+            name: fs.name,
+            leadType: fs.leadType,
+            filterStates: fs.filterStates,
+            priority: fs.priority,
+            priceOverride: fs.priceOverride ? Number(fs.priceOverride) : null,
+            active: fs.active,
+            hourlyLimit: fs.hourlyLimit,
+            dailyLimit: fs.dailyLimit,
+            deliveryChannel: fs.deliveryChannel,
+          }))}
+        />
       </div>
 
       <div className="mt-6 card">

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
+import { LeadRedeliverButton } from "@/components/admin/lead-redeliver-button";
+import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-button";
 import { getLeadEvents } from "@/lib/leads/lead-events";
 import { ArrowLeft } from "lucide-react";
 
@@ -97,6 +99,10 @@ export default async function AdminLeadDetailPage({
   const leadTypeLabel =
     lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
 
+  const latestDelivery = lead.leadDeliveries[0];
+  const canRedeliver = lead.leadDeliveries.length > 0;
+  const refundableDelivery = lead.leadDeliveries.find((d) => !d.refundedAt);
+
   return (
     <div>
       <PageHeader
@@ -106,6 +112,18 @@ export default async function AdminLeadDetailPage({
           <div className="flex items-center gap-2">
             {lead.status === "unmatched" && lead.available && (
               <LeadReprocessButton leadId={lead.id} />
+            )}
+            {canRedeliver && (
+              <LeadRedeliverButton
+                leadId={lead.id}
+                excludePartnerId={latestDelivery?.partnerId}
+              />
+            )}
+            {refundableDelivery && (
+              <AdminLeadRefundButton
+                leadId={lead.id}
+                leadDeliveryId={refundableDelivery.id}
+              />
             )}
             <Link href="/admin/leads" className="btn-secondary btn-sm inline-flex items-center gap-1">
               <ArrowLeft size={14} />
