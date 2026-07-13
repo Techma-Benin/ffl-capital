@@ -9,25 +9,51 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Integrity deep blue — primary #0B3D91
         brand: {
-          50:  "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
-          800: "#1e40af",
-          900: "#1e3a8a",
-          950: "#172554",
+          50:  "#E8F0FA",
+          100: "#D0E1F5",
+          200: "#A1C3EB",
+          300: "#72A5E1",
+          400: "#4387D7",
+          500: "#1A5FBD",
+          600: "#0D4BA3",
+          700: "#0B3D91",
+          800: "#093275",
+          900: "#07275A",
+          950: "#041A3D",
         },
+        // Growth green — accent #00A651
+        accent: {
+          50:  "#E6F7EE",
+          100: "#CCEFDD",
+          200: "#99DFBB",
+          300: "#66CF99",
+          400: "#33BF77",
+          500: "#00A651",
+          600: "#008A43",
+          700: "#006E36",
+          800: "#005228",
+          900: "#00361B",
+        },
+        page: "#F4F7FB",
+        // Light portal sidebar (Pencil mockup)
         sidebar: {
-          bg:      "#0f1b35",
-          hover:   "#1a2d52",
-          active:  "#1d4ed8",
-          text:    "#94a3b8",
-          heading: "#64748b",
+          bg:     "#FFFFFF",
+          hover:  "#F8FAFC",
+          active: "#EFF6FF",
+          text:   "#64748B",
+          heading:"#94A3B8",
+          border: "#E8EDF2",
+        },
+        // Pastel KPI card fills (PNG patterns)
+        pastel: {
+          pink:   "#FCE7F3",
+          orange: "#FFEDD5",
+          mint:   "#D1FAE5",
+          blue:   "#DBEAFE",
+          purple: "#EDE9FE",
+          peach:  "#FFF1E6",
         },
       },
       fontFamily: {

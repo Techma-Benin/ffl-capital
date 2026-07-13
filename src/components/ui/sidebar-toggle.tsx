@@ -26,7 +26,7 @@ export function SidebarCollapseButton() {
       type="button"
       onClick={toggleSidebar}
       aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      className="nav-item w-full justify-center text-sidebar-heading hover:text-white"
+      className="nav-item w-full justify-center text-sidebar-heading hover:text-slate-700"
     >
       {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
       <span

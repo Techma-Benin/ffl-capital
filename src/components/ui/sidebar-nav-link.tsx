@@ -39,11 +39,13 @@ export function SidebarNavLink({
       <span
         className={clsx(
           "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors",
-          active ? "bg-white/10" : "bg-transparent group-hover:bg-white/5",
+          active
+            ? "bg-brand-700/10 text-brand-700"
+            : "bg-transparent text-sidebar-text group-hover:text-slate-700",
         )}
       >
         {pending ? (
-          <Spinner size="xs" variant="white" />
+          <Spinner size="xs" variant="brand" />
         ) : (
           <Icon size={16} />
         )}
@@ -59,7 +61,7 @@ export function SidebarNavLink({
       </span>
 
       {!sidebarCollapsed && active && !pending && (
-        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-300" />
+        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-700" />
       )}
 
       {sidebarCollapsed && (

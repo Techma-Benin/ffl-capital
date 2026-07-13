@@ -19,7 +19,7 @@ export default async function SignInPage() {
           <br />
           <span className="text-brand-400">faster and smarter.</span>
         </h1>
-        <p className="mt-4 max-w-sm text-sidebar-text leading-relaxed">
+        <p className="mt-4 max-w-sm text-brand-200 leading-relaxed">
           Real-time matching, aged lead marketplace, and a modern portal for every partner — all in one platform.
         </p>
 
@@ -40,7 +40,7 @@ export default async function SignInPage() {
         </div>
       </AuthLeftPanel>
 
-      <div className="flex flex-1 items-center justify-center bg-slate-50 px-6 py-12">
+      <div className="flex flex-1 items-center justify-center bg-page px-6 py-12">
         <div className="w-full max-w-lg">
           <div className="mb-8 text-center lg:hidden">
             <Link href="/" className="inline-block transition-opacity hover:opacity-80">

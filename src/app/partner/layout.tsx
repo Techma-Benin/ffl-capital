@@ -8,7 +8,7 @@ import { PartnerProvider } from "@/components/partner/partner-provider";
 import { PartnerStatusBar } from "@/components/partner/partner-status-bar";
 import { PortalShell } from "@/components/layout/portal-shell";
 import { MainContent } from "@/components/layout/main-content";
-import { Bell, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export default async function PartnerLayout({
   children,
@@ -24,17 +24,13 @@ export default async function PartnerLayout({
   return (
     <PortalShell>
       <PartnerProvider initialPartner={partner}>
-        <div className="flex h-screen overflow-hidden bg-slate-50">
+        <div className="flex h-screen overflow-hidden bg-page">
           <PartnerSidebar />
 
           <div className="flex flex-1 flex-col overflow-hidden">
-            <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
+            <header className="flex h-16 items-center justify-between border-b border-sidebar-border bg-white px-6">
               <PartnerStatusBar />
-              <div className="flex items-center gap-3">
-                <button className="btn-ghost btn-sm rounded-full p-2" aria-label="Notifications">
-                  <Bell size={17} className="text-slate-500" />
-                </button>
-              </div>
+              <div className="flex items-center gap-3" />
             </header>
 
             {approvalRequired && isPending && (
