@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Shield } from "lucide-react";
+import { Shield } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
 export default async function AdminIntegrityPage() {

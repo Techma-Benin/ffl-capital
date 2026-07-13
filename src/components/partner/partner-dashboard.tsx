@@ -7,14 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PortalLink } from "@/components/ui/portal-link";
 import { usePartner } from "@/components/partner/partner-provider";
 import { isPartnerActive } from "@/lib/partner/active";
-import {
-  Wallet,
-  FileText,
-  TrendingUp,
-  ShoppingBag,
-  MapPin,
-  AlertCircle,
-} from "lucide-react";
+import { Wallet, FileText, TrendUp, ShoppingBag, MapPin, WarningCircle } from "@phosphor-icons/react";
 
 type RecentDelivery = {
   id: string;
@@ -52,7 +45,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
       {!active && (
         <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle size={18} className="mt-0.5 flex-shrink-0 text-amber-600" />
+            <WarningCircle size={18} className="mt-0.5 flex-shrink-0 text-amber-600" />
             <div>
               <p className="text-sm font-semibold text-amber-900">Complete your setup to start receiving leads</p>
               <div className="mt-2 space-y-1.5">
@@ -97,7 +90,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           label="Received Today"
           value={stats.deliveriesToday}
           variant="mint"
-          icon={TrendingUp}
+          icon={TrendUp}
         />
         <StatCard
           label="Target States"
@@ -111,7 +104,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <PortalLink
           href="/partner/wallet"
-          className="card flex items-center gap-4 p-4 transition-all hover:shadow-card-hover hover:border-brand-200"
+          className="card flex items-center gap-4 p-4 transition-all hover:border-brand-200"
         >
           <div className="rounded-xl bg-brand-50 p-3">
             <Wallet size={20} className="text-brand-600" />
@@ -123,7 +116,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
         </PortalLink>
         <PortalLink
           href="/partner/aged"
-          className="card flex items-center gap-4 p-4 transition-all hover:shadow-card-hover hover:border-brand-200"
+          className="card flex items-center gap-4 p-4 transition-all hover:border-brand-200"
         >
           <div className="rounded-xl bg-violet-50 p-3">
             <ShoppingBag size={20} className="text-violet-600" />
@@ -135,7 +128,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
         </PortalLink>
         <PortalLink
           href="/partner/settings"
-          className="card flex items-center gap-4 p-4 transition-all hover:shadow-card-hover hover:border-brand-200"
+          className="card flex items-center gap-4 p-4 transition-all hover:border-brand-200"
         >
           <div className="rounded-xl bg-slate-100 p-3">
             <MapPin size={20} className="text-slate-500" />

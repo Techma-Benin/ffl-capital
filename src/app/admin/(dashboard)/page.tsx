@@ -14,7 +14,6 @@ export default async function AdminDashboardPage() {
     activePartners,
     pendingPartners,
     unmatchedLeads,
-    deliveredToday,
     recentLeads,
     chartData,
   ] = await Promise.all([
@@ -23,7 +22,6 @@ export default async function AdminDashboardPage() {
     prisma.partner.count({ where: { status: PartnerStatus.active } }),
     prisma.partner.count({ where: { status: PartnerStatus.pending_approval } }),
     prisma.lead.count({ where: { status: "unmatched", available: true } }),
-    prisma.leadDelivery.count({ where: { deliveredAt: { gte: today } } }),
     prisma.lead.findMany({
       orderBy: { receivedAt: "desc" },
       take: 8,
@@ -37,9 +35,6 @@ export default async function AdminDashboardPage() {
     }),
     getAdminDashboardChartData(),
   ]);
-
-  const matchRate =
-    leadsToday > 0 ? Math.round((deliveredToday / leadsToday) * 100) : 0;
 
   return (
     <div>
@@ -55,7 +50,6 @@ export default async function AdminDashboardPage() {
         kpis={{
           totalLeads,
           leadsToday,
-          deliveredToday,
           activePartners,
           unmatchedLeads,
         }}
@@ -74,7 +68,6 @@ export default async function AdminDashboardPage() {
               : null,
           };
         })}
-        matchRate={matchRate}
         pendingPartners={pendingPartners}
         unmatchedLeads={unmatchedLeads}
       />

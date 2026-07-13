@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { usePartner } from "@/components/partner/partner-provider";
-import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, RefreshCw } from "lucide-react";
+import { Wallet, TrendUp, TrendDown, ArrowUpRight, ArrowsClockwise } from "@phosphor-icons/react";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -124,14 +124,14 @@ export function PartnerWalletView({
           variant="mint"
           valueClassName="text-accent-700"
           subtitle="All-time top-ups"
-          icon={TrendingUp}
+          icon={TrendUp}
         />
         <StatCard
           label="Total Spent"
           value={`$${totalSpent.toFixed(2)}`}
           variant="peach"
           subtitle="Lead purchases"
-          icon={TrendingDown}
+          icon={TrendDown}
         />
       </div>
 
@@ -217,7 +217,7 @@ export function PartnerWalletView({
           <div className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-xl bg-violet-50 p-2.5">
-                <RefreshCw size={18} className="text-violet-600" />
+                <ArrowsClockwise size={18} className="text-violet-600" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>

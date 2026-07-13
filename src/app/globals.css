@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --font-inter: "Inter", system-ui, sans-serif;
+    --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
     --color-brand: #0b3d91;
     --color-accent: #00a651;
     --color-page: #f4f7fb;
@@ -54,36 +54,36 @@
 
   /* ── Card ── */
   .card {
-    @apply rounded-xl border border-slate-200/80 bg-white shadow-card;
+    @apply rounded-xl border border-slate-200/80 bg-white shadow-none transition-shadow hover:shadow-card-hover;
   }
 
   /* ── Stat / KPI card ── */
   .stat-card {
-    @apply rounded-xl border border-slate-200/80 bg-white p-5 shadow-card transition-shadow hover:shadow-card-hover;
+    @apply rounded-xl border border-slate-200/80 bg-white p-5 shadow-none transition-shadow hover:shadow-card-hover;
   }
 
   .stat-card-pink {
-    @apply rounded-xl border border-transparent bg-pastel-pink p-5 transition-shadow hover:shadow-card-hover;
+    @apply rounded-xl border border-transparent bg-pastel-pink p-5 shadow-none transition-shadow hover:shadow-card-hover;
   }
 
   .stat-card-orange {
-    @apply rounded-xl border border-transparent bg-pastel-orange p-5 transition-shadow hover:shadow-card-hover;
+    @apply rounded-xl border border-transparent bg-pastel-orange p-5 shadow-none transition-shadow hover:shadow-card-hover;
   }
 
   .stat-card-mint {
-    @apply rounded-xl border border-transparent bg-pastel-mint p-5 transition-shadow hover:shadow-card-hover;
+    @apply rounded-xl border border-transparent bg-pastel-mint p-5 shadow-none transition-shadow hover:shadow-card-hover;
   }
 
   .stat-card-blue {
-    @apply rounded-xl border border-transparent bg-pastel-blue p-5 transition-shadow hover:shadow-card-hover;
+    @apply rounded-xl border border-transparent bg-pastel-blue p-5 shadow-none transition-shadow hover:shadow-card-hover;
   }
 
   .stat-card-purple {
-    @apply rounded-xl border border-transparent bg-pastel-purple p-5 transition-shadow hover:shadow-card-hover;
+    @apply rounded-xl border border-transparent bg-pastel-purple p-5 shadow-none transition-shadow hover:shadow-card-hover;
   }
 
   .stat-card-peach {
-    @apply rounded-xl border border-transparent bg-pastel-peach p-5 transition-shadow hover:shadow-card-hover;
+    @apply rounded-xl border border-transparent bg-pastel-peach p-5 shadow-none transition-shadow hover:shadow-card-hover;
   }
 
   /* ── Data table (dense) ── */

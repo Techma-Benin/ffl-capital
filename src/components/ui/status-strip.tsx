@@ -1,7 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { WarningCircle, CheckCircle } from "@phosphor-icons/react";
 
 type Status = "success" | "error";
 
@@ -23,7 +23,7 @@ export function StatusStrip({
 }) {
   if (!status) return null;
 
-  const Icon = status === "success" ? CheckCircle2 : AlertCircle;
+  const Icon = status === "success" ? CheckCircle : WarningCircle;
 
   return (
     <div

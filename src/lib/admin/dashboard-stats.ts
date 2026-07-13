@@ -48,9 +48,5 @@ export async function getAdminDashboardChartData() {
     value,
   }));
 
-  if (deliveringDonut.length === 0) {
-    deliveringDonut.push({ name: "No deliveries", value: 1 });
-  }
-
   return { intakeByDay, sparkByDay, deliveringDonut };
 }

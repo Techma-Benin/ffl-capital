@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { PaperPlaneTilt } from "@phosphor-icons/react";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 
 export function LeadRedeliverButton({
@@ -37,7 +37,7 @@ export function LeadRedeliverButton({
   return (
     <InlineActionButton
       tone="slate"
-      icon={<Send size={12} />}
+      icon={<PaperPlaneTilt size={12} />}
       loading={pending}
       loadingText="Redelivering…"
       onClick={handleRedeliver}

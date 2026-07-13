@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Download } from "lucide-react";
+import { DownloadSimple } from "@phosphor-icons/react";
 
 export function LeadsExportButton({ status }: { status?: string }) {
   const [pending, setPending] = useState(false);
@@ -35,7 +35,7 @@ export function LeadsExportButton({ status }: { status?: string }) {
       disabled={pending}
       className="btn-secondary btn-sm inline-flex items-center gap-1.5"
     >
-      <Download size={14} />
+      <DownloadSimple size={14} />
       {pending ? "Exporting…" : "Export CSV"}
     </button>
   );

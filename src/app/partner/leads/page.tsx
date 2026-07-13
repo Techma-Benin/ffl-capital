@@ -7,7 +7,7 @@ import { PartnerLeadsTable } from "@/components/partner/partner-leads-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
-import { FileText } from "lucide-react";
+import { FileText } from "@phosphor-icons/react/dist/ssr";
 
 export default async function PartnerLeadsPage({
   searchParams,

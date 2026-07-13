@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
-import { ShoppingBag, Filter, Clock, ShieldCheck } from "lucide-react";
+import { ShoppingBag, Funnel, Clock, ShieldCheck } from "@phosphor-icons/react";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
 
@@ -124,7 +124,7 @@ export function PartnerAgedView({
       <div className="mb-5 card p-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            <Filter size={13} />
+            <Funnel size={13} />
             Filters:
           </div>
           <select

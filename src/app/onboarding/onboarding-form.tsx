@@ -6,7 +6,7 @@ import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { ActionButton } from "@/components/ui/action-button";
 import { FormSkeleton } from "@/components/ui/form-skeleton";
 import { StatusStrip } from "@/components/ui/status-strip";
-import { AlertCircle, ArrowRight, Check, MapPin } from "lucide-react";
+import { WarningCircle, ArrowRight, Check, MapPin } from "@phosphor-icons/react";
 
 const US_STATE_NAMES: Record<string, string> = {
   AL:"Alabama", AK:"Alaska", AZ:"Arizona", AR:"Arkansas", CA:"California",
@@ -244,7 +244,7 @@ export default function OnboardingForm({ initialProfile }: Props) {
 
           {!isEligible && (
             <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-              <AlertCircle size={13} className="flex-shrink-0" />
+              <WarningCircle size={13} className="flex-shrink-0" />
               Select {15 - selectedStates.length} more state{15 - selectedStates.length !== 1 ? "s" : ""} to continue
             </div>
           )}

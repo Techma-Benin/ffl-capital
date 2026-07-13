@@ -2,7 +2,7 @@
 
 import { clsx } from "clsx";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { Check } from "lucide-react";
+import { Check } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/spinner";
 
 type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

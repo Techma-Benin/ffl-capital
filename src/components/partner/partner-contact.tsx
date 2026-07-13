@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ActionButton } from "@/components/ui/action-button";
 import { StatusStrip } from "@/components/ui/status-strip";
 import { usePartner } from "@/components/partner/partner-provider";
-import { Mail, Send } from "lucide-react";
+import { EnvelopeSimple, PaperPlaneTilt } from "@phosphor-icons/react";
 
 const SUPPORT_EMAIL = "support@fflcapital.com";
 
@@ -77,8 +77,8 @@ export function PartnerContactView() {
 
       <form onSubmit={handleSubmit} className="card p-6 sm:p-8">
         <div className="mb-6 flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm">
-            <Mail size={16} />
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white text-brand-600">
+            <EnvelopeSimple size={16} />
           </div>
           <div className="min-w-0 text-sm">
             <p className="text-slate-500">Email</p>
@@ -154,7 +154,7 @@ export function PartnerContactView() {
             </p>
             <ActionButton
               type="submit"
-              icon={<Send size={15} />}
+              icon={<PaperPlaneTilt size={15} />}
               className="flex-shrink-0"
               loading={opening}
               loadingText="Opening email…"

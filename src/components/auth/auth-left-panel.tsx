@@ -1,4 +1,4 @@
-import { Zap } from "lucide-react";
+import { Lightning } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -23,7 +23,7 @@ export function AuthLeftPanel({ subtitle, children }: AuthLeftPanelProps) {
       <div className="relative z-10 flex flex-col h-full">
         <Link href="/" className="flex items-center gap-2.5 w-fit transition-opacity hover:opacity-80">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700">
-            <Zap size={18} className="text-white" />
+            <Lightning size={18} className="text-white" />
           </div>
           <div>
             <p className="text-sm font-bold leading-tight">FFL Capital</p>

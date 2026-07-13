@@ -9,7 +9,7 @@ import {
   US_REGION_STATES,
   US_STATE_CODES,
 } from "@/lib/constants/us-states";
-import { AlertCircle, Check, MapPin, Settings, Webhook } from "lucide-react";
+import { WarningCircle, Check, MapPin, Gear, PlugsConnected } from "@phosphor-icons/react";
 
 const US_STATE_NAMES: Record<string, string> = {
   AL:"Alabama", AK:"Alaska", AZ:"Arizona", AR:"Arkansas", CA:"California",
@@ -133,7 +133,7 @@ export function PartnerSettingsView() {
 
       <div className="mb-5 card p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Settings size={16} className="text-slate-500" />
+          <Gear size={16} className="text-slate-500" />
           <h2 className="text-sm font-semibold text-slate-900">Account Settings</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -160,7 +160,7 @@ export function PartnerSettingsView() {
 
       <div className="mb-5 card p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Webhook size={16} className="text-slate-500" />
+          <PlugsConnected size={16} className="text-slate-500" />
           <h2 className="text-sm font-semibold text-slate-900">CRM Delivery Webhook</h2>
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
             Optional
@@ -217,7 +217,7 @@ export function PartnerSettingsView() {
             </span>
             {!isEligible && (
               <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                <AlertCircle size={11} />
+                <WarningCircle size={11} />
                 Min 15 required
               </span>
             )}

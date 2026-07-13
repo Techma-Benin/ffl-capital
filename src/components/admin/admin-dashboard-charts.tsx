@@ -4,7 +4,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { SparklineChart, IntakeAreaChart, DonutChart } from "@/components/ui/charts";
 import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Clock } from "lucide-react";
+import { WarningCircle, Clock } from "@phosphor-icons/react";
 
 type RecentLead = {
   id: string;
@@ -23,7 +23,6 @@ export function AdminDashboardCharts({
   deliveringDonut,
   kpis,
   recentLeads,
-  matchRate,
   pendingPartners,
   unmatchedLeads,
 }: {
@@ -33,18 +32,18 @@ export function AdminDashboardCharts({
   kpis: {
     totalLeads: number;
     leadsToday: number;
-    deliveredToday: number;
     activePartners: number;
     unmatchedLeads: number;
   };
   recentLeads: RecentLead[];
-  matchRate: number;
   pendingPartners: number;
   unmatchedLeads: number;
 }) {
+  const hasDeliveries = deliveringDonut.length > 0;
+
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Leads"
           value={kpis.totalLeads.toLocaleString()}
@@ -56,16 +55,6 @@ export function AdminDashboardCharts({
           value={kpis.leadsToday}
           variant="purple"
           sparkline={<SparklineChart data={sparkByDay} color="#8B5CF6" />}
-        />
-        <StatCard
-          label="Delivered Today"
-          value={kpis.deliveredToday}
-          variant="mint"
-          trend={
-            matchRate > 0
-              ? { value: `${matchRate}% match rate`, up: matchRate >= 50 }
-              : undefined
-          }
         />
         <StatCard
           label="Active Partners"
@@ -91,27 +80,35 @@ export function AdminDashboardCharts({
 
         <div className="card p-5">
           <h2 className="mb-2 text-sm font-semibold text-slate-900">Delivering</h2>
-          <DonutChart data={deliveringDonut} />
-          <ul className="mt-3 space-y-1.5">
-            {deliveringDonut.map((d) => (
-              <li key={d.name} className="flex justify-between text-xs text-slate-600">
-                <span>{d.name}</span>
-                <span className="font-semibold">{d.value}</span>
-              </li>
-            ))}
-          </ul>
+          {hasDeliveries ? (
+            <>
+              <DonutChart data={deliveringDonut} />
+              <ul className="mt-3 space-y-1.5">
+                {deliveringDonut.map((d) => (
+                  <li key={d.name} className="flex justify-between text-xs text-slate-600">
+                    <span>{d.name}</span>
+                    <span className="font-semibold">{d.value}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="py-8 text-center text-sm text-slate-400">No deliveries yet</p>
+          )}
         </div>
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div className="card p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Pending Approvals
-            </p>
-            <Clock size={16} className="text-amber-500" />
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="flex flex-wrap items-baseline gap-x-2.5">
+              <p className="text-3xl font-bold text-slate-900">{pendingPartners}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Pending Approvals
+              </p>
+            </div>
+            <Clock size={16} className="text-amber-500" weight="duotone" />
           </div>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{pendingPartners}</p>
           {pendingPartners > 0 && (
             <PortalLink
               href="/admin/partners?status=pending_approval"
@@ -122,13 +119,15 @@ export function AdminDashboardCharts({
           )}
         </div>
         <div className="card p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Reprocess Queue
-            </p>
-            <AlertCircle size={16} className="text-amber-500" />
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="flex flex-wrap items-baseline gap-x-2.5">
+              <p className="text-3xl font-bold text-slate-900">{unmatchedLeads}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Reprocess Queue
+              </p>
+            </div>
+            <WarningCircle size={16} className="text-amber-500" weight="duotone" />
           </div>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{unmatchedLeads}</p>
           {unmatchedLeads > 0 && (
             <PortalLink
               href="/admin/leads?status=unmatched"

@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { clsx } from "clsx";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { SidebarSimple } from "@phosphor-icons/react";
 import { usePortal } from "@/components/layout/portal-provider";
 
 /** Toggle the sidebar when clicking empty space (not links or buttons). */
@@ -28,7 +28,7 @@ export function SidebarCollapseButton() {
       aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       className="nav-item w-full justify-center text-sidebar-heading hover:text-slate-700"
     >
-      {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+      <SidebarSimple size={16} weight="duotone" mirrored={sidebarCollapsed} />
       <span
         className={clsx(
           "truncate transition-all duration-300",

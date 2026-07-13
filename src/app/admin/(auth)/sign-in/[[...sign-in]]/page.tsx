@@ -1,6 +1,6 @@
 import { SignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
-import { Shield } from "lucide-react";
+import { Shield } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLeftPanel } from "@/components/auth/auth-left-panel";

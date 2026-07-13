@@ -4,7 +4,7 @@ import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { BarChart2, FileText } from "lucide-react";
+import { ChartBar, FileText } from "@phosphor-icons/react/dist/ssr";
 
 export default async function PartnerReportsPage() {
   const partnerId = await getPartnerId();
@@ -57,7 +57,7 @@ export default async function PartnerReportsPage() {
         <div className="overflow-x-auto">
           {transactions.length === 0 ? (
             <EmptyState
-              icon={BarChart2}
+              icon={ChartBar}
               title="No transactions yet"
               description="Your transaction history will appear here."
             />

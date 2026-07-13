@@ -9,7 +9,7 @@ import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-butt
 import { AdminLeadEditForm } from "@/components/admin/admin-lead-edit-form";
 import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { getLeadEvents } from "@/lib/leads/lead-events";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
 function DetailRow({
   label,

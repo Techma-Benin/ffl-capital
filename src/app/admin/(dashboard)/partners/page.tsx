@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import Link from "next/link";
-import { Users, MapPin } from "lucide-react";
+import { Users, MapPin } from "@phosphor-icons/react/dist/ssr";
 import { FilterTabLink } from "@/components/ui/filter-tab-link";
 import { PartnerApprovalActions } from "@/components/admin/partner-approval-actions";
 import { StatCard } from "@/components/ui/stat-card";

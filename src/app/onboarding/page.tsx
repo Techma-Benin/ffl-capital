@@ -3,7 +3,7 @@ import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import { getCurrentPartner } from "@/lib/auth/session";
 import OnboardingForm from "./onboarding-form";
-import { Zap } from "lucide-react";
+import { Lightning } from "@phosphor-icons/react/dist/ssr";
 
 export default async function OnboardingPage() {
   const partner = await getCurrentPartner();
@@ -24,7 +24,7 @@ export default async function OnboardingPage() {
       <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-8">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-700">
-            <Zap size={14} className="text-white" />
+            <Lightning size={14} className="text-white" />
           </div>
           <span className="text-sm font-bold text-brand-800">FFL Capital</span>
         </div>

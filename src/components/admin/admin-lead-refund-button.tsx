@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 
 export function AdminLeadRefundButton({
@@ -47,7 +47,7 @@ export function AdminLeadRefundButton({
     return (
       <InlineActionButton
         tone="red"
-        icon={<RotateCcw size={12} />}
+        icon={<ArrowCounterClockwise size={12} />}
         onClick={() => setOpen(true)}
       >
         Refund

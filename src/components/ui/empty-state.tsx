@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { Icon } from "@phosphor-icons/react";
 
 export function EmptyState({
   icon: Icon,
@@ -6,7 +6,7 @@ export function EmptyState({
   description,
   action,
 }: {
-  icon?: LucideIcon;
+  icon?: Icon;
   title: string;
   description?: string;
   action?: React.ReactNode;
@@ -15,7 +15,7 @@ export function EmptyState({
     <div className="empty-state">
       {Icon && (
         <div className="mb-4 rounded-full bg-slate-100 p-4">
-          <Icon size={28} className="text-slate-400" />
+          <Icon size={28} className="text-slate-400" weight="duotone" />
         </div>
       )}
       <h3 className="text-base font-semibold text-slate-900">{title}</h3>

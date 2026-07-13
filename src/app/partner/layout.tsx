@@ -5,10 +5,9 @@ import {
 import { getPartnerSession } from "@/lib/partner/session";
 import { PartnerSidebar } from "@/components/partner/sidebar";
 import { PartnerProvider } from "@/components/partner/partner-provider";
-import { PartnerStatusBar } from "@/components/partner/partner-status-bar";
 import { PortalShell } from "@/components/layout/portal-shell";
 import { MainContent } from "@/components/layout/main-content";
-import { AlertCircle } from "lucide-react";
+import { WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 export default async function PartnerLayout({
   children,
@@ -28,14 +27,9 @@ export default async function PartnerLayout({
           <PartnerSidebar />
 
           <div className="flex flex-1 flex-col overflow-hidden">
-            <header className="flex h-16 items-center justify-between border-b border-sidebar-border bg-white px-6">
-              <PartnerStatusBar />
-              <div className="flex items-center gap-3" />
-            </header>
-
             {approvalRequired && isPending && (
               <div className="flex items-center gap-3 border-b border-amber-200 bg-amber-50 px-6 py-3">
-                <AlertCircle size={15} className="flex-shrink-0 text-amber-600" />
+                <WarningCircle size={15} className="flex-shrink-0 text-amber-600" weight="fill" />
                 <p className="text-sm text-amber-800">
                   <span className="font-semibold">Account pending approval.</span>{" "}
                   You won&apos;t receive leads until an admin activates your account. Please ensure you have at least 15 states selected.

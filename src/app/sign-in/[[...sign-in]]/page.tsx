@@ -1,6 +1,6 @@
 import { SignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
-import { Zap } from "lucide-react";
+import { Lightning } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLeftPanel } from "@/components/auth/auth-left-panel";
@@ -45,7 +45,7 @@ export default async function SignInPage() {
           <div className="mb-8 text-center lg:hidden">
             <Link href="/" className="inline-block transition-opacity hover:opacity-80">
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-700">
-                <Zap size={20} className="text-white" />
+                <Lightning size={20} className="text-white" />
               </div>
               <p className="text-sm font-bold text-slate-900">FFL Capital</p>
             </Link>

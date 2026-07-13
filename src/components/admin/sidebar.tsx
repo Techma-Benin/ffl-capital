@@ -7,30 +7,30 @@ import {
   SidebarCollapseButton,
   useSidebarEmptyAreaClick,
 } from "@/components/ui/sidebar-toggle";
+import { SidebarUserButton } from "@/components/ui/sidebar-user-button";
 import {
-  LayoutDashboard,
+  SquaresFour,
   Users,
   FileText,
-  RotateCcw,
+  ArrowCounterClockwise,
   Archive,
-  Settings,
+  Gear,
   Shield,
-  Upload,
-  ListFilter,
-} from "lucide-react";
-import Link from "next/link";
+  UploadSimple,
+  Funnel,
+} from "@phosphor-icons/react";
 
 /** Flat nav aligned to Pencil mockup; keep Filter List / Integrity / Migration. */
 const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin", label: "Dashboard", icon: SquaresFour, exact: true },
   { href: "/admin/partners", label: "Partners", icon: Users },
   { href: "/admin/leads", label: "Leads", icon: FileText },
-  { href: "/admin/refunds", label: "Refunds", icon: RotateCcw },
+  { href: "/admin/refunds", label: "Refunds", icon: ArrowCounterClockwise },
   { href: "/admin/aged", label: "Aged Leads", icon: Archive },
-  { href: "/admin/filter-list", label: "Filter List", icon: ListFilter },
+  { href: "/admin/filter-list", label: "Filter List", icon: Funnel },
   { href: "/admin/integrity", label: "Integrity", icon: Shield },
-  { href: "/admin/migration", label: "Migration", icon: Upload },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/migration", label: "Migration", icon: UploadSimple },
+  { href: "/admin/settings", label: "Settings", icon: Gear },
 ];
 
 export function AdminSidebar() {
@@ -85,20 +85,14 @@ export function AdminSidebar() {
         </div>
       </nav>
 
-      {!sidebarCollapsed && (
-        <div className="mx-3 mb-3 rounded-xl bg-brand-50 p-3.5">
-          <p className="text-xs font-semibold text-slate-800">Lead Intake Active</p>
-          <p className="mt-1 text-[11px] leading-snug text-slate-500">
-            ~500 leads/day via LeadConduit
-          </p>
-          <Link
-            href="/admin/leads"
-            className="mt-2.5 inline-flex rounded-md bg-brand-700 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-brand-800"
-          >
-            View Queue
-          </Link>
-        </div>
-      )}
+      <div
+        className={clsx(
+          "border-t border-sidebar-border py-4",
+          sidebarCollapsed ? "px-2" : "px-4",
+        )}
+      >
+        <SidebarUserButton afterSignOutUrl="/admin/sign-in" />
+      </div>
 
       <div className="border-t border-sidebar-border px-3 py-3">
         <SidebarCollapseButton />

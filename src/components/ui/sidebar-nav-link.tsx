@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import type { LucideIcon } from "lucide-react";
+import type { Icon } from "@phosphor-icons/react";
 import { usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -15,7 +15,7 @@ export function SidebarNavLink({
 }: {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: Icon;
   exact?: boolean;
 }) {
   const pathname = usePathname();
@@ -47,7 +47,7 @@ export function SidebarNavLink({
         {pending ? (
           <Spinner size="xs" variant="brand" />
         ) : (
-          <Icon size={16} />
+          <Icon size={16} weight="duotone" />
         )}
       </span>
 

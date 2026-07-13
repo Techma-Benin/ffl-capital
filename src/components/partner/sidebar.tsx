@@ -11,22 +11,22 @@ import {
 } from "@/components/ui/sidebar-toggle";
 import { SidebarUserButton } from "@/components/ui/sidebar-user-button";
 import {
-  LayoutDashboard,
+  SquaresFour,
   FileText,
   Wallet,
   ShoppingBag,
-  Settings,
+  Gear,
   Phone,
-  BarChart2,
-} from "lucide-react";
+  ChartBar,
+} from "@phosphor-icons/react";
 
 const navItems = [
-  { href: "/partner", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/partner", label: "Dashboard", icon: SquaresFour, exact: true },
   { href: "/partner/leads", label: "My Leads", icon: FileText },
   { href: "/partner/wallet", label: "Wallet", icon: Wallet },
   { href: "/partner/aged", label: "Aged Marketplace", icon: ShoppingBag },
-  { href: "/partner/reports", label: "Reports", icon: BarChart2 },
-  { href: "/partner/settings", label: "Settings", icon: Settings },
+  { href: "/partner/reports", label: "Reports", icon: ChartBar },
+  { href: "/partner/settings", label: "Settings", icon: Gear },
   { href: "/partner/contact", label: "Contact Us", icon: Phone },
 ];
 
@@ -91,25 +91,12 @@ export function PartnerSidebar() {
           sidebarCollapsed ? "px-2" : "px-4",
         )}
       >
-        <div
-          className={clsx(
-            "flex items-center",
-            sidebarCollapsed ? "justify-center" : "gap-3",
-          )}
-        >
-          <SidebarUserButton />
-          <div
-            className={clsx(
-              "min-w-0 overflow-hidden transition-all duration-300",
-              sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100",
-            )}
-          >
-            <p className="truncate text-sm font-medium text-slate-800">{partnerName}</p>
-            {partner.affiliation && (
-              <p className="truncate text-xs text-sidebar-text">{partner.affiliation}</p>
-            )}
-          </div>
-        </div>
+        <SidebarUserButton displayName={partnerName} />
+        {partner.affiliation && !sidebarCollapsed && (
+          <p className="mt-1 truncate pl-12 text-xs text-sidebar-text">
+            {partner.affiliation}
+          </p>
+        )}
 
         <div
           className={clsx(

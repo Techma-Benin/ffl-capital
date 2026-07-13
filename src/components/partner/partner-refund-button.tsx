@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw } from "lucide-react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react";
 
 export function PartnerRefundButton({
   leadDeliveryId,
@@ -46,7 +46,7 @@ export function PartnerRefundButton({
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
       >
-        <RotateCcw size={11} />
+        <ArrowCounterClockwise size={11} />
         Refund
       </button>
     );

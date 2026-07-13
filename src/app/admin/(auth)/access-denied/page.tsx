@@ -1,5 +1,5 @@
 import { SignOutButton } from "@clerk/nextjs";
-import { ShieldAlert } from "lucide-react";
+import { ShieldWarning } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
 export default function AdminAccessDeniedPage() {
@@ -7,7 +7,7 @@ export default function AdminAccessDeniedPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
       <div className="card max-w-md p-8 text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-          <ShieldAlert size={24} className="text-amber-700" />
+          <ShieldWarning size={24} className="text-amber-700" />
         </div>
         <h1 className="text-xl font-bold text-slate-900">Admin access denied</h1>
         <p className="mt-2 text-sm text-slate-500 leading-relaxed">

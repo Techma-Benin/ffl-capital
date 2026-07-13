@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 import {
@@ -432,7 +432,7 @@ export function PartnerFilterSetsPanel({
                     <div className="flex items-center justify-end gap-2">
                       <InlineActionButton
                         tone="slate"
-                        icon={<Pencil size={12} />}
+                        icon={<PencilSimple size={12} />}
                         disabled={mode !== "none"}
                         onClick={() => {
                           setEditingId(fs.id);
@@ -444,7 +444,7 @@ export function PartnerFilterSetsPanel({
                       {filterSets.length > 1 && (
                         <InlineActionButton
                           tone="red"
-                          icon={<Trash2 size={12} />}
+                          icon={<Trash size={12} />}
                           loading={deletingId === fs.id}
                           loadingText="Deleting…"
                           disabled={mode !== "none"}

@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { PartnerEditForm } from "@/components/admin/partner-edit-form";
 import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
 export default async function AdminPartnerDetailPage({
   params,

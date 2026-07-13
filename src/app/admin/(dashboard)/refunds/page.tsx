@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AdminRefundsPendingTable } from "@/components/admin/admin-refunds-pending-table";
-import { RotateCcw } from "lucide-react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react/dist/ssr";
 
 export default async function AdminRefundsPage() {
   const [pending, history] = await Promise.all([
@@ -62,7 +62,7 @@ export default async function AdminRefundsPage() {
         <div className="overflow-x-auto">
           {pending.length === 0 ? (
             <EmptyState
-              icon={RotateCcw}
+              icon={ArrowCounterClockwise}
               title="No pending refund requests"
               description="Refund requests from partners will appear here for review."
             />

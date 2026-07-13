@@ -1,5 +1,5 @@
 import { clsx } from "clsx";
-import type { LucideIcon } from "lucide-react";
+import type { Icon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 export type StatCardVariant =
@@ -25,7 +25,7 @@ interface StatCardProps {
   label: string;
   value: string | number;
   subtitle?: string;
-  icon?: LucideIcon;
+  icon?: Icon;
   iconColor?: string;
   iconBgClassName?: string;
   valueClassName?: string;
@@ -54,29 +54,31 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <div className={clsx(variantClass[variant], className)}>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            {label}
-          </p>
-          <p
-            className={clsx(
-              "mt-2 text-3xl font-bold tracking-tight text-slate-900",
-              valueClassName
-            )}
-          >
-            {value}
-          </p>
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+            <p
+              className={clsx(
+                "text-3xl font-bold tracking-tight text-slate-900",
+                valueClassName,
+              )}
+            >
+              {value}
+            </p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              {label}
+            </p>
+          </div>
           {subtitle && (
-            <p className={clsx("mt-1 text-sm text-slate-500", subtitleClassName)}>
+            <p className={clsx("mt-1.5 text-sm text-slate-500", subtitleClassName)}>
               {subtitle}
             </p>
           )}
           {trend && (
             <p
               className={clsx(
-                "mt-2 text-xs font-medium",
-                trend.up ? "text-accent-600" : "text-red-500"
+                "mt-1.5 text-xs font-medium",
+                trend.up ? "text-accent-600" : "text-red-500",
               )}
             >
               {trend.up ? "↑" : "↓"} {trend.value}
@@ -85,10 +87,10 @@ export function StatCard({
         </div>
 
         {sparkline ? (
-          <div className="h-12 w-24 flex-shrink-0 self-end">{sparkline}</div>
+          <div className="h-10 w-20 flex-shrink-0">{sparkline}</div>
         ) : Icon ? (
           <div className={clsx("rounded-xl p-2.5", iconBgClassName, iconColor)}>
-            <Icon size={20} />
+            <Icon size={20} weight="duotone" />
           </div>
         ) : null}
       </div>
