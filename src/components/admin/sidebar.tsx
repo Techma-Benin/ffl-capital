@@ -17,6 +17,7 @@ import {
   Settings,
   Shield,
   Upload,
+  ListFilter,
 } from "lucide-react";
 
 const navSections = [
@@ -34,6 +35,7 @@ const navSections = [
     label: "Management",
     items: [
       { href: "/admin/partners", label: "Partners", icon: Users },
+      { href: "/admin/filter-list", label: "Filter List", icon: ListFilter },
       { href: "/admin/migration", label: "Migration", icon: Upload },
     ],
   },

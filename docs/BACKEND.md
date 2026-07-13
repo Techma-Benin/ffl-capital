@@ -1,9 +1,9 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 10 juillet 2026
+> Dernière mise à jour : 13 juillet 2026
 
-**Plan en cours :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — terminer le backend core à parité Boberdoo avant la passe UI.
+**Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
 ---
 
@@ -71,7 +71,7 @@
 | Auto-recharge au seuil de solde | ⏸ reporté |
 | IntegrityCONNECT live | ⏸ specs client |
 | Stripe prod | ⏳ après validation test keys |
-| Polish UI | ⏳ après backend core |
+| Polish UI avancé (charts Boberdoo, billing PDF) | ⏳ hors scope V1 |
 
 ---
 

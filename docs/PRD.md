@@ -866,46 +866,47 @@ Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo u
 
 ## 12. Phases de livraison
 
-### Phase 1 — Fondations (semaine 1)
+> **Statut juillet 2026 :** phases 1–4 et core backend **implémentées** en mode test. Voir [PROJECT.md §18](PROJECT.md#18-état-implémentation-backend--ui).
+
+### Phase 1 — Fondations (semaine 1) ✅
 
 - Repo GitHub, **Next.js + Prisma** + Supabase dev
-- Clerk auth, rôles admin/agent
+- Clerk auth, rôles admin/partner
 - Schéma BDD migrations
-- Shells UI Admin + Agent (design de base)
-- Onboarding agent + **approbation admin**
+- Shells UI Admin + Partner
+- Onboarding partner + **approbation admin**
 - Feature flag `ADMIN_APPROVAL_REQUIRED`
 
-### Phase 2 — Intake & matching (semaine 2)
+### Phase 2 — Intake & matching (semaine 2) ✅
 
-- Webhook intake + simulateur
-- Moteur matching complet
+- Webhook intake + simulateur + feeding-platform
+- Moteur matching (filter sets v2)
 - File unmatched + job retraitement 24 h
-- Admin : liste leads, agents CRUD
+- Admin : liste leads, filtres, détail, event log
 
-### Phase 3 — Wallet & notifications (semaine 3)
+### Phase 3 — Wallet & notifications (semaine 3) ✅
 
 - Stripe test top-up manuel + récurrent
 - Ledger transactions, statut actif
-- Emails lead livré
-- Portail agent : mes leads, wallet
+- Emails lead livré (Resend)
+- Portail partner : mes leads, wallet
 
-### Phase 4 — Aged & remboursements (semaine 4)
+### Phase 4 — Aged & remboursements (semaine 4) ✅
 
-- Job aging J+30
+- Seuil aged configurable (défaut J+30)
 - Marketplace aged (unitaire + checkboxes)
-- Workflow remboursement in-app
+- Workflow remboursement in-app (Type A/B)
 - Routage post-remboursement
 
-### Phase 5 — Intégrations & migration (semaines 5–6)
+### Phase 5 — Intégrations & migration (semaines 5–6) ⏳ partiel
 
-- IntegrityCONNECT live (si specs OK)
-- CRM webhook agent
-- **Migration Boberdoo** (écran import)
-- Deploy Netlify + Supabase staging
-- Tests charge, corrections
-- Préparation migration Replit
+- IntegrityCONNECT live (si specs OK) — **mock prêt, live bloqué client**
+- CRM webhook + Ringy delivery — ✅
+- **Migration Boberdoo** (écran import CSV) — ✅
+- Deploy Netlify + Supabase staging — ⏳
+- Cutover LeadConduit prod — ⏳ voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)
 
-### Phase 6 — Livraison Replit
+### Phase 6 — Livraison Replit ⏳
 
 - Export Supabase → Replit Postgres
 - Deploy Replit, reconfig webhooks

@@ -14,6 +14,7 @@ export default async function AdminPartnerDetailPage({
   const partner = await prisma.partner.findUnique({
     where: { id: params.id },
     include: {
+      filterSets: { orderBy: { createdAt: "asc" } },
       transactions: { orderBy: { createdAt: "desc" }, take: 15 },
       leadDeliveries: {
         orderBy: { deliveredAt: "desc" },
@@ -60,6 +61,60 @@ export default async function AdminPartnerDetailPage({
           status: partner.status,
         }}
       />
+
+      <div className="mt-6 card">
+        <div className="border-b border-slate-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-slate-900">Filter Sets</h2>
+        </div>
+        <div className="overflow-x-auto">
+          {partner.filterSets.length === 0 ? (
+            <p className="px-5 py-8 text-sm text-slate-400">No filter sets configured.</p>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Lead Type</th>
+                  <th>States</th>
+                  <th>Priority</th>
+                  <th>Price Override</th>
+                  <th>Limits</th>
+                  <th>Delivery</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {partner.filterSets.map((fs) => (
+                  <tr key={fs.id}>
+                    <td className="font-medium">{fs.name}</td>
+                    <td>
+                      <Badge variant="blue">
+                        {fs.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                      </Badge>
+                    </td>
+                    <td>{fs.filterStates.length}</td>
+                    <td>{fs.priority}</td>
+                    <td>
+                      {fs.priceOverride
+                        ? `$${Number(fs.priceOverride).toFixed(2)}`
+                        : "—"}
+                    </td>
+                    <td className="text-xs text-slate-500">
+                      {fs.hourlyLimit ?? "∞"}/hr · {fs.dailyLimit ?? "∞"}/day
+                    </td>
+                    <td className="text-xs capitalize">{fs.deliveryChannel ?? "email"}</td>
+                    <td>
+                      <Badge variant={fs.active ? "green" : "slate"}>
+                        {fs.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
 
       <div className="mt-6 card">
         <div className="border-b border-slate-100 px-5 py-4">

@@ -7,15 +7,17 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 - [PRD](docs/PRD.md) — spécification produit complète
 - [PROJECT](docs/PROJECT.md) — mémoire projet et décisions
 - [BACKEND](docs/BACKEND.md) — architecture backend et journal d'implémentation
-- [CORE_BACKEND_PLAN](docs/CORE_BACKEND_PLAN.md) — plan de complétion backend core (en cours)
+- [LEADCONDUIT_SETUP](docs/LEADCONDUIT_SETUP.md) — connexion LeadConduit / ngrok / cutover prod
+- [CORE_BACKEND_PLAN](docs/CORE_BACKEND_PLAN.md) — plan backend core (✅ complété)
 - [Boberdoo exploration](docs/BOBERDOO_EXPLORATION.md) — parité fonctionnelle
+- [Gap analysis](docs/BOBERDOO_GAP_ANALYSIS.md) — inventaire vs Boberdoo (mis à jour juil. 2026)
 
 ## Stack
 
 - **Next.js 14** (App Router) + TypeScript
 - **Prisma** + PostgreSQL (Supabase dev → Replit prod)
-- **Clerk** auth (Phase 1b)
-- **Stripe** wallet (Phase 2)
+- **Clerk** auth (admin + partner)
+- **Stripe** wallet (test keys; prod après validation)
 
 ## Setup rapide
 
@@ -27,7 +29,7 @@ npm install
 
 # 2. Configurer la base de données
 cp .env.example .env
-# Remplir DATABASE_URL et DIRECT_URL depuis Supabase
+# Remplir DATABASE_URL, DIRECT_URL, CLERK_*, STRIPE_* selon besoin
 
 # 3. Migrations et seed
 npx prisma generate
@@ -47,27 +49,48 @@ curl http://localhost:3000/api/health
 # Tests logique matching (sans DB)
 npm run test:matching
 
+# Checklist backend E2E
+npm run verify
+
 # Simuler un lead (serveur dev requis)
 npm run seed:lead
 ```
 
-## Endpoints API (Phase 0)
+## Endpoints API (principaux)
 
 | Méthode | Route | Description |
 |---------|-------|-------------|
 | GET | `/api/health` | Statut serveur + connexion DB |
-| POST | `/api/leads/intake` | Webhook LeadConduit (format Boberdoo) |
+| POST | `/api/leads/intake` | Webhook LeadConduit (format Boberdoo, public, CORS) |
+| POST | `/api/wallet/checkout` | Stripe top-up (partner auth) |
+| POST | `/api/refunds` | Demande remboursement partner |
+| POST | `/api/cron/reprocess-unmatched` | Retraitement leads (Bearer CRON_SECRET) |
+| POST | `/api/cron/integrity-post` | Post Integrity unmatched (Bearer CRON_SECRET) |
+
+Admin APIs : leads search/export/reprocess, partners, filter sets, refunds — voir [BACKEND.md](docs/BACKEND.md).
 
 ## Dev tools
 
-- `/dev/lead-simulator` — formulaire de test (dev only, masqué en production)
+| URL | Description |
+|-----|-------------|
+| `/dev/lead-simulator` | Formulaire test → POST intake (dev only) |
+| `/feeding-platform` | UI statique soumissions test |
+
+Pour recevoir de **vrais** leads LeadConduit en local : ngrok + [LEADCONDUIT_SETUP.md](docs/LEADCONDUIT_SETUP.md).
+
+## Portails
+
+| Portail | Routes |
+|---------|--------|
+| Admin | `/admin` — dashboard, leads, partners, refunds, aged, integrity, settings, migration, filter list |
+| Partner | `/partner` — dashboard, leads, wallet, aged, settings, contact |
 
 ## Structure
 
 ```
 prisma/           # Schéma + migrations
 src/app/api/      # Routes API
-src/lib/          # Logique métier (matching, intake, wallet)
+src/lib/          # Logique métier (matching, intake, wallet, delivery)
 scripts/          # Seed et tests
 fixtures/         # Payloads exemple Boberdoo
 docs/             # Documentation projet

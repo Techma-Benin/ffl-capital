@@ -22,12 +22,39 @@ const STATUS_TABS: { label: string; value: StatusFilter }[] = [
   { label: "Aged Listed", value: "aged_listed" },
 ];
 
+function normalizePhoneDigits(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+function buildSearchWhere(q: string): Prisma.LeadWhereInput {
+  const phoneDigits = normalizePhoneDigits(q);
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
+
+  const orConditions: Prisma.LeadWhereInput[] = [
+    ...(isUuid ? [{ id: q }] : []),
+    { externalId: q },
+    { email: { contains: q, mode: "insensitive" } },
+  ];
+
+  if (phoneDigits.length >= 7) {
+    orConditions.push({ phone: { contains: phoneDigits } });
+  }
+
+  return { OR: orConditions };
+}
+
 async function buildWhere(
   statusFilter: StatusFilter | undefined,
   state?: string,
   from?: string,
   to?: string,
+  q?: string,
 ): Promise<Prisma.LeadWhereInput> {
+  if (q?.trim()) {
+    return buildSearchWhere(q.trim());
+  }
+
   let where: Prisma.LeadWhereInput = {};
 
   if (statusFilter === "matched") {
@@ -57,14 +84,16 @@ async function buildWhere(
 export default async function AdminLeadsPage({
   searchParams,
 }: {
-  searchParams: { status?: string; state?: string; from?: string; to?: string };
+  searchParams: { status?: string; state?: string; from?: string; to?: string; q?: string };
 }) {
   const statusFilter = searchParams.status as StatusFilter | undefined;
+  const searchQuery = searchParams.q?.trim();
   const whereClause = await buildWhere(
     statusFilter,
     searchParams.state,
     searchParams.from,
     searchParams.to,
+    searchQuery,
   );
 
   const [leads, counts] = await Promise.all([
@@ -102,7 +131,11 @@ export default async function AdminLeadsPage({
     <div>
       <PageHeader
         title="Leads"
-        subtitle="All incoming IUL leads and their delivery status"
+        subtitle={
+          searchQuery
+            ? `Search results for “${searchQuery}”`
+            : "All incoming IUL leads and their delivery status"
+        }
       />
 
       <div className="card">
@@ -148,6 +181,7 @@ export default async function AdminLeadsPage({
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Name</th>
                   <th>Phone</th>
                   <th>State</th>
@@ -166,6 +200,9 @@ export default async function AdminLeadsPage({
                   const delivery = lead.leadDeliveries[0];
                   return (
                     <tr key={lead.id}>
+                      <td className="font-mono text-xs text-slate-400">
+                        {lead.id.slice(0, 8)}…
+                      </td>
                       <td>
                         <Link href={`/admin/leads/${lead.id}`} className="hover:text-brand-600">
                           <p className="font-medium text-slate-900">

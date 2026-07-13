@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
+import { getLeadEvents } from "@/lib/leads/lead-events";
 import { ArrowLeft } from "lucide-react";
 
 function DetailRow({
@@ -65,6 +66,8 @@ export default async function AdminLeadDetailPage({
   });
 
   if (!lead) notFound();
+
+  const leadEvents = await getLeadEvents(params.id);
 
   const timeline = [
     {
@@ -174,7 +177,32 @@ export default async function AdminLeadDetailPage({
         </DetailSection>
 
         <div className="card p-6 lg:col-span-2">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Timeline</h2>
+          <h2 className="mb-4 text-sm font-semibold text-slate-900">Event Log</h2>
+          {leadEvents.length === 0 ? (
+            <p className="text-sm text-slate-400">No events recorded yet.</p>
+          ) : (
+            <ol className="space-y-3">
+              {leadEvents.map((event) => (
+                <li key={event.id} className="border-l-2 border-brand-200 pl-3">
+                  <p className="text-sm font-medium text-slate-900">
+                    {formatEventType(event.type)}
+                  </p>
+                  {event.payload && (
+                    <p className="text-xs text-slate-500">
+                      {formatEventPayload(event.payload as Record<string, unknown>)}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-slate-400">
+                    {new Date(event.createdAt).toLocaleString()}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+
+        <div className="card p-6 lg:col-span-2">
+          <h2 className="mb-4 text-sm font-semibold text-slate-900">Delivery Timeline</h2>
           <ol className="space-y-3">
             {timeline.map((event, i) => (
               <li key={i} className="border-l-2 border-brand-200 pl-3">
@@ -201,4 +229,18 @@ export default async function AdminLeadDetailPage({
       )}
     </div>
   );
+}
+
+function formatEventType(type: string): string {
+  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatEventPayload(payload: Record<string, unknown>): string {
+  const parts: string[] = [];
+  if (payload.partnerId) parts.push(`Partner: ${payload.partnerId}`);
+  if (payload.reason) parts.push(String(payload.reason));
+  if (payload.channel) parts.push(`Channel: ${payload.channel}`);
+  if (payload.price != null) parts.push(`$${Number(payload.price).toFixed(2)}`);
+  if (parts.length > 0) return parts.join(" · ");
+  return JSON.stringify(payload);
 }

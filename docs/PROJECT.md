@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 10 juillet 2026 (v6 — plan backend core + filter sets)
+> Dernière mise à jour : 13 juillet 2026 (v7 — implémentation V1 largement complète)
 
 ---
 
@@ -288,40 +288,73 @@ resale_postings                   -- envois IntegrityCONNECT
 
 ---
 
-## 9. Ce qu’on peut construire MAINTENANT (sans accès client)
+## 9. État d’implémentation (juillet 2026)
 
-### Priorité 1 — Fondations (semaine 1)
+> Détail technique : [`docs/BACKEND.md`](BACKEND.md) · Connexion LeadConduit : [`docs/LEADCONDUIT_SETUP.md`](LEADCONDUIT_SETUP.md)
 
-- [ ] Repo GitHub monorepo ou full-stack (React + Node)
-- [ ] Docker Compose PostgreSQL local (+ option Supabase)
-- [ ] Schéma BDD + migrations (partners, agents, leads, wallets, transactions)
-- [ ] Auth Clerk (mode dev) avec rôles `admin` | `agent`
-- [ ] Shell UI Admin + shell Portail Agent (design Integrity : bleu, typo client)
-- [ ] Modèle Partner / Agent + CRUD admin
-- [ ] Flow onboarding agent (états, type lead, approbation admin) — sans Stripe réel
+### ✅ Livré
 
-### Priorité 2 — Moteur métier (mockable)
+| Domaine | Statut |
+|---------|--------|
+| Repo, Next.js 14, Prisma, Supabase | ✅ |
+| Auth Clerk (admin + partner séparés) | ✅ |
+| Onboarding partner (≥15 états) + approbation admin | ✅ |
+| `POST /api/leads/intake` (format Boberdoo, CORS, public) | ✅ |
+| Pipeline intake : validate, normalize, doublons, TrustedForm, match, deliver | ✅ |
+| Moteur matching v2 (filter sets, limites H/J, FIFO) | ✅ |
+| Wallet Stripe (top-up + abonnement hebdo) + ledger | ✅ |
+| Emails livraison (Resend), CRM webhook, Ringy | ✅ |
+| Remboursements Type A/B (partner + admin) | ✅ |
+| Marketplace aged (achat self-service) | ✅ |
+| Cron reprocess unmatched + Integrity post (routes) | ✅ |
+| Admin : dashboard, leads (filtres, détail, event log), partners, refunds, settings, migration, filter list | ✅ |
+| Partner : dashboard, leads, wallet, aged, settings, contact, refunds | ✅ |
+| Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
+| Tables `lead_events`, `partner_filter_sets`, champs Boberdoo étendus | ✅ |
 
-- [ ] Modèle `Lead` + endpoint webhook **mock** (`POST /api/leads/intake`) pour simuler LeadConduit
-- [ ] Moteur de matching (état + priorité + wallet actif)
-- [ ] Logique statuts lead + file unmatched + retraitement 24 h (job/cron)
-- [ ] Débit wallet simulé
-- [ ] Job aging 30 jours → aged lead marketplace
-- [ ] Emails (Resend/SendGrid avec clé TECHMA ou log console)
+### ⏳ Restant / bloqué client
 
-### Priorité 3 — UI fonctionnelle
+| Domaine | Statut |
+|---------|--------|
+| IntegrityCONNECT **live** (ping/post prod) | ⏸ specs/credentials client — mock en place |
+| Stripe **prod** | ⏳ après validation test keys |
+| Scheduler cron en prod (Vercel/pg_cron) | ⏳ config déploiement |
+| Parité UI Boberdoo complète (charts, multi lead types, billing PDF) | ⏳ hors scope V1 |
+| Cutover LeadConduit prod (URL Boberdoo → app) | ⏳ avec cliente |
 
-- [ ] Dashboard admin : liste leads, filtres statut, gestion partners/agents/priorités/prix
-- [ ] Dashboard agent : leads reçus, wallet (mock), marketplace aged leads (UI)
-- [ ] Pages transactions / factures (structure vide OK)
+### Priorité historique (semaine 1 — **terminé**)
 
-### Priorité 4 — Stripe (mode test)
+- [x] Repo GitHub monorepo full-stack (React + Node)
+- [x] Schéma BDD + migrations (partners, leads, wallets, transactions, filter sets, lead_events)
+- [x] Auth Clerk avec rôles admin | partner
+- [x] Shell UI Admin + shell Portail Partner
+- [x] Flow onboarding agent + approbation admin
 
-- [ ] Top-up wallet, déduction auto, webhooks Stripe test (clé démo TECHMA)
+### Moteur métier (**terminé**)
 
-### À NE PAS bloquer sur les accès
+- [x] Modèle `Lead` + endpoint `POST /api/leads/intake`
+- [x] Moteur de matching (filter sets + priorité + wallet actif)
+- [x] Statuts lead + file unmatched + retraitement 24 h (cron)
+- [x] Débit wallet + ledger
+- [x] Marketplace aged (seuil configurable)
+- [x] Emails (Resend si clé configurée)
 
-Tout le cœur produit (auth, BDD, matching, aging, UI, wallet mock) peut avancer avec des **leads fictifs** injectés via API mock.
+### UI fonctionnelle (**terminé — polish partiel**)
+
+- [x] Dashboard admin : stats, leads récents, file unmatched
+- [x] Admin leads : onglets statut, filtres date/état, recherche, détail + event log
+- [x] Admin partners : liste, approbation, détail, filter sets
+- [x] Admin refunds : file pending + historique
+- [x] Dashboard partner : stats, wallet Stripe, aged marketplace
+- [x] Partner settings (états, CRM webhook)
+
+### Stripe (**test — terminé**)
+
+- [x] Top-up wallet Checkout + webhook
+- [x] Abonnement hebdomadaire auto-recharge
+- [ ] Clés prod client (après validation E2E)
+
+### Tests sans accès client (**disponible**)
 
 ---
 
@@ -335,7 +368,8 @@ Tout le cœur produit (auth, BDD, matching, aging, UI, wallet mock) peut avancer
 
 | Couche | Outil | Rôle |
 |--------|-------|------|
-| **Simulateur interne** | Page/form de test TECHMA (`/dev/lead-simulator`) | Formulaire simple (nom, email, téléphone, état, type) → POST vers notre webhook |
+| **Simulateur interne** | Page/form de test TECHMA (`/dev/lead-simulator`) | Formulaire simple → POST vers `/api/leads/intake` |
+| **Feeding platform** | `/feeding-platform` | UI statique pour soumissions test |
 | **Fixture JSON** | Fichiers `fixtures/lead-payload-*.json` | Payloads conformes au format LeadConduit attendu |
 | **Script CLI** | `npm run seed:lead` ou curl | Injection en masse pour tester matching / aging |
 | **Webhook mock** | `POST /api/leads/intake` | Endpoint identique à celui branché en prod |
@@ -381,8 +415,8 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 
 | # | Besoin | Pourquoi | Quand nécessaire |
 |---|--------|----------|------------------|
-| 1 | **Accès LeadConduit** (ou doc webhook + exemple payload) | Brancher le vrai flux d’intake | Semaine 2 |
-| 2 | **Exemple réel de payload lead** (avec champ TrustedForm) | Mapper les champs correctement | Semaine 2 |
+| 1 | **Accès LeadConduit** (ou doc webhook + exemple payload) | Brancher le vrai flux d’intake en prod | Cutover — voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md) |
+| 2 | **Exemple réel de payload lead** (avec champ TrustedForm) | Mapper les champs correctement | **Résolu** — fixture + exploration Boberdoo |
 | 3 | **Compte Stripe production** (clés API + webhook secret) | Paiements réels agents | Semaine 4 |
 | 4 | **Doc API IntegrityCONNECT** + credentials ping/post | Revente leads non matchés | Semaines 5–6 |
 | 5 | **Accès instance Boberdoo** (lecture seule) | Valider parité fonctionnelle | Dès que possible (QA) |
@@ -431,7 +465,8 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | `docs/capital_solu_initial_call_transcript.txt` | Transcript call découverte client |
 | `docs/team call.txt` | Briefing interne TECHMA (Bill, Masdouk) |
 | `docs/PROJECT.md` | Mémoire projet / décisions / FAQ |
-| `docs/PRD.md` | **Spécification produit** — features, flows, BDD, stack (point de départ implémentation) |
+| `docs/LEADCONDUIT_SETUP.md` | Guide connexion LeadConduit / ngrok / cutover prod |
+| `docs/PRD.md` | **Spécification produit** — features, flows, BDD, stack |
 
 ---
 
@@ -571,34 +606,21 @@ Lors d’une reprise de contexte :
 
 ---
 
-## 18. État implémentation (backend)
+## 18. État implémentation (backend + UI)
 
-> Détail technique : [`docs/BACKEND.md`](BACKEND.md)
+> Détail technique : [`docs/BACKEND.md`](BACKEND.md) · LeadConduit : [`docs/LEADCONDUIT_SETUP.md`](LEADCONDUIT_SETUP.md)
 
-**Phase 0 — fondations (29 juin 2026) :**
+**Juillet 2026 — V1 fonctionnelle en test :**
 
-| Livrable | Statut |
-|----------|--------|
-| Repo Git + GitHub | ✅ |
-| Next.js 14 + Prisma | ✅ |
-| Schéma BDD (9 tables) + migrations | ✅ |
-| API intake LeadConduit | ✅ |
-| Moteur matching V1 (FIFO) | ✅ |
-| Wallet ledger | ✅ |
-| Seed partners test | ✅ |
-| Projet Supabase dédié | ✅ `wbzvyvtlopoghvdqltxm` |
-| Vérification locale (`npm run verify`) | ✅ |
+| Phase | Livrables clés | Statut |
+|-------|----------------|--------|
+| 0 — Fondations | Repo, Prisma, intake, matching v1, seed | ✅ |
+| 1b — Auth + shells | Clerk, onboarding, admin/partner portails | ✅ |
+| 2 — Pipeline | Intake complet, cron reprocess, Integrity mock | ✅ |
+| 3 — Wallet | Stripe test, emails, CRM/Ringy delivery | ✅ |
+| 4 — Aged + refunds | Marketplace, workflow remboursement | ✅ |
+| Core backend (9 phases) | Filter sets, lead_events, admin APIs | ✅ |
+| UI parité (essentiel) | Leads, partners, refunds, wallet, aged | ✅ |
 
-**Phase 1b — auth + shells (29 juin 2026) :**
-
-| Livrable | Statut |
-|----------|--------|
-| Clerk SDK + middleware | ✅ (clés `.env` requises) |
-| Sign-in / Sign-up | ✅ |
-| Onboarding partner (≥15 états) | ✅ |
-| Shell Admin (dashboard, partners, leads) | ✅ |
-| Shell Partner (dashboard, leads, wallet) | ✅ |
-| API approbation admin | ✅ |
-
-**Prochaines étapes (Phase 2+) :** Stripe test, jobs cron 24h/J+30, UI remboursements.
+**Prochaines étapes :** cutover LeadConduit prod, Integrity live, Stripe prod, scheduler cron prod, polish UI avancé (charts, billing PDF).
 
