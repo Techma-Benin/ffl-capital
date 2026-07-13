@@ -19,14 +19,14 @@ export default async function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-page">
       {/* Top bar */}
       <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-8">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-700">
             <Zap size={14} className="text-white" />
           </div>
-          <span className="text-sm font-bold text-slate-900">FFL Capital</span>
+          <span className="text-sm font-bold text-brand-800">FFL Capital</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-500">Signed in</span>

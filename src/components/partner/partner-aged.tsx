@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
 import { ShoppingBag, Filter, Clock, ShieldCheck } from "lucide-react";
+import { StatCard } from "@/components/ui/stat-card";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 type AgedLead = {
   id: string;
@@ -25,21 +27,29 @@ type AgedLead = {
 export function PartnerAgedView({
   agedLeads,
   agedPrice,
+  total,
+  page,
+  pageSize,
+  paginationParams,
 }: {
   agedLeads: AgedLead[];
   agedPrice: number;
+  total: number;
+  page: number;
+  pageSize: number;
+  paginationParams: Record<string, string | undefined>;
 }) {
   const { partner } = usePartner();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const urlSearchParams = useSearchParams();
   const canBuy = partner.status === "active" && partner.walletBalance >= agedPrice;
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
 
-  const [stateFilter, setStateFilter] = useState(searchParams.get("state") ?? "");
-  const [typeFilter, setTypeFilter] = useState(searchParams.get("type") ?? "");
-  const [ageFilter, setAgeFilter] = useState(searchParams.get("age") ?? "");
+  const [stateFilter, setStateFilter] = useState(urlSearchParams.get("state") ?? "");
+  const [typeFilter, setTypeFilter] = useState(urlSearchParams.get("type") ?? "");
+  const [ageFilter, setAgeFilter] = useState(urlSearchParams.get("age") ?? "");
 
   function getAgeDays(receivedAt: string) {
     return Math.floor((Date.now() - new Date(receivedAt).getTime()) / (1000 * 60 * 60 * 24));
@@ -95,6 +105,21 @@ export function PartnerAgedView({
         title="Aged Lead Marketplace"
         subtitle={`Browse leads 30+ days old — only $${agedPrice} each`}
       />
+
+      <div className="mb-5 grid gap-4 sm:grid-cols-2">
+        <StatCard
+          label="Available in your states"
+          value={total}
+          variant="mint"
+          icon={ShoppingBag}
+        />
+        <StatCard
+          label="Price per lead"
+          value={`$${agedPrice}`}
+          variant="blue"
+          subtitle="30+ days aged inventory"
+        />
+      </div>
 
       <div className="mb-5 card p-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -284,6 +309,13 @@ export function PartnerAgedView({
             </table>
           )}
         </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          basePath="/partner/aged"
+          searchParams={paginationParams}
+        />
       </div>
     </div>
   );

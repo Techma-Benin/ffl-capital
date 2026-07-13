@@ -19,14 +19,23 @@ type Transaction = {
   createdAt: string;
 };
 
+type Subscription = {
+  amount: number;
+  interval: string;
+  nextChargeAt: string | null;
+  active: boolean;
+};
+
 export function PartnerWalletView({
   transactions,
   totalTopUp,
   totalSpent,
+  subscription,
 }: {
   transactions: Transaction[];
   totalTopUp: number;
   totalSpent: number;
+  subscription: Subscription | null;
 }) {
   const { partner } = usePartner();
   const balance = partner.walletBalance;
@@ -96,35 +105,33 @@ export function PartnerWalletView({
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard
-          label="Current Balance"
+          label="Wallet Balance"
           value={`$${balance.toFixed(2)}`}
+          variant="blue"
           valueClassName={walletOk ? undefined : "text-red-600"}
           subtitle={
             walletOk
               ? "Lead buying active"
               : "Below minimum — add funds to receive leads"
           }
-          subtitleClassName={walletOk ? "text-emerald-600" : "text-red-500"}
+          subtitleClassName={walletOk ? "text-accent-600" : "text-red-500"}
           icon={Wallet}
-          iconColor={walletOk ? "text-brand-600" : "text-red-600"}
-          iconBgClassName={walletOk ? "bg-brand-50" : "bg-red-50"}
+          iconColor={walletOk ? "text-brand-700" : "text-red-600"}
         />
         <StatCard
           label="Total Funded"
           value={`$${totalTopUp.toFixed(2)}`}
-          valueClassName="text-emerald-600"
+          variant="mint"
+          valueClassName="text-accent-700"
           subtitle="All-time top-ups"
           icon={TrendingUp}
-          iconColor="text-emerald-600"
-          iconBgClassName="bg-emerald-50"
         />
         <StatCard
           label="Total Spent"
           value={`$${totalSpent.toFixed(2)}`}
+          variant="peach"
           subtitle="Lead purchases"
           icon={TrendingDown}
-          iconColor="text-slate-600"
-          iconBgClassName="bg-slate-100"
         />
       </div>
 
@@ -217,9 +224,27 @@ export function PartnerWalletView({
                 <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
               </div>
             </div>
-            <p className="mb-4 text-xs leading-relaxed text-slate-500">
-              Set a weekly amount and never miss a lead because your balance ran low.
-            </p>
+            {subscription?.active ? (
+              <div className="mb-4 rounded-lg bg-accent-50 p-3">
+                <p className="text-sm font-semibold text-accent-800">
+                  Active — ${subscription.amount.toFixed(2)}/week
+                </p>
+                {subscription.nextChargeAt && (
+                  <p className="mt-1 text-xs text-accent-700">
+                    Next charge:{" "}
+                    {new Date(subscription.nextChargeAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="mb-4 text-xs leading-relaxed text-slate-500">
+                Set a weekly amount and never miss a lead because your balance ran low.
+              </p>
+            )}
             <div className="relative mb-3">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
                 $

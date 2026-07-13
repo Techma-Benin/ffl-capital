@@ -2,23 +2,26 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { RefundReviewActions } from "@/components/admin/refund-review-actions";
+import { AdminRefundsPendingTable } from "@/components/admin/admin-refunds-pending-table";
 import { RotateCcw } from "lucide-react";
 
 export default async function AdminRefundsPage() {
   const [pending, history] = await Promise.all([
     prisma.refundRequest.findMany({
-      where:   { status: "pending" },
+      where: { status: "pending" },
       include: { leadDelivery: { include: { lead: true } }, partner: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.refundRequest.findMany({
-      where:   { status: { not: "pending" } },
+      where: { status: { not: "pending" } },
       include: { leadDelivery: { include: { lead: true } }, partner: true },
       orderBy: { reviewedAt: "desc" },
       take: 30,
     }),
   ]);
+
+  const typeACount = pending.filter((r) => r.refundType === "wrong_filter").length;
+  const typeBCount = pending.filter((r) => r.refundType === "invalid_phone").length;
 
   return (
     <div>
@@ -27,7 +30,23 @@ export default async function AdminRefundsPage() {
         subtitle="Review and approve partner refund requests"
       />
 
-      {/* Pending queue */}
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <div className="stat-card-orange">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pending</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{pending.length}</p>
+        </div>
+        <div className="stat-card-yellow">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Type A</p>
+          <p className="mt-1 text-2xl font-bold text-amber-700">{typeACount}</p>
+          <p className="text-xs text-slate-500">Wrong filter</p>
+        </div>
+        <div className="stat-card-pink">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Type B</p>
+          <p className="mt-1 text-2xl font-bold text-red-600">{typeBCount}</p>
+          <p className="text-xs text-slate-500">Invalid phone</p>
+        </div>
+      </div>
+
       <div className="card mb-6">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <div className="flex items-center gap-2">
@@ -48,67 +67,23 @@ export default async function AdminRefundsPage() {
               description="Refund requests from partners will appear here for review."
             />
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Partner</th>
-                  <th>Lead</th>
-                  <th>State</th>
-                  <th>Type</th>
-                  <th>Reason</th>
-                  <th>Amount</th>
-                  <th>Requested</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pending.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {r.partner.firstName} {r.partner.lastName}
-                        </p>
-                        <p className="text-xs text-slate-400">{r.partner.email}</p>
-                      </div>
-                    </td>
-                    <td>
-                      <p className="font-medium text-slate-900">
-                        {r.leadDelivery.lead.firstName} {r.leadDelivery.lead.lastName}
-                      </p>
-                    </td>
-                    <td>
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                        {r.leadDelivery.lead.state}
-                      </span>
-                    </td>
-                    <td>
-                      <RefundTypeBadge type={r.refundType} />
-                    </td>
-                    <td className="text-slate-500 max-w-[180px] truncate">
-                      {r.reason ?? "—"}
-                    </td>
-                    <td className="font-semibold text-slate-900">
-                      ${Number(r.leadDelivery.price).toFixed(2)}
-                    </td>
-                    <td className="text-xs text-slate-400">
-                      {new Date(r.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </td>
-                    <td>
-                      <RefundReviewActions refundId={r.id} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <AdminRefundsPendingTable
+              refunds={pending.map((r) => ({
+                id: r.id,
+                partnerName: `${r.partner.firstName} ${r.partner.lastName}`,
+                partnerEmail: r.partner.email,
+                leadName: `${r.leadDelivery.lead.firstName} ${r.leadDelivery.lead.lastName}`,
+                state: r.leadDelivery.lead.state,
+                refundType: r.refundType,
+                reason: r.reason,
+                amount: Number(r.leadDelivery.price),
+                createdAt: r.createdAt.toISOString(),
+              }))}
+            />
           )}
         </div>
       </div>
 
-      {/* History */}
       {history.length > 0 && (
         <div className="card">
           <div className="border-b border-slate-100 px-5 py-4">
