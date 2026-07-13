@@ -10,6 +10,9 @@ import { FilterTabLink } from "@/components/ui/filter-tab-link";
 import { PortalLink } from "@/components/ui/portal-link";
 import { AdminLeadsFilters } from "@/components/admin/admin-leads-filters";
 import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
+import { LeadsExportButton } from "@/components/admin/leads-export-button";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { parsePageParams } from "@/lib/pagination";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 
 type StatusFilter = "all" | "matched" | "unmatched" | "integrity_posted" | "aged_listed";
@@ -84,10 +87,18 @@ async function buildWhere(
 export default async function AdminLeadsPage({
   searchParams,
 }: {
-  searchParams: { status?: string; state?: string; from?: string; to?: string; q?: string };
+  searchParams: {
+    status?: string;
+    state?: string;
+    from?: string;
+    to?: string;
+    q?: string;
+    page?: string;
+  };
 }) {
   const statusFilter = searchParams.status as StatusFilter | undefined;
   const searchQuery = searchParams.q?.trim();
+  const { page, pageSize, skip } = parsePageParams(searchParams);
   const whereClause = await buildWhere(
     statusFilter,
     searchParams.state,
@@ -96,11 +107,12 @@ export default async function AdminLeadsPage({
     searchQuery,
   );
 
-  const [leads, counts] = await Promise.all([
+  const [leads, total, counts] = await Promise.all([
     prisma.lead.findMany({
       where: whereClause,
       orderBy: { receivedAt: "desc" },
-      take: 100,
+      skip,
+      take: pageSize,
       include: {
         leadDeliveries: {
           include: { partner: true },
@@ -109,6 +121,7 @@ export default async function AdminLeadsPage({
         },
       },
     }),
+    prisma.lead.count({ where: whereClause }),
     Promise.all(
       STATUS_TABS.map(async (tab) => ({
         value: tab.value,
@@ -136,6 +149,7 @@ export default async function AdminLeadsPage({
             ? `Search results for “${searchQuery}”`
             : "All incoming IUL leads and their delivery status"
         }
+        action={<LeadsExportButton status={statusFilter} />}
       />
 
       <div className="card">
@@ -274,6 +288,13 @@ export default async function AdminLeadsPage({
             </table>
           )}
         </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          basePath="/admin/leads"
+          searchParams={searchParams}
+        />
       </div>
     </div>
   );

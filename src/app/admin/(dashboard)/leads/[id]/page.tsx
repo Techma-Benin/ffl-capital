@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
 import { LeadRedeliverButton } from "@/components/admin/lead-redeliver-button";
 import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-button";
+import { AdminLeadEditForm } from "@/components/admin/admin-lead-edit-form";
+import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { getLeadEvents } from "@/lib/leads/lead-events";
 import { ArrowLeft } from "lucide-react";
 
@@ -125,6 +127,9 @@ export default async function AdminLeadDetailPage({
                 leadDeliveryId={refundableDelivery.id}
               />
             )}
+            {lead.status !== "dead" && (
+              <AdminLeadDeadButton leadId={lead.id} />
+            )}
             <Link href="/admin/leads" className="btn-secondary btn-sm inline-flex items-center gap-1">
               <ArrowLeft size={14} />
               Back
@@ -150,6 +155,25 @@ export default async function AdminLeadDetailPage({
           <p className="text-xs font-semibold uppercase text-slate-500">Refundable</p>
           <p className="mt-1 font-bold">{lead.refundable ? "Yes" : "No"}</p>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <AdminLeadEditForm
+          leadId={lead.id}
+          initial={{
+            firstName: lead.firstName,
+            lastName: lead.lastName,
+            email: lead.email,
+            phone: lead.phone,
+            address: lead.address,
+            city: lead.city,
+            state: lead.state,
+            zip: lead.zip,
+            intent: lead.intent,
+            haveIul: lead.haveIul,
+            primaryGoal: lead.primaryGoal,
+          }}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

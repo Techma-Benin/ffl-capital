@@ -60,6 +60,10 @@ export default async function AdminPartnerDetailPage({
           priority: partner.priority,
           priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
           status: partner.status,
+          crmProvider: partner.crmProvider,
+          crmWebhookUrl: partner.crmWebhookUrl,
+          ringySid: partner.ringySid,
+          ringyAuthToken: partner.ringyAuthToken,
         }}
       />
 

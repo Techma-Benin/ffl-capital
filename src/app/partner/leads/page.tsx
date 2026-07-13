@@ -2,44 +2,56 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PartnerRefundButton } from "@/components/partner/partner-refund-button";
-import { FileText, ShieldCheck } from "lucide-react";
+import { PartnerLeadsTable } from "@/components/partner/partner-leads-table";
+import { StatCard } from "@/components/ui/stat-card";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { parsePageParams } from "@/lib/pagination";
+import { FileText } from "lucide-react";
 
-export default async function PartnerLeadsPage() {
+export default async function PartnerLeadsPage({
+  searchParams,
+}: {
+  searchParams: { page?: string };
+}) {
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
-  const deliveries = await prisma.leadDelivery.findMany({
-    where: { partnerId },
-    include: { lead: true, refundRequests: { orderBy: { createdAt: "desc" }, take: 1 } },
-    orderBy: { deliveredAt: "desc" },
-    take: 100,
-  });
+  const { page, pageSize, skip } = parsePageParams(searchParams);
 
-  const totalSpent = deliveries.reduce((sum, d) => sum + Number(d.price), 0);
-  const refundedCount = deliveries.filter(d => d.refundedAt).length;
+  const [total, deliveries] = await Promise.all([
+    prisma.leadDelivery.count({ where: { partnerId } }),
+    prisma.leadDelivery.findMany({
+      where: { partnerId },
+      include: { lead: true, refundRequests: { orderBy: { createdAt: "desc" }, take: 1 } },
+      orderBy: { deliveredAt: "desc" },
+      skip,
+      take: pageSize,
+    }),
+  ]);
+
+  const allForStats = await prisma.leadDelivery.findMany({
+    where: { partnerId },
+    select: { price: true, refundedAt: true },
+  });
+  const totalSpent = allForStats.reduce((sum, d) => sum + Number(d.price), 0);
+  const refundedCount = allForStats.filter((d) => d.refundedAt).length;
 
   return (
     <div>
       <PageHeader
         title="My Leads"
-        subtitle="All leads delivered to your account"
+        subtitle="All leads delivered to your account — request refunds individually or in bulk"
       />
 
-      {/* Summary row */}
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        {[
-          { label: "Total Delivered",  value: deliveries.length,              color: "text-slate-900" },
-          { label: "Total Spent",      value: `$${totalSpent.toFixed(2)}`,    color: "text-brand-700" },
-          { label: "Refunded",         value: refundedCount,                  color: "text-amber-600" },
-        ].map((c) => (
-          <div key={c.label} className="card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{c.label}</p>
-            <p className={`mt-1 text-2xl font-bold ${c.color}`}>{c.value}</p>
-          </div>
-        ))}
+      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+        <StatCard label="Total Delivered" value={total} variant="blue" />
+        <StatCard
+          label="Total Spent"
+          value={`$${totalSpent.toFixed(2)}`}
+          variant="mint"
+        />
+        <StatCard label="Refunded" value={refundedCount} variant="orange" />
       </div>
 
       <div className="card">
@@ -51,109 +63,46 @@ export default async function PartnerLeadsPage() {
               description="Once your account is active and funded, leads matching your states will be delivered automatically."
             />
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Lead</th>
-                  <th>Contact</th>
-                  <th>Location</th>
-                  <th>Type</th>
-                  <th>Intent</th>
-                  <th>Have IUL</th>
-                  <th>Goal</th>
-                  <th>Channel</th>
-                  <th>Price</th>
-                  <th>Status</th>
-                  <th>TrustedForm</th>
-                  <th>Delivered</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deliveries.map((d) => {
-                  const refundReq = d.refundRequests[0];
-                  const isRefunded = !!d.refundedAt;
-                  const canRefund = d.lead.refundable && !isRefunded && !refundReq;
-
-                  return (
-                    <tr key={d.id}>
-                      <td>
-                        <p className="font-medium text-slate-900">
-                          {d.lead.firstName} {d.lead.lastName}
-                        </p>
-                        <p className="text-xs text-slate-400">{d.lead.email}</p>
-                      </td>
-                      <td className="text-slate-500">{d.lead.phone}</td>
-                      <td>
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                          {d.lead.state}
-                        </span>
-                        {d.lead.address && (
-                          <p className="mt-0.5 text-xs text-slate-400">{d.lead.address}</p>
-                        )}
-                      </td>
-                      <td>
-                        <Badge variant="blue">
-                          {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                        </Badge>
-                      </td>
-                      <td className="text-xs text-slate-500">{d.lead.intent ?? "—"}</td>
-                      <td className="text-xs text-slate-500">{d.lead.haveIul ?? "—"}</td>
-                      <td className="text-xs text-slate-500">{d.lead.primaryGoal ?? "—"}</td>
-                      <td>
-                        <Badge variant={d.channel === "realtime" ? "green" : "purple"}>
-                          {d.channel === "realtime" ? "Real-time" : "Aged"}
-                        </Badge>
-                      </td>
-                      <td className="font-semibold text-slate-900">${Number(d.price).toFixed(2)}</td>
-                      <td>
-                        {isRefunded ? (
-                          <Badge variant="slate">Refunded</Badge>
-                        ) : refundReq ? (
-                          <Badge variant="yellow">
-                            Refund {refundReq.status === "pending" ? "Pending" : refundReq.status}
-                          </Badge>
-                        ) : (
-                          <Badge variant="green">Active</Badge>
-                        )}
-                      </td>
-                      <td>
-                        {d.lead.trustedformCertUrl ? (
-                          <a
-                            href={d.lead.trustedformCertUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
-                          >
-                            <ShieldCheck size={12} />
-                            Cert
-                          </a>
-                        ) : (
-                          <span className="text-xs text-slate-300">—</span>
-                        )}
-                      </td>
-                      <td className="text-xs text-slate-400">
-                        {new Date(d.deliveredAt).toLocaleString("en-US", {
-                          month: "short",
-                          day:   "numeric",
-                          hour:  "2-digit",
-                          minute:"2-digit",
-                        })}
-                      </td>
-                      <td>
-                        <div className="flex justify-end">
-                          {canRefund && (
-                            <PartnerRefundButton leadDeliveryId={d.id} />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <PartnerLeadsTable
+              deliveries={deliveries.map((d) => {
+                const refundReq = d.refundRequests[0];
+                const isRefunded = !!d.refundedAt;
+                const canRefund =
+                  d.lead.refundable && !isRefunded && !refundReq;
+                return {
+                  id: d.id,
+                  price: Number(d.price),
+                  channel: d.channel,
+                  deliveredAt: d.deliveredAt.toISOString(),
+                  refundedAt: d.refundedAt?.toISOString() ?? null,
+                  canRefund,
+                  refundStatus: refundReq?.status ?? null,
+                  lead: {
+                    firstName: d.lead.firstName,
+                    lastName: d.lead.lastName,
+                    email: d.lead.email,
+                    phone: d.lead.phone,
+                    state: d.lead.state,
+                    address: d.lead.address,
+                    leadType: d.lead.leadType,
+                    intent: d.lead.intent,
+                    haveIul: d.lead.haveIul,
+                    primaryGoal: d.lead.primaryGoal,
+                    refundable: d.lead.refundable,
+                    trustedformCertUrl: d.lead.trustedformCertUrl,
+                  },
+                };
+              })}
+            />
           )}
         </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          basePath="/partner/leads"
+          searchParams={searchParams}
+        />
       </div>
     </div>
   );

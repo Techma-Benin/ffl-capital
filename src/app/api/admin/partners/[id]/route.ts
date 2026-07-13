@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth/session";
 const patchSchema = z.object({
   priority: z.number().int().min(1).max(10).optional(),
   priceOverride: z.number().positive().nullable().optional(),
+  status: z.enum(["active", "disabled", "pending_approval", "rejected"]).optional(),
   crmWebhookUrl: z.string().url().nullable().optional(),
   crmProvider: z.enum(["webhook", "ringy", "email_only"]).optional(),
   ringySid: z.string().nullable().optional(),
