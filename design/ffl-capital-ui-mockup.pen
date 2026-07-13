@@ -2242,24 +2242,42 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "PQpgl",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "TX",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "v25zsk",
+                          "name": "State Cell",
+                          "width": 120,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "J7I9aS",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "TX",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "r5b7l",
-                          "name": "Type",
-                          "fill": "$text-secondary",
-                          "content": "Traditional IUL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "jHwMN",
+                          "name": "Type Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "btjxr",
+                              "name": "Type",
+                              "fill": "$text-secondary",
+                              "content": "Traditional IUL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -2293,14 +2311,27 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "hr6v3",
-                          "name": "Age",
-                          "fill": "$text-muted",
-                          "content": "2h",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "gQE4H",
+                          "name": "Age Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "h1gtP",
+                              "name": "Age",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "2h",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     },
@@ -2383,24 +2414,42 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "w1k0eb",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "CA",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "d05WFL",
+                          "name": "State Cell",
+                          "width": 120,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "r7MdQk",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "CA",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "m1i6u",
-                          "name": "Type",
-                          "fill": "$text-secondary",
-                          "content": "High-Intent IUL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "O52GPG",
+                          "name": "Type Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "WCy7F",
+                              "name": "Type",
+                              "fill": "$text-secondary",
+                              "content": "High-Intent IUL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -2434,14 +2483,27 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "B6KRh",
-                          "name": "Age",
-                          "fill": "$text-muted",
-                          "content": "45m",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "Ua0LP",
+                          "name": "Age Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kpJJg",
+                              "name": "Age",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "45m",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     },
@@ -2524,24 +2586,42 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "vB4X6",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "FL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "Wqxsl",
+                          "name": "State Cell",
+                          "width": 120,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "h2QQa",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "FL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "Jh3p0",
-                          "name": "Type",
-                          "fill": "$text-secondary",
-                          "content": "Traditional IUL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "uxLsM",
+                          "name": "Type Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "FVIaE",
+                              "name": "Type",
+                              "fill": "$text-secondary",
+                              "content": "Traditional IUL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -2575,14 +2655,27 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "PD6Fx",
-                          "name": "Age",
-                          "fill": "$text-muted",
-                          "content": "1h",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "UGXzv",
+                          "name": "Age Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ZpvtR",
+                              "name": "Age",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "1h",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     },
@@ -2665,24 +2758,42 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "QePKs",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "NY",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "s7muvP",
+                          "name": "State Cell",
+                          "width": 120,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "GJdQy",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "NY",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "DFjt6",
-                          "name": "Type",
-                          "fill": "$text-secondary",
-                          "content": "Traditional IUL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "ZU0D0",
+                          "name": "Type Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "yOYUz",
+                              "name": "Type",
+                              "fill": "$text-secondary",
+                              "content": "Traditional IUL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -2716,14 +2827,27 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "QQncW",
-                          "name": "Age",
-                          "fill": "$text-muted",
-                          "content": ">24h",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "He8mt",
+                          "name": "Age Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "f4CRc",
+                              "name": "Age",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": ">24h",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     }
@@ -3528,6 +3652,7 @@
                           "id": "S15L1",
                           "name": "Cell",
                           "width": 80,
+                          "justifyContent": "end",
                           "alignItems": "center",
                           "children": [
                             {
@@ -3535,7 +3660,10 @@
                               "id": "ZZHJ8",
                               "name": "Text",
                               "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
                               "content": "Priority",
+                              "textAlign": "right",
                               "fontFamily": "$font-body",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -3547,6 +3675,7 @@
                           "id": "CuBcG",
                           "name": "Cell",
                           "width": 100,
+                          "justifyContent": "end",
                           "alignItems": "center",
                           "children": [
                             {
@@ -3554,7 +3683,10 @@
                               "id": "xcXoS",
                               "name": "Text",
                               "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
                               "content": "Wallet",
+                              "textAlign": "right",
                               "fontFamily": "$font-body",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -3566,6 +3698,7 @@
                           "id": "Dp0g9",
                           "name": "Cell",
                           "width": 120,
+                          "justifyContent": "end",
                           "alignItems": "center",
                           "children": [
                             {
@@ -3573,7 +3706,10 @@
                               "id": "fHFL4",
                               "name": "Text",
                               "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
                               "content": "States",
+                              "textAlign": "right",
                               "fontFamily": "$font-body",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -3585,6 +3721,7 @@
                           "id": "SrCgU",
                           "name": "Cell",
                           "width": 100,
+                          "justifyContent": "center",
                           "alignItems": "center",
                           "children": [
                             {
@@ -3680,14 +3817,23 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "trRBI",
-                          "name": "Email",
-                          "fill": "$text-secondary",
-                          "content": "sarah@integrity.com",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "gWUbs",
+                          "name": "Email Cell",
+                          "width": 160,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "yjZjp",
+                              "name": "Email",
+                              "fill": "$text-secondary",
+                              "content": "sarah@integrity.com",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -3721,34 +3867,73 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "kAzva",
-                          "name": "Priority",
-                          "fill": "$text-primary",
-                          "content": "8",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "y40Vf",
+                          "name": "Priority Cell",
+                          "width": 80,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "x2ByPe",
+                              "name": "Priority",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "8",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "WKOKd",
-                          "name": "Wallet",
-                          "fill": "$text-primary",
-                          "content": "$1,240",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "jbxGx",
+                          "name": "Wallet Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "KVDAA",
+                              "name": "Wallet",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$1,240",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "f3HYQ3",
-                          "name": "States",
-                          "fill": "$text-secondary",
-                          "content": "32",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "L9AYmF",
+                          "name": "States Cell",
+                          "width": 120,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "XcyUz",
+                              "name": "States",
+                              "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "32",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -3887,14 +4072,23 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "zwdvn",
-                          "name": "Email",
-                          "fill": "$text-secondary",
-                          "content": "marcus@agency.com",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "L3mDEW",
+                          "name": "Email Cell",
+                          "width": 160,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "HuhXp",
+                              "name": "Email",
+                              "fill": "$text-secondary",
+                              "content": "marcus@agency.com",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -3928,34 +4122,73 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "j3pFrT",
-                          "name": "Priority",
-                          "fill": "$text-primary",
-                          "content": "5",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "ipXZV",
+                          "name": "Priority Cell",
+                          "width": 80,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "YGkjt",
+                              "name": "Priority",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "5",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "RteAD",
-                          "name": "Wallet",
-                          "fill": "$text-primary",
-                          "content": "$0",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "F8nsef",
+                          "name": "Wallet Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Q11TTD",
+                              "name": "Wallet",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$0",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "EYzPU",
-                          "name": "States",
-                          "fill": "$text-secondary",
-                          "content": "18",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "g8LNC",
+                          "name": "States Cell",
+                          "width": 120,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "wzIhJ",
+                              "name": "States",
+                              "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "18",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -4094,14 +4327,23 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "Pz3ZM",
-                          "name": "Email",
-                          "fill": "$text-secondary",
-                          "content": "dom@ffl.com",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "AfUpn",
+                          "name": "Email Cell",
+                          "width": 160,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "sDt30",
+                              "name": "Email",
+                              "fill": "$text-secondary",
+                              "content": "dom@ffl.com",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -4135,34 +4377,73 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "iJvRz",
-                          "name": "Priority",
-                          "fill": "$text-primary",
-                          "content": "10",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "C2T1Vh",
+                          "name": "Priority Cell",
+                          "width": 80,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "I5tbUn",
+                              "name": "Priority",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "10",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "NsQee",
-                          "name": "Wallet",
-                          "fill": "$text-primary",
-                          "content": "$3,850",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "e02Fyj",
+                          "name": "Wallet Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "mPpPF",
+                              "name": "Wallet",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$3,850",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "uh1IH",
-                          "name": "States",
-                          "fill": "$text-secondary",
-                          "content": "45",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "hKD1p",
+                          "name": "States Cell",
+                          "width": 120,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "uFeLP",
+                              "name": "States",
+                              "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "45",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -4301,14 +4582,23 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "F8qTr",
-                          "name": "Email",
-                          "fill": "$text-secondary",
-                          "content": "emily@leads.com",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "j1bWd",
+                          "name": "Email Cell",
+                          "width": 160,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "yhQgU",
+                              "name": "Email",
+                              "fill": "$text-secondary",
+                              "content": "emily@leads.com",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -4342,34 +4632,73 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "dSpAu",
-                          "name": "Priority",
-                          "fill": "$text-primary",
-                          "content": "3",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "R7Zkr",
+                          "name": "Priority Cell",
+                          "width": 80,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hXDbs",
+                              "name": "Priority",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "3",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "nvSsr",
-                          "name": "Wallet",
-                          "fill": "$text-primary",
-                          "content": "$45",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "NVs1u",
+                          "name": "Wallet Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "OGWJu",
+                              "name": "Wallet",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$45",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "rtYXO",
-                          "name": "States",
-                          "fill": "$text-secondary",
-                          "content": "22",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "Xxit1",
+                          "name": "States Cell",
+                          "width": 120,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "T1Qsuk",
+                              "name": "States",
+                              "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "22",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -4701,7 +5030,7 @@
                           "type": "frame",
                           "id": "h1Pwk",
                           "name": "Cell",
-                          "width": 100,
+                          "width": 120,
                           "alignItems": "center",
                           "children": [
                             {
@@ -4720,7 +5049,8 @@
                           "type": "frame",
                           "id": "El9s7",
                           "name": "Cell",
-                          "width": 120,
+                          "width": 200,
+                          "justifyContent": "center",
                           "alignItems": "center",
                           "children": [
                             {
@@ -4753,34 +5083,61 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "ZJ1Bv",
-                          "name": "Partner",
-                          "fill": "$text-primary",
-                          "content": "Sarah Chen",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "CvPJc",
+                          "name": "Partner Cell",
+                          "width": 180,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "l8FYyk",
+                              "name": "Partner",
+                              "fill": "$text-primary",
+                              "content": "Sarah Chen",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "EBvxe",
-                          "name": "Lead",
-                          "fill": "$text-primary",
-                          "content": "James Wilson",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "oCh2v",
+                          "name": "Lead Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "l0gFY4",
+                              "name": "Lead",
+                              "fill": "$text-primary",
+                              "content": "James Wilson",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "FZqtD",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "CA",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "O3KIa8",
+                          "name": "State Cell",
+                          "width": 100,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ud3jN",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "CA",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -4814,30 +5171,51 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "wbpTL",
-                          "name": "Reason",
-                          "fill": "$text-secondary",
-                          "content": "Wrong state filter",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "q1wPmC",
+                          "name": "Reason Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "xz4NC",
+                              "name": "Reason",
+                              "fill": "$text-secondary",
+                              "content": "Wrong state filter",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "KWiru",
-                          "name": "Amount",
-                          "fill": "$text-primary",
-                          "content": "$25",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "I2pNh",
+                          "name": "Amount Cell",
+                          "width": 120,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "E9OoAO",
+                              "name": "Amount",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$25",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
                           "id": "WrQpS",
                           "name": "Actions",
-                          "width": 120,
+                          "width": 200,
                           "gap": 8,
                           "alignItems": "center",
                           "children": [
@@ -4909,34 +5287,61 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "fbZnq",
-                          "name": "Partner",
-                          "fill": "$text-primary",
-                          "content": "Dominic Reyes",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "L9C2E",
+                          "name": "Partner Cell",
+                          "width": 180,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "drOxH",
+                              "name": "Partner",
+                              "fill": "$text-primary",
+                              "content": "Dominic Reyes",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "x9Sw8",
-                          "name": "Lead",
-                          "fill": "$text-primary",
-                          "content": "Maria Garcia",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "ZjwKy",
+                          "name": "Lead Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "A30Wp",
+                              "name": "Lead",
+                              "fill": "$text-primary",
+                              "content": "Maria Garcia",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "qI74G",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "TX",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "qc591",
+                          "name": "State Cell",
+                          "width": 100,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "KmphV",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "TX",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -4970,30 +5375,51 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "S1nkGc",
-                          "name": "Reason",
-                          "fill": "$text-secondary",
-                          "content": "Invalid phone",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "iYsAL",
+                          "name": "Reason Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "GgEDk",
+                              "name": "Reason",
+                              "fill": "$text-secondary",
+                              "content": "Invalid phone",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "hmjjf",
-                          "name": "Amount",
-                          "fill": "$text-primary",
-                          "content": "$25",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "gce0F",
+                          "name": "Amount Cell",
+                          "width": 120,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "OJgq8",
+                              "name": "Amount",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$25",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
                           "id": "F3qXX",
                           "name": "Actions",
-                          "width": 120,
+                          "width": 200,
                           "gap": 8,
                           "alignItems": "center",
                           "children": [
@@ -5065,34 +5491,61 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "o4kZP",
-                          "name": "Partner",
-                          "fill": "$text-primary",
-                          "content": "Emily Park",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "WVGvE",
+                          "name": "Partner Cell",
+                          "width": 180,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "v8P2S",
+                              "name": "Partner",
+                              "fill": "$text-primary",
+                              "content": "Emily Park",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "f6XoYY",
-                          "name": "Lead",
-                          "fill": "$text-primary",
-                          "content": "Robert Kim",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "nxaIy",
+                          "name": "Lead Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "pbMxp",
+                              "name": "Lead",
+                              "fill": "$text-primary",
+                              "content": "Robert Kim",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "P66r6L",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "FL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "OSBc2",
+                          "name": "State Cell",
+                          "width": 100,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ys9Vq",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "FL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -5126,30 +5579,51 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "Tqh7f",
-                          "name": "Reason",
-                          "fill": "$text-secondary",
-                          "content": "Wrong IUL type",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "CowA3",
+                          "name": "Reason Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "dKIXW",
+                              "name": "Reason",
+                              "fill": "$text-secondary",
+                              "content": "Wrong IUL type",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "P0Ubj6",
-                          "name": "Amount",
-                          "fill": "$text-primary",
-                          "content": "$25",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "xBq4e",
+                          "name": "Amount Cell",
+                          "width": 120,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "O0jfdR",
+                              "name": "Amount",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$25",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
                           "id": "ScrzV",
                           "name": "Actions",
-                          "width": 120,
+                          "width": 200,
                           "gap": 8,
                           "alignItems": "center",
                           "children": [
@@ -5221,34 +5695,61 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "k9Q3l",
-                          "name": "Partner",
-                          "fill": "$text-primary",
-                          "content": "Marcus Johnson",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "vI4t5",
+                          "name": "Partner Cell",
+                          "width": 180,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "P4TEW",
+                              "name": "Partner",
+                              "fill": "$text-primary",
+                              "content": "Marcus Johnson",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "pG2H1",
-                          "name": "Lead",
-                          "fill": "$text-primary",
-                          "content": "Lisa Thompson",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "aG2ud",
+                          "name": "Lead Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "A44mBZ",
+                              "name": "Lead",
+                              "fill": "$text-primary",
+                              "content": "Lisa Thompson",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "hfrr6",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "NY",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "pHNp5",
+                          "name": "State Cell",
+                          "width": 100,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "O6qpF",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "NY",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -5282,30 +5783,51 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "hPMi4",
-                          "name": "Reason",
-                          "fill": "$text-secondary",
-                          "content": "Number disconnected",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "vtQKw",
+                          "name": "Reason Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kJo6y",
+                              "name": "Reason",
+                              "fill": "$text-secondary",
+                              "content": "Number disconnected",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "xw47f",
-                          "name": "Amount",
-                          "fill": "$text-primary",
-                          "content": "$25",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "HCfme",
+                          "name": "Amount Cell",
+                          "width": 120,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "yapel",
+                              "name": "Amount",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$25",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
                           "id": "Jh9Zk",
                           "name": "Actions",
-                          "width": 120,
+                          "width": 200,
                           "gap": 8,
                           "alignItems": "center",
                           "children": [
@@ -5983,6 +6505,7 @@
                           "id": "v8ide",
                           "name": "Cell",
                           "width": 100,
+                          "justifyContent": "end",
                           "alignItems": "center",
                           "children": [
                             {
@@ -6002,6 +6525,7 @@
                           "id": "kAx4s",
                           "name": "Cell",
                           "width": 100,
+                          "justifyContent": "end",
                           "alignItems": "center",
                           "children": [
                             {
@@ -6034,24 +6558,42 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "KXI4Y",
-                          "name": "Name",
-                          "fill": "$text-primary",
-                          "content": "James Wilson",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "lTUZh",
+                          "name": "Name Cell",
+                          "width": 180,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "V47ePb",
+                              "name": "Name",
+                              "fill": "$text-primary",
+                              "content": "James Wilson",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "qu9C8",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "TX",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "N18nc",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "WcjHI",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "TX",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -6085,24 +6627,50 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "uWWao",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$25",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "xJQZG",
+                          "name": "Price Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "liSKi",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$25",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "O3mw9",
-                          "name": "Time",
-                          "fill": "$text-muted",
-                          "content": "2h ago",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "Y0VBz",
+                          "name": "Delivered Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "i6nJZ",
+                              "name": "Delivered",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "2h ago",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     },
@@ -6122,24 +6690,42 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "l2njHT",
-                          "name": "Name",
-                          "fill": "$text-primary",
-                          "content": "Maria Garcia",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "vTTWD",
+                          "name": "Name Cell",
+                          "width": 180,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "mtBwc",
+                              "name": "Name",
+                              "fill": "$text-primary",
+                              "content": "Maria Garcia",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "qfPfA",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "CA",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "j6xP0",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Ie3Jb",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "CA",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -6173,24 +6759,50 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "wEzNt",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$5",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "L3arRS",
+                          "name": "Price Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Hj31A",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$5",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "HB4WB",
-                          "name": "Time",
-                          "fill": "$text-muted",
-                          "content": "Yesterday",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "n9bJEC",
+                          "name": "Delivered Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "wtQjN",
+                              "name": "Delivered",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Yesterday",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     },
@@ -6210,24 +6822,42 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "UWXsY",
-                          "name": "Name",
-                          "fill": "$text-primary",
-                          "content": "Robert Kim",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "rcA63",
+                          "name": "Name Cell",
+                          "width": 180,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "e1hJk",
+                              "name": "Name",
+                              "fill": "$text-primary",
+                              "content": "Robert Kim",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "C20PP",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "FL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "yL7zN",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "JQda8",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "FL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -6261,24 +6891,50 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "k4XcbC",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$25",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "h5Hk3e",
+                          "name": "Price Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "d4M1Fk",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$25",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "A7uGZv",
-                          "name": "Time",
-                          "fill": "$text-muted",
-                          "content": "3d ago",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "G0rHy",
+                          "name": "Delivered Cell",
+                          "width": 100,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bSAOf",
+                              "name": "Delivered",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "3d ago",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     }
@@ -6674,7 +7330,10 @@
                               "id": "tTs2U",
                               "name": "Text",
                               "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
                               "content": "Age",
+                              "textAlign": "right",
                               "fontFamily": "$font-body",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -6686,6 +7345,7 @@
                           "id": "lKtiq",
                           "name": "Cell",
                           "width": 80,
+                          "justifyContent": "end",
                           "alignItems": "center",
                           "children": [
                             {
@@ -6693,7 +7353,10 @@
                               "id": "L5xm5J",
                               "name": "Text",
                               "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
                               "content": "Price",
+                              "textAlign": "right",
                               "fontFamily": "$font-body",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -6704,7 +7367,8 @@
                           "type": "frame",
                           "id": "J5Abz5",
                           "name": "Cell",
-                          "width": 100,
+                          "width": "fill_container",
+                          "justifyContent": "center",
                           "alignItems": "center",
                           "children": [
                             {
@@ -6800,50 +7464,90 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "rBg0P",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "OH",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "YVSDj",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "WWdi3",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "OH",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "v4ZGK",
-                          "name": "Type",
-                          "fill": "$text-secondary",
-                          "content": "Traditional IUL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "n3MLd",
+                          "name": "Type Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "myQM3",
+                              "name": "Type",
+                              "fill": "$text-secondary",
+                              "content": "Traditional IUL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "IrPLV",
-                          "name": "Age",
-                          "fill": "$text-muted",
-                          "content": "42d",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "KHFa4",
+                          "name": "Age Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "x35i5",
+                              "name": "Age",
+                              "fill": "$text-muted",
+                              "content": "42d",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "ZTwDo",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$5",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "kM21H",
+                          "name": "Price Cell",
+                          "width": 80,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "SuxGC",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$5",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
                           "id": "m62PJE",
                           "name": "Action Cell",
-                          "width": 100,
+                          "width": "fill_container",
                           "children": [
                             {
                               "type": "frame",
@@ -6951,50 +7655,90 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "bsARo",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "GA",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "a2bLhu",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "FbsMM",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "GA",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "lBPtF",
-                          "name": "Type",
-                          "fill": "$text-secondary",
-                          "content": "High-Intent IUL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "qBU0O",
+                          "name": "Type Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "f3deC",
+                              "name": "Type",
+                              "fill": "$text-secondary",
+                              "content": "High-Intent IUL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "Zl15W",
-                          "name": "Age",
-                          "fill": "$text-muted",
-                          "content": "35d",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "vAXqW",
+                          "name": "Age Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hNwIS",
+                              "name": "Age",
+                              "fill": "$text-muted",
+                              "content": "35d",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "BD94x",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$5",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "JlZam",
+                          "name": "Price Cell",
+                          "width": 80,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "YNf90",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$5",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
                           "id": "UMFUG",
                           "name": "Action Cell",
-                          "width": 100,
+                          "width": "fill_container",
                           "children": [
                             {
                               "type": "frame",
@@ -7102,50 +7846,90 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "PsWuD",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "AZ",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "va1im",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Lnj8J",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "AZ",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "yV40h",
-                          "name": "Type",
-                          "fill": "$text-secondary",
-                          "content": "Traditional IUL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "g4tscH",
+                          "name": "Type Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "N3Z2DL",
+                              "name": "Type",
+                              "fill": "$text-secondary",
+                              "content": "Traditional IUL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "gnBOy",
-                          "name": "Age",
-                          "fill": "$text-muted",
-                          "content": "31d",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "f6HM4r",
+                          "name": "Age Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "g7s0Z",
+                              "name": "Age",
+                              "fill": "$text-muted",
+                              "content": "31d",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "X2wZv",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$5",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "SmJST",
+                          "name": "Price Cell",
+                          "width": 80,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "H6X8H7",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$5",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
                           "id": "b2nnn",
                           "name": "Action Cell",
-                          "width": 100,
+                          "width": "fill_container",
                           "children": [
                             {
                               "type": "frame",
@@ -7253,50 +8037,90 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "lCKL0",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "CO",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "Nk3rF",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kiw6z",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "CO",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "mbGmz",
-                          "name": "Type",
-                          "fill": "$text-secondary",
-                          "content": "Traditional IUL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "I8NOY",
+                          "name": "Type Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "RJooc",
+                              "name": "Type",
+                              "fill": "$text-secondary",
+                              "content": "Traditional IUL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "llpcY",
-                          "name": "Age",
-                          "fill": "$text-muted",
-                          "content": "38d",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "r2qQx",
+                          "name": "Age Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "NXYsX",
+                              "name": "Age",
+                              "fill": "$text-muted",
+                              "content": "38d",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "q2liSG",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$5",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "abO9Z",
+                          "name": "Price Cell",
+                          "width": 80,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "cqoeB",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$5",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
                           "id": "b3pOP",
                           "name": "Action Cell",
-                          "width": 100,
+                          "width": "fill_container",
                           "children": [
                             {
                               "type": "frame",
@@ -7404,50 +8228,90 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "uSqse",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "WA",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "tsmBP",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "v9PTGh",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "WA",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "M6tKDy",
-                          "name": "Type",
-                          "fill": "$text-secondary",
-                          "content": "High-Intent IUL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "r3NEe8",
+                          "name": "Type Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "GGomN",
+                              "name": "Type",
+                              "fill": "$text-secondary",
+                              "content": "High-Intent IUL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "SvCRi",
-                          "name": "Age",
-                          "fill": "$text-muted",
-                          "content": "45d",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "Vhj4b",
+                          "name": "Age Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "snKd4",
+                              "name": "Age",
+                              "fill": "$text-muted",
+                              "content": "45d",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "F0nRWK",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$5",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "j2CA6L",
+                          "name": "Price Cell",
+                          "width": 80,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Ofy7O",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$5",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
                           "id": "C9daw",
                           "name": "Action Cell",
-                          "width": 100,
+                          "width": "fill_container",
                           "children": [
                             {
                               "type": "frame",
@@ -7749,7 +8613,8 @@
                           "type": "frame",
                           "id": "UDQxh",
                           "name": "Cell",
-                          "width": 100,
+                          "width": 110,
+                          "justifyContent": "end",
                           "alignItems": "center",
                           "children": [
                             {
@@ -7757,7 +8622,10 @@
                               "id": "IMvoO",
                               "name": "Text",
                               "fill": "$text-secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
                               "content": "Price",
+                              "textAlign": "right",
                               "fontFamily": "$font-body",
                               "fontSize": 11,
                               "fontWeight": "600"
@@ -7768,7 +8636,7 @@
                           "type": "frame",
                           "id": "DXrLJ",
                           "name": "Cell",
-                          "width": 120,
+                          "width": 140,
                           "alignItems": "center",
                           "children": [
                             {
@@ -7788,6 +8656,7 @@
                           "id": "lHpN2",
                           "name": "Cell",
                           "width": 100,
+                          "justifyContent": "center",
                           "alignItems": "center",
                           "children": [
                             {
@@ -7883,14 +8752,23 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "E0Au9",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "TX",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "MOtUE",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "v1she8",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "TX",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -7924,24 +8802,46 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "Pa60N",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$25",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "elLMg",
+                          "name": "Price Cell",
+                          "width": 110,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "XpLZA",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$25",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "b0EPl6",
-                          "name": "Delivered",
-                          "fill": "$text-secondary",
-                          "content": "Jul 13, 2:14 PM",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "OS7Kz",
+                          "name": "Delivered Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bJvd3",
+                              "name": "Delivered",
+                              "fill": "$text-secondary",
+                              "content": "Jul 13, 2:14 PM",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -8055,14 +8955,23 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "jgFgx",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "CA",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "w1plzy",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "aa58c",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "CA",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -8096,24 +9005,46 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "TR2XS",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$5",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "DHuJg",
+                          "name": "Price Cell",
+                          "width": 110,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "qbYN8",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$5",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "f68tK",
-                          "name": "Delivered",
-                          "fill": "$text-secondary",
-                          "content": "Jul 12, 4:30 PM",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "DpD6Y",
+                          "name": "Delivered Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "H0a9L7",
+                              "name": "Delivered",
+                              "fill": "$text-secondary",
+                              "content": "Jul 12, 4:30 PM",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -8227,14 +9158,23 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "hrEel",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "FL",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "lwemZ",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "D9ECVy",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "FL",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -8268,24 +9208,46 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "S5AL8",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$25",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "DWHWR",
+                          "name": "Price Cell",
+                          "width": 110,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "z4pE1T",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$25",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "bqHgY",
-                          "name": "Delivered",
-                          "fill": "$text-secondary",
-                          "content": "Jul 10, 9:00 AM",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "HJSW9",
+                          "name": "Delivered Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "NQnl0",
+                              "name": "Delivered",
+                              "fill": "$text-secondary",
+                              "content": "Jul 10, 9:00 AM",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -8386,14 +9348,23 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "D8T6bS",
-                          "name": "State",
-                          "fill": "$text-primary",
-                          "content": "NY",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "kI9RB",
+                          "name": "State Cell",
+                          "width": 80,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "z05Ln",
+                              "name": "State",
+                              "fill": "$text-primary",
+                              "content": "NY",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -8427,24 +9398,46 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "FOkPA",
-                          "name": "Price",
-                          "fill": "$text-primary",
-                          "content": "$25",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "R7324",
+                          "name": "Price Cell",
+                          "width": 110,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Mbf9H",
+                              "name": "Price",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$25",
+                              "textAlign": "right",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "ZKyt4",
-                          "name": "Delivered",
-                          "fill": "$text-secondary",
-                          "content": "Jul 8, 11:22 AM",
-                          "fontFamily": "$font-body",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "C6q3o",
+                          "name": "Delivered Cell",
+                          "width": 140,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "m7vkl3",
+                              "name": "Delivered",
+                              "fill": "$text-secondary",
+                              "content": "Jul 8, 11:22 AM",
+                              "fontFamily": "$font-body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
@@ -8761,53 +9754,103 @@
                     },
                     {
                       "type": "frame",
-                      "id": "o84kni",
+                      "id": "GNLhd",
+                      "name": "Header Row",
                       "width": "fill_container",
                       "fill": "#F8FAFC",
                       "padding": [
                         12,
                         20
                       ],
+                      "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "SJ5ur",
-                          "fill": "$text-muted",
-                          "content": "DATE",
-                          "fontFamily": "Inter",
-                          "fontSize": 10,
-                          "fontWeight": "600",
-                          "letterSpacing": 0.8
+                          "type": "frame",
+                          "id": "piNfd",
+                          "name": "Date Cell",
+                          "width": 220,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "m9i6r",
+                              "name": "Date",
+                              "fill": "$text-muted",
+                              "content": "DATE",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.8
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "N9xmn",
-                          "fill": "$text-muted",
-                          "content": "TYPE",
-                          "fontFamily": "Inter",
-                          "fontSize": 10,
-                          "fontWeight": "600",
-                          "letterSpacing": 0.8
+                          "type": "frame",
+                          "id": "HjBDJ",
+                          "name": "Type Cell",
+                          "width": "fill_container",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "d5oLQj",
+                              "name": "Type",
+                              "fill": "$text-muted",
+                              "content": "TYPE",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.8
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "BGbXM",
-                          "fill": "$text-muted",
-                          "content": "AMOUNT",
-                          "fontFamily": "Inter",
-                          "fontSize": 10,
-                          "fontWeight": "600",
-                          "letterSpacing": 0.8
+                          "type": "frame",
+                          "id": "txMaK",
+                          "name": "Amount Cell",
+                          "width": 120,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "WdW84",
+                              "name": "Amount",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "AMOUNT",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.8
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "x8IGo",
-                          "fill": "$text-muted",
-                          "content": "BALANCE AFTER",
-                          "fontFamily": "Inter",
-                          "fontSize": 10,
-                          "fontWeight": "600",
-                          "letterSpacing": 0.8
+                          "type": "frame",
+                          "id": "CWQ87",
+                          "name": "Balance Cell",
+                          "width": 140,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "lqJKr",
+                              "name": "Balance",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "BALANCE AFTER",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.8
+                            }
+                          ]
                         }
                       ]
                     },
@@ -8826,40 +9869,88 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "Rpziy",
-                          "fill": "$text-secondary",
-                          "content": "Jul 13, 9:42 AM",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "JX35H",
+                          "name": "Date Cell",
+                          "width": 220,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "l9kCmo",
+                              "name": "Date",
+                              "fill": "$text-secondary",
+                              "content": "Jul 13, 9:42 AM",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "LekXh",
-                          "fill": "$text-primary",
-                          "content": "Lead Purchase",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "L1qam",
+                          "name": "Type Cell",
+                          "width": "fill_container",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "b5ivjn",
+                              "name": "Type",
+                              "fill": "$text-primary",
+                              "content": "Lead Purchase",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "w8IXZ6",
-                          "fill": "$danger",
-                          "content": "-$25.00",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "B7ESt",
+                          "name": "Amount Cell",
+                          "width": 120,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hgEuh",
+                              "name": "Amount",
+                              "fill": "$danger",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "-$25.00",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "W105D",
-                          "fill": "$text-primary",
-                          "content": "$425.00",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "NSget",
+                          "name": "Balance Cell",
+                          "width": 140,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "UpmPQ",
+                              "name": "Balance",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$425.00",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         }
                       ]
                     },
@@ -8878,40 +9969,88 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "dBJ5p",
-                          "fill": "$text-secondary",
-                          "content": "Jul 13, 8:15 AM",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "wyOGJ",
+                          "name": "Date Cell",
+                          "width": 220,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "rhMMQ",
+                              "name": "Date",
+                              "fill": "$text-secondary",
+                              "content": "Jul 13, 8:15 AM",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "FGo09",
-                          "fill": "$text-primary",
-                          "content": "Lead Purchase",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "owce6",
+                          "name": "Type Cell",
+                          "width": "fill_container",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "J3n61",
+                              "name": "Type",
+                              "fill": "$text-primary",
+                              "content": "Lead Purchase",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "QaTey",
-                          "fill": "$danger",
-                          "content": "-$25.00",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "UKC5q",
+                          "name": "Amount Cell",
+                          "width": 120,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bnAPq",
+                              "name": "Amount",
+                              "fill": "$danger",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "-$25.00",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "HxQb1",
-                          "fill": "$text-primary",
-                          "content": "$450.00",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "q8WxM",
+                          "name": "Balance Cell",
+                          "width": 140,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "g7ZHdN",
+                              "name": "Balance",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$450.00",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         }
                       ]
                     },
@@ -8930,40 +10069,88 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "xc5ag",
-                          "fill": "$text-secondary",
-                          "content": "Jul 10, 2:00 PM",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "W5k3d",
+                          "name": "Date Cell",
+                          "width": 220,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "CTqSS",
+                              "name": "Date",
+                              "fill": "$text-secondary",
+                              "content": "Jul 10, 2:00 PM",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "yCKNR",
-                          "fill": "$text-primary",
-                          "content": "Top Up (Stripe)",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "gKuXg",
+                          "name": "Type Cell",
+                          "width": "fill_container",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "OeJCr",
+                              "name": "Type",
+                              "fill": "$text-primary",
+                              "content": "Top Up (Stripe)",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "W3z131",
-                          "fill": "$success",
-                          "content": "+$500.00",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "iZI99",
+                          "name": "Amount Cell",
+                          "width": 120,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "egho5",
+                              "name": "Amount",
+                              "fill": "$success",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "+$500.00",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "FpRxl",
-                          "fill": "$text-primary",
-                          "content": "$475.00",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "Cmbrq",
+                          "name": "Balance Cell",
+                          "width": 140,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "v472eI",
+                              "name": "Balance",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "$475.00",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         }
                       ]
                     },
@@ -8982,40 +10169,88 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "nIY25",
-                          "fill": "$text-secondary",
-                          "content": "Jul 5, 11:30 AM",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "E0lUTS",
+                          "name": "Date Cell",
+                          "width": 220,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "VlU3w",
+                              "name": "Date",
+                              "fill": "$text-secondary",
+                              "content": "Jul 5, 11:30 AM",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "NjB9k",
-                          "fill": "$text-primary",
-                          "content": "Aged Purchase",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "GRzFJ",
+                          "name": "Type Cell",
+                          "width": "fill_container",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "NfAcg",
+                              "name": "Type",
+                              "fill": "$text-primary",
+                              "content": "Aged Purchase",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "QbcLX",
-                          "fill": "$danger",
-                          "content": "-$5.00",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "TqIPA",
+                          "name": "Amount Cell",
+                          "width": 120,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "FFzVU",
+                              "name": "Amount",
+                              "fill": "$danger",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "-$5.00",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "oLwx6",
-                          "fill": "$text-primary",
-                          "content": "-$25.00",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "UOWH9",
+                          "name": "Balance Cell",
+                          "width": 140,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Dau2m",
+                              "name": "Balance",
+                              "fill": "$text-primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "-$25.00",
+                              "textAlign": "right",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         }
                       ]
                     }
