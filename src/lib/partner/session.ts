@@ -47,10 +47,14 @@ export const getPartnerSession = cache(async (): Promise<PartnerSession | null> 
   const partnerId = await getPartnerId();
   if (!partnerId) return null;
 
-  const partner = await prisma.partner.findUnique({ where: { id: partnerId } });
+  const partner = await prisma.partner.findUnique({
+    where: { id: partnerId },
+    include: { filterSets: { orderBy: { createdAt: "asc" } } },
+  });
   if (!partner) return null;
 
-  return serializePartner(partner);
+  const { filterSets, ...row } = partner;
+  return serializePartner(row, filterSets);
 });
 
 /** @deprecated Prefer getPartnerSession in layout or getPartnerId in pages. */

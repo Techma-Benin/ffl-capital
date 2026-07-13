@@ -86,7 +86,10 @@ export function PartnerSettingsView() {
         setStatesError(data.error ?? "Failed to save states");
         return;
       }
-      patchPartner({ filterStates: data.filterStates });
+      patchPartner({
+        filterStates: data.filterStates,
+        hasEligibleFilterSet: data.hasEligibleFilterSet,
+      });
       setStatesSuccess(true);
     } catch {
       setStatesError("Request failed. Please try again.");

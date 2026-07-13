@@ -10,6 +10,8 @@ export type PartnerSession = {
   residenceState: string;
   leadType: LeadType;
   filterStates: string[];
+  /** True when an active filter set meets matching min-states eligibility. */
+  hasEligibleFilterSet: boolean;
   walletBalance: number;
   status: PartnerStatus;
   crmWebhookUrl: string | null;

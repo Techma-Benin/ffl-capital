@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getPartnerSession, getPartnerId } from "@/lib/partner/session";
 import { serializePartner } from "@/lib/partner/serialize";
+import { syncDefaultFilterSetStates } from "@/lib/partner/default-filter-set";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 
 const stateCodeSchema = z.enum(
@@ -60,10 +61,29 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
-  const partner = await prisma.partner.update({
-    where: { id: partnerId },
-    data,
+  const { partner, filterSets } = await prisma.$transaction(async (tx) => {
+    const updated = await tx.partner.update({
+      where: { id: partnerId },
+      data,
+    });
+
+    if (data.filterStates) {
+      await syncDefaultFilterSetStates({
+        partnerId,
+        filterStates: data.filterStates,
+        leadType: updated.leadType,
+        partnerStatus: updated.status,
+        client: tx,
+      });
+    }
+
+    const sets = await tx.partnerFilterSet.findMany({
+      where: { partnerId },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return { partner: updated, filterSets: sets };
   });
 
-  return NextResponse.json(serializePartner(partner));
+  return NextResponse.json(serializePartner(partner, filterSets));
 }

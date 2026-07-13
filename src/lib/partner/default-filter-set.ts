@@ -1,0 +1,80 @@
+import {
+  LeadType,
+  PartnerFilterSet,
+  PartnerStatus,
+  Prisma,
+} from "@prisma/client";
+import { prisma } from "@/lib/db";
+import {
+  DEFAULT_FILTER_SET_NAME,
+  MIN_FILTER_STATES,
+} from "./constants";
+
+export { DEFAULT_FILTER_SET_NAME, MIN_FILTER_STATES } from "./constants";
+
+type DbClient = Prisma.TransactionClient | typeof prisma;
+
+/** Prefer the named Default set; otherwise the oldest filter set. */
+export function pickDefaultFilterSet(
+  filterSets: PartnerFilterSet[],
+): PartnerFilterSet | null {
+  if (filterSets.length === 0) return null;
+  return (
+    filterSets.find((fs) => fs.name === DEFAULT_FILTER_SET_NAME) ??
+    filterSets[0] ??
+    null
+  );
+}
+
+/** True when any active filter set meets the min-states bar used by matching. */
+export function hasEligibleFilterSet(
+  filterSets: Array<Pick<PartnerFilterSet, "active" | "filterStates">>,
+): boolean {
+  return filterSets.some(
+    (fs) => fs.active && fs.filterStates.length >= MIN_FILTER_STATES,
+  );
+}
+
+export async function listPartnerFilterSets(
+  partnerId: string,
+  client: DbClient = prisma,
+): Promise<PartnerFilterSet[]> {
+  return client.partnerFilterSet.findMany({
+    where: { partnerId },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+/**
+ * Keep the partner's default PartnerFilterSet in sync with partner-level
+ * filterStates. Matching uses filter sets, not Partner.filterStates alone.
+ */
+export async function syncDefaultFilterSetStates(params: {
+  partnerId: string;
+  filterStates: string[];
+  leadType: LeadType;
+  partnerStatus: PartnerStatus;
+  client?: DbClient;
+}): Promise<PartnerFilterSet> {
+  const client = params.client ?? prisma;
+  const existing = pickDefaultFilterSet(
+    await listPartnerFilterSets(params.partnerId, client),
+  );
+
+  if (existing) {
+    return client.partnerFilterSet.update({
+      where: { id: existing.id },
+      data: { filterStates: params.filterStates },
+    });
+  }
+
+  return client.partnerFilterSet.create({
+    data: {
+      partnerId: params.partnerId,
+      name: DEFAULT_FILTER_SET_NAME,
+      leadType: params.leadType,
+      filterStates: params.filterStates,
+      active: params.partnerStatus === PartnerStatus.active,
+    },
+  });
+}

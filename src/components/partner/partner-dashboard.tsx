@@ -39,7 +39,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
   const { partner } = usePartner();
   const active = isPartnerActive(partner);
   const balance = partner.walletBalance;
-  const statesOk = partner.filterStates.length >= 15;
+  const statesOk = partner.hasEligibleFilterSet;
   const walletOk = balance >= 25;
 
   return (
