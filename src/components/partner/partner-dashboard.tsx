@@ -55,7 +55,11 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                 />
                 <ChecklistItem
                   done={statesOk}
-                  label={`At least 15 target states selected (${partner.filterStates.length} selected)`}
+                  label={
+                    partner.filterStates.length >= 15 && !statesOk
+                      ? "Target filter set must be active (contact admin if this persists)"
+                      : `At least 15 target states selected (${partner.filterStates.length} selected)`
+                  }
                   actionHref="/partner/settings"
                   actionLabel="Edit states"
                 />

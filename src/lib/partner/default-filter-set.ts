@@ -64,7 +64,11 @@ export async function syncDefaultFilterSetStates(params: {
   if (existing) {
     return client.partnerFilterSet.update({
       where: { id: existing.id },
-      data: { filterStates: params.filterStates },
+      data: {
+        filterStates: params.filterStates,
+        // Keep set buyability in sync with partner approval status
+        active: params.partnerStatus === PartnerStatus.active,
+      },
     });
   }
 
@@ -76,5 +80,21 @@ export async function syncDefaultFilterSetStates(params: {
       filterStates: params.filterStates,
       active: params.partnerStatus === PartnerStatus.active,
     },
+  });
+}
+
+/**
+ * When a partner is approved/disabled, mirror that onto their filter sets.
+ * Matching only considers active filter sets — leaving them inactive after
+ * admin approval leaves the partner "Inactive" despite wallet + states.
+ */
+export async function syncFilterSetsActiveWithPartnerStatus(
+  partnerId: string,
+  status: PartnerStatus,
+  client: DbClient = prisma,
+): Promise<void> {
+  await client.partnerFilterSet.updateMany({
+    where: { partnerId },
+    data: { active: status === PartnerStatus.active },
   });
 }

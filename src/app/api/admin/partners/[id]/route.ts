@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { PartnerStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { requireAdmin } from "@/lib/auth/session";
+import { syncFilterSetsActiveWithPartnerStatus } from "@/lib/partner/default-filter-set";
 
 const patchSchema = z.object({
   priority: z.number().int().min(1).max(10).optional(),
@@ -85,10 +87,16 @@ export async function PATCH(
     data.ringyAuthToken = parsed.data.ringyAuthToken;
   }
 
-  const partner = await prisma.partner.update({
-    where: { id: params.id },
-    data,
-  });
+  const partner = await prisma.$transaction(async (tx) => {
+    const updated = await tx.partner.update({
+      where: { id: params.id },
+      data,
+    });
+    if (data.status !== undefined) {
+      await syncFilterSetsActiveWithPartnerStatus(params.id, data.status, tx);
+    }
+    return updated;
+  }, PRISMA_TX_OPTIONS);
 
   return NextResponse.json({ partner });
 }
