@@ -6,15 +6,26 @@ import { Archive } from "lucide-react";
 import Link from "next/link";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
+import { StatCard } from "@/components/ui/stat-card";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { parsePageParams } from "@/lib/pagination";
 
-export default async function AdminAgedPage() {
+export default async function AdminAgedPage({
+  searchParams,
+}: {
+  searchParams: { page?: string };
+}) {
   const agedWhere = await buildAgedLeadWhere();
-  const [leads, agedPrice, stateCounts, agedDays] = await Promise.all([
+  const { page, pageSize, skip } = parsePageParams(searchParams);
+
+  const [leads, total, agedPrice, stateCounts, agedDays] = await Promise.all([
     prisma.lead.findMany({
       where: agedWhere,
       orderBy: { receivedAt: "asc" },
-      take: 100,
+      skip,
+      take: pageSize,
     }),
+    prisma.lead.count({ where: agedWhere }),
     getDefaultAgedPrice(),
     prisma.lead.groupBy({
       by: ["state"],
@@ -33,11 +44,8 @@ export default async function AdminAgedPage() {
         subtitle={`Leads ${agedDays}+ days old — default price $${agedPrice}`}
       />
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <div className="card p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500">Available</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{leads.length}</p>
-        </div>
+      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+        <StatCard label="Available" value={total} variant="blue" />
         <div className="card p-4 sm:col-span-2">
           <p className="text-xs font-semibold uppercase text-slate-500 mb-2">Top states</p>
           <div className="flex flex-wrap gap-2">
@@ -98,6 +106,13 @@ export default async function AdminAgedPage() {
             </table>
           )}
         </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          basePath="/admin/aged"
+          searchParams={searchParams}
+        />
       </div>
     </div>
   );

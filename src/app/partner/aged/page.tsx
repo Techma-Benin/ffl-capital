@@ -6,11 +6,12 @@ import { getPartnerId } from "@/lib/partner/session";
 import { PartnerAgedView } from "@/components/partner/partner-aged";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
+import { parsePageParams } from "@/lib/pagination";
 
 export default async function PartnerAgedPage({
   searchParams,
 }: {
-  searchParams: { state?: string; type?: string; age?: string };
+  searchParams: { state?: string; type?: string; age?: string; page?: string };
 }) {
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
@@ -49,12 +50,18 @@ export default async function PartnerAgedPage({
     }
   }
 
-  const [agedLeads, agedPrice] = await Promise.all([
+  const { page, pageSize, skip } = parsePageParams(searchParams);
+
+  const agedWhere = await buildAgedLeadWhere(extra);
+
+  const [agedLeads, total, agedPrice] = await Promise.all([
     prisma.lead.findMany({
-      where: await buildAgedLeadWhere(extra),
+      where: agedWhere,
       orderBy: { receivedAt: "asc" },
-      take: 100,
+      skip,
+      take: pageSize,
     }),
+    prisma.lead.count({ where: agedWhere }),
     getDefaultAgedPrice(),
   ]);
 
@@ -62,6 +69,10 @@ export default async function PartnerAgedPage({
     <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading…</div>}>
       <PartnerAgedView
         agedPrice={agedPrice}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        paginationParams={searchParams}
         agedLeads={agedLeads.map((lead) => ({
           id: lead.id,
           firstName: lead.firstName,
