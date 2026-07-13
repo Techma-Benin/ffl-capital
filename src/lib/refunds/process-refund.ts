@@ -1,5 +1,6 @@
 import { LeadEventType } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { creditWallet } from "@/lib/wallet/ledger";
 import { matchLead } from "@/lib/matching/engine";
@@ -49,7 +50,7 @@ export async function processRefundApproval(
         data: { available: true, status: "unmatched" },
       });
     }
-  });
+  }, PRISMA_TX_OPTIONS);
 
   await creditWallet(partner.id, price, "refund", {
     leadDeliveryId: leadDelivery.id,

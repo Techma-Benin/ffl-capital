@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { getPartnerSession, getPartnerId } from "@/lib/partner/session";
 import { serializePartner } from "@/lib/partner/serialize";
 import { syncDefaultFilterSetStates } from "@/lib/partner/default-filter-set";
@@ -83,7 +84,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     return { partner: updated, filterSets: sets };
-  });
+  }, PRISMA_TX_OPTIONS);
 
   return NextResponse.json(serializePartner(partner, filterSets));
 }

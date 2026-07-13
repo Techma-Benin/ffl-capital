@@ -7,6 +7,7 @@ import {
   TransactionType,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { debitWallet } from "@/lib/wallet/ledger";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
@@ -114,7 +115,7 @@ export async function matchLead(
       deliveryId: delivery.id,
       filterSetId: winner.id,
     };
-  });
+  }, PRISMA_TX_OPTIONS);
 
   if (!result) {
     return {

@@ -140,12 +140,26 @@ export async function processLeadIntake(
     };
   }
 
-  const matchResult = await matchLead(lead.id);
+  try {
+    const matchResult = await matchLead(lead.id);
 
-  return {
-    leadId: lead.id,
-    matched: matchResult.matched,
-    partnerEmail: matchResult.partner?.email,
-    reason: matchResult.reason,
-  };
+    return {
+      leadId: lead.id,
+      matched: matchResult.matched,
+      partnerEmail: matchResult.partner?.email,
+      reason: matchResult.reason,
+    };
+  } catch (err) {
+    // Lead is already persisted — do not fail intake if matching/tx flakes
+    // (common with Supabase pooler: P2028 "Transaction not found").
+    console.error("[intake] matchLead failed after create:", err);
+    return {
+      leadId: lead.id,
+      matched: false,
+      reason:
+        err instanceof Error
+          ? `Matching deferred: ${err.message}`
+          : "Matching deferred due to an internal error",
+    };
+  }
 }

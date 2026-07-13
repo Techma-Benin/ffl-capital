@@ -7,6 +7,7 @@ import {
   TransactionType,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
@@ -108,7 +109,7 @@ async function purchaseSingleAgedLead(
     });
 
     return delivery.id;
-  });
+  }, PRISMA_TX_OPTIONS);
 
   await deliverLead(result);
 
