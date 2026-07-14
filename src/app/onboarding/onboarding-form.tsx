@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { ActionButton } from "@/components/ui/action-button";
 import { FormSkeleton } from "@/components/ui/form-skeleton";
@@ -39,6 +40,7 @@ type Props = {
 
 export default function OnboardingForm({ initialProfile }: Props) {
   const router = useRouter();
+  const { user } = useUser();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -52,6 +54,18 @@ export default function OnboardingForm({ initialProfile }: Props) {
     leadType: initialProfile?.leadType ?? "high_intent_iul",
   });
   const accountEmail = initialProfile?.email ?? "";
+
+  // Back-fill first/last name from the live Clerk session if the server-side
+  // initialProfile didn't carry them (e.g. token propagation lag, OAuth flows
+  // where the name arrives slightly after the session is established).
+  useEffect(() => {
+    if (!user) return;
+    setProfile((prev) => ({
+      ...prev,
+      firstName: prev.firstName || user.firstName || "",
+      lastName: prev.lastName || user.lastName || "",
+    }));
+  }, [user]);
 
   function toggleState(code: string) {
     setSelectedStates((prev) =>
@@ -147,7 +161,8 @@ export default function OnboardingForm({ initialProfile }: Props) {
                 required
                 className="form-input"
                 placeholder="James"
-                defaultValue={profile.firstName}
+                value={profile.firstName}
+                onChange={(e) => setProfile((p) => ({ ...p, firstName: e.target.value }))}
               />
             </div>
             <div>
@@ -157,7 +172,8 @@ export default function OnboardingForm({ initialProfile }: Props) {
                 required
                 className="form-input"
                 placeholder="Wilson"
-                defaultValue={profile.lastName}
+                value={profile.lastName}
+                onChange={(e) => setProfile((p) => ({ ...p, lastName: e.target.value }))}
               />
             </div>
           </div>
