@@ -40,3 +40,8 @@ externalPort = 3001
 
 [agent]
 expertMode = true
+
+[userenv]
+
+[userenv.shared]
+ADMIN_EMAILS = "bill.ahognonvi+admin@techma.ca"
