@@ -7,7 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 type PortalContextValue = {
   sidebarCollapsed: boolean;
@@ -23,14 +23,9 @@ const STORAGE_KEY = "ffl-sidebar-collapsed";
 
 export function PortalProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
-
-  const currentPath = searchParams.toString()
-    ? `${pathname}?${searchParams.toString()}`
-    : pathname;
 
   useEffect(() => {
     setHydrated(true);
@@ -38,9 +33,12 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     if (saved === "true") setSidebarCollapsed(true);
   }, []);
 
+  // Reset navigation indicator whenever the pathname changes.
+  // We intentionally omit searchParams here to avoid requiring a Suspense
+  // boundary (useSearchParams triggers streaming Suspense in App Router).
   useEffect(() => {
     setPendingPath(null);
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
@@ -52,9 +50,12 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
 
   const startNavigation = useCallback(
     (href: string) => {
-      if (href !== currentPath) setPendingPath(href);
+      // Compare against pathname only (ignoring search params) to keep this
+      // hook free from useSearchParams and its Suspense requirement.
+      const hrefPath = href.split("?")[0];
+      if (hrefPath !== pathname) setPendingPath(href);
     },
-    [currentPath],
+    [pathname],
   );
 
   return (
