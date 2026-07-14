@@ -1,9 +1,19 @@
+import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import { getCurrentPartner } from "@/lib/auth/session";
-import OnboardingForm from "./onboarding-form";
+import { FormSkeleton } from "@/components/ui/form-skeleton";
 import { Lightning } from "@phosphor-icons/react/dist/ssr";
+
+// Skip SSR for the form: it is auth-gated and heavy with client state.
+// This prevents the Clerk/Next.js Suspense boundary from triggering an
+// "Invalid hook call" during server rendering, which was causing a
+// hydration crash every time an authenticated user landed on this page.
+const OnboardingForm = dynamic(() => import("./onboarding-form"), {
+  ssr: false,
+  loading: () => <FormSkeleton />,
+});
 
 export default async function OnboardingPage() {
   const partner = await getCurrentPartner();
