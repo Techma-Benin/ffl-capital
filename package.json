@@ -20,7 +20,7 @@
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.7.5",
+    "@clerk/nextjs": "^5.7.6",
     "@phosphor-icons/react": "^2.1.10",
     "@prisma/client": "^6.9.0",
     "clsx": "^2.1.1",

@@ -1,6 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  // Expose Replit-managed secrets under the names Next.js and Clerk expect.
+  // CLERK_PUBLISHABLE_KEY is set by Replit's managed Clerk integration;
+  // the NEXT_PUBLIC_ prefix makes it available to the client bundle.
+  env: {
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+      process.env.CLERK_PUBLISHABLE_KEY ||
+      "",
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL: "/sign-in",
+    NEXT_PUBLIC_CLERK_SIGN_UP_URL: "/sign-up",
+    NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL:
+      "/auth/continue?portal=partner",
+    NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL:
+      "/auth/continue?portal=partner",
+  },
+
   async redirects() {
     return [
       {

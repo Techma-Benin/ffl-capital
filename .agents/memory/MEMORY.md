@@ -1,0 +1,2 @@
+- [Package install security bypass](package-install-bypass.md) — `npm install` is blocked for some packages; use `installLanguagePackages()` in CodeExecution instead.
+- [Clerk key mapping for Next.js](clerk-nextjs-key-mapping.md) — Replit managed Clerk sets `CLERK_PUBLISHABLE_KEY`; Next.js needs `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`. Fix in next.config.mjs env block.
