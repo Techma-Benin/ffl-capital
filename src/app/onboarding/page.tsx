@@ -1,10 +1,10 @@
 import dynamic from "next/dynamic";
-import { redirect } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import { getCurrentPartner } from "@/lib/auth/session";
 import { FormSkeleton } from "@/components/ui/form-skeleton";
 import { Lightning } from "@phosphor-icons/react/dist/ssr";
+import { AuthContinueRedirect } from "@/app/auth/continue/redirect";
 
 // Skip SSR for the form: it is auth-gated and heavy with client state.
 // This prevents the Clerk/Next.js Suspense boundary from triggering an
@@ -17,7 +17,10 @@ const OnboardingForm = dynamic(() => import("./onboarding-form"), {
 
 export default async function OnboardingPage() {
   const partner = await getCurrentPartner();
-  if (partner) redirect("/partner");
+  // Use client-side redirect to avoid throwing NEXT_REDIRECT in the RSC layer,
+  // which triggers the dev-mode error overlay (non-issue in production but
+  // confusing during development).
+  if (partner) return <AuthContinueRedirect to="/partner" />;
 
   const user = await currentUser();
   const fullName = user?.fullName?.trim() ?? "";

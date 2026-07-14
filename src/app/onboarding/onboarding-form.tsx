@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { ActionButton } from "@/components/ui/action-button";
-import { FormSkeleton } from "@/components/ui/form-skeleton";
 import { StatusStrip } from "@/components/ui/status-strip";
+import { Spinner } from "@/components/ui/spinner";
 import { WarningCircle, ArrowRight, Check, MapPin } from "@phosphor-icons/react";
 
 const US_STATE_NAMES: Record<string, string> = {
@@ -125,7 +125,6 @@ export default function OnboardingForm({ initialProfile }: Props) {
       }
       setSuccess(true);
       router.push("/partner");
-      router.refresh();
     } catch {
       setError("Request failed. Please try again.");
       setLoading(false);
@@ -238,7 +237,13 @@ export default function OnboardingForm({ initialProfile }: Props) {
       {/* Step 2 — State selection */}
       {step === 2 && (
         loading ? (
-          <FormSkeleton />
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Spinner size="lg" variant="brand" />
+            <div className="text-center">
+              <p className="font-semibold text-slate-800">Setting up your account…</p>
+              <p className="text-sm text-slate-500 mt-1">This will only take a moment</p>
+            </div>
+          </div>
         ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
