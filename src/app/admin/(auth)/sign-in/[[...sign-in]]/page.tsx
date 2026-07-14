@@ -4,7 +4,7 @@ import { Shield } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLeftPanel } from "@/components/auth/auth-left-panel";
-import { authClerkAppearance } from "@/lib/auth/auth-clerk-appearance";
+import { adminClerkAppearance } from "@/lib/auth/auth-clerk-appearance";
 import { AUTH_CONTINUE_ADMIN } from "@/lib/auth/portal";
 import { getAdminPostAuthRedirectPath } from "@/lib/auth/redirect";
 
@@ -63,7 +63,7 @@ export default async function AdminSignInPage() {
 
           <SignIn
             forceRedirectUrl={AUTH_CONTINUE_ADMIN}
-            appearance={authClerkAppearance}
+            appearance={adminClerkAppearance}
           />
         </div>
       </div>

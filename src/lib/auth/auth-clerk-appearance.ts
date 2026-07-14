@@ -26,3 +26,20 @@ export const authClerkAppearance: Appearance = {
     footerActionLink: "text-brand-600 hover:underline font-medium",
   },
 };
+
+/**
+ * Clerk theme for the admin sign-in page.
+ * Differences from base:
+ * - Google button centered (single social button, not a grid)
+ * - Sign-up footer link hidden (admin accounts are provisioned manually)
+ */
+export const adminClerkAppearance: Appearance = {
+  ...authClerkAppearance,
+  elements: {
+    ...authClerkAppearance.elements,
+    socialButtons: "flex justify-center",
+    socialButtonsBlockButton:
+      "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-lg text-sm font-medium h-10 px-6",
+    footerAction: "hidden",
+  },
+};
