@@ -21,7 +21,7 @@ export default async function AdminPartnersPage({
 
   const where = statusFilter ? { status: statusFilter as never } : {};
 
-  const [partners, total, pendingCount, activeCount] = await Promise.all([
+  const [partners, total, pendingCount, activeCount, blockedCount] = await Promise.all([
     prisma.partner.findMany({
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
       skip,
@@ -32,12 +32,14 @@ export default async function AdminPartnersPage({
     prisma.partner.count({ where }),
     prisma.partner.count({ where: { status: "pending_approval" } }),
     prisma.partner.count({ where: { status: "active" } }),
+    prisma.partner.count({ where: { status: "disabled" } }),
   ]);
 
   const statusTabs = [
     { label: "All Partners", value: undefined, count: total },
     { label: "Pending", value: "pending_approval", count: pendingCount },
     { label: "Active", value: "active", count: activeCount },
+    { label: "Blocked", value: "disabled", count: blockedCount },
   ];
 
   return (
