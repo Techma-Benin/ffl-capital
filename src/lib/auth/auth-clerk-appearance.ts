@@ -15,9 +15,9 @@ export const authClerkAppearance: Appearance = {
     headerTitle: "hidden",
     headerSubtitle: "hidden",
     formFieldRow__name: "gap-4",
-    socialButtons: "grid grid-cols-2 gap-3",
+    socialButtons: "flex justify-center",
     socialButtonsBlockButton:
-      "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-lg text-sm font-medium h-10",
+      "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-lg text-sm font-medium h-10 px-6",
     dividerRow: "my-4",
     formFieldInput: "form-input",
     formFieldLabel: "form-label",
