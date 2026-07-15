@@ -45,3 +45,7 @@ expertMode = true
 
 [userenv.shared]
 ADMIN_EMAILS = "bill.ahognonvi+admin@techma.ca"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 120000
