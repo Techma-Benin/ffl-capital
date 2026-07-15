@@ -314,7 +314,7 @@ export function PartnerWalletView({
                       <td className="font-medium text-slate-700">
                         ${t.balanceAfter.toFixed(2)}
                       </td>
-                      <td className="text-xs text-slate-400">
+                      <td className="text-xs text-slate-400" suppressHydrationWarning>
                         {new Date(t.createdAt).toLocaleString("en-US", {
                           month: "short",
                           day: "numeric",
