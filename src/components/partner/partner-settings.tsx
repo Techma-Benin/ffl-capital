@@ -1,15 +1,265 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { ActionButton } from "@/components/ui/action-button";
 import { StatusStrip } from "@/components/ui/status-strip";
+import { Badge } from "@/components/ui/badge";
 import { usePartner } from "@/components/partner/partner-provider";
 import {
   US_REGION_STATES,
   US_STATE_CODES,
 } from "@/lib/constants/us-states";
-import { WarningCircle, Check, MapPin, Gear, PlugsConnected } from "@phosphor-icons/react";
+import { WarningCircle, Check, MapPin, Gear, PlugsConnected, Funnel, CaretDown, CaretUp } from "@phosphor-icons/react";
+
+type PartnerFilterSet = {
+  id: string;
+  name: string;
+  leadType: string;
+  filterStates: string[];
+  active: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// Filter Sets section
+// ---------------------------------------------------------------------------
+
+function FilterSetEditor({
+  filterSet,
+  onSaved,
+  onClose,
+}: {
+  filterSet: PartnerFilterSet;
+  onSaved: (updated: PartnerFilterSet) => void;
+  onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<string[]>(filterSet.filterStates);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const selectedSet = new Set(selected);
+  const isEligible = selected.length >= 15;
+  const dirty =
+    selected.length !== filterSet.filterStates.length ||
+    !selected.every((s) => filterSet.filterStates.includes(s));
+
+  function toggleState(code: string) {
+    setSelected((prev) =>
+      prev.includes(code) ? prev.filter((s) => s !== code) : [...prev, code],
+    );
+    setSuccess(false);
+    setError("");
+  }
+
+  function selectAll(states: readonly string[]) {
+    setSelected([...states]);
+    setSuccess(false);
+    setError("");
+  }
+
+  async function save() {
+    if (selected.length < 15) {
+      setError("Select at least 15 target states.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/partners/filter-sets/${filterSet.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filterStates: selected }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Failed to save");
+        return;
+      }
+      setSuccess(true);
+      onSaved(data as PartnerFilterSet);
+    } catch {
+      setError("Request failed. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-5 space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => selectAll(US_STATE_CODES)} className="btn-secondary btn-sm">
+          Select All
+        </button>
+        <button type="button" onClick={() => selectAll([])} className="btn-secondary btn-sm">
+          Clear All
+        </button>
+        <button type="button" onClick={() => selectAll(US_REGION_STATES.southeast)} className="btn-secondary btn-sm">
+          Southeast
+        </button>
+        <button type="button" onClick={() => selectAll(US_REGION_STATES.northeast)} className="btn-secondary btn-sm">
+          Northeast
+        </button>
+        <button type="button" onClick={() => selectAll(US_REGION_STATES.midwest)} className="btn-secondary btn-sm">
+          Midwest
+        </button>
+        <button type="button" onClick={() => selectAll(US_REGION_STATES.west)} className="btn-secondary btn-sm">
+          West
+        </button>
+      </div>
+
+      <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+        {US_STATE_CODES.map((code) => {
+          const isSelected = selectedSet.has(code);
+          return (
+            <button
+              key={code}
+              type="button"
+              onClick={() => toggleState(code)}
+              className={`rounded px-1 py-1.5 text-[10px] font-bold transition-colors ${
+                isSelected
+                  ? "bg-brand-100 text-brand-700"
+                  : "bg-slate-50 text-slate-500 hover:bg-brand-50"
+              }`}
+            >
+              {code}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <span className={`text-sm font-semibold ${isEligible ? "text-emerald-600" : "text-amber-600"}`}>
+          {selected.length} / 50 selected
+        </span>
+        {!isEligible && (
+          <span className="text-xs text-amber-700">{15 - selected.length} more needed</span>
+        )}
+      </div>
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      {success && (
+        <p className="text-xs text-emerald-600 font-medium">States saved successfully.</p>
+      )}
+
+      <div className="flex gap-2">
+        <ActionButton
+          type="button"
+          loading={saving}
+          loadingText="Saving…"
+          disabled={!dirty || !isEligible}
+          onClick={save}
+        >
+          Save Changes
+        </ActionButton>
+        <button type="button" onClick={onClose} className="btn-secondary btn-sm">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FilterSetsSection() {
+  const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/partners/filter-sets");
+      if (!res.ok) throw new Error("Failed to load");
+      setFilterSets(await res.json());
+    } catch {
+      setLoadError("Could not load filter sets.");
+    }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  function handleSaved(updated: PartnerFilterSet) {
+    setFilterSets((prev) =>
+      prev ? prev.map((fs) => (fs.id === updated.id ? updated : fs)) : prev,
+    );
+  }
+
+  return (
+    <div className="mb-5 card overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
+        <Funnel size={16} className="text-slate-500" />
+        <h2 className="text-sm font-semibold text-slate-900">Filter Sets</h2>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
+          Targeting
+        </span>
+      </div>
+
+      {loadError && (
+        <p className="px-5 py-4 text-sm text-red-600">{loadError}</p>
+      )}
+
+      {filterSets === null && !loadError && (
+        <p className="px-5 py-4 text-sm text-slate-400">Loading…</p>
+      )}
+
+      {filterSets && filterSets.length === 0 && (
+        <p className="px-5 py-4 text-sm text-slate-400">No filter sets configured.</p>
+      )}
+
+      {filterSets && filterSets.length > 0 && (
+        <div>
+          {filterSets.map((fs) => {
+            const isExpanded = expandedId === fs.id;
+            const eligible = fs.filterStates.length >= 15;
+            return (
+              <div key={fs.id} className="border-b border-slate-100 last:border-b-0">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between px-5 py-3.5 text-left hover:bg-slate-50 transition-colors"
+                  onClick={() => setExpandedId(isExpanded ? null : fs.id)}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-sm font-medium text-slate-900 truncate">{fs.name}</span>
+                    <Badge variant={fs.active ? "green" : "slate"}>
+                      {fs.active ? "Active" : "Inactive"}
+                    </Badge>
+                    {!eligible && (
+                      <Badge variant="yellow">Below minimum</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                    <span className="text-xs text-slate-500">
+                      {fs.filterStates.length} state{fs.filterStates.length !== 1 ? "s" : ""}
+                    </span>
+                    {isExpanded
+                      ? <CaretUp size={14} className="text-slate-400" />
+                      : <CaretDown size={14} className="text-slate-400" />
+                    }
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <FilterSetEditor
+                    filterSet={fs}
+                    onSaved={handleSaved}
+                    onClose={() => setExpandedId(null)}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="border-t border-slate-100 px-5 py-3">
+        <p className="text-xs text-slate-400">
+          Each filter set targets a specific group of states. Contact your admin to add or remove filter sets.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 
 const US_STATE_NAMES: Record<string, string> = {
   AL:"Alabama", AK:"Alaska", AZ:"Arizona", AR:"Arkansas", CA:"California",
@@ -89,6 +339,8 @@ export function PartnerSettingsView() {
       patchPartner({
         filterStates: data.filterStates,
         hasEligibleFilterSet: data.hasEligibleFilterSet,
+        hasStatesInAnyFilterSet: data.hasStatesInAnyFilterSet,
+        maxFilterSetStates: data.maxFilterSetStates,
       });
       setStatesSuccess(true);
     } catch {
@@ -203,11 +455,13 @@ export function PartnerSettingsView() {
         </div>
       </div>
 
+      <FilterSetsSection />
+
       <div className="card p-5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-2">
             <MapPin size={16} className="text-slate-500" />
-            <h2 className="text-sm font-semibold text-slate-900">Target States</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Default Target States</h2>
           </div>
           <div className="flex items-center gap-3">
             <span

@@ -63,7 +63,12 @@ export async function POST(request: NextRequest) {
           name: "Default",
           leadType: parsed.data.leadType as LeadType,
           filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
-          active: status === PartnerStatus.active,
+          // Always start active so hasEligibleFilterSet is true from day one.
+          // The matching engine gates on partner.status separately, so this is
+          // safe for pending_approval partners — they won't receive leads until
+          // an admin approves them. If an admin rejects/disables the partner,
+          // syncFilterSetsActiveWithPartnerStatus will deactivate all sets.
+          active: true,
         },
       },
     },

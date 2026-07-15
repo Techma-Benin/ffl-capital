@@ -56,9 +56,9 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                 <ChecklistItem
                   done={statesOk}
                   label={
-                    partner.filterStates.length >= 15 && !statesOk
+                    partner.hasStatesInAnyFilterSet && !statesOk
                       ? "Target filter set must be active (contact admin if this persists)"
-                      : `At least 15 target states selected (${partner.filterStates.length} selected)`
+                      : `At least 15 target states selected (${partner.maxFilterSetStates} selected)`
                   }
                   actionHref="/partner/settings"
                   actionLabel="Edit states"
@@ -98,7 +98,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
         />
         <StatCard
           label="Target States"
-          value={partner.filterStates.length}
+          value={partner.maxFilterSetStates}
           variant="peach"
           icon={MapPin}
           subtitle={statesOk ? "Eligible for matching" : "Need 15+ to be eligible"}
@@ -140,7 +140,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           <div>
             <p className="font-semibold text-slate-900">Target States</p>
             <p className="text-xs text-slate-500">
-              {partner.filterStates.length} states • edit your targeting
+              {partner.maxFilterSetStates} states • edit your targeting
             </p>
           </div>
         </PortalLink>

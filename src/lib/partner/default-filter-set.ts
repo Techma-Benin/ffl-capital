@@ -93,8 +93,29 @@ export async function syncFilterSetsActiveWithPartnerStatus(
   status: PartnerStatus,
   client: DbClient = prisma,
 ): Promise<void> {
+  if (status === PartnerStatus.active) {
+    // Only activate sets that meet the matching min-states bar. Sets below the
+    // threshold (or ones an admin deliberately deactivated) stay inactive.
+    const eligible = await client.partnerFilterSet.findMany({
+      where: { partnerId },
+      select: { id: true, filterStates: true },
+    });
+    const eligibleIds = eligible
+      .filter((fs) => fs.filterStates.length >= MIN_FILTER_STATES)
+      .map((fs) => fs.id);
+
+    if (eligibleIds.length > 0) {
+      await client.partnerFilterSet.updateMany({
+        where: { id: { in: eligibleIds } },
+        data: { active: true },
+      });
+    }
+    return;
+  }
+
+  // Any non-active partner status deactivates all filter sets.
   await client.partnerFilterSet.updateMany({
     where: { partnerId },
-    data: { active: status === PartnerStatus.active },
+    data: { active: false },
   });
 }
