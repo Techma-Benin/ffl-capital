@@ -7,7 +7,11 @@ import {
   SidebarCollapseButton,
   useSidebarEmptyAreaClick,
 } from "@/components/ui/sidebar-toggle";
-import { SidebarUserButton } from "@/components/ui/sidebar-user-button";
+import dynamic from "next/dynamic";
+const SidebarUserButton = dynamic(
+  () => import("@/components/ui/sidebar-user-button").then((m) => m.SidebarUserButton),
+  { ssr: false }
+);
 import {
   SquaresFour,
   Users,
