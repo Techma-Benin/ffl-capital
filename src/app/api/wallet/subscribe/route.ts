@@ -98,3 +98,38 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ url: session.url });
 }
+
+export async function DELETE(_request: NextRequest) {
+  const authResult = await requirePartner();
+  if ("error" in authResult) {
+    return NextResponse.json({ error: authResult.error }, { status: 403 });
+  }
+
+  if (!isStripeConfigured()) {
+    return NextResponse.json(
+      { error: "Stripe is not configured on this environment" },
+      { status: 503 },
+    );
+  }
+
+  const existing = await prisma.billingRecurrence.findFirst({
+    where: { partnerId: authResult.partner.id, active: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "No active subscription found" }, { status: 404 });
+  }
+
+  if (existing.stripeSubscriptionId) {
+    const stripe = getStripe();
+    await stripe.subscriptions.cancel(existing.stripeSubscriptionId);
+  }
+
+  await prisma.billingRecurrence.update({
+    where: { id: existing.id },
+    data: { active: false, nextChargeAt: null },
+  });
+
+  return NextResponse.json({ success: true });
+}

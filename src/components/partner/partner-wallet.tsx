@@ -55,6 +55,8 @@ export function PartnerWalletView({
 
   const [checkoutPending, setCheckoutPending] = useState(false);
   const [subscribePending, setSubscribePending] = useState(false);
+  const [cancelPending, setCancelPending] = useState(false);
+  const [cancelConfirm, setCancelConfirm] = useState(false);
   const [weeklyAmount, setWeeklyAmount] = useState("500");
 
   async function startCheckout() {
@@ -73,6 +75,22 @@ export function PartnerWalletView({
       // allow retry
     } finally {
       setCheckoutPending(false);
+    }
+  }
+
+  async function cancelSubscription() {
+    setCancelPending(true);
+    try {
+      const res = await fetch("/api/wallet/subscribe", { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Cancel failed");
+      }
+      // Refresh the page to reflect cancelled state
+      window.location.reload();
+    } catch {
+      setCancelPending(false);
+      setCancelConfirm(false);
     }
   }
 
@@ -225,19 +243,54 @@ export function PartnerWalletView({
               </div>
             </div>
             {subscription?.active ? (
-              <div className="mb-4 rounded-lg bg-accent-50 p-3">
-                <p className="text-sm font-semibold text-accent-800">
-                  Active — ${subscription.amount.toFixed(2)}/week
-                </p>
-                {subscription.nextChargeAt && (
-                  <p className="mt-1 text-xs text-accent-700">
-                    Next charge:{" "}
-                    {new Date(subscription.nextChargeAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+              <div className="mb-4">
+                <div className="rounded-lg bg-accent-50 p-3">
+                  <p className="text-sm font-semibold text-accent-800">
+                    Active — ${subscription.amount.toFixed(2)}/week
                   </p>
+                  {subscription.nextChargeAt && (
+                    <p className="mt-1 text-xs text-accent-700">
+                      Next charge:{" "}
+                      {new Date(subscription.nextChargeAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
+                </div>
+                {cancelConfirm ? (
+                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p className="mb-2 text-xs font-medium text-red-700">
+                      Cancel your weekly auto-recharge? No further charges will be made.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={cancelSubscription}
+                        disabled={cancelPending}
+                        className="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {cancelPending ? "Cancelling…" : "Yes, cancel"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCancelConfirm(false)}
+                        disabled={cancelPending}
+                        className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        Keep active
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCancelConfirm(true)}
+                    className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    Cancel auto-recharge
+                  </button>
                 )}
               </div>
             ) : (
