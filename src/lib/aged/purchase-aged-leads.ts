@@ -2,7 +2,6 @@ import {
   DeliveryChannel,
   LeadEventType,
   LeadStatus,
-  LeadType,
   PartnerStatus,
   TransactionType,
 } from "@prisma/client";
@@ -65,16 +64,13 @@ async function purchaseSingleAgedLead(
   partnerId: string,
   leadId: string,
   filterStates: string[],
-  partnerLeadType: LeadType,
+  partnerLeadType: string,
   agedPrice: number,
 ): Promise<string> {
   const agedWhere = await buildAgedLeadWhere();
   const result = await prisma.$transaction(async (tx) => {
     const lead = await tx.lead.findFirst({
-      where: {
-        id: leadId,
-        ...agedWhere,
-      },
+      where: { id: leadId, ...agedWhere },
     });
 
     if (!lead) throw new Error("Lead not available for aged purchase");

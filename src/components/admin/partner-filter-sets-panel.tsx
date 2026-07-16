@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PencilSimple, Plus, Trash, CaretDown, CaretUp } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
@@ -27,7 +27,7 @@ export type FilterSetRow = {
 
 type FilterSetFormData = {
   name: string;
-  leadType: "traditional_iul" | "high_intent_iul";
+  leadType: string;
   filterStates: string[];
   priority: number;
   priceOverride: string;
@@ -56,7 +56,7 @@ function emptyForm(defaultStates: string[]): FilterSetFormData {
 function toFormData(fs: FilterSetRow): FilterSetFormData {
   return {
     name: fs.name,
-    leadType: fs.leadType as FilterSetFormData["leadType"],
+    leadType: fs.leadType,
     filterStates: [...fs.filterStates],
     priority: fs.priority,
     priceOverride: fs.priceOverride != null ? String(fs.priceOverride) : "",
@@ -306,6 +306,8 @@ function AdvancedFiltersAccordion({
   );
 }
 
+type CategoryOption = { type: string; label: string };
+
 // ---------------------------------------------------------------------------
 // Filter Set Form
 // ---------------------------------------------------------------------------
@@ -314,12 +316,14 @@ function FilterSetForm({
   partnerId,
   filterSetId,
   initial,
+  categories,
   onCancel,
   onSaved,
 }: {
   partnerId: string;
   filterSetId?: string;
   initial: FilterSetFormData;
+  categories: CategoryOption[];
   onCancel: () => void;
   onSaved: () => void;
 }) {
@@ -407,15 +411,17 @@ function FilterSetForm({
           <select
             className="form-select"
             value={form.leadType}
-            onChange={(e) =>
-              setForm((p) => ({
-                ...p,
-                leadType: e.target.value as FilterSetFormData["leadType"],
-              }))
-            }
+            onChange={(e) => setForm((p) => ({ ...p, leadType: e.target.value }))}
           >
-            <option value="traditional_iul">Traditional IUL</option>
-            <option value="high_intent_iul">High Intent IUL</option>
+            {categories.length === 0 ? (
+              <option value={form.leadType}>{form.leadType}</option>
+            ) : (
+              categories.map((c) => (
+                <option key={c.type} value={c.type}>
+                  {c.label}
+                </option>
+              ))
+            )}
           </select>
         </div>
         <div>
@@ -573,6 +579,23 @@ export function PartnerFilterSetsPanel({
   const [mode, setMode] = useState<"none" | "create" | "edit">("none");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+
+  useEffect(() => {
+    fetch("/api/admin/lead-categories")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.categories)) {
+          setCategories(
+            data.categories.map((c: { type: string; label: string }) => ({
+              type: c.type,
+              label: c.label,
+            })),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   function handleSaved() {
     setMode("none");
@@ -620,6 +643,7 @@ export function PartnerFilterSetsPanel({
         <FilterSetForm
           partnerId={partnerId}
           initial={emptyForm(defaultStates)}
+          categories={categories}
           onCancel={() => setMode("none")}
           onSaved={handleSaved}
         />
@@ -630,6 +654,7 @@ export function PartnerFilterSetsPanel({
           partnerId={partnerId}
           filterSetId={editingFilterSet.id}
           initial={toFormData(editingFilterSet)}
+          categories={categories}
           onCancel={() => {
             setMode("none");
             setEditingId(null);
@@ -662,7 +687,7 @@ export function PartnerFilterSetsPanel({
                   <td className="font-medium">{fs.name}</td>
                   <td>
                     <Badge variant="blue">
-                      {fs.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                      {categories.find((c) => c.type === fs.leadType)?.label ?? fs.leadType}
                     </Badge>
                   </td>
                   <td>{fs.filterStates.length}</td>

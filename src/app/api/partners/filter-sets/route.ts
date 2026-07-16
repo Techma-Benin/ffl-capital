@@ -31,7 +31,7 @@ const filterCriteriaSchema = z
 
 const createSchema = z.object({
   name: z.string().min(1).max(100),
-  leadType: z.enum(["traditional_iul", "high_intent_iul"]),
+  leadType: z.string().min(1),
   filterStates: z.array(stateCodeSchema).min(1).max(50),
   priority: z.number().int().min(1).max(10).default(5),
   active: z.boolean().default(true),

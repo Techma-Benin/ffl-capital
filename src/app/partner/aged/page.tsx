@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { LeadType, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PartnerAgedView } from "@/components/partner/partner-aged";
@@ -30,7 +30,7 @@ export default async function PartnerAgedPage({
   };
 
   if (searchParams.state) extra.state = searchParams.state;
-  if (searchParams.type) extra.leadType = searchParams.type as LeadType;
+  if (searchParams.type) extra.leadType = searchParams.type;
 
   if (searchParams.age) {
     const minDays = Number(searchParams.age);

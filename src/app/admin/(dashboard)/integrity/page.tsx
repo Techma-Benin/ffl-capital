@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Shield } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
+import { IntegrityTestPanel } from "@/components/admin/integrity-test-panel";
 
 export default async function AdminIntegrityPage() {
   const postings = await prisma.resalePosting.findMany({
@@ -13,11 +14,13 @@ export default async function AdminIntegrityPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title="Integrity Postings"
-        subtitle="Leads posted to IntegrityCONNECT after 24h unmatched"
+        title="Integrity Connect"
+        subtitle="Test the connection and monitor leads posted to IntegrityCONNECT"
       />
+
+      <IntegrityTestPanel />
 
       <div className="card">
         <div className="overflow-x-auto">

@@ -8,10 +8,8 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum LeadType {
-  traditional_iul
-  high_intent_iul
-}
+// LeadType enum removed — lead classification now lives in the
+// lead_categories table. leadType columns are plain strings.
 
 enum PartnerStatus {
   pending_approval
@@ -36,6 +34,9 @@ enum LeadEventType {
   delivery_failed
   refunded
   integrity_posted
+  integrity_accepted
+  integrity_rejected
+  integrity_error
   aged_purchased
   reprocessed
   duplicate_rejected
@@ -102,6 +103,24 @@ enum BillingInterval {
   weekly
 }
 
+/// Single source of truth for all lead classification.
+/// `type` is the immutable internal key (set at creation, never editable).
+/// `src` is the LeadConduit SRC field value that maps to this category.
+/// `integrityLabel` is the exact string Integrity Connect requires for lead_type_thom.
+model LeadCategory {
+  id              String   @id @default(uuid()) @db.Uuid
+  type            String   @unique
+  src             String?
+  label           String
+  defaultPrice    Decimal? @map("default_price") @db.Decimal(10, 2)
+  enabled         Boolean  @default(true)
+  integrityLabel  String?  @map("integrity_label")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("lead_categories")
+}
+
 model Partner {
   id               String        @id @default(uuid()) @db.Uuid
   clerkUserId      String?       @unique @map("clerk_user_id")
@@ -110,7 +129,7 @@ model Partner {
   lastName         String        @map("last_name")
   affiliation      String?
   residenceState   String        @map("residence_state")
-  leadType         LeadType      @map("lead_type")
+  leadType         String        @map("lead_type")
   filterStates     String[]      @map("filter_states")
   priority         Int           @default(5)
   priceOverride    Decimal?      @map("price_override") @db.Decimal(10, 2)
@@ -141,7 +160,7 @@ model PartnerFilterSet {
   id              String                   @id @default(uuid()) @db.Uuid
   partnerId       String                   @map("partner_id") @db.Uuid
   name            String                   @default("Default")
-  leadType        LeadType                 @map("lead_type")
+  leadType        String                   @map("lead_type")
   filterStates    String[]                 @map("filter_states")
   priority        Int                      @default(5)
   priceOverride   Decimal?                 @map("price_override") @db.Decimal(10, 2)
@@ -173,7 +192,7 @@ model Lead {
   zip                     String?
   dob                     String?
   age                     String?
-  leadType                LeadType   @map("lead_type")
+  leadType                String     @map("lead_type")
   intent                  String?
   haveIul                 String?    @map("have_iul")
   primaryGoal             String?    @map("primary_goal")
@@ -331,7 +350,7 @@ model FilterSetTemplate {
   id           String   @id @default(uuid()) @db.Uuid
   name         String
   description  String?
-  leadType     LeadType @map("lead_type")
+  leadType     String   @map("lead_type")
   filterStates String[] @map("filter_states")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")

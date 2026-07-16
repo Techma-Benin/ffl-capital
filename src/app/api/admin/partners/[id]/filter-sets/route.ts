@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LeadType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
@@ -25,7 +24,7 @@ const filterCriteriaSchema = z
 
 const filterSetSchema = z.object({
   name: z.string().min(1).default("Default"),
-  leadType: z.enum(["traditional_iul", "high_intent_iul"]),
+  leadType: z.string().min(1),
   filterStates: z.array(z.string().length(2)).min(15),
   priority: z.number().int().min(1).max(10).optional(),
   priceOverride: z.number().positive().nullable().optional(),
@@ -77,7 +76,7 @@ export async function POST(
     data: {
       partnerId: params.id,
       name: parsed.data.name,
-      leadType: parsed.data.leadType as LeadType,
+      leadType: parsed.data.leadType,
       filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
       priority: parsed.data.priority ?? 5,
       priceOverride: parsed.data.priceOverride,

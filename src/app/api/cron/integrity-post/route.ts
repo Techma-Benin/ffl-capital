@@ -3,16 +3,16 @@ import { LeadStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { verifyCronSecret } from "@/lib/cron/auth";
 import { integrityPostLead } from "@/lib/integrity/post";
-
-const REPROCESS_WINDOW_HOURS = 24;
+import { getIntegrityPostDelayHours } from "@/lib/settings/app-settings";
 
 export async function POST(request: NextRequest) {
   if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const delayHours = await getIntegrityPostDelayHours();
   const cutoff = new Date();
-  cutoff.setHours(cutoff.getHours() - REPROCESS_WINDOW_HOURS);
+  cutoff.setHours(cutoff.getHours() - delayHours);
 
   const leads = await prisma.lead.findMany({
     where: {

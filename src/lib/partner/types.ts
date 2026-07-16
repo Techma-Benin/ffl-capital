@@ -1,4 +1,4 @@
-import type { LeadType, PartnerStatus } from "@prisma/client";
+import type { PartnerStatus } from "@prisma/client";
 
 /** Client-safe partner profile held in session context. */
 export type PartnerSession = {
@@ -8,7 +8,7 @@ export type PartnerSession = {
   lastName: string;
   affiliation: string | null;
   residenceState: string;
-  leadType: LeadType;
+  leadType: string;
   filterStates: string[];
   /** True when an active filter set meets matching min-states eligibility. */
   hasEligibleFilterSet: boolean;

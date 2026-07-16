@@ -17,7 +17,7 @@ export type FilterListRow = {
     id: string;
     partnerId: string;
     name: string;
-    leadType: "traditional_iul" | "high_intent_iul";
+    leadType: string;
     filterStates: string[];
     priority: number;
     priceOverride: string | null;
@@ -41,7 +41,7 @@ export type FilterListRow = {
 
 type EditForm = {
   name: string;
-  leadType: "traditional_iul" | "high_intent_iul";
+  leadType: string;
   filterStates: string[];
   priority: number;
   priceOverride: string;

@@ -13,20 +13,12 @@ const settingsSchema = z.object({
   trustedformValidationEnabled: z.boolean().optional(),
   duplicateCheckEnabled: z.boolean().optional(),
   duplicateCheckWindowDays: z.number().int().positive().optional(),
-  leadTypeConfigs: z.record(z.object({
-    defaultPrice: z.number().nonnegative().optional(),
-    retentionDays: z.number().int().positive().optional(),
-    active: z.boolean().optional(),
-  })).optional(),
-  sourceVendorConfigs: z.record(z.object({
-    label: z.string().optional(),
-    matchingEnabled: z.boolean().optional(),
-  })).optional(),
   resaleVendorConfigs: z.record(z.object({
     pingUrl: z.string().optional(),
     postUrl: z.string().optional(),
     enabled: z.boolean().optional(),
   })).optional(),
+  integrityPostDelayHours: z.number().int().min(1).optional(),
 });
 
 const KEY_MAP: Record<string, string> = {
@@ -38,9 +30,8 @@ const KEY_MAP: Record<string, string> = {
   trustedformValidationEnabled: APP_SETTING_KEYS.trustedformValidationEnabled,
   duplicateCheckEnabled: APP_SETTING_KEYS.duplicateCheckEnabled,
   duplicateCheckWindowDays: APP_SETTING_KEYS.duplicateCheckWindowDays,
-  leadTypeConfigs: APP_SETTING_KEYS.leadTypeConfigs,
-  sourceVendorConfigs: APP_SETTING_KEYS.sourceVendorConfigs,
   resaleVendorConfigs: APP_SETTING_KEYS.resaleVendorConfigs,
+  integrityPostDelayHours: APP_SETTING_KEYS.integrityPostDelayHours,
 };
 
 export async function GET() {
@@ -50,9 +41,7 @@ export async function GET() {
   }
 
   const rows = await prisma.appSetting.findMany({
-    where: {
-      key: { in: Object.values(APP_SETTING_KEYS) },
-    },
+    where: { key: { in: Object.values(APP_SETTING_KEYS) } },
   });
 
   const settings = Object.fromEntries(rows.map((r) => [r.key, r.value]));

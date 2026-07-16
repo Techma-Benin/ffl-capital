@@ -34,7 +34,13 @@ export class IntakeRejectedError extends Error {
 export async function processLeadIntake(
   payload: IntakePayload,
 ): Promise<IntakeResult> {
-  const normalized = normalizeLead(payload);
+  // Load enabled categories from DB to drive SRC → leadType resolution
+  const categories = await prisma.leadCategory.findMany({
+    where: { enabled: true },
+    select: { type: true, src: true },
+  });
+
+  const normalized = normalizeLead(payload, categories);
 
   // Idempotency: safe retry on same externalId
   if (normalized.externalId) {
@@ -150,8 +156,6 @@ export async function processLeadIntake(
       reason: matchResult.reason,
     };
   } catch (err) {
-    // Lead is already persisted — do not fail intake if matching/tx flakes
-    // (common with Supabase pooler: P2028 "Transaction not found").
     console.error("[intake] matchLead failed after create:", err);
     return {
       leadId: lead.id,

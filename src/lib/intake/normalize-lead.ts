@@ -1,5 +1,9 @@
-import { LeadType } from "@prisma/client";
 import type { IntakePayload } from "./validate-intake";
+
+export interface LeadCategoryLookup {
+  type: string;
+  src: string | null;
+}
 
 export interface NormalizedLead {
   firstName: string;
@@ -12,7 +16,7 @@ export interface NormalizedLead {
   zip: string | null;
   dob: string | null;
   age: string | null;
-  leadType: LeadType;
+  leadType: string;
   intent: string | null;
   haveIul: string | null;
   primaryGoal: string | null;
@@ -32,40 +36,75 @@ export interface NormalizedLead {
   rawPayload: Record<string, unknown>;
 }
 
+/**
+ * Resolves a lead type string from the LeadCategory table.
+ *
+ * Priority:
+ * 1. Exact `src` match against a known LeadCategory
+ * 2. Intent field signals (fallback to seeded type strings)
+ * 3. Partial SRC substring (fallback)
+ * 4. Default: "traditional_iul"
+ */
 function resolveLeadType(
   intent: string | undefined,
   source: string | undefined,
-): LeadType {
+  categories: LeadCategoryLookup[],
+): string {
+  // 1. Exact SRC lookup against configured categories
+  if (source) {
+    const match = categories.find((c) => c.src === source);
+    if (match) return match.type;
+  }
+
+  // 2. Intent field signals
   if (intent) {
     const normalized = intent.toLowerCase().trim();
     if (normalized.includes("high intent") || normalized === "high_intent") {
-      return LeadType.high_intent_iul;
+      return "high_intent_iul";
     }
     if (normalized.includes("traditional")) {
-      return LeadType.traditional_iul;
+      return "traditional_iul";
+    }
+    if (normalized.includes("mortgage protection")) {
+      return "mortgage_protection";
+    }
+    if (normalized.includes("final expense")) {
+      return "final_expense";
     }
   }
 
+  // 3. Partial SRC substring fallback
   if (source) {
     const src = source.toLowerCase();
     if (src.includes("highintent") || src.includes("high_intent")) {
-      return LeadType.high_intent_iul;
+      return "high_intent_iul";
+    }
+    if (src.includes("mortgage")) {
+      return "mortgage_protection";
+    }
+    if (
+      src.includes("veteran") ||
+      src.includes("final_expense") ||
+      src.includes("finalexpense")
+    ) {
+      return "final_expense";
     }
   }
 
-  return LeadType.traditional_iul;
+  return "traditional_iul";
 }
 
-function pickString(
-  ...values: (string | undefined)[]
-): string | null {
+function pickString(...values: (string | undefined)[]): string | null {
   for (const v of values) {
     if (v !== undefined && v !== "") return v;
   }
   return null;
 }
 
-export function normalizeLead(payload: IntakePayload): NormalizedLead {
+export function normalizeLead(
+  payload: IntakePayload,
+  categories: LeadCategoryLookup[] = [],
+): NormalizedLead {
   const firstName = (payload.First_Name ?? payload.firstName)!;
   const lastName = (payload.Last_Name ?? payload.lastName)!;
   const email = (payload.Email ?? payload.email)!;
@@ -90,7 +129,7 @@ export function normalizeLead(payload: IntakePayload): NormalizedLead {
     zip: pickString(payload.Zip, payload.zip),
     dob: pickString(payload.DOB, payload.dob),
     age: pickString(payload.Age, payload.age),
-    leadType: resolveLeadType(intent ?? undefined, source),
+    leadType: resolveLeadType(intent ?? undefined, source, categories),
     intent,
     haveIul: pickString(payload.Have_IUL, payload.haveIul),
     primaryGoal: pickString(payload.Primary_Goal, payload.primaryGoal),

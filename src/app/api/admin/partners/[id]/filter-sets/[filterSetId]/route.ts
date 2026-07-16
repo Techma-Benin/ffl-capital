@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LeadType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
@@ -25,7 +24,7 @@ const filterCriteriaSchema = z
 
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
-  leadType: z.enum(["traditional_iul", "high_intent_iul"]).optional(),
+  leadType: z.string().min(1).optional(),
   filterStates: z.array(z.string().length(2)).min(15).optional(),
   priority: z.number().int().min(1).max(10).optional(),
   priceOverride: z.number().positive().nullable().optional(),
@@ -82,9 +81,7 @@ export async function PATCH(
     where: { id: params.filterSetId },
     data: {
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
-      ...(parsed.data.leadType !== undefined
-        ? { leadType: parsed.data.leadType as LeadType }
-        : {}),
+      ...(parsed.data.leadType !== undefined ? { leadType: parsed.data.leadType } : {}),
       ...(parsed.data.filterStates !== undefined
         ? { filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()) }
         : {}),

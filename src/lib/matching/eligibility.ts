@@ -1,6 +1,5 @@
 import {
   Lead,
-  LeadType,
   Partner,
   PartnerFilterSet,
   PartnerStatus,
@@ -113,7 +112,7 @@ export function isFilterSetEligibleForLead(
   filterSet: PartnerFilterSet,
   partner: Partner,
   leadState: string,
-  leadType: LeadType,
+  leadType: string,
   effectivePrice: number,
   lead?: Lead,
 ): boolean {
@@ -173,9 +172,18 @@ async function isWithinLimits(filterSet: PartnerFilterSet): Promise<boolean> {
 
 export async function findEligibleFilterSets(
   leadState: string,
-  leadType: LeadType,
+  leadType: string,
   options?: { excludePartnerIds?: string[]; lead?: Lead },
 ): Promise<FilterSetWithPartner[]> {
+  // Skip matching if the category is disabled
+  const category = await prisma.leadCategory.findUnique({
+    where: { type: leadType },
+    select: { enabled: true },
+  });
+  if (!category || !category.enabled) {
+    return [];
+  }
+
   const defaultPrice = await getDefaultRealtimePrice();
   const exclude = new Set(options?.excludePartnerIds ?? []);
 
@@ -223,7 +231,7 @@ export async function findEligibleFilterSets(
 /** @deprecated Use findEligibleFilterSets */
 export async function findEligiblePartners(
   leadState: string,
-  leadType: LeadType,
+  leadType: string,
   options?: { excludePartnerIds?: string[] },
 ): Promise<Array<Partner & { effectivePrice: number }>> {
   const filterSets = await findEligibleFilterSets(leadState, leadType, options);

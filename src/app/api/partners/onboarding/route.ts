@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
-import { LeadType, PartnerStatus } from "@prisma/client";
+import { PartnerStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { isAdminApprovalRequired } from "@/lib/auth/session";
@@ -29,7 +29,7 @@ const onboardingSchema = z.object({
   lastName: z.string().min(1),
   affiliation: z.string().min(1),
   residenceState: z.string().length(2),
-  leadType: z.enum(["traditional_iul", "high_intent_iul"]),
+  leadType: z.string().min(1),
   filterStates: z.array(z.string().length(2)).min(15),
   weeklyLimit: z.number().int().positive().nullable().optional(),
   monthlyLimit: z.number().int().positive().nullable().optional(),
@@ -77,13 +77,13 @@ export async function POST(request: NextRequest) {
       lastName: parsed.data.lastName,
       affiliation: parsed.data.affiliation,
       residenceState: parsed.data.residenceState.toUpperCase(),
-      leadType: parsed.data.leadType as LeadType,
+      leadType: parsed.data.leadType,
       filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
       status,
       filterSets: {
         create: {
           name: "Default",
-          leadType: parsed.data.leadType as LeadType,
+          leadType: parsed.data.leadType,
           filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
           weeklyLimit: parsed.data.weeklyLimit ?? null,
           monthlyLimit: parsed.data.monthlyLimit ?? null,

@@ -10,20 +10,9 @@ export const APP_SETTING_KEYS = {
   trustedformValidationEnabled: "trustedform_validation_enabled",
   duplicateCheckEnabled: "duplicate_check_enabled",
   duplicateCheckWindowDays: "duplicate_check_window_days",
-  leadTypeConfigs: "lead_type_configs",
-  sourceVendorConfigs: "source_vendor_configs",
   resaleVendorConfigs: "resale_vendor_configs",
+  integrityPostDelayHours: "integrity_post_delay_hours",
 } as const;
-
-export interface LeadTypeConfig {
-  defaultPrice?: number;
-  retentionDays?: number;
-}
-
-export interface SourceVendorConfig {
-  label?: string;
-  matchingEnabled?: boolean;
-}
 
 export interface ResaleVendorConfig {
   pingUrl?: string;
@@ -69,22 +58,18 @@ export async function getDuplicateCheckWindowDays(): Promise<number> {
   return getSetting(APP_SETTING_KEYS.duplicateCheckWindowDays, 30);
 }
 
-export async function getLeadTypeConfigs(): Promise<
-  Record<string, LeadTypeConfig>
-> {
-  return getSetting(APP_SETTING_KEYS.leadTypeConfigs, {});
-}
-
-export async function getSourceVendorConfigs(): Promise<
-  Record<string, SourceVendorConfig>
-> {
-  return getSetting(APP_SETTING_KEYS.sourceVendorConfigs, {});
-}
-
 export async function getResaleVendorConfigs(): Promise<
   Record<string, ResaleVendorConfig>
 > {
   return getSetting(APP_SETTING_KEYS.resaleVendorConfigs, {});
+}
+
+/**
+ * Hours a lead must sit unmatched before the cron job sends it to Integrity Connect.
+ * Defaults to 24 hours.
+ */
+export async function getIntegrityPostDelayHours(): Promise<number> {
+  return getSetting(APP_SETTING_KEYS.integrityPostDelayHours, 24);
 }
 
 export async function seedAppSettings(): Promise<void> {
@@ -97,9 +82,8 @@ export async function seedAppSettings(): Promise<void> {
     { key: APP_SETTING_KEYS.trustedformValidationEnabled, value: false },
     { key: APP_SETTING_KEYS.duplicateCheckEnabled, value: true },
     { key: APP_SETTING_KEYS.duplicateCheckWindowDays, value: 30 },
-    { key: APP_SETTING_KEYS.leadTypeConfigs, value: {} },
-    { key: APP_SETTING_KEYS.sourceVendorConfigs, value: {} },
     { key: APP_SETTING_KEYS.resaleVendorConfigs, value: {} },
+    { key: APP_SETTING_KEYS.integrityPostDelayHours, value: 24 },
   ];
 
   for (const { key, value } of defaults) {

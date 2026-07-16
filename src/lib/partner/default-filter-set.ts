@@ -1,5 +1,4 @@
 import {
-  LeadType,
   PartnerFilterSet,
   PartnerStatus,
   Prisma,
@@ -52,7 +51,7 @@ export async function listPartnerFilterSets(
 export async function syncDefaultFilterSetStates(params: {
   partnerId: string;
   filterStates: string[];
-  leadType: LeadType;
+  leadType: string;
   partnerStatus: PartnerStatus;
   client?: DbClient;
 }): Promise<PartnerFilterSet> {

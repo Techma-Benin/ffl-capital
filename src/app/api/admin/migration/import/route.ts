@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LeadType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import { getPartnerId } from "@/lib/partner/session";
@@ -31,10 +30,10 @@ function pick(row: Record<string, string>, ...keys: string[]): string | null {
   return null;
 }
 
-function normalizeLeadType(value: string, intent?: string | null, source?: string | null): LeadType {
+function normalizeLeadType(value: string, intent?: string | null, source?: string | null): string {
   const combined = [value, intent, source].filter(Boolean).join(" ").toLowerCase();
-  if (combined.includes("high")) return LeadType.high_intent_iul;
-  return LeadType.traditional_iul;
+  if (combined.includes("high")) return "high_intent_iul";
+  return "traditional_iul";
 }
 
 function resolveBoberdooLeadType(row: Record<string, string>): string | null {

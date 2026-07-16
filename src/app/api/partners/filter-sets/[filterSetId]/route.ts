@@ -30,7 +30,7 @@ const filterCriteriaSchema = z
 
 const patchSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  leadType: z.enum(["traditional_iul", "high_intent_iul"]).optional(),
+  leadType: z.string().min(1).optional(),
   filterStates: z
     .array(stateCodeSchema)
     .min(1) // min enforced conditionally below for active sets

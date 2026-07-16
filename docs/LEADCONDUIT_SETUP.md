@@ -1,17 +1,20 @@
-# LeadConduit / ActiveProspect — local connection guide
+# LeadConduit / ActiveProspect — Setup & Integration Guide
 
-> How to receive real leads from LeadConduit in local dev, and cut over from Boberdoo in production.
+> How to receive real leads from LeadConduit, secure the intake endpoint, post leads to Integrity Connect, and verify the integration end-to-end.
 
 ---
 
-## What ActiveProspect is
+## Table of Contents
 
-**ActiveProspect** is the vendor behind:
-
-- **LeadConduit** — middleware that receives form submissions (e.g. from Meta Lead Ads), enriches them, and **POSTs** them to a recipient URL.
-- **TrustedForm** — consent certificate script embedded on landing pages. The certificate URL is included in the lead payload; our app **stores** it but does **not** generate it.
-
-Our platform **does not pull** leads from ActiveProspect. It **only receives** HTTP POSTs at a public URL.
+1. [Intake endpoint](#intake-endpoint)
+2. [Securing the endpoint](#securing-the-endpoint)
+3. [Field mapping tables](#field-mapping-tables)
+4. [Posting to Integrity Connect](#posting-to-integrity-connect)
+5. [Integrity response webhook](#integrity-response-webhook)
+6. [Testing with is_test=yes](#testing-with-is_testyes)
+7. [Local development](#local-development)
+8. [Production cutover](#production-cutover)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -21,7 +24,7 @@ Our platform **does not pull** leads from ActiveProspect. It **only receives** H
 |------|--------|
 | Method | `POST` |
 | Path | `/api/leads/intake` |
-| Auth | None (public webhook; CORS enabled for LeadConduit) |
+| Auth | `X-Api-Key` header (see [Securing the endpoint](#securing-the-endpoint)) |
 | Content-Type | `application/json` |
 
 ### Success response (LeadConduit contract)
@@ -33,37 +36,221 @@ Our platform **does not pull** leads from ActiveProspect. It **only receives** H
 }
 ```
 
-On validation or business errors, the API returns `{ "outcome": "error", "reason": "…" }` with an appropriate HTTP status.
-
-### Payload format
-
-Use **Boberdoo field names** (underscores). Example fields:
-
-| Boberdoo field | Purpose |
-|----------------|---------|
-| `First_Name`, `Last_Name` | Contact |
-| `Email`, `Primary_Phone` | Contact |
-| `State` or `State_You_Currently_Live_In` | US state (matching) |
-| `Intent` | `"High Intent"` → high-intent IUL |
-| `Trusted_Form_URL` | TrustedForm certificate URL |
-| `Unique_Identifier` | Idempotency / duplicate detection |
-| `Lead_Type`, `SRC`, `Landing_Page`, `Sub_ID`, `Pub_ID` | Tracking |
-
-Full example: `fixtures/boberdoo_iul_submit_lead.example.json`
-
-### What happens after intake
-
-1. Validate + normalize payload  
-2. Duplicate check (by `Unique_Identifier` / phone+email)  
-3. Optional TrustedForm URL validation  
-4. Persist lead → matching engine → wallet debit → email + CRM/Ringy delivery  
-5. Unmatched leads → cron reprocess (< 24h) → Integrity post (> 24h)
+On validation or business errors: `{ "outcome": "error", "reason": "…" }` with an appropriate HTTP status.
 
 ---
 
-## Local development without LeadConduit
+## Securing the endpoint
 
-You do **not** need LeadConduit or ngrok to develop the intake pipeline.
+The intake endpoint validates an `X-Api-Key` header against the `LEADCONDUIT_WEBHOOK_SECRET` environment variable.
+
+### Server setup
+
+1. Generate a strong random secret:
+   ```bash
+   openssl rand -hex 32
+   ```
+2. Set `LEADCONDUIT_WEBHOOK_SECRET` in your environment (Replit Secrets / production env).
+3. When the env var is **not set**, the check is skipped — safe for local dev.
+
+### LeadConduit configuration
+
+In the LeadConduit flow's **delivery settings**:
+
+1. Open the recipient/delivery step for your flow.
+2. Under **Headers**, add a custom header:
+   - **Name:** `X-Api-Key`
+   - **Value:** the secret you generated above
+3. Save and test the flow.
+
+### Response on unauthorized
+
+```json
+{ "outcome": "error", "reason": "Unauthorized" }
+```
+HTTP status: `401`
+
+---
+
+## Field mapping tables
+
+### IUL Flow (Boberdoo type 37) — all three active flows share these base fields
+
+| LeadConduit field | Internal field | Notes |
+|-------------------|---------------|-------|
+| `First_Name` | `firstName` | Required |
+| `Last_Name` | `lastName` | Required |
+| `Email` | `email` | Required |
+| `Primary_Phone` | `phone` | Required |
+| `State` or `State_You_Currently_Live_In` | `state` | Required |
+| `Intent` | `intent` | `"High Intent"` → `high_intent_iul` |
+| `SRC` | `source` | e.g. `IUL_LeadConduit`, `MP_LeadConduit`, `FE_LeadConduit` |
+| `DOB` | `dob` | Date of birth |
+| `Age` | `age` | |
+| `Trusted_Form_URL` | `trustedformCertUrl` | TrustedForm certificate |
+| `LeadiD_Token` | `leadidToken` | Jornaya token |
+| `Unique_Identifier` | `externalId` | Idempotency / duplicate detection |
+| `Lead_Type` | `boberdooLeadType` | Boberdoo numeric type (37, 35, 41) |
+| `Landing_Page` | `landingPage` | |
+| `Sub_ID` | `subId` | |
+| `Pub_ID` | `pubId` | |
+| `IP_Address` | `ipAddress` | |
+| `User_Agent` | `userAgent` | |
+| `TCPA_Consent` | `tcpaConsent` | |
+| `TCPA_Language` | `tcpaLanguage` | |
+| `Have_IUL` | `haveIul` | |
+| `Primary_Goal` | `primaryGoal` | |
+
+### Lead type detection via SRC field
+
+| `SRC` value | `leadType` assigned |
+|-------------|---------------------|
+| `IUL_LeadConduit` | `traditional_iul` |
+| `IUL_LeadConduit_HighIntent` | `high_intent_iul` |
+| `MP_LeadConduit` | `mortgage_protection` |
+| `FE_LeadConduit` | `final_expense` |
+
+### Outbound field mapping (Internal → Integrity Connect / LeadConduit)
+
+| Internal field | LeadConduit parameter | Notes |
+|----------------|----------------------|-------|
+| `lead.firstName` | `first_name` | |
+| `lead.lastName` | `last_name` | |
+| `lead.email` | `email` | |
+| `lead.phone` | `phone_1` | |
+| `lead.state` | `state` | |
+| `lead.dob` | `dob_mmddyyyy_thom` | Formatted `MM/dd/yyyy`; **required for RealTime** |
+| `lead.leadType` | `lead_type_thom` | Mapped to exact Integrity string (see below) |
+| `lead.externalId ?? lead.id` | `vendor_lead_id_thom` | **Required for Storefront** |
+| `lead.address` | `address_1` | |
+| `lead.city` | `city` | |
+| `lead.zip` | `postal_code` | |
+| `lead.trustedformCertUrl` | `trustedform_cert_url` | |
+| `lead.leadidToken` | `universal_leadid` | Jornaya token |
+| `lead.ipAddress` | `ip_address` | |
+| `lead.age` | `age` | |
+| `lead.haveIul` | `has_iul_thom` | |
+| `lead.primaryGoal` | `primary_goal_thom` | |
+| `lead.source` | `campaign_source` | |
+| `lead.subId` | `campaign_id` | |
+
+### Lead type mapping → Integrity exact strings
+
+| Internal `leadType` | `lead_type_thom` value sent to Integrity |
+|---------------------|------------------------------------------|
+| `mortgage_protection` | `Mortgage Protection Facebook (Realtime Lead)` |
+| `final_expense` | `Final Expense Facebook (Realtime Lead)` |
+| `traditional_iul` | `Indexed Universal Life [IUL] Facebook (Realtime Lead)` |
+| `high_intent_iul` | `Indexed Universal Life [IUL] Facebook (Realtime Lead)` |
+
+---
+
+## Posting to Integrity Connect
+
+### Environment variables
+
+```env
+# RealTime flow — direct submit, no ping required
+INTEGRITY_REALTIME_SUBMIT_URL=https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit
+
+# Storefront flow — aged leads, supports optional ping/post
+INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
+```
+
+### Routing logic
+
+```
+IF resaleMode = realtime:
+  → POST directly to INTEGRITY_REALTIME_SUBMIT_URL
+  → Required fields: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
+  → No ping
+
+IF resaleMode = storefront:
+  → Optional ping to INTEGRITY_STOREFRONT_SUBMIT_URL (partial fields)
+  → If ping accepted → POST full payload to INTEGRITY_STOREFRONT_SUBMIT_URL
+  → Required fields: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
+```
+
+### Protocol details
+
+- **Content-Type:** `application/x-www-form-urlencoded` (NOT `application/json`)
+- **Response format:** `{ "outcome": "success"|"failure"|"error", "lead": { "id": "..." }, "reason": "..." }`
+
+---
+
+## Integrity response webhook
+
+LeadConduit can POST back a result after processing. This closes the loop: submit → receive result → update lead record.
+
+### Endpoint
+
+| Item | Value |
+|------|--------|
+| Method | `POST` |
+| Path | `/api/webhooks/integrity` |
+| Query param | `?postingId=<uuid>` — the `ResalePosting` record ID |
+| Auth | `X-Api-Key` header matching `INTEGRITY_WEBHOOK_SECRET` |
+
+### Setup in LeadConduit
+
+1. In the delivery step's **response handling** or **outcome webhook** settings, configure a callback URL:
+   ```
+   https://YOUR-DOMAIN/api/webhooks/integrity?postingId={{posting_id}}
+   ```
+2. Add header `X-Api-Key: <INTEGRITY_WEBHOOK_SECRET value>`.
+3. The platform always returns HTTP 200 (required for LeadConduit to mark delivery as successful).
+
+### Behavior by outcome
+
+| `outcome` | Action |
+|-----------|--------|
+| `success` | `ResalePosting` → `sold`; emits `integrity_accepted` event; records LeadConduit `lead.id` |
+| `failure` | `ResalePosting` → `rejected`; emits `integrity_rejected` event with reason |
+| `error` | Logs error; leaves `ResalePosting` as `pending` for retry; emits `integrity_error` event |
+
+---
+
+## Testing with is_test=yes
+
+### Admin test route (preferred)
+
+The platform provides a protected admin route for firing test submissions without storing any database records:
+
+```
+POST /api/admin/integrity/test
+Authorization: admin session required
+Body: { "flow": "realtime" | "storefront" }
+```
+
+Returns the raw LeadConduit response.
+
+### Manual curl — RealTime flow
+
+```bash
+curl -X POST \
+  "https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "lead_type_thom=Final+Expense+Facebook+(Realtime+Lead)&first_name=Mike&last_name=Jones&phone_1=5127891111&email=test@example.com&state=TX&dob_mmddyyyy_thom=06/02/1980&is_test=yes"
+```
+
+Expected response: `{"outcome":"success","lead":{"id":"..."}}`
+
+### Manual curl — Storefront flow
+
+```bash
+curl -X POST \
+  "https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "lead_type_thom=Final+Expense&first_name=Mike&last_name=Jones&phone_1=5127891111&email=test@example.com&state=TX&vendor_lead_id_thom=TEST-001&is_test=yes"
+```
+
+Expected response: `{"outcome":"success","lead":{"id":"..."}}`
+
+---
+
+## Local development
+
+### Without LeadConduit
 
 | Tool | URL | Use |
 |------|-----|-----|
@@ -72,69 +259,24 @@ You do **not** need LeadConduit or ngrok to develop the intake pipeline.
 | CLI | `npm run seed:lead` | POST fixture JSON to intake |
 | curl | — | POST `fixtures/boberdoo_iul_submit_lead.example.json` |
 
-TrustedForm in dev: any HTTPS URL string is enough (e.g. `https://cert.trustedform.com/test-{uuid}`).
+### With LeadConduit (ngrok)
+
+1. Start the app: `npm run dev`
+2. Expose localhost: `ngrok http 3000`
+3. Set the delivery URL in LeadConduit to: `https://YOUR-NGROK-HOST/api/leads/intake`
+4. Add header `X-Api-Key: <your secret>` in the delivery step
+5. Set Method to `POST`, Content-Type to `application/json`
 
 ---
 
-## Local development **with** LeadConduit
+## Production cutover
 
-LeadConduit must reach your machine over the public internet.
-
-### 1. Start the app
-
-```bash
-npm run dev
-# App on http://localhost:3000
-```
-
-### 2. Expose localhost (ngrok or similar)
-
-```bash
-ngrok http 3000
-```
-
-Note the HTTPS URL, e.g. `https://abc123.ngrok-free.app`.
-
-### 3. Configure LeadConduit recipient
-
-In the **LeadConduit** UI (exact labels vary by account):
-
-1. Open the **Flow** that currently sends leads to Boberdoo (or create a **staging/test** flow).
-2. Add or edit a **Recipient** / **Integration** step.
-3. Set the delivery method to **Custom** / **HTTP POST** / **Webhook** (wording depends on your LeadConduit plan).
-4. Set **URL** to:
-
-   ```
-   https://YOUR-NGROK-HOST/api/leads/intake
-   ```
-
-5. Set **Method** to `POST`, **Content-Type** to `application/json`.
-6. Map outbound fields to Boberdoo-style names (`First_Name`, `Trusted_Form_URL`, etc.) — mirror the existing Boberdoo mapping if you have it.
-7. Save and **test** the flow (LeadConduit usually has a “test submission” or you can submit a test lead from Meta/staging source).
-
-### 4. Verify
-
-- Check server logs / admin **Leads** list for the new lead.
-- Lead detail → **Event Log** should show `received`, then `matched` / `delivered` or `reprocessed`.
-
-**Note:** Each time ngrok restarts, update the recipient URL in LeadConduit.
-
----
-
-## Production cutover (Boberdoo → FFL Capital)
-
-1. Deploy the app to staging/production with a stable HTTPS URL.
-2. In LeadConduit, open the **production** flow that posts to Boberdoo.
-3. Change the recipient URL from the Boberdoo endpoint to:
-
-   ```
-   https://YOUR-PRODUCTION-DOMAIN/api/leads/intake
-   ```
-
-4. Run a few test leads; confirm `{ "outcome": "success" }` and delivery in admin.
-5. Monitor unmatched queue and partner wallets before disabling Boberdoo.
-
-**TrustedForm:** No separate ActiveProspect API key is required on our side if LeadConduit already includes `Trusted_Form_URL` in the JSON body.
+1. Deploy with stable HTTPS URL.
+2. Set all required env vars: `LEADCONDUIT_WEBHOOK_SECRET`, `INTEGRITY_REALTIME_SUBMIT_URL`, `INTEGRITY_STOREFRONT_SUBMIT_URL`, `INTEGRITY_WEBHOOK_SECRET`.
+3. In LeadConduit, update the recipient URL to `https://YOUR-DOMAIN/api/leads/intake`.
+4. Add the `X-Api-Key` header in LeadConduit delivery settings.
+5. Run test leads with `is_test=yes`; confirm `{ "outcome": "success" }`.
+6. Monitor the unmatched queue and partner wallets before disabling Boberdoo.
 
 ---
 
@@ -142,8 +284,10 @@ In the **LeadConduit** UI (exact labels vary by account):
 
 | Issue | Check |
 |-------|--------|
-| LeadConduit shows delivery failure | Response body must include `"outcome":"success"`; check app logs for validation errors |
-| CORS errors from browser | Intake is server-to-server; CORS only matters for browser-based tools |
+| `401 Unauthorized` on intake | `X-Api-Key` header missing or doesn't match `LEADCONDUIT_WEBHOOK_SECRET` |
+| LeadConduit shows delivery failure | Response must be `{"outcome":"success"}`; check app logs for validation errors |
+| Integrity returns `"outcome":"failure"` | Check `reason` field; most common: missing `dob_mmddyyyy_thom` or wrong `lead_type_thom` value |
+| CORS errors from browser | Intake is server-to-server; CORS headers are present but only matter for browser-based tools |
 | Duplicate rejected | Same `Unique_Identifier` submitted twice — expected idempotency |
 | Lead unmatched | No active partner with matching state, type, balance, or ≥15 states |
 
@@ -151,6 +295,7 @@ In the **LeadConduit** UI (exact labels vary by account):
 
 ## Related docs
 
+- [integrity-connect-integration.md](integrity-connect-integration.md) — full Integrity Connect spec and field reference
 - [BACKEND.md](BACKEND.md) — intake mapping and pipeline
 - [PROJECT.md](PROJECT.md) — business flow Meta → LeadConduit → platform
 - `fixtures/boberdoo_iul_submit_lead.example.json` — sample payload
