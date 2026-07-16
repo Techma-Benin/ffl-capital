@@ -924,12 +924,12 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                     >
                       <td>
                         <span className="flex items-center gap-1.5">
+                          <span className="font-medium">{fs.name}</span>
                           {fs.active && fs.partner.status === "active" ? (
                             <span className="h-2 w-2 flex-shrink-0 rounded-full bg-emerald-500" title="Active" />
                           ) : (
                             <span className="h-2 w-2 flex-shrink-0 rounded-full bg-slate-300" title="Inactive" />
                           )}
-                          <span className="font-medium">{fs.name}</span>
                         </span>
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
