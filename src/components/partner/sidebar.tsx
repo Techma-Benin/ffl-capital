@@ -53,26 +53,29 @@ export function PartnerSidebar() {
       <div
         className={clsx(
           "flex h-16 items-center border-b border-sidebar-border",
-          sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-5",
+          sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-4",
         )}
       >
-        <div className="flex flex-shrink-0 items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-brand-700" />
-          <span className="h-2.5 w-2.5 rounded-full bg-brand-100" />
-        </div>
         <div
           className={clsx(
-            "min-w-0 flex-col overflow-hidden transition-all duration-300",
-            sidebarCollapsed ? "w-0 opacity-0" : "flex w-auto opacity-100",
+            "flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden transition-all duration-300",
+            sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100",
           )}
         >
-          <span className="truncate text-sm font-semibold leading-tight text-slate-800">
-            FFL Capital
-          </span>
-          <span className="text-[11px] font-medium leading-tight text-sidebar-heading">
-            Partner Portal
-          </span>
+          <div className="flex flex-shrink-0 items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-brand-700" />
+            <span className="h-2.5 w-2.5 rounded-full bg-brand-100" />
+          </div>
+          <div className="min-w-0 flex-col">
+            <span className="truncate text-sm font-semibold leading-tight text-slate-800">
+              FFL Capital
+            </span>
+            <span className="block text-[11px] font-medium leading-tight text-sidebar-heading">
+              Partner Portal
+            </span>
+          </div>
         </div>
+        <SidebarCollapseButton />
       </div>
 
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
@@ -125,10 +128,9 @@ export function PartnerSidebar() {
       </div>
 
       <div className="border-t border-sidebar-border px-3 py-3">
-        <SidebarCollapseButton />
         <p
           className={clsx(
-            "mt-2 px-3 text-[11px] text-sidebar-heading transition-all duration-300",
+            "px-3 text-[11px] text-sidebar-heading transition-all duration-300",
             sidebarCollapsed ? "h-0 overflow-hidden opacity-0" : "opacity-100",
           )}
         >
