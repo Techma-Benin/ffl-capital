@@ -42,7 +42,7 @@ export async function matchLead(
   const eligible = await findEligibleFilterSets(
     lead.state,
     lead.leadType,
-    options,
+    { ...options, lead },
   );
   if (eligible.length === 0) {
     return {

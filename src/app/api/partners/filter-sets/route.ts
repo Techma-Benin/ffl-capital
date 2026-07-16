@@ -10,12 +10,34 @@ const stateCodeSchema = z.enum(
   US_STATE_CODES as unknown as [string, ...string[]],
 );
 
+const filterCriteriaSchema = z
+  .object({
+    intent: z.array(z.string()).optional(),
+    haveIul: z.array(z.string()).optional(),
+    ageMin: z.number().int().min(0).optional(),
+    ageMax: z.number().int().min(0).optional(),
+    source: z.array(z.string()).optional(),
+    excludeSource: z.array(z.string()).optional(),
+    subId: z.array(z.string()).optional(),
+    excludeSubId: z.array(z.string()).optional(),
+    pubId: z.array(z.string()).optional(),
+    excludePubId: z.array(z.string()).optional(),
+    boberdooLeadType: z.array(z.string()).optional(),
+    acceptDays: z.array(z.string()).optional(),
+    acceptHoursStart: z.number().int().min(0).max(23).optional(),
+    acceptHoursEnd: z.number().int().min(0).max(23).optional(),
+  })
+  .optional();
+
 const createSchema = z.object({
   name: z.string().min(1).max(100),
   leadType: z.enum(["traditional_iul", "high_intent_iul"]),
   filterStates: z.array(stateCodeSchema).min(1).max(50),
   priority: z.number().int().min(1).max(10).default(5),
   active: z.boolean().default(true),
+  weeklyLimit: z.number().int().positive().nullable().optional(),
+  monthlyLimit: z.number().int().positive().nullable().optional(),
+  filterCriteria: filterCriteriaSchema,
 });
 
 export async function GET() {
@@ -34,6 +56,9 @@ export async function GET() {
       filterStates: fs.filterStates,
       priority: fs.priority,
       active: fs.active,
+      weeklyLimit: fs.weeklyLimit,
+      monthlyLimit: fs.monthlyLimit,
+      filterCriteria: fs.filterCriteria,
     })),
   );
 }
@@ -59,7 +84,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, leadType, filterStates: rawStates, priority, active } = parsed.data;
+  const { name, leadType, filterStates: rawStates, priority, active, weeklyLimit, monthlyLimit, filterCriteria } = parsed.data;
   const filterStates = Array.from(new Set(rawStates.map((s) => s.toUpperCase())));
 
   // Enforce 15-state minimum for active sets
@@ -80,6 +105,9 @@ export async function POST(request: NextRequest) {
       filterStates,
       priority,
       active,
+      weeklyLimit: weeklyLimit ?? null,
+      monthlyLimit: monthlyLimit ?? null,
+      filterCriteria: filterCriteria ?? {},
     },
   });
 
@@ -91,6 +119,9 @@ export async function POST(request: NextRequest) {
       filterStates: created.filterStates,
       priority: created.priority,
       active: created.active,
+      weeklyLimit: created.weeklyLimit,
+      monthlyLimit: created.monthlyLimit,
+      filterCriteria: created.filterCriteria,
     },
     { status: 201 },
   );

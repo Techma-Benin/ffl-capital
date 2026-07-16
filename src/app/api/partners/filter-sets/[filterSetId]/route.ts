@@ -9,6 +9,25 @@ const stateCodeSchema = z.enum(
   US_STATE_CODES as unknown as [string, ...string[]],
 );
 
+const filterCriteriaSchema = z
+  .object({
+    intent: z.array(z.string()).optional(),
+    haveIul: z.array(z.string()).optional(),
+    ageMin: z.number().int().min(0).optional(),
+    ageMax: z.number().int().min(0).optional(),
+    source: z.array(z.string()).optional(),
+    excludeSource: z.array(z.string()).optional(),
+    subId: z.array(z.string()).optional(),
+    excludeSubId: z.array(z.string()).optional(),
+    pubId: z.array(z.string()).optional(),
+    excludePubId: z.array(z.string()).optional(),
+    boberdooLeadType: z.array(z.string()).optional(),
+    acceptDays: z.array(z.string()).optional(),
+    acceptHoursStart: z.number().int().min(0).max(23).optional(),
+    acceptHoursEnd: z.number().int().min(0).max(23).optional(),
+  })
+  .optional();
+
 const patchSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   leadType: z.enum(["traditional_iul", "high_intent_iul"]).optional(),
@@ -19,6 +38,9 @@ const patchSchema = z.object({
     .optional(),
   priority: z.number().int().min(1).max(10).optional(),
   active: z.boolean().optional(),
+  weeklyLimit: z.number().int().positive().nullable().optional(),
+  monthlyLimit: z.number().int().positive().nullable().optional(),
+  filterCriteria: filterCriteriaSchema,
 });
 
 export async function PATCH(
@@ -53,7 +75,7 @@ export async function PATCH(
     );
   }
 
-  const { name, leadType, filterStates: rawStates, priority, active } = parsed.data;
+  const { name, leadType, filterStates: rawStates, priority, active, weeklyLimit, monthlyLimit, filterCriteria } = parsed.data;
 
   // Deduplicate states if provided
   const filterStates = rawStates
@@ -78,6 +100,9 @@ export async function PATCH(
   if (filterStates !== undefined) data.filterStates = filterStates;
   if (priority !== undefined) data.priority = priority;
   if (active !== undefined) data.active = active;
+  if (weeklyLimit !== undefined) data.weeklyLimit = weeklyLimit;
+  if (monthlyLimit !== undefined) data.monthlyLimit = monthlyLimit;
+  if (filterCriteria !== undefined) data.filterCriteria = filterCriteria ?? {};
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
@@ -95,6 +120,9 @@ export async function PATCH(
     filterStates: updated.filterStates,
     priority: updated.priority,
     active: updated.active,
+    weeklyLimit: updated.weeklyLimit,
+    monthlyLimit: updated.monthlyLimit,
+    filterCriteria: updated.filterCriteria,
   });
 }
 

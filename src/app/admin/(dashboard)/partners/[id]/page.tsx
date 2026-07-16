@@ -79,8 +79,9 @@ export default async function AdminPartnerDetailPage({
             priority: fs.priority,
             priceOverride: fs.priceOverride ? Number(fs.priceOverride) : null,
             active: fs.active,
-            hourlyLimit: fs.hourlyLimit,
-            dailyLimit: fs.dailyLimit,
+            weeklyLimit: fs.weeklyLimit,
+            monthlyLimit: fs.monthlyLimit,
+            filterCriteria: (fs.filterCriteria ?? {}) as import("@/lib/matching/types").FilterCriteria,
             deliveryChannel: fs.deliveryChannel,
           }))}
         />

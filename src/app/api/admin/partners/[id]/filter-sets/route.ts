@@ -4,6 +4,25 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 
+const filterCriteriaSchema = z
+  .object({
+    intent: z.array(z.string()).optional(),
+    haveIul: z.array(z.string()).optional(),
+    ageMin: z.number().int().min(0).optional(),
+    ageMax: z.number().int().min(0).optional(),
+    source: z.array(z.string()).optional(),
+    excludeSource: z.array(z.string()).optional(),
+    subId: z.array(z.string()).optional(),
+    excludeSubId: z.array(z.string()).optional(),
+    pubId: z.array(z.string()).optional(),
+    excludePubId: z.array(z.string()).optional(),
+    boberdooLeadType: z.array(z.string()).optional(),
+    acceptDays: z.array(z.string()).optional(),
+    acceptHoursStart: z.number().int().min(0).max(23).optional(),
+    acceptHoursEnd: z.number().int().min(0).max(23).optional(),
+  })
+  .optional();
+
 const filterSetSchema = z.object({
   name: z.string().min(1).default("Default"),
   leadType: z.enum(["traditional_iul", "high_intent_iul"]),
@@ -11,8 +30,9 @@ const filterSetSchema = z.object({
   priority: z.number().int().min(1).max(10).optional(),
   priceOverride: z.number().positive().nullable().optional(),
   active: z.boolean().optional(),
-  hourlyLimit: z.number().int().positive().nullable().optional(),
-  dailyLimit: z.number().int().positive().nullable().optional(),
+  weeklyLimit: z.number().int().positive().nullable().optional(),
+  monthlyLimit: z.number().int().positive().nullable().optional(),
+  filterCriteria: filterCriteriaSchema,
   deliveryChannel: z.enum(["email", "webhook", "ringy"]).optional(),
 });
 
@@ -62,8 +82,9 @@ export async function POST(
       priority: parsed.data.priority ?? 5,
       priceOverride: parsed.data.priceOverride,
       active: parsed.data.active ?? true,
-      hourlyLimit: parsed.data.hourlyLimit,
-      dailyLimit: parsed.data.dailyLimit,
+      weeklyLimit: parsed.data.weeklyLimit,
+      monthlyLimit: parsed.data.monthlyLimit,
+      filterCriteria: parsed.data.filterCriteria ?? {},
       deliveryChannel: parsed.data.deliveryChannel,
     },
   });

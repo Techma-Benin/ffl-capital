@@ -24,6 +24,7 @@ import {
   Trash,
   X,
 } from "@phosphor-icons/react";
+import type { FilterCriteria } from "@/lib/matching/types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -36,6 +37,9 @@ type PartnerFilterSet = {
   filterStates: string[];
   priority: number;
   active: boolean;
+  weeklyLimit?: number | null;
+  monthlyLimit?: number | null;
+  filterCriteria?: FilterCriteria;
 };
 
 type FilterSetFormData = {
@@ -43,6 +47,9 @@ type FilterSetFormData = {
   leadType: "traditional_iul" | "high_intent_iul";
   filterStates: string[];
   active: boolean;
+  weeklyLimit: string;
+  monthlyLimit: string;
+  filterCriteria: FilterCriteria;
 };
 
 type FilterSetTemplate = {
@@ -57,6 +64,166 @@ const LEAD_TYPE_LABELS: Record<string, string> = {
   traditional_iul: "Traditional IUL",
   high_intent_iul: "High Intent IUL",
 };
+
+// ---------------------------------------------------------------------------
+// Tag input
+// ---------------------------------------------------------------------------
+
+function TagInput({
+  label,
+  values,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  values: string[];
+  onChange: (vals: string[]) => void;
+  placeholder?: string;
+}) {
+  const [input, setInput] = useState("");
+
+  function commit() {
+    const trimmed = input.trim();
+    if (trimmed && !values.includes(trimmed)) {
+      onChange([...values, trimmed]);
+    }
+    setInput("");
+  }
+
+  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      commit();
+    } else if (e.key === "Backspace" && !input && values.length > 0) {
+      onChange(values.slice(0, -1));
+    }
+  }
+
+  return (
+    <div>
+      <label className="form-label">{label}</label>
+      <div className="flex flex-wrap gap-1 rounded-md border border-slate-300 bg-white p-1.5 min-h-[36px]">
+        {values.map((v) => (
+          <span
+            key={v}
+            className="inline-flex items-center gap-1 rounded bg-brand-100 px-1.5 py-0.5 text-[11px] font-medium text-brand-700"
+          >
+            {v}
+            <button
+              type="button"
+              onClick={() => onChange(values.filter((x) => x !== v))}
+              className="hover:text-brand-900"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          className="flex-1 min-w-[100px] text-xs outline-none bg-transparent"
+          value={input}
+          placeholder={values.length === 0 ? (placeholder ?? "Type and press Enter") : ""}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKey}
+          onBlur={commit}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Advanced Filters accordion
+// ---------------------------------------------------------------------------
+
+function AdvancedFiltersAccordion({
+  criteria,
+  onChange,
+}: {
+  criteria: FilterCriteria;
+  onChange: (c: FilterCriteria) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  function update(patch: Partial<FilterCriteria>) {
+    onChange({ ...criteria, ...patch });
+  }
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors rounded-lg"
+      >
+        <span>Advanced Filters <span className="text-xs font-normal text-slate-400">(optional)</span></span>
+        {open ? <CaretUp size={14} /> : <CaretDown size={14} />}
+      </button>
+
+      {open && (
+        <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Lead Profile</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TagInput label="Intent (allow-list)" values={criteria.intent ?? []} onChange={(v) => update({ intent: v })} placeholder="e.g. buy_now" />
+            <TagInput label="Have IUL (allow-list)" values={criteria.haveIul ?? []} onChange={(v) => update({ haveIul: v })} placeholder="e.g. yes" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="form-label">Age Min</label>
+              <input type="number" min={0} max={120} placeholder="No min" className="form-input" value={criteria.ageMin ?? ""} onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })} />
+            </div>
+            <div>
+              <label className="form-label">Age Max</label>
+              <input type="number" min={0} max={120} placeholder="No max" className="form-input" value={criteria.ageMax ?? ""} onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })} />
+            </div>
+          </div>
+
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Attribution</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TagInput label="Source (allow-list)" values={criteria.source ?? []} onChange={(v) => update({ source: v })} placeholder="e.g. meta_leadconduit" />
+            <TagInput label="Source (block-list)" values={criteria.excludeSource ?? []} onChange={(v) => update({ excludeSource: v })} />
+            <TagInput label="Sub ID (allow-list)" values={criteria.subId ?? []} onChange={(v) => update({ subId: v })} />
+            <TagInput label="Sub ID (block-list)" values={criteria.excludeSubId ?? []} onChange={(v) => update({ excludeSubId: v })} />
+            <TagInput label="Pub ID (allow-list)" values={criteria.pubId ?? []} onChange={(v) => update({ pubId: v })} />
+            <TagInput label="Pub ID (block-list)" values={criteria.excludePubId ?? []} onChange={(v) => update({ excludePubId: v })} />
+            <TagInput label="Boberdoo Lead Type (allow-list)" values={criteria.boberdooLeadType ?? []} onChange={(v) => update({ boberdooLeadType: v })} />
+          </div>
+
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Schedule (Eastern Time)</p>
+          <div>
+            <label className="form-label">Days you accept leads</label>
+            <div className="flex flex-wrap gap-3 mt-1">
+              {(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const).map((day) => (
+                <label key={day} className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={(criteria.acceptDays ?? []).includes(day)}
+                    onChange={(e) => {
+                      const days = criteria.acceptDays ?? [];
+                      update({ acceptDays: e.target.checked ? [...days, day] : days.filter((d) => d !== day) });
+                    }}
+                    className="rounded border-slate-300"
+                  />
+                  {day.charAt(0).toUpperCase() + day.slice(1, 3)}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-slate-400">Leave all unchecked to accept any day</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="form-label">From hour (ET, 0–23)</label>
+              <input type="number" min={0} max={23} placeholder="No start" className="form-input" value={criteria.acceptHoursStart ?? ""} onChange={(e) => update({ acceptHoursStart: e.target.value ? Number(e.target.value) : undefined })} />
+            </div>
+            <div>
+              <label className="form-label">To hour (ET, 0–23, exclusive)</label>
+              <input type="number" min={0} max={23} placeholder="No end" className="form-input" value={criteria.acceptHoursEnd ?? ""} onChange={(e) => update({ acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined })} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Template Picker
@@ -201,6 +368,9 @@ function FilterSetEditor({
           leadType: form.leadType,
           filterStates: form.filterStates,
           active: form.active,
+          weeklyLimit: form.weeklyLimit ? Number(form.weeklyLimit) : null,
+          monthlyLimit: form.monthlyLimit ? Number(form.monthlyLimit) : null,
+          filterCriteria: form.filterCriteria,
         }),
       });
       const data = await res.json();
@@ -227,8 +397,8 @@ function FilterSetEditor({
         </button>
       </div>
 
-      {/* Name + Lead Type + Priority */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Name + Lead Type */}
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="form-label">Name</label>
           <input
@@ -254,7 +424,32 @@ function FilterSetEditor({
             <option value="high_intent_iul">High Intent IUL</option>
           </select>
         </div>
+      </div>
 
+      {/* Weekly + Monthly limits */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="form-label">Weekly Limit</label>
+          <input
+            type="number"
+            min={1}
+            placeholder="No limit"
+            className="form-input"
+            value={form.weeklyLimit}
+            onChange={(e) => setForm((p) => ({ ...p, weeklyLimit: e.target.value }))}
+          />
+        </div>
+        <div>
+          <label className="form-label">Monthly Limit</label>
+          <input
+            type="number"
+            min={1}
+            placeholder="No limit"
+            className="form-input"
+            value={form.monthlyLimit}
+            onChange={(e) => setForm((p) => ({ ...p, monthlyLimit: e.target.value }))}
+          />
+        </div>
       </div>
 
       {/* Active toggle */}
@@ -335,6 +530,12 @@ function FilterSetEditor({
         )}
       </div>
 
+      {/* Advanced Filters */}
+      <AdvancedFiltersAccordion
+        criteria={form.filterCriteria}
+        onChange={(c) => setForm((p) => ({ ...p, filterCriteria: c }))}
+      />
+
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       <div className="flex gap-2 pt-1">
@@ -366,6 +567,9 @@ const DEFAULT_FORM: FilterSetFormData = {
   leadType: "traditional_iul",
   filterStates: [],
   active: true,
+  weeklyLimit: "",
+  monthlyLimit: "",
+  filterCriteria: {},
 };
 
 function FilterSetsSection() {
@@ -401,6 +605,9 @@ function FilterSetsSection() {
       leadType: t.leadType,
       filterStates: [...t.filterStates],
       active: true,
+      weeklyLimit: "",
+      monthlyLimit: "",
+      filterCriteria: {},
     });
     setCreateMode("editor");
   }
@@ -586,6 +793,9 @@ function FilterSetsSection() {
                         leadType: fs.leadType,
                         filterStates: fs.filterStates,
                         active: fs.active,
+                        weeklyLimit: fs.weeklyLimit != null ? String(fs.weeklyLimit) : "",
+                        monthlyLimit: fs.monthlyLimit != null ? String(fs.monthlyLimit) : "",
+                        filterCriteria: fs.filterCriteria ?? {},
                       }}
                       onSaved={handleUpdated}
                       onClose={() => setExpandedId(null)}

@@ -5,6 +5,25 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { isAdminApprovalRequired } from "@/lib/auth/session";
 
+const filterCriteriaSchema = z
+  .object({
+    intent: z.array(z.string()).optional(),
+    haveIul: z.array(z.string()).optional(),
+    ageMin: z.number().int().min(0).optional(),
+    ageMax: z.number().int().min(0).optional(),
+    source: z.array(z.string()).optional(),
+    excludeSource: z.array(z.string()).optional(),
+    subId: z.array(z.string()).optional(),
+    excludeSubId: z.array(z.string()).optional(),
+    pubId: z.array(z.string()).optional(),
+    excludePubId: z.array(z.string()).optional(),
+    boberdooLeadType: z.array(z.string()).optional(),
+    acceptDays: z.array(z.string()).optional(),
+    acceptHoursStart: z.number().int().min(0).max(23).optional(),
+    acceptHoursEnd: z.number().int().min(0).max(23).optional(),
+  })
+  .optional();
+
 const onboardingSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
@@ -12,6 +31,9 @@ const onboardingSchema = z.object({
   residenceState: z.string().length(2),
   leadType: z.enum(["traditional_iul", "high_intent_iul"]),
   filterStates: z.array(z.string().length(2)).min(15),
+  weeklyLimit: z.number().int().positive().nullable().optional(),
+  monthlyLimit: z.number().int().positive().nullable().optional(),
+  filterCriteria: filterCriteriaSchema,
 });
 
 export async function POST(request: NextRequest) {
@@ -63,6 +85,9 @@ export async function POST(request: NextRequest) {
           name: "Default",
           leadType: parsed.data.leadType as LeadType,
           filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
+          weeklyLimit: parsed.data.weeklyLimit ?? null,
+          monthlyLimit: parsed.data.monthlyLimit ?? null,
+          filterCriteria: parsed.data.filterCriteria ?? {},
           // Always start active so hasEligibleFilterSet is true from day one.
           // The matching engine gates on partner.status separately, so this is
           // safe for pending_approval partners — they won't receive leads until

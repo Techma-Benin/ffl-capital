@@ -4,6 +4,7 @@ import { getDefaultRealtimePrice } from "@/lib/settings/app-settings";
 import { getEffectivePrice, getFilterSetUsage } from "@/lib/matching/eligibility";
 import { FilterSetTemplateManager } from "@/components/admin/filter-set-template-manager";
 import { FilterListTable } from "@/components/admin/filter-list-table";
+import type { FilterCriteria } from "@/lib/matching/types";
 
 export default async function AdminFilterListPage() {
   const defaultPrice = await getDefaultRealtimePrice();
@@ -31,6 +32,7 @@ export default async function AdminFilterListPage() {
         fs: {
           ...fs,
           priceOverride: fs.priceOverride != null ? String(fs.priceOverride) : null,
+          filterCriteria: (fs.filterCriteria ?? {}) as FilterCriteria,
           partner: {
             ...fs.partner,
             walletBalance: String(fs.partner.walletBalance),
