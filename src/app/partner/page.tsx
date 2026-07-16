@@ -34,6 +34,7 @@ export default async function PartnerDashboardPage() {
           channel: d.channel,
           deliveredAt: d.deliveredAt.toISOString(),
           lead: {
+            id: d.lead.id,
             firstName: d.lead.firstName,
             lastName: d.lead.lastName,
             state: d.lead.state,

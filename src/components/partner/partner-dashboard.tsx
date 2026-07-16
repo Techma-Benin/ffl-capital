@@ -15,6 +15,7 @@ type RecentDelivery = {
   channel: string;
   deliveredAt: string;
   lead: {
+    id: string;
     firstName: string;
     lastName: string;
     state: string;
@@ -194,7 +195,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                       </Badge>
                     </td>
                     <td className="font-semibold text-slate-900">${d.price.toFixed(2)}</td>
-                    <td className="text-xs text-slate-400">
+                    <td className="text-xs text-slate-400" suppressHydrationWarning>
                       {new Date(d.deliveredAt).toLocaleString("en-US", {
                         month: "short",
                         day: "numeric",
