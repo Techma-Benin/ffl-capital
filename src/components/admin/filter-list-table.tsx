@@ -339,19 +339,17 @@ function AdvancedFiltersAccordion({
               placeholder="e.g. yes"
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="form-label">Age Min</label>
+          <div>
+            <label className="form-label">Age</label>
+            <div className="flex items-center gap-2">
               <input
-                type="number" min={0} max={120} placeholder="No min" className="form-input"
+                type="number" min={0} max={120} placeholder="Min" className="form-input"
                 value={criteria.ageMin ?? ""}
                 onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })}
               />
-            </div>
-            <div>
-              <label className="form-label">Age Max</label>
+              <span className="flex-shrink-0 text-xs text-slate-400">to</span>
               <input
-                type="number" min={0} max={120} placeholder="No max" className="form-input"
+                type="number" min={0} max={120} placeholder="Max" className="form-input"
                 value={criteria.ageMax ?? ""}
                 onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })}
               />
