@@ -113,7 +113,6 @@ export function AdminDashboardCharts({
               </div>
               <Clock size={16} className="text-amber-500" weight="duotone" />
             </div>
-            <p className="mt-3 text-xs font-medium text-brand-700">Review now →</p>
           </PortalLink>
         ) : (
           <div className="card p-5">
@@ -142,7 +141,6 @@ export function AdminDashboardCharts({
               </div>
               <WarningCircle size={16} className="text-amber-500" weight="duotone" />
             </div>
-            <p className="mt-3 text-xs font-medium text-brand-700">View queue →</p>
           </PortalLink>
         ) : (
           <div className="card p-5">
