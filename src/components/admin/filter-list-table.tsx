@@ -747,7 +747,7 @@ function FilterSetModal({
                 </button>
               ))}
             </div>
-            <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+            <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10 rounded-lg border border-slate-200 bg-white p-2">
               {US_STATE_CODES.map((code) => {
                 const isSelected = selectedSet.has(code);
                 return (
