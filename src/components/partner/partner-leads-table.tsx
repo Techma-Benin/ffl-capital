@@ -138,7 +138,7 @@ export function PartnerLeadsTable({
         </thead>
         <tbody>
           {deliveries.map((d) => (
-            <tr key={d.id}>
+            <tr key={d.id} className="cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => { window.location.href = `/partner/leads/${d.id}`; }}>
               <td>
                 <input
                   type="checkbox"
