@@ -212,17 +212,19 @@ export default async function AdminLeadsPage({
                 {leads.map((lead) => {
                   const delivery = lead.leadDeliveries[0];
                   return (
-                    <tr key={lead.id}>
+                    <tr
+                      key={lead.id}
+                      className="cursor-pointer hover:bg-brand-50 transition-colors"
+                      onClick={() => window.location.href = `/admin/leads/${lead.id}`}
+                    >
                       <td className="font-mono text-xs text-slate-400">
                         {lead.id.slice(0, 8)}…
                       </td>
                       <td>
-                        <Link href={`/admin/leads/${lead.id}`} className="hover:text-brand-600">
-                          <p className="font-medium text-slate-900">
-                            {lead.firstName} {lead.lastName}
-                          </p>
-                          <p className="text-xs text-slate-400">{lead.email}</p>
-                        </Link>
+                        <p className="font-medium text-slate-900">
+                          {lead.firstName} {lead.lastName}
+                        </p>
+                        <p className="text-xs text-slate-400">{lead.email}</p>
                       </td>
                       <td className="text-slate-500">{lead.phone}</td>
                       <td>
