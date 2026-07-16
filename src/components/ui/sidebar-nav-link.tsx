@@ -34,7 +34,7 @@ export function SidebarNavLink({
         "nav-item group relative",
         active && "active",
         pending && "pointer-events-none opacity-80",
-        sidebarCollapsed && "justify-center px-0",
+        sidebarCollapsed && "justify-center !px-0",
       )}
     >
       <span
