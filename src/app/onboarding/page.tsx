@@ -33,7 +33,6 @@ export default async function OnboardingPage() {
     firstName: user?.firstName ?? fallbackFirst,
     lastName: user?.lastName ?? fallbackRest.join(" "),
     email: user?.emailAddresses[0]?.emailAddress ?? "",
-    clerkHasName: !!(user?.firstName && user?.lastName),
   };
 
   return (

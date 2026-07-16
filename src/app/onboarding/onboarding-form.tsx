@@ -62,7 +62,7 @@ type FilterSetTemplate = {
   filterStates: string[];
 };
 
-type InitialProfile = Partial<ProfileFields> & { email?: string; clerkHasName?: boolean };
+type InitialProfile = Partial<ProfileFields> & { email?: string };
 type Props = { initialProfile?: InitialProfile };
 
 // ---------------------------------------------------------------------------
@@ -284,7 +284,6 @@ export default function OnboardingForm({ initialProfile }: Props) {
     residenceState: initialProfile?.residenceState ?? "",
   });
   const accountEmail = initialProfile?.email ?? "";
-  const nameFromClerk = !!(initialProfile?.clerkHasName && initialProfile.firstName);
 
   // Step 2 — filter set
   const [leadType, setLeadType] = useState<LeadType>("high_intent_iul");
@@ -418,18 +417,6 @@ export default function OnboardingForm({ initialProfile }: Props) {
       {/* ================================================================ */}
       {step === 1 && (
         <div className="space-y-4">
-          {/* Greeting when name is already known from sign-up */}
-          {nameFromClerk && (
-            <div className="rounded-lg bg-brand-50 border border-brand-100 px-4 py-3">
-              <p className="text-sm font-semibold text-brand-800">
-                Welcome, {profile.firstName}! 👋
-              </p>
-              <p className="text-xs text-brand-600 mt-0.5">
-                Your name was pulled from your account. Just fill in the remaining details below.
-              </p>
-            </div>
-          )}
-
           {accountEmail && (
             <div>
               <label className="form-label">Account Email</label>
@@ -447,33 +434,25 @@ export default function OnboardingForm({ initialProfile }: Props) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="form-label">
-                First Name
-                {nameFromClerk && <span className="ml-1.5 text-[10px] font-normal text-slate-400">from your account</span>}
-              </label>
+              <label className="form-label">First Name</label>
               <input
                 name="firstName"
                 required
-                className={`form-input ${nameFromClerk ? "bg-slate-50 text-slate-600" : ""}`}
+                className="form-input"
                 placeholder="James"
-                readOnly={nameFromClerk}
                 value={profile.firstName}
-                onChange={(e) => !nameFromClerk && setProfile((p) => ({ ...p, firstName: e.target.value }))}
+                onChange={(e) => setProfile((p) => ({ ...p, firstName: e.target.value }))}
               />
             </div>
             <div>
-              <label className="form-label">
-                Last Name
-                {nameFromClerk && <span className="ml-1.5 text-[10px] font-normal text-slate-400">from your account</span>}
-              </label>
+              <label className="form-label">Last Name</label>
               <input
                 name="lastName"
                 required
-                className={`form-input ${nameFromClerk ? "bg-slate-50 text-slate-600" : ""}`}
+                className="form-input"
                 placeholder="Wilson"
-                readOnly={nameFromClerk}
                 value={profile.lastName}
-                onChange={(e) => !nameFromClerk && setProfile((p) => ({ ...p, lastName: e.target.value }))}
+                onChange={(e) => setProfile((p) => ({ ...p, lastName: e.target.value }))}
               />
             </div>
           </div>
