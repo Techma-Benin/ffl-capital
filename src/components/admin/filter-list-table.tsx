@@ -399,9 +399,6 @@ function AdvancedFiltersAccordion({
           </div>
 
           {/* Schedule */}
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">
-            Schedule (Eastern Time)
-          </p>
           <div>
             <label className="form-label mb-2">Days you accept leads</label>
             <div className="flex flex-wrap gap-1.5">
