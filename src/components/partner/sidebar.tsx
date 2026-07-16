@@ -56,17 +56,20 @@ export function PartnerSidebar() {
           sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-4",
         )}
       >
+        {/* Logo — always visible; centered when collapsed */}
+        <div className="flex flex-shrink-0 items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-700" />
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-100" />
+        </div>
+
+        {/* Title + collapse button — only when expanded */}
         <div
           className={clsx(
-            "flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden transition-all duration-300",
+            "flex min-w-0 flex-1 items-center overflow-hidden transition-all duration-300",
             sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100",
           )}
         >
-          <div className="flex flex-shrink-0 items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-full bg-brand-700" />
-            <span className="h-2.5 w-2.5 rounded-full bg-brand-100" />
-          </div>
-          <div className="min-w-0 flex-col">
+          <div className="min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-semibold leading-tight text-slate-800">
               FFL Capital
             </span>
@@ -74,8 +77,8 @@ export function PartnerSidebar() {
               Partner Portal
             </span>
           </div>
+          <SidebarCollapseButton />
         </div>
-        <SidebarCollapseButton />
       </div>
 
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
