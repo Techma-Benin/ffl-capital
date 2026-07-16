@@ -45,7 +45,7 @@ export default async function AdminSignInPage() {
       </AuthLeftPanel>
 
       <div className="flex flex-1 items-center justify-center bg-page px-6 py-12">
-        <div className="w-full max-w-lg">
+        <div className="w-full max-w-sm">
           <div className="mb-8 text-center lg:hidden">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-700">
               <Shield size={20} className="text-white" />
