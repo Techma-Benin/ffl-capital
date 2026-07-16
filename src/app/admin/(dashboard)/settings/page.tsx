@@ -3,7 +3,7 @@ import { AdminSettingsForm } from "@/components/admin/admin-settings-form";
 
 export default function AdminSettingsPage() {
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
         title="Settings"
         subtitle="Platform pricing and integration configuration"

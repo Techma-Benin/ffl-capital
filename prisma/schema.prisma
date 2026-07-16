@@ -326,6 +326,18 @@ model AppSetting {
   @@map("app_settings")
 }
 
+model FilterSetTemplate {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  description  String?
+  leadType     LeadType @map("lead_type")
+  filterStates String[] @map("filter_states")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("filter_set_templates")
+}
+
 model MigrationJob {
   id           String             @id @default(uuid()) @db.Uuid
   status       MigrationJobStatus @default(pending)

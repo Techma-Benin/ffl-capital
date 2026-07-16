@@ -45,6 +45,105 @@ type FilterSetFormData = {
   active: boolean;
 };
 
+type FilterSetTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+  leadType: "traditional_iul" | "high_intent_iul";
+  filterStates: string[];
+};
+
+const LEAD_TYPE_LABELS: Record<string, string> = {
+  traditional_iul: "Traditional IUL",
+  high_intent_iul: "High Intent IUL",
+};
+
+// ---------------------------------------------------------------------------
+// Template Picker
+// ---------------------------------------------------------------------------
+
+function TemplatePicker({
+  onSelect,
+  onSkip,
+  onClose,
+}: {
+  onSelect: (t: FilterSetTemplate) => void;
+  onSkip: () => void;
+  onClose: () => void;
+}) {
+  const [templates, setTemplates] = useState<FilterSetTemplate[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/partner/filter-set-templates")
+      .then((r) => r.json())
+      .then((data) => setTemplates(Array.isArray(data) ? data : []))
+      .catch(() => setLoadError("Could not load templates."));
+  }, []);
+
+  return (
+    <div className="border border-slate-200 rounded-xl bg-slate-50/60 p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-900">Start from a template</h3>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <X size={16} />
+        </button>
+      </div>
+      <p className="text-xs text-slate-500">
+        Select a preset to pre-fill your new filter set, or start from scratch.
+      </p>
+
+      {loadError && <p className="text-xs text-red-600">{loadError}</p>}
+
+      {templates === null && !loadError && (
+        <p className="text-sm text-slate-400">Loading templates…</p>
+      )}
+
+      {templates !== null && templates.length === 0 && (
+        <p className="text-xs text-slate-400">No templates available yet.</p>
+      )}
+
+      {templates && templates.length > 0 && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {templates.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onSelect(t)}
+              className="text-left rounded-lg border border-slate-200 bg-white p-3.5 hover:border-brand-400 hover:bg-brand-50 transition-colors group"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-sm font-medium text-slate-900 group-hover:text-brand-700">
+                  {t.name}
+                </span>
+                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 uppercase">
+                  {LEAD_TYPE_LABELS[t.leadType]}
+                </span>
+              </div>
+              {t.description && (
+                <p className="mt-1 text-xs text-slate-500 line-clamp-2">{t.description}</p>
+              )}
+              <p className="mt-1.5 text-xs font-medium text-slate-400">
+                {t.filterStates.length} state{t.filterStates.length !== 1 ? "s" : ""}
+              </p>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="pt-1">
+        <button type="button" onClick={onSkip} className="btn-secondary btn-sm">
+          Start blank
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Filter Set Editor (create/edit form)
 // ---------------------------------------------------------------------------
@@ -259,11 +358,22 @@ function FilterSetEditor({
 // Filter Sets section
 // ---------------------------------------------------------------------------
 
+// "create" mode: "picker" → template picker shown; "editor" → editor shown (possibly pre-filled)
+type CreateMode = null | "picker" | "editor";
+
+const DEFAULT_FORM: FilterSetFormData = {
+  name: "",
+  leadType: "traditional_iul",
+  filterStates: [],
+  active: true,
+};
+
 function FilterSetsSection() {
   const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(null);
   const [loadError, setLoadError] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
+  const [createMode, setCreateMode] = useState<CreateMode>(null);
+  const [prefillData, setPrefillData] = useState<FilterSetFormData>(DEFAULT_FORM);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
 
@@ -279,9 +389,35 @@ function FilterSetsSection() {
 
   useEffect(() => { void load(); }, [load]);
 
+  function openPicker() {
+    setPrefillData(DEFAULT_FORM);
+    setCreateMode("picker");
+    setExpandedId(null);
+  }
+
+  function handleTemplateSelected(t: FilterSetTemplate) {
+    setPrefillData({
+      name: t.name,
+      leadType: t.leadType,
+      filterStates: [...t.filterStates],
+      active: true,
+    });
+    setCreateMode("editor");
+  }
+
+  function handleSkipTemplate() {
+    setPrefillData(DEFAULT_FORM);
+    setCreateMode("editor");
+  }
+
+  function closeCreate() {
+    setCreateMode(null);
+    setPrefillData(DEFAULT_FORM);
+  }
+
   function handleCreated(created: PartnerFilterSet) {
     setFilterSets((prev) => [...(prev ?? []), created]);
-    setShowCreate(false);
+    closeCreate();
   }
 
   function handleUpdated(updated: PartnerFilterSet) {
@@ -324,13 +460,10 @@ function FilterSetsSection() {
           Targeting
         </span>
         <div className="ml-auto">
-          {loaded && !showCreate && (
+          {loaded && createMode === null && (
             <button
               type="button"
-              onClick={() => {
-                setShowCreate(true);
-                setExpandedId(null);
-              }}
+              onClick={openPicker}
               className="btn-secondary btn-sm inline-flex items-center gap-1"
             >
               <Plus size={13} />
@@ -348,24 +481,30 @@ function FilterSetsSection() {
         <p className="px-5 py-4 text-sm text-slate-400">Loading…</p>
       )}
 
-      {/* Create form */}
-      {showCreate && (
+      {/* Step 1: Template picker */}
+      {createMode === "picker" && (
+        <div className="px-5 py-5 border-b border-slate-100">
+          <TemplatePicker
+            onSelect={handleTemplateSelected}
+            onSkip={handleSkipTemplate}
+            onClose={closeCreate}
+          />
+        </div>
+      )}
+
+      {/* Step 2: Editor (blank or pre-filled from template) */}
+      {createMode === "editor" && (
         <div className="px-5 py-5 border-b border-slate-100">
           <FilterSetEditor
-            initialData={{
-              name: "",
-              leadType: "traditional_iul",
-              filterStates: [],
-              active: true,
-            }}
+            initialData={prefillData}
             onSaved={handleCreated}
-            onClose={() => setShowCreate(false)}
+            onClose={closeCreate}
           />
         </div>
       )}
 
       {/* Empty state */}
-      {isEmpty && !showCreate && (
+      {isEmpty && createMode === null && (
         <div className="px-5 py-8 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
             <Funnel size={22} className="text-slate-400" />
@@ -376,7 +515,7 @@ function FilterSetsSection() {
           </p>
           <button
             type="button"
-            onClick={() => setShowCreate(true)}
+            onClick={openPicker}
             className="btn-primary btn-sm inline-flex items-center gap-1.5"
           >
             <Plus size={13} />
@@ -399,7 +538,7 @@ function FilterSetsSection() {
                     className="flex flex-1 items-center gap-3 text-left min-w-0"
                     onClick={() => {
                       setExpandedId(isExpanded ? null : fs.id);
-                      setShowCreate(false);
+                      setCreateMode(null);
                     }}
                   >
                     <span className="text-sm font-medium text-slate-900 truncate">{fs.name}</span>
@@ -420,7 +559,7 @@ function FilterSetsSection() {
                       title="Edit"
                       onClick={() => {
                         setExpandedId(isExpanded ? null : fs.id);
-                        setShowCreate(false);
+                        setCreateMode(null);
                       }}
                       className="rounded p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
                     >

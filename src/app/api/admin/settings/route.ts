@@ -14,16 +14,17 @@ const settingsSchema = z.object({
   duplicateCheckEnabled: z.boolean().optional(),
   duplicateCheckWindowDays: z.number().int().positive().optional(),
   leadTypeConfigs: z.record(z.object({
-    defaultPrice: z.number().positive().optional(),
+    defaultPrice: z.number().nonnegative().optional(),
     retentionDays: z.number().int().positive().optional(),
+    active: z.boolean().optional(),
   })).optional(),
   sourceVendorConfigs: z.record(z.object({
     label: z.string().optional(),
     matchingEnabled: z.boolean().optional(),
   })).optional(),
   resaleVendorConfigs: z.record(z.object({
-    pingUrl: z.string().url().optional(),
-    postUrl: z.string().url().optional(),
+    pingUrl: z.string().optional(),
+    postUrl: z.string().optional(),
     enabled: z.boolean().optional(),
   })).optional(),
 });
