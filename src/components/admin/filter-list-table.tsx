@@ -303,7 +303,7 @@ function AdvancedFiltersAccordion({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
+        className="flex w-full items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
       >
         <CaretDown
           size={13}
