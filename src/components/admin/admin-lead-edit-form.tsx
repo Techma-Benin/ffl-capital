@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { X } from "@phosphor-icons/react";
 
 type LeadFields = {
   firstName: string;
@@ -20,9 +21,11 @@ type LeadFields = {
 export function AdminLeadEditForm({
   leadId,
   initial,
+  onClose,
 }: {
   leadId: string;
   initial: LeadFields;
+  onClose?: () => void;
 }) {
   const router = useRouter();
   const [form, setForm] = useState(initial);
@@ -40,18 +43,16 @@ export function AdminLeadEditForm({
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error("Save failed");
-      setMessage("Saved");
       router.refresh();
+      onClose?.();
     } catch {
       setMessage("Failed to save");
-    } finally {
       setPending(false);
     }
   }
 
   return (
-    <form onSubmit={handleSave} className="card p-6 space-y-4">
-      <h2 className="text-sm font-semibold text-slate-900">Edit Lead</h2>
+    <form onSubmit={handleSave} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         {(
           [
@@ -79,12 +80,66 @@ export function AdminLeadEditForm({
           </div>
         ))}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+        {message && <span className="text-xs text-red-500 mr-auto">{message}</span>}
+        {onClose && (
+          <button type="button" onClick={onClose} className="btn-secondary btn-sm">
+            Cancel
+          </button>
+        )}
         <button type="submit" disabled={pending} className="btn-primary btn-sm">
           {pending ? "Saving…" : "Save Changes"}
         </button>
-        {message && <span className="text-xs text-slate-500">{message}</span>}
       </div>
     </form>
+  );
+}
+
+export function AdminLeadEditModal({
+  leadId,
+  initial,
+}: {
+  leadId: string;
+  initial: LeadFields;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className="btn-secondary btn-sm">
+        Edit Lead
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setOpen(false)}
+          />
+
+          {/* Dialog */}
+          <div className="relative z-10 w-full max-w-2xl rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <h2 className="text-sm font-semibold text-slate-900">Edit Lead</h2>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 py-5">
+              <AdminLeadEditForm
+                leadId={leadId}
+                initial={initial}
+                onClose={() => setOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
