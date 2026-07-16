@@ -159,38 +159,16 @@ function AllowBlockInput({
 }) {
   const mode: "allow" | "block" = blockValues.length > 0 ? "block" : "allow";
   const activeValues = mode === "allow" ? allowValues : blockValues;
-  const [inputText, setInputText] = useState("");
 
   function switchMode(next: "allow" | "block") {
     if (next === mode) return;
     onAllowChange([]);
     onBlockChange([]);
-    setInputText("");
   }
 
-  function commit() {
-    const parts = inputText
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (!parts.length) return;
-    const merged = [...new Set([...activeValues, ...parts])];
-    mode === "allow" ? onAllowChange(merged) : onBlockChange(merged);
-    setInputText("");
-  }
-
-  function removeValue(v: string) {
-    const next = activeValues.filter((x) => x !== v);
-    mode === "allow" ? onAllowChange(next) : onBlockChange(next);
-  }
-
-  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      commit();
-    } else if (e.key === "Backspace" && !inputText && activeValues.length > 0) {
-      removeValue(activeValues[activeValues.length - 1]);
-    }
+  function handleChange(raw: string) {
+    const vals = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    mode === "allow" ? onAllowChange(vals) : onBlockChange(vals);
   }
 
   return (
@@ -220,50 +198,14 @@ function AllowBlockInput({
         </div>
       </div>
 
-      {/* Tag input */}
-      <div className="flex min-h-[36px] flex-wrap gap-1 rounded-md border border-slate-300 bg-white p-1.5">
-        {activeValues.map((v) => (
-          <span
-            key={v}
-            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium ${
-              mode === "allow"
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-rose-50 text-rose-600"
-            }`}
-          >
-            {v}
-            <button
-              type="button"
-              onClick={() => removeValue(v)}
-              className="leading-none opacity-60 hover:opacity-100"
-            >
-              ×
-            </button>
-          </span>
-        ))}
-        <input
-          className="min-w-[80px] flex-1 bg-transparent text-xs outline-none"
-          value={inputText}
-          placeholder={activeValues.length === 0 ? (placeholder ?? "Type and press Enter") : ""}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={handleKey}
-          onBlur={commit}
-        />
-      </div>
-
-      {/* Summary */}
-      {activeValues.length > 0 && (
-        <p className="mt-1 text-[11px] text-slate-400">
-          <span
-            className={`font-semibold ${
-              mode === "allow" ? "text-emerald-600" : "text-rose-500"
-            }`}
-          >
-            {mode === "allow" ? "Allowing" : "Blocking"}:
-          </span>{" "}
-          {activeValues.join(", ")}
-        </p>
-      )}
+      {/* Textarea */}
+      <textarea
+        rows={2}
+        placeholder={placeholder ?? "Comma-separated values"}
+        className="form-input w-full resize-none text-xs leading-relaxed"
+        value={activeValues.join(", ")}
+        onChange={(e) => handleChange(e.target.value)}
+      />
     </div>
   );
 }
