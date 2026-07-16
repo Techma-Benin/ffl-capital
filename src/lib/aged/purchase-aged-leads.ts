@@ -26,13 +26,21 @@ export async function purchaseAgedLeads(
 ): Promise<AgedPurchaseResult> {
   const partner = await prisma.partner.findUniqueOrThrow({
     where: { id: partnerId },
+    include: {
+      filterSets: { where: { active: true }, select: { filterStates: true } },
+    },
   });
 
   if (partner.status !== PartnerStatus.active) {
     throw new Error("Partner account is not active");
   }
-  if (partner.filterStates.length < MIN_FILTER_STATES) {
-    throw new Error("Partner must have at least 15 target states");
+
+  const allowedStates = [
+    ...new Set(partner.filterSets.flatMap((fs) => fs.filterStates)),
+  ];
+
+  if (allowedStates.length < MIN_FILTER_STATES) {
+    throw new Error("Partner must have at least 15 target states across active filter sets");
   }
 
   const agedPrice = await getDefaultAgedPrice();
@@ -44,7 +52,7 @@ export async function purchaseAgedLeads(
       const deliveryId = await purchaseSingleAgedLead(
         partnerId,
         leadId,
-        partner.filterStates,
+        allowedStates,
         partner.leadType,
         agedPrice,
       );

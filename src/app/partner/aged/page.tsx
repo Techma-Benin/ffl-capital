@@ -18,14 +18,19 @@ export default async function PartnerAgedPage({
 
   const targeting = await prisma.partner.findUnique({
     where: { id: partnerId },
-    select: { filterStates: true, leadType: true },
+    select: {
+      leadType: true,
+      filterSets: { where: { active: true }, select: { filterStates: true } },
+    },
   });
   if (!targeting) redirect("/onboarding");
 
+  const allowedStates = [
+    ...new Set(targeting.filterSets.flatMap((fs) => fs.filterStates)),
+  ];
+
   const extra: Prisma.LeadWhereInput = {
-    state: {
-      in: targeting.filterStates.length > 0 ? targeting.filterStates : ["__none__"],
-    },
+    state: { in: allowedStates.length > 0 ? allowedStates : ["__none__"] },
     leadType: targeting.leadType,
   };
 

@@ -4,15 +4,7 @@ import { prisma } from "@/lib/db";
 import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { getPartnerSession, getPartnerId } from "@/lib/partner/session";
 import { serializePartner } from "@/lib/partner/serialize";
-import { syncDefaultFilterSetStates } from "@/lib/partner/default-filter-set";
-import { US_STATE_CODES } from "@/lib/constants/us-states";
-
-const stateCodeSchema = z.enum(
-  US_STATE_CODES as unknown as [string, ...string[]],
-);
-
 const patchSchema = z.object({
-  filterStates: z.array(stateCodeSchema).min(15).max(50).optional(),
   crmWebhookUrl: z.union([z.string().url(), z.literal("")]).optional(),
   leadType: z.enum(["traditional_iul", "high_intent_iul"]).optional(),
 });
@@ -47,16 +39,9 @@ export async function PATCH(request: NextRequest) {
   }
 
   const data: {
-    filterStates?: string[];
     crmWebhookUrl?: string | null;
     leadType?: "traditional_iul" | "high_intent_iul";
   } = {};
-
-  if (parsed.data.filterStates) {
-    data.filterStates = Array.from(
-      new Set(parsed.data.filterStates.map((s) => s.toUpperCase())),
-    );
-  }
 
   if (parsed.data.crmWebhookUrl !== undefined) {
     data.crmWebhookUrl =
@@ -76,16 +61,6 @@ export async function PATCH(request: NextRequest) {
       where: { id: partnerId },
       data,
     });
-
-    if (data.filterStates) {
-      await syncDefaultFilterSetStates({
-        partnerId,
-        filterStates: data.filterStates,
-        leadType: updated.leadType,
-        partnerStatus: updated.status,
-        client: tx,
-      });
-    }
 
     const sets = await tx.partnerFilterSet.findMany({
       where: { partnerId },
