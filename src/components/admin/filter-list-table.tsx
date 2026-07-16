@@ -278,70 +278,7 @@ function AdvancedFiltersAccordion({
 
       {open && (
         <div className="mt-5 space-y-5">
-          {/* Lead Profile */}
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            Lead Profile
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TagInput
-              label="Intent"
-              values={criteria.intent ?? []}
-              onChange={(v) => update({ intent: v })}
-              placeholder="e.g. buy_now"
-            />
-            <div>
-              <label className="form-label">Have IUL</label>
-              <div className="flex gap-4 mt-1">
-                {(["yes", "no"] as const).map((val) => {
-                  const checked = (criteria.haveIul ?? []).includes(val);
-                  return (
-                    <label key={val} className="flex items-center gap-1.5 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => {
-                          const current = criteria.haveIul ?? [];
-                          update({
-                            haveIul: e.target.checked
-                              ? [...current, val]
-                              : current.filter((v) => v !== val),
-                          });
-                        }}
-                        className="rounded border-slate-300 accent-brand-600"
-                      />
-                      <span className="text-sm text-slate-700 capitalize">{val}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              {(criteria.haveIul?.length ?? 0) === 0 && (
-                <p className="mt-1 text-[11px] text-slate-400">Any</p>
-              )}
-            </div>
-          </div>
-          <div>
-            <label className="form-label">Age</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number" min={0} max={120} placeholder="Min" className="form-input"
-                value={criteria.ageMin ?? ""}
-                onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })}
-              />
-              <span className="flex-shrink-0 text-xs text-slate-400">to</span>
-              <input
-                type="number" min={0} max={120} placeholder="Max" className="form-input"
-                value={criteria.ageMax ?? ""}
-                onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })}
-              />
-            </div>
-          </div>
-
-          {/* Attribution */}
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">
-            Attribution
-          </p>
-
-          {/* Source checkboxes */}
+          {/* Source — top */}
           {sources.length > 0 && (
             <div>
               <label className="form-label mb-2">Source</label>
@@ -373,6 +310,62 @@ function AdvancedFiltersAccordion({
             </div>
           )}
 
+          {/* Lead Profile */}
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            Lead Profile
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="form-label">Have IUL</label>
+              <div className="flex gap-4 mt-1">
+                {(["yes", "no"] as const).map((val) => {
+                  const checked = (criteria.haveIul ?? []).includes(val);
+                  return (
+                    <label key={val} className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const current = criteria.haveIul ?? [];
+                          update({
+                            haveIul: e.target.checked
+                              ? [...current, val]
+                              : current.filter((v) => v !== val),
+                          });
+                        }}
+                        className="rounded border-slate-300 accent-brand-600"
+                      />
+                      <span className="text-sm text-slate-700 capitalize">{val}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {(criteria.haveIul?.length ?? 0) === 0 && (
+                <p className="mt-1 text-[11px] text-slate-400">Any</p>
+              )}
+            </div>
+            <div>
+              <label className="form-label">Age</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number" min={0} max={120} placeholder="Min" className="form-input"
+                  value={criteria.ageMin ?? ""}
+                  onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })}
+                />
+                <span className="flex-shrink-0 text-xs text-slate-400">to</span>
+                <input
+                  type="number" min={0} max={120} placeholder="Max" className="form-input"
+                  value={criteria.ageMax ?? ""}
+                  onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Attribution */}
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">
+            Attribution
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <AllowBlockInput
               label="Sub ID"
@@ -395,6 +388,12 @@ function AdvancedFiltersAccordion({
               values={criteria.boberdooLeadType ?? []}
               onChange={(v) => update({ boberdooLeadType: v })}
               placeholder="e.g. iul, mp"
+            />
+            <TagInput
+              label="Intent"
+              values={criteria.intent ?? []}
+              onChange={(v) => update({ intent: v })}
+              placeholder="e.g. buy_now"
             />
           </div>
 
