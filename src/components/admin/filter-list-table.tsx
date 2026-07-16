@@ -922,23 +922,22 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                       className="cursor-pointer hover:bg-brand-50 transition-colors"
                       onClick={() => setSelected(row)}
                     >
-                      <td className="font-medium">{fs.name}</td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <Link
-                          href={`/admin/partners/${fs.partnerId}`}
-                          className="hover:text-brand-600 flex items-start gap-2"
-                        >
-                          <span>
-                            <p className="font-medium text-slate-900">
-                              {fs.partner.firstName} {fs.partner.lastName}
-                            </p>
-                            <p className="text-xs text-slate-400">{fs.partner.email}</p>
-                          </span>
+                      <td>
+                        <span className="flex items-center gap-1.5">
                           {fs.active && fs.partner.status === "active" ? (
-                            <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-emerald-500" title="Active" />
+                            <span className="h-2 w-2 flex-shrink-0 rounded-full bg-emerald-500" title="Active" />
                           ) : (
-                            <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-slate-300" title="Inactive" />
+                            <span className="h-2 w-2 flex-shrink-0 rounded-full bg-slate-300" title="Inactive" />
                           )}
+                          <span className="font-medium">{fs.name}</span>
+                        </span>
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <Link href={`/admin/partners/${fs.partnerId}`} className="hover:text-brand-600">
+                          <p className="font-medium text-slate-900">
+                            {fs.partner.firstName} {fs.partner.lastName}
+                          </p>
+                          <p className="text-xs text-slate-400">{fs.partner.email}</p>
                         </Link>
                       </td>
                       <td>
