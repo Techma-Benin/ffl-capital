@@ -421,22 +421,46 @@ function AdvancedFiltersAccordion({
               <p className="mt-1.5 text-[11px] text-slate-400">Any day accepted</p>
             )}
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="form-label">From hour (ET, 0–23)</label>
-              <input
-                type="number" min={0} max={23} placeholder="No start" className="form-input"
+          <div>
+            <label className="form-label mb-2">Hours (ET)</label>
+            <div className="flex items-center gap-2">
+              <select
+                className="form-select flex-1"
                 value={criteria.acceptHoursStart ?? ""}
-                onChange={(e) => update({ acceptHoursStart: e.target.value ? Number(e.target.value) : undefined })}
-              />
-            </div>
-            <div>
-              <label className="form-label">To hour (ET, 0–23, exclusive)</label>
-              <input
-                type="number" min={0} max={23} placeholder="No end" className="form-input"
+                onChange={(e) =>
+                  update({ acceptHoursStart: e.target.value !== "" ? Number(e.target.value) : undefined })
+                }
+              >
+                <option value="">No start</option>
+                {Array.from({ length: 24 }, (_, h) => {
+                  const period = h < 12 ? "AM" : "PM";
+                  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                  return (
+                    <option key={h} value={h}>
+                      {display}:00 {period}
+                    </option>
+                  );
+                })}
+              </select>
+              <span className="flex-shrink-0 text-xs text-slate-400">to</span>
+              <select
+                className="form-select flex-1"
                 value={criteria.acceptHoursEnd ?? ""}
-                onChange={(e) => update({ acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined })}
-              />
+                onChange={(e) =>
+                  update({ acceptHoursEnd: e.target.value !== "" ? Number(e.target.value) : undefined })
+                }
+              >
+                <option value="">No end</option>
+                {Array.from({ length: 24 }, (_, h) => {
+                  const period = h < 12 ? "AM" : "PM";
+                  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                  return (
+                    <option key={h} value={h}>
+                      {display}:00 {period}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
           </div>
         </div>
