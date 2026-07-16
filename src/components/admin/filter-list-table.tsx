@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/components/ui/action-button";
 import Link from "next/link";
-import { X, Funnel, CopySimple } from "@phosphor-icons/react";
+import { X, Funnel, CopySimple, CaretDown } from "@phosphor-icons/react";
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 import type { FilterCriteria } from "@/lib/matching/types";
 
@@ -139,6 +139,90 @@ function TagInput({
 }
 
 // ---------------------------------------------------------------------------
+// Advanced Filters accordion (no visible box — just a toggle)
+// ---------------------------------------------------------------------------
+
+function AdvancedFiltersAccordion({
+  criteria,
+  onChange,
+}: {
+  criteria: FilterCriteria;
+  onChange: (c: FilterCriteria) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  function update(patch: Partial<FilterCriteria>) {
+    onChange({ ...criteria, ...patch });
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
+      >
+        <CaretDown size={13} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        Advanced Filters <span className="text-xs font-normal text-slate-400">(optional)</span>
+      </button>
+
+      {open && (
+        <div className="mt-4 space-y-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Lead Profile</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TagInput label="Intent (allow-list)" values={criteria.intent ?? []} onChange={(v) => update({ intent: v })} placeholder="e.g. buy_now" />
+            <TagInput label="Have IUL (allow-list)" values={criteria.haveIul ?? []} onChange={(v) => update({ haveIul: v })} placeholder="e.g. yes" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="form-label">Age Min</label>
+              <input type="number" min={0} max={120} placeholder="No min" className="form-input" value={criteria.ageMin ?? ""} onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })} />
+            </div>
+            <div>
+              <label className="form-label">Age Max</label>
+              <input type="number" min={0} max={120} placeholder="No max" className="form-input" value={criteria.ageMax ?? ""} onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })} />
+            </div>
+          </div>
+
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Attribution</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TagInput label="Source (allow-list)" values={criteria.source ?? []} onChange={(v) => update({ source: v })} placeholder="e.g. meta_leadconduit" />
+            <TagInput label="Source (block-list)" values={criteria.excludeSource ?? []} onChange={(v) => update({ excludeSource: v })} />
+            <TagInput label="Sub ID (allow-list)" values={criteria.subId ?? []} onChange={(v) => update({ subId: v })} />
+            <TagInput label="Sub ID (block-list)" values={criteria.excludeSubId ?? []} onChange={(v) => update({ excludeSubId: v })} />
+            <TagInput label="Pub ID (allow-list)" values={criteria.pubId ?? []} onChange={(v) => update({ pubId: v })} />
+            <TagInput label="Pub ID (block-list)" values={criteria.excludePubId ?? []} onChange={(v) => update({ excludePubId: v })} />
+            <TagInput label="Boberdoo Lead Type (allow-list)" values={criteria.boberdooLeadType ?? []} onChange={(v) => update({ boberdooLeadType: v })} />
+          </div>
+
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Schedule (Eastern Time)</p>
+          <div>
+            <label className="form-label">Days you accept leads</label>
+            <div className="flex flex-wrap gap-3 mt-1">
+              {(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const).map((day) => (
+                <label key={day} className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
+                  <input type="checkbox" checked={(criteria.acceptDays ?? []).includes(day)} onChange={(e) => { const days = criteria.acceptDays ?? []; update({ acceptDays: e.target.checked ? [...days, day] : days.filter((d) => d !== day) }); }} className="rounded border-slate-300" />
+                  {day.charAt(0).toUpperCase() + day.slice(1, 3)}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-slate-400">Leave all unchecked to accept any day</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="form-label">From hour (ET, 0–23)</label>
+              <input type="number" min={0} max={23} placeholder="No start" className="form-input" value={criteria.acceptHoursStart ?? ""} onChange={(e) => update({ acceptHoursStart: e.target.value ? Number(e.target.value) : undefined })} />
+            </div>
+            <div>
+              <label className="form-label">To hour (ET, 0–23, exclusive)</label>
+              <input type="number" min={0} max={23} placeholder="No end" className="form-input" value={criteria.acceptHoursEnd ?? ""} onChange={(e) => update({ acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined })} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Modal
@@ -432,59 +516,11 @@ function FilterSetModal({
             )}
           </div>
 
-          {/* Advanced filters — Lead Profile */}
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Lead Profile</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TagInput label="Intent (allow-list)" values={form.filterCriteria.intent ?? []} onChange={(v) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, intent: v } }))} placeholder="e.g. buy_now" />
-            <TagInput label="Have IUL (allow-list)" values={form.filterCriteria.haveIul ?? []} onChange={(v) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, haveIul: v } }))} placeholder="e.g. yes" />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="form-label">Age Min</label>
-              <input type="number" min={0} max={120} placeholder="No min" className="form-input" value={form.filterCriteria.ageMin ?? ""} onChange={(e) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, ageMin: e.target.value ? Number(e.target.value) : undefined } }))} />
-            </div>
-            <div>
-              <label className="form-label">Age Max</label>
-              <input type="number" min={0} max={120} placeholder="No max" className="form-input" value={form.filterCriteria.ageMax ?? ""} onChange={(e) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, ageMax: e.target.value ? Number(e.target.value) : undefined } }))} />
-            </div>
-          </div>
-
-          {/* Advanced filters — Attribution */}
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Attribution</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TagInput label="Source (allow-list)" values={form.filterCriteria.source ?? []} onChange={(v) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, source: v } }))} placeholder="e.g. meta_leadconduit" />
-            <TagInput label="Source (block-list)" values={form.filterCriteria.excludeSource ?? []} onChange={(v) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, excludeSource: v } }))} />
-            <TagInput label="Sub ID (allow-list)" values={form.filterCriteria.subId ?? []} onChange={(v) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, subId: v } }))} />
-            <TagInput label="Sub ID (block-list)" values={form.filterCriteria.excludeSubId ?? []} onChange={(v) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, excludeSubId: v } }))} />
-            <TagInput label="Pub ID (allow-list)" values={form.filterCriteria.pubId ?? []} onChange={(v) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, pubId: v } }))} />
-            <TagInput label="Pub ID (block-list)" values={form.filterCriteria.excludePubId ?? []} onChange={(v) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, excludePubId: v } }))} />
-            <TagInput label="Boberdoo Lead Type (allow-list)" values={form.filterCriteria.boberdooLeadType ?? []} onChange={(v) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, boberdooLeadType: v } }))} />
-          </div>
-
-          {/* Advanced filters — Schedule */}
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Schedule (Eastern Time)</p>
-          <div>
-            <label className="form-label">Days you accept leads</label>
-            <div className="flex flex-wrap gap-3 mt-1">
-              {(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const).map((day) => (
-                <label key={day} className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
-                  <input type="checkbox" checked={(form.filterCriteria.acceptDays ?? []).includes(day)} onChange={(e) => { const days = form.filterCriteria.acceptDays ?? []; setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, acceptDays: e.target.checked ? [...days, day] : days.filter((d) => d !== day) } })); }} className="rounded border-slate-300" />
-                  {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-                </label>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-slate-400">Leave all unchecked to accept any day</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="form-label">From hour (ET, 0–23)</label>
-              <input type="number" min={0} max={23} placeholder="No start" className="form-input" value={form.filterCriteria.acceptHoursStart ?? ""} onChange={(e) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, acceptHoursStart: e.target.value ? Number(e.target.value) : undefined } }))} />
-            </div>
-            <div>
-              <label className="form-label">To hour (ET, 0–23, exclusive)</label>
-              <input type="number" min={0} max={23} placeholder="No end" className="form-input" value={form.filterCriteria.acceptHoursEnd ?? ""} onChange={(e) => setForm((p) => ({ ...p, filterCriteria: { ...p.filterCriteria, acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined } }))} />
-            </div>
-          </div>
+          {/* Advanced filters */}
+          <AdvancedFiltersAccordion
+            criteria={form.filterCriteria}
+            onChange={(c) => setForm((p) => ({ ...p, filterCriteria: c }))}
+          />
 
           {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
