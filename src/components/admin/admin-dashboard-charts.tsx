@@ -99,44 +99,64 @@ export function AdminDashboardCharts({
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div className="card p-5">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="flex flex-wrap items-baseline gap-x-2.5">
-              <p className="text-3xl font-bold text-slate-900">{pendingPartners}</p>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Pending Approvals
-              </p>
+        {pendingPartners > 0 ? (
+          <PortalLink
+            href="/admin/partners?status=pending_approval"
+            className="card p-5 block hover:bg-brand-50 transition-colors"
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="flex flex-wrap items-baseline gap-x-2.5">
+                <p className="text-3xl font-bold text-slate-900">{pendingPartners}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Pending Approvals
+                </p>
+              </div>
+              <Clock size={16} className="text-amber-500" weight="duotone" />
             </div>
-            <Clock size={16} className="text-amber-500" weight="duotone" />
-          </div>
-          {pendingPartners > 0 && (
-            <PortalLink
-              href="/admin/partners?status=pending_approval"
-              className="mt-3 inline-flex text-xs font-medium text-brand-700 hover:text-brand-800"
-            >
-              Review now →
-            </PortalLink>
-          )}
-        </div>
-        <div className="card p-5">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="flex flex-wrap items-baseline gap-x-2.5">
-              <p className="text-3xl font-bold text-slate-900">{unmatchedLeads}</p>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Reprocess Queue
-              </p>
+            <p className="mt-3 text-xs font-medium text-brand-700">Review now →</p>
+          </PortalLink>
+        ) : (
+          <div className="card p-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="flex flex-wrap items-baseline gap-x-2.5">
+                <p className="text-3xl font-bold text-slate-900">{pendingPartners}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Pending Approvals
+                </p>
+              </div>
+              <Clock size={16} className="text-amber-500" weight="duotone" />
             </div>
-            <WarningCircle size={16} className="text-amber-500" weight="duotone" />
           </div>
-          {unmatchedLeads > 0 && (
-            <PortalLink
-              href="/admin/leads?status=unmatched"
-              className="mt-3 inline-flex text-xs font-medium text-brand-700 hover:text-brand-800"
-            >
-              View queue →
-            </PortalLink>
-          )}
-        </div>
+        )}
+        {unmatchedLeads > 0 ? (
+          <PortalLink
+            href="/admin/leads?status=unmatched"
+            className="card p-5 block hover:bg-brand-50 transition-colors"
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="flex flex-wrap items-baseline gap-x-2.5">
+                <p className="text-3xl font-bold text-slate-900">{unmatchedLeads}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Reprocess Queue
+                </p>
+              </div>
+              <WarningCircle size={16} className="text-amber-500" weight="duotone" />
+            </div>
+            <p className="mt-3 text-xs font-medium text-brand-700">View queue →</p>
+          </PortalLink>
+        ) : (
+          <div className="card p-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="flex flex-wrap items-baseline gap-x-2.5">
+                <p className="text-3xl font-bold text-slate-900">{unmatchedLeads}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Reprocess Queue
+                </p>
+              </div>
+              <WarningCircle size={16} className="text-amber-500" weight="duotone" />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 card">
