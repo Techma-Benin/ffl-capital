@@ -9,6 +9,8 @@ import { PortalShell } from "@/components/layout/portal-shell";
 import { MainContent } from "@/components/layout/main-content";
 import { ImpersonationBanner } from "@/components/partner/impersonation-banner";
 import { WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { currentUser } from "@clerk/nextjs/server";
+import { getRoleFromMetadata } from "@/lib/auth/roles";
 
 export default async function PartnerLayout({
   children,
@@ -16,7 +18,12 @@ export default async function PartnerLayout({
   children: React.ReactNode;
 }) {
   const partner = await getPartnerSession();
-  if (!partner) redirect("/onboarding");
+  if (!partner) {
+    const user = await currentUser();
+    const role = getRoleFromMetadata(user?.publicMetadata as Record<string, unknown>);
+    if (role === "admin") redirect("/admin");
+    redirect("/onboarding");
+  }
 
   const approvalRequired = isAdminApprovalRequired();
   const isPending = partner.status === "pending_approval";

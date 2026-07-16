@@ -1,7 +1,9 @@
 import dynamic from "next/dynamic";
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { getCurrentPartner } from "@/lib/auth/session";
+import { getRoleFromMetadata } from "@/lib/auth/roles";
 import { FormSkeleton } from "@/components/ui/form-skeleton";
 import { Lightning } from "@phosphor-icons/react/dist/ssr";
 import { AuthContinueRedirect } from "@/app/auth/continue/redirect";
@@ -16,13 +18,15 @@ const OnboardingForm = dynamic(() => import("./onboarding-form"), {
 });
 
 export default async function OnboardingPage() {
+  const user = await currentUser();
+  const role = getRoleFromMetadata(user?.publicMetadata as Record<string, unknown>);
+  if (role === "admin") redirect("/admin");
+
   const partner = await getCurrentPartner();
   // Use client-side redirect to avoid throwing NEXT_REDIRECT in the RSC layer,
   // which triggers the dev-mode error overlay (non-issue in production but
   // confusing during development).
   if (partner) return <AuthContinueRedirect to="/partner" />;
-
-  const user = await currentUser();
   const fullName = user?.fullName?.trim() ?? "";
   const [fallbackFirst = "", ...fallbackRest] = fullName ? fullName.split(/\s+/) : [];
   const initialProfile = {
