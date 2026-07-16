@@ -65,8 +65,8 @@ export function AdminSidebar() {
         {/* Title + collapse button — only when expanded */}
         <div
           className={clsx(
-            "flex min-w-0 flex-1 items-center overflow-hidden transition-all duration-300",
-            sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100",
+            "flex min-w-0 items-center overflow-hidden transition-all duration-300",
+            sidebarCollapsed ? "w-0 opacity-0" : "w-auto flex-1 opacity-100",
           )}
         >
           <div className="min-w-0 flex-1 flex-col">
