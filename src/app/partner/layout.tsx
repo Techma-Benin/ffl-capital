@@ -2,11 +2,12 @@ import { redirect } from "next/navigation";
 import {
   isAdminApprovalRequired,
 } from "@/lib/auth/session";
-import { getPartnerSession } from "@/lib/partner/session";
+import { getPartnerSession, getImpersonatedPartnerName } from "@/lib/partner/session";
 import { PartnerSidebar } from "@/components/partner/sidebar";
 import { PartnerProvider } from "@/components/partner/partner-provider";
 import { PortalShell } from "@/components/layout/portal-shell";
 import { MainContent } from "@/components/layout/main-content";
+import { ImpersonationBanner } from "@/components/partner/impersonation-banner";
 import { WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 export default async function PartnerLayout({
@@ -19,6 +20,7 @@ export default async function PartnerLayout({
 
   const approvalRequired = isAdminApprovalRequired();
   const isPending = partner.status === "pending_approval";
+  const impersonatedName = await getImpersonatedPartnerName();
 
   return (
     <PortalShell>
@@ -27,6 +29,10 @@ export default async function PartnerLayout({
           <PartnerSidebar />
 
           <div className="flex flex-1 flex-col overflow-hidden">
+            {impersonatedName && (
+              <ImpersonationBanner partnerName={impersonatedName} />
+            )}
+
             {approvalRequired && isPending && (
               <div className="flex items-center gap-3 border-b border-amber-200 bg-amber-50 px-6 py-3">
                 <WarningCircle size={15} className="flex-shrink-0 text-amber-600" weight="fill" />
