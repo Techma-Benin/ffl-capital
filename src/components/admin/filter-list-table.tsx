@@ -139,108 +139,129 @@ function TagInput({
 }
 
 // ---------------------------------------------------------------------------
-// Advanced Filters — Ignore / Include / Exclude field
+// Allow / Block field — single input with mode toggle
 // ---------------------------------------------------------------------------
 
-type FilterMode = "ignore" | "include" | "exclude";
-
-function FilterField({
+function AllowBlockInput({
   label,
-  fieldId,
-  includeValues,
-  excludeValues = [],
-  onIncludeChange,
-  onExcludeChange,
-  supportsExclude = true,
-  placeholder = "e.g. value1, value2",
+  allowValues,
+  blockValues = [],
+  onAllowChange,
+  onBlockChange,
+  placeholder,
 }: {
   label: string;
-  fieldId: string;
-  includeValues: string[];
-  excludeValues?: string[];
-  onIncludeChange: (v: string[]) => void;
-  onExcludeChange?: (v: string[]) => void;
-  supportsExclude?: boolean;
+  allowValues: string[];
+  blockValues?: string[];
+  onAllowChange: (v: string[]) => void;
+  onBlockChange: (v: string[]) => void;
   placeholder?: string;
 }) {
-  const derivedMode: FilterMode =
-    includeValues.length > 0 ? "include" :
-    excludeValues.length > 0 ? "exclude" : "ignore";
+  const mode: "allow" | "block" = blockValues.length > 0 ? "block" : "allow";
+  const activeValues = mode === "allow" ? allowValues : blockValues;
+  const [inputText, setInputText] = useState("");
 
-  const [localText, setLocalText] = useState(() =>
-    derivedMode === "include" ? includeValues.join(", ") :
-    derivedMode === "exclude" ? excludeValues.join(", ") : ""
-  );
-
-  function handleModeChange(m: FilterMode) {
-    setLocalText("");
-    onIncludeChange([]);
-    onExcludeChange?.([]);
+  function switchMode(next: "allow" | "block") {
+    if (next === mode) return;
+    onAllowChange([]);
+    onBlockChange([]);
+    setInputText("");
   }
 
-  function handleTextChange(raw: string, mode: FilterMode) {
-    setLocalText(raw);
-    const vals = raw.split(",").map((v) => v.trim()).filter(Boolean);
-    if (mode === "include") onIncludeChange(vals);
-    else if (mode === "exclude") onExcludeChange?.(vals);
+  function commit() {
+    const parts = inputText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!parts.length) return;
+    const merged = [...new Set([...activeValues, ...parts])];
+    mode === "allow" ? onAllowChange(merged) : onBlockChange(merged);
+    setInputText("");
   }
 
-  const modes: FilterMode[] = supportsExclude
-    ? ["ignore", "include", "exclude"]
-    : ["ignore", "include"];
+  function removeValue(v: string) {
+    const next = activeValues.filter((x) => x !== v);
+    mode === "allow" ? onAllowChange(next) : onBlockChange(next);
+  }
 
-  const summary =
-    derivedMode === "include" && includeValues.length > 0
-      ? includeValues.join(", ")
-      : derivedMode === "exclude" && excludeValues.length > 0
-      ? excludeValues.join(", ")
-      : null;
+  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      commit();
+    } else if (e.key === "Backspace" && !inputText && activeValues.length > 0) {
+      removeValue(activeValues[activeValues.length - 1]);
+    }
+  }
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-slate-700">{label}</p>
-      <div className="flex items-center gap-4">
-        {modes.map((m) => (
-          <label
-            key={m}
-            className="flex items-center gap-1.5 cursor-pointer select-none"
-          >
-            <input
-              type="radio"
-              name={fieldId}
-              checked={derivedMode === m}
-              onChange={() => handleModeChange(m)}
-              className="h-3.5 w-3.5 accent-brand-600"
-            />
-            <span
-              className={`text-xs font-medium ${
-                derivedMode === m ? "text-slate-800" : "text-slate-400"
+    <div>
+      {/* Label + mode toggle */}
+      <div className="mb-1.5 flex items-center justify-between">
+        <label className="form-label mb-0">{label}</label>
+        <div className="flex overflow-hidden rounded border border-slate-200 text-[11px] font-semibold">
+          {(["allow", "block"] as const).map((m, i) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => switchMode(m)}
+              className={`px-2.5 py-0.5 transition-colors ${
+                i > 0 ? "border-l border-slate-200" : ""
+              } ${
+                mode === m
+                  ? m === "allow"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-rose-50 text-rose-600"
+                  : "text-slate-400 hover:text-slate-600"
               }`}
             >
               {m.charAt(0).toUpperCase() + m.slice(1)}
-            </span>
-          </label>
-        ))}
+            </button>
+          ))}
+        </div>
       </div>
-      {derivedMode !== "ignore" && (
-        <textarea
-          rows={2}
-          placeholder={placeholder}
-          className="form-input w-full resize-none text-xs leading-relaxed"
-          value={localText}
-          onChange={(e) => handleTextChange(e.target.value, derivedMode)}
-        />
-      )}
-      {derivedMode !== "ignore" && summary && (
-        <p className="text-[11px] text-slate-400 truncate">
+
+      {/* Tag input */}
+      <div className="flex min-h-[36px] flex-wrap gap-1 rounded-md border border-slate-300 bg-white p-1.5">
+        {activeValues.map((v) => (
           <span
-            className={`font-semibold ${
-              derivedMode === "include" ? "text-emerald-600" : "text-rose-500"
+            key={v}
+            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium ${
+              mode === "allow"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-rose-50 text-rose-600"
             }`}
           >
-            {derivedMode === "include" ? "Including" : "Excluding"}:
+            {v}
+            <button
+              type="button"
+              onClick={() => removeValue(v)}
+              className="leading-none opacity-60 hover:opacity-100"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          className="min-w-[80px] flex-1 bg-transparent text-xs outline-none"
+          value={inputText}
+          placeholder={activeValues.length === 0 ? (placeholder ?? "Type and press Enter") : ""}
+          onChange={(e) => setInputText(e.target.value)}
+          onKeyDown={handleKey}
+          onBlur={commit}
+        />
+      </div>
+
+      {/* Summary */}
+      {activeValues.length > 0 && (
+        <p className="mt-1 text-[11px] text-slate-400">
+          <span
+            className={`font-semibold ${
+              mode === "allow" ? "text-emerald-600" : "text-rose-500"
+            }`}
+          >
+            {mode === "allow" ? "Allowing" : "Blocking"}:
           </span>{" "}
-          {summary}
+          {activeValues.join(", ")}
         </p>
       )}
     </div>
@@ -264,11 +285,9 @@ function AdvancedFiltersAccordion({
     onChange({ ...criteria, ...patch });
   }
 
-  // Count active filters for the summary badge
   const activeCount = [
     (criteria.intent?.length ?? 0) > 0,
     (criteria.haveIul?.length ?? 0) > 0,
-    (criteria.source?.length ?? 0) > 0 || (criteria.excludeSource?.length ?? 0) > 0,
     (criteria.subId?.length ?? 0) > 0 || (criteria.excludeSubId?.length ?? 0) > 0,
     (criteria.pubId?.length ?? 0) > 0 || (criteria.excludePubId?.length ?? 0) > 0,
     (criteria.boberdooLeadType?.length ?? 0) > 0,
@@ -307,50 +326,34 @@ function AdvancedFiltersAccordion({
             Lead Profile
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FilterField
-              fieldId="adv-intent"
+            <TagInput
               label="Intent"
-              includeValues={criteria.intent ?? []}
-              onIncludeChange={(v) => update({ intent: v })}
-              supportsExclude={false}
-              placeholder="e.g. buy_now, research"
+              values={criteria.intent ?? []}
+              onChange={(v) => update({ intent: v })}
+              placeholder="e.g. buy_now"
             />
-            <FilterField
-              fieldId="adv-haveIul"
+            <TagInput
               label="Have IUL"
-              includeValues={criteria.haveIul ?? []}
-              onIncludeChange={(v) => update({ haveIul: v })}
-              supportsExclude={false}
-              placeholder="e.g. yes, no"
+              values={criteria.haveIul ?? []}
+              onChange={(v) => update({ haveIul: v })}
+              placeholder="e.g. yes"
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="form-label">Age Min</label>
               <input
-                type="number"
-                min={0}
-                max={120}
-                placeholder="No min"
-                className="form-input"
+                type="number" min={0} max={120} placeholder="No min" className="form-input"
                 value={criteria.ageMin ?? ""}
-                onChange={(e) =>
-                  update({ ageMin: e.target.value ? Number(e.target.value) : undefined })
-                }
+                onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })}
               />
             </div>
             <div>
               <label className="form-label">Age Max</label>
               <input
-                type="number"
-                min={0}
-                max={120}
-                placeholder="No max"
-                className="form-input"
+                type="number" min={0} max={120} placeholder="No max" className="form-input"
                 value={criteria.ageMax ?? ""}
-                onChange={(e) =>
-                  update({ ageMax: e.target.value ? Number(e.target.value) : undefined })
-                }
+                onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })}
               />
             </div>
           </div>
@@ -360,39 +363,26 @@ function AdvancedFiltersAccordion({
             Attribution
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FilterField
-              fieldId="adv-source"
-              label="Source"
-              includeValues={criteria.source ?? []}
-              excludeValues={criteria.excludeSource ?? []}
-              onIncludeChange={(v) => update({ source: v, excludeSource: [] })}
-              onExcludeChange={(v) => update({ excludeSource: v, source: [] })}
-              placeholder="e.g. meta_leadconduit"
-            />
-            <FilterField
-              fieldId="adv-subId"
+            <AllowBlockInput
               label="Sub ID"
-              includeValues={criteria.subId ?? []}
-              excludeValues={criteria.excludeSubId ?? []}
-              onIncludeChange={(v) => update({ subId: v, excludeSubId: [] })}
-              onExcludeChange={(v) => update({ excludeSubId: v, subId: [] })}
+              allowValues={criteria.subId ?? []}
+              blockValues={criteria.excludeSubId ?? []}
+              onAllowChange={(v) => update({ subId: v, excludeSubId: [] })}
+              onBlockChange={(v) => update({ excludeSubId: v, subId: [] })}
               placeholder="e.g. sub_123"
             />
-            <FilterField
-              fieldId="adv-pubId"
+            <AllowBlockInput
               label="Pub ID"
-              includeValues={criteria.pubId ?? []}
-              excludeValues={criteria.excludePubId ?? []}
-              onIncludeChange={(v) => update({ pubId: v, excludePubId: [] })}
-              onExcludeChange={(v) => update({ excludePubId: v, pubId: [] })}
+              allowValues={criteria.pubId ?? []}
+              blockValues={criteria.excludePubId ?? []}
+              onAllowChange={(v) => update({ pubId: v, excludePubId: [] })}
+              onBlockChange={(v) => update({ excludePubId: v, pubId: [] })}
               placeholder="e.g. pub_456"
             />
-            <FilterField
-              fieldId="adv-boberdoo"
+            <TagInput
               label="Boberdoo Lead Type"
-              includeValues={criteria.boberdooLeadType ?? []}
-              onIncludeChange={(v) => update({ boberdooLeadType: v })}
-              supportsExclude={false}
+              values={criteria.boberdooLeadType ?? []}
+              onChange={(v) => update({ boberdooLeadType: v })}
               placeholder="e.g. iul, mp"
             />
           </div>
@@ -402,74 +392,52 @@ function AdvancedFiltersAccordion({
             Schedule (Eastern Time)
           </p>
           <div>
-            <label className="form-label">Days you accept leads</label>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {(
-                ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const
-              ).map((day) => {
+            <label className="form-label mb-2">Days you accept leads</label>
+            <div className="flex flex-wrap gap-1.5">
+              {(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const).map((day) => {
                 const active = (criteria.acceptDays ?? []).includes(day);
                 return (
-                  <label
+                  <button
                     key={day}
-                    className={`flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                    type="button"
+                    onClick={() => {
+                      const days = criteria.acceptDays ?? [];
+                      update({
+                        acceptDays: active
+                          ? days.filter((d) => d !== day)
+                          : [...days, day],
+                      });
+                    }}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
                       active
                         ? "bg-brand-100 text-brand-700"
                         : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                     }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={active}
-                      onChange={(e) => {
-                        const days = criteria.acceptDays ?? [];
-                        update({
-                          acceptDays: e.target.checked
-                            ? [...days, day]
-                            : days.filter((d) => d !== day),
-                        });
-                      }}
-                      className="hidden"
-                    />
                     {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-                  </label>
+                  </button>
                 );
               })}
             </div>
             {(criteria.acceptDays?.length ?? 0) === 0 && (
-              <p className="mt-1.5 text-[11px] text-slate-400">Any day</p>
+              <p className="mt-1.5 text-[11px] text-slate-400">Any day accepted</p>
             )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="form-label">From hour (ET, 0–23)</label>
               <input
-                type="number"
-                min={0}
-                max={23}
-                placeholder="No start"
-                className="form-input"
+                type="number" min={0} max={23} placeholder="No start" className="form-input"
                 value={criteria.acceptHoursStart ?? ""}
-                onChange={(e) =>
-                  update({
-                    acceptHoursStart: e.target.value ? Number(e.target.value) : undefined,
-                  })
-                }
+                onChange={(e) => update({ acceptHoursStart: e.target.value ? Number(e.target.value) : undefined })}
               />
             </div>
             <div>
               <label className="form-label">To hour (ET, 0–23, exclusive)</label>
               <input
-                type="number"
-                min={0}
-                max={23}
-                placeholder="No end"
-                className="form-input"
+                type="number" min={0} max={23} placeholder="No end" className="form-input"
                 value={criteria.acceptHoursEnd ?? ""}
-                onChange={(e) =>
-                  update({
-                    acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined,
-                  })
-                }
+                onChange={(e) => update({ acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined })}
               />
             </div>
           </div>
