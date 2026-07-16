@@ -351,14 +351,6 @@ export function FilterSetTemplateManager() {
           <p className="text-xs text-slate-500 mb-4 max-w-xs mx-auto">
             Create templates that partners can use as starting points when building their filter sets.
           </p>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="btn-primary btn-sm inline-flex items-center gap-1.5"
-          >
-            <Plus size={13} />
-            Create First Template
-          </button>
         </div>
       )}
 
