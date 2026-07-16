@@ -190,7 +190,11 @@ export function AdminDashboardCharts({
                 </tr>
               ) : (
                 recentLeads.map((lead) => (
-                  <tr key={lead.id}>
+                  <tr
+                    key={lead.id}
+                    className="cursor-pointer hover:bg-brand-50 transition-colors"
+                    onClick={() => window.location.href = `/admin/leads/${lead.id}`}
+                  >
                     <td className="font-medium text-slate-900">
                       {lead.firstName} {lead.lastName}
                     </td>
