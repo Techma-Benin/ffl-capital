@@ -174,7 +174,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
               </thead>
               <tbody>
                 {stats.recentDeliveries.map((d) => (
-                  <tr key={d.id}>
+                  <tr key={d.id} className="cursor-pointer hover:bg-brand-50 transition-colors" onClick={() => { window.location.href = `/partner/leads/${d.lead.id}`; }}>
                     <td className="font-medium text-slate-900">
                       {d.lead.firstName} {d.lead.lastName}
                     </td>
