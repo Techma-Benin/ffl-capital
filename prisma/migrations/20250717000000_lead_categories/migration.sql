@@ -37,5 +37,10 @@ ALTER TABLE "partner_filter_sets"
 ALTER TABLE "partners"
   ALTER COLUMN "lead_type" TYPE VARCHAR USING "lead_type"::TEXT;
 
+-- 5a. Convert filter_set_templates.lead_type from enum to varchar
+--     (this table was added after the enum and also depends on it)
+ALTER TABLE "filter_set_templates"
+  ALTER COLUMN "lead_type" TYPE VARCHAR USING "lead_type"::TEXT;
+
 -- 6. Drop the old LeadType enum (Prisma names it with quotes)
 DROP TYPE IF EXISTS "LeadType";
