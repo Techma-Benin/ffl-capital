@@ -246,20 +246,13 @@ function AdvancedFiltersAccordion({
     criteria.acceptHoursEnd !== undefined,
   ].filter(Boolean).length;
 
-  const sourceMode: "allow" | "block" =
-    (criteria.excludeSource?.length ?? 0) > 0 ? "block" : "allow";
-  const activeSources = sourceMode === "allow" ? (criteria.source ?? []) : (criteria.excludeSource ?? []);
+  const activeSources = criteria.source ?? [];
 
   function toggleSource(src: string) {
     const next = activeSources.includes(src)
       ? activeSources.filter((s) => s !== src)
       : [...activeSources, src];
-    if (sourceMode === "allow") update({ source: next, excludeSource: [] });
-    else update({ excludeSource: next, source: [] });
-  }
-
-  function switchSourceMode(m: "allow" | "block") {
-    update({ source: [], excludeSource: [] });
+    update({ source: next });
   }
 
   return (
@@ -351,27 +344,7 @@ function AdvancedFiltersAccordion({
           {/* Source checkboxes */}
           {sources.length > 0 && (
             <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label className="form-label mb-0">Source</label>
-                <div className="flex overflow-hidden rounded border border-slate-200 text-[11px] font-semibold">
-                  {(["allow", "block"] as const).map((m, i) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => switchSourceMode(m)}
-                      className={`px-2.5 py-0.5 transition-colors ${i > 0 ? "border-l border-slate-200" : ""} ${
-                        sourceMode === m
-                          ? m === "allow"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-rose-50 text-rose-600"
-                          : "text-slate-400 hover:text-slate-600"
-                      }`}
-                    >
-                      {m.charAt(0).toUpperCase() + m.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <label className="form-label mb-2">Source</label>
               <div className="flex flex-wrap gap-1.5">
                 {sources.map((src) => {
                   const checked = activeSources.includes(src);
@@ -382,9 +355,7 @@ function AdvancedFiltersAccordion({
                       onClick={() => toggleSource(src)}
                       className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
                         checked
-                          ? sourceMode === "allow"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-rose-100 text-rose-600"
+                          ? "bg-emerald-100 text-emerald-700"
                           : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                       }`}
                     >
@@ -395,9 +366,7 @@ function AdvancedFiltersAccordion({
               </div>
               {activeSources.length > 0 && (
                 <p className="mt-1.5 text-[11px] text-slate-400">
-                  <span className={`font-semibold ${sourceMode === "allow" ? "text-emerald-600" : "text-rose-500"}`}>
-                    {sourceMode === "allow" ? "Allowing" : "Blocking"}:
-                  </span>{" "}
+                  <span className="font-semibold text-emerald-600">Allowing:</span>{" "}
                   {activeSources.join(", ")}
                 </p>
               )}
