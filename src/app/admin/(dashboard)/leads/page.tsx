@@ -200,7 +200,6 @@ export default async function AdminLeadsPage({
                   <th>Phone</th>
                   <th>State</th>
                   <th>Type</th>
-                  <th>Intent</th>
                   <th>Status</th>
                   <th>Partner</th>
                   <th>Price</th>
@@ -235,9 +234,6 @@ export default async function AdminLeadsPage({
                         <Badge variant="blue">
                           {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
                         </Badge>
-                      </td>
-                      <td className="text-xs text-slate-500">
-                        {lead.intent ?? "—"}
                       </td>
                       <td>
                         <LeadStatusBadge status={lead.status} />
