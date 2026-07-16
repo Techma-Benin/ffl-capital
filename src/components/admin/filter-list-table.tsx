@@ -904,16 +904,13 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                 <th>States</th>
                 <th>Priority</th>
                 <th>Price</th>
-                <th>Balance</th>
-                <th>Usage (W/M)</th>
-                <th>Delivery</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-10 text-center text-slate-400">
+                  <td colSpan={7} className="py-10 text-center text-slate-400">
                     No filter sets configured
                   </td>
                 </tr>
@@ -946,20 +943,6 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                       <td>{fs.filterStates.length}</td>
                       <td>{fs.priority}</td>
                       <td className="font-semibold">${price.toFixed(2)}</td>
-                      <td
-                        className={
-                          Number(fs.partner.walletBalance) >= price
-                            ? "text-slate-900"
-                            : "text-red-500"
-                        }
-                      >
-                        ${Number(fs.partner.walletBalance).toFixed(2)}
-                      </td>
-                      <td className="text-xs text-slate-500">
-                        {usage.weekly}/{fs.weeklyLimit ?? "∞"} · {usage.monthly}/
-                        {fs.monthlyLimit ?? "∞"}
-                      </td>
-                      <td className="text-xs capitalize">{fs.deliveryChannel ?? "email"}</td>
                       <td>
                         <Badge
                           variant={
