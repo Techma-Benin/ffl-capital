@@ -143,7 +143,7 @@ export function AdminRefundsPendingTable({
 
 function RefundTypeBadge({ type }: { type: string }) {
   if (type === "wrong_filter") {
-    return <Badge variant="yellow">Type A — Wrong Filter</Badge>;
+    return <Badge variant="yellow">Wrong Filter</Badge>;
   }
-  return <Badge variant="red">Type B — Invalid Phone</Badge>;
+  return <Badge variant="red">Invalid Phone</Badge>;
 }

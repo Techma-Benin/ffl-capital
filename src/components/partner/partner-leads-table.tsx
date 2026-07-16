@@ -96,8 +96,8 @@ export function PartnerLeadsTable({
             }
             className="form-select w-44 py-1.5 text-xs"
           >
-            <option value="wrong_filter">Type A — Wrong Filter</option>
-            <option value="invalid_phone">Type B — Invalid Phone</option>
+            <option value="wrong_filter">Wrong Filter</option>
+            <option value="invalid_phone">Invalid Phone</option>
           </select>
           <button
             type="button"

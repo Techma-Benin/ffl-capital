@@ -61,8 +61,8 @@ export function PartnerRefundButton({
         }
         className="form-select py-1 text-xs w-full"
       >
-        <option value="wrong_filter">Type A — Wrong filter</option>
-        <option value="invalid_phone">Type B — Invalid phone</option>
+        <option value="wrong_filter">Wrong Filter</option>
+        <option value="invalid_phone">Invalid Phone</option>
       </select>
       <input
         type="text"

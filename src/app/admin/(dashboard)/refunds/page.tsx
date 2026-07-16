@@ -36,14 +36,12 @@ export default async function AdminRefundsPage() {
           <p className="mt-1 text-2xl font-bold text-slate-900">{pending.length}</p>
         </div>
         <div className="stat-card-yellow">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Type A</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Wrong Filter</p>
           <p className="mt-1 text-2xl font-bold text-amber-700">{typeACount}</p>
-          <p className="text-xs text-slate-500">Wrong filter</p>
         </div>
         <div className="stat-card-pink">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Type B</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Invalid Phone</p>
           <p className="mt-1 text-2xl font-bold text-red-600">{typeBCount}</p>
-          <p className="text-xs text-slate-500">Invalid phone</p>
         </div>
       </div>
 
@@ -140,7 +138,7 @@ export default async function AdminRefundsPage() {
 
 function RefundTypeBadge({ type }: { type: string }) {
   if (type === "wrong_filter") {
-    return <Badge variant="yellow">Type A — Wrong Filter</Badge>;
+    return <Badge variant="yellow">Wrong Filter</Badge>;
   }
-  return <Badge variant="red">Type B — Invalid Phone</Badge>;
+  return <Badge variant="red">Invalid Phone</Badge>;
 }
