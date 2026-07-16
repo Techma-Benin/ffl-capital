@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 
 export function AdminLeadsFilters() {
@@ -11,19 +11,32 @@ export function AdminLeadsFilters() {
   const [state, setState] = useState(searchParams.get("state") ?? "");
   const [from, setFrom] = useState(searchParams.get("from") ?? "");
   const [to, setTo] = useState(searchParams.get("to") ?? "");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function apply() {
+  function push(overrides: { q?: string; state?: string; from?: string; to?: string }) {
     const params = new URLSearchParams(searchParams.toString());
-    if (q.trim()) params.set("q", q.trim());
-    else params.delete("q");
-    if (state) params.set("state", state);
-    else params.delete("state");
-    if (from) params.set("from", from);
-    else params.delete("from");
-    if (to) params.set("to", to);
-    else params.delete("to");
+    const values = { q, state, from, to, ...overrides };
+    if (values.q?.trim()) params.set("q", values.q.trim()); else params.delete("q");
+    if (values.state) params.set("state", values.state); else params.delete("state");
+    if (values.from) params.set("from", values.from); else params.delete("from");
+    if (values.to) params.set("to", values.to); else params.delete("to");
+    params.delete("page");
     router.push(`/admin/leads?${params.toString()}`);
   }
+
+  // Debounce the text search input
+  function handleQ(value: string) {
+    setQ(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => push({ q: value }), 400);
+  }
+
+  // Instant push for select/date fields
+  function handleState(value: string) { setState(value); push({ state: value }); }
+  function handleFrom(value: string)  { setFrom(value);  push({ from: value });  }
+  function handleTo(value: string)    { setTo(value);    push({ to: value });    }
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   return (
     <div className="flex flex-wrap items-end gap-3 border-b border-slate-100 px-4 py-3">
@@ -32,8 +45,7 @@ export function AdminLeadsFilters() {
         <input
           type="search"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && apply()}
+          onChange={(e) => handleQ(e.target.value)}
           placeholder="ID, email, phone, external ID"
           className="form-input py-1.5 text-xs w-full"
         />
@@ -42,7 +54,7 @@ export function AdminLeadsFilters() {
         <label className="form-label text-[10px]">State</label>
         <select
           value={state}
-          onChange={(e) => setState(e.target.value)}
+          onChange={(e) => handleState(e.target.value)}
           className="form-select py-1.5 text-xs w-28"
         >
           <option value="">All</option>
@@ -56,7 +68,7 @@ export function AdminLeadsFilters() {
         <input
           type="date"
           value={from}
-          onChange={(e) => setFrom(e.target.value)}
+          onChange={(e) => handleFrom(e.target.value)}
           className="form-input py-1.5 text-xs"
         />
       </div>
@@ -65,13 +77,10 @@ export function AdminLeadsFilters() {
         <input
           type="date"
           value={to}
-          onChange={(e) => setTo(e.target.value)}
+          onChange={(e) => handleTo(e.target.value)}
           className="form-input py-1.5 text-xs"
         />
       </div>
-      <button type="button" onClick={apply} className="btn-secondary btn-sm">
-        Apply
-      </button>
     </div>
   );
 }
