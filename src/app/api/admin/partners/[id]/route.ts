@@ -100,3 +100,16 @@ export async function PATCH(
 
   return NextResponse.json({ partner });
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const authResult = await requireAdmin();
+  if ("error" in authResult) {
+    return NextResponse.json({ error: authResult.error }, { status: 403 });
+  }
+
+  await prisma.partner.delete({ where: { id: params.id } });
+  return NextResponse.json({ deleted: true });
+}

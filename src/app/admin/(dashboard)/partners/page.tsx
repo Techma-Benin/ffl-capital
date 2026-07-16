@@ -1,15 +1,13 @@
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import Link from "next/link";
-import { Users, MapPin } from "@phosphor-icons/react/dist/ssr";
+import { Users } from "@phosphor-icons/react/dist/ssr";
 import { FilterTabLink } from "@/components/ui/filter-tab-link";
-import { PartnerApprovalActions } from "@/components/admin/partner-approval-actions";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
 import { hasEligibleFilterSet } from "@/lib/partner/default-filter-set";
+import { PartnerTableRow } from "@/components/admin/partner-table-row";
 
 export default async function AdminPartnersPage({
   searchParams,
@@ -27,7 +25,10 @@ export default async function AdminPartnersPage({
       skip,
       take: pageSize,
       where,
-      include: { filterSets: true },
+      include: {
+        filterSets: true,
+        _count: { select: { leadDeliveries: true } },
+      },
     }),
     prisma.partner.count({ where }),
     prisma.partner.count({ where: { status: "pending_approval" } }),
@@ -86,13 +87,12 @@ export default async function AdminPartnersPage({
                 <tr>
                   <th>Partner</th>
                   <th>Affiliation</th>
-                  <th>Lead Type</th>
-                  <th>States</th>
                   <th>Status</th>
                   <th>Priority</th>
                   <th>Wallet</th>
                   <th>Lead Buying</th>
-                  <th className="text-right">Actions</th>
+                  <th>Leads Purchased</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -103,56 +103,22 @@ export default async function AdminPartnersPage({
                   const leadBuying = isActive && walletOk && statesOk;
 
                   return (
-                    <tr key={p.id}>
-                      <td>
-                        <Link href={`/admin/partners/${p.id}`} className="hover:text-brand-600">
-                          <p className="font-medium text-slate-900">
-                            {p.firstName} {p.lastName}
-                          </p>
-                          <p className="text-xs text-slate-400">{p.email}</p>
-                        </Link>
-                      </td>
-                      <td className="text-slate-500">{p.affiliation ?? "—"}</td>
-                      <td>
-                        <Badge variant="blue">
-                          {p.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                        </Badge>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <MapPin size={12} className="text-slate-400" />
-                          <span className={`text-sm font-medium ${statesOk ? "text-slate-700" : "text-red-500"}`}>
-                            {p.filterSets[0]?.filterStates.length ?? p.filterStates.length}
-                            {!statesOk && " (min 15)"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <PartnerStatusBadge status={p.status} />
-                      </td>
-                      <td>
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
-                          {p.priority}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`font-semibold ${walletOk ? "text-slate-900" : "text-red-500"}`}>
-                          ${Number(p.walletBalance).toFixed(2)}
-                        </span>
-                      </td>
-                      <td>
-                        <Badge variant={leadBuying ? "green" : "slate"}>
-                          {leadBuying ? "Active" : "Inactive"}
-                        </Badge>
-                      </td>
-                      <td>
-                        {p.status === "pending_approval" ? (
-                          <PartnerApprovalActions partnerId={p.id} />
-                        ) : p.status === "active" ? (
-                          <span className="text-xs text-slate-300 italic">—</span>
-                        ) : null}
-                      </td>
-                    </tr>
+                    <PartnerTableRow
+                      key={p.id}
+                      partner={{
+                        id: p.id,
+                        firstName: p.firstName,
+                        lastName: p.lastName,
+                        email: p.email,
+                        affiliation: p.affiliation,
+                        status: p.status,
+                        priority: p.priority,
+                        walletBalance: p.walletBalance as number,
+                        leadBuying,
+                        walletOk,
+                        leadsCount: p._count.leadDeliveries,
+                      }}
+                    />
                   );
                 })}
               </tbody>
