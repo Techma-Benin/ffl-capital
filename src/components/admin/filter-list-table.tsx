@@ -904,13 +904,12 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                 <th>States</th>
                 <th>Priority</th>
                 <th>Price</th>
-                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                  <td colSpan={6} className="py-10 text-center text-slate-400">
                     No filter sets configured
                   </td>
                 </tr>
@@ -926,12 +925,19 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                       <td onClick={(e) => e.stopPropagation()}>
                         <Link
                           href={`/admin/partners/${fs.partnerId}`}
-                          className="hover:text-brand-600"
+                          className="hover:text-brand-600 flex items-start gap-2"
                         >
-                          <p className="font-medium text-slate-900">
-                            {fs.partner.firstName} {fs.partner.lastName}
-                          </p>
-                          <p className="text-xs text-slate-400">{fs.partner.email}</p>
+                          {fs.active && fs.partner.status === "active" ? (
+                            <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-emerald-500" title="Active" />
+                          ) : (
+                            <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-slate-300" title="Inactive" />
+                          )}
+                          <span>
+                            <p className="font-medium text-slate-900">
+                              {fs.partner.firstName} {fs.partner.lastName}
+                            </p>
+                            <p className="text-xs text-slate-400">{fs.partner.email}</p>
+                          </span>
                         </Link>
                       </td>
                       <td className="font-medium">{fs.name}</td>
@@ -943,15 +949,6 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                       <td>{fs.filterStates.length}</td>
                       <td>{fs.priority}</td>
                       <td className="font-semibold">${price.toFixed(2)}</td>
-                      <td>
-                        <Badge
-                          variant={
-                            fs.active && fs.partner.status === "active" ? "green" : "slate"
-                          }
-                        >
-                          {fs.active ? fs.partner.status : "Inactive"}
-                        </Badge>
-                      </td>
                     </tr>
                   );
                 })
