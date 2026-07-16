@@ -362,41 +362,6 @@ function AdvancedFiltersAccordion({
             </div>
           </div>
 
-          {/* Attribution */}
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">
-            Attribution
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <AllowBlockInput
-              label="Sub ID"
-              allowValues={criteria.subId ?? []}
-              blockValues={criteria.excludeSubId ?? []}
-              onAllowChange={(v) => update({ subId: v, excludeSubId: [] })}
-              onBlockChange={(v) => update({ excludeSubId: v, subId: [] })}
-              placeholder="e.g. sub_123"
-            />
-            <AllowBlockInput
-              label="Pub ID"
-              allowValues={criteria.pubId ?? []}
-              blockValues={criteria.excludePubId ?? []}
-              onAllowChange={(v) => update({ pubId: v, excludePubId: [] })}
-              onBlockChange={(v) => update({ excludePubId: v, pubId: [] })}
-              placeholder="e.g. pub_456"
-            />
-            <TagInput
-              label="Boberdoo Lead Type"
-              values={criteria.boberdooLeadType ?? []}
-              onChange={(v) => update({ boberdooLeadType: v })}
-              placeholder="e.g. iul, mp"
-            />
-            <TagInput
-              label="Intent"
-              values={criteria.intent ?? []}
-              onChange={(v) => update({ intent: v })}
-              placeholder="e.g. buy_now"
-            />
-          </div>
-
           {/* Schedule */}
           <div>
             <label className="form-label mb-2">Days you accept leads</label>
@@ -471,6 +436,41 @@ function AdvancedFiltersAccordion({
                 })}
               </select>
             </div>
+          </div>
+
+          {/* Attribution */}
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">
+            Attribution
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <AllowBlockInput
+              label="Sub ID"
+              allowValues={criteria.subId ?? []}
+              blockValues={criteria.excludeSubId ?? []}
+              onAllowChange={(v) => update({ subId: v, excludeSubId: [] })}
+              onBlockChange={(v) => update({ excludeSubId: v, subId: [] })}
+              placeholder="e.g. sub_123"
+            />
+            <AllowBlockInput
+              label="Pub ID"
+              allowValues={criteria.pubId ?? []}
+              blockValues={criteria.excludePubId ?? []}
+              onAllowChange={(v) => update({ pubId: v, excludePubId: [] })}
+              onBlockChange={(v) => update({ excludePubId: v, pubId: [] })}
+              placeholder="e.g. pub_456"
+            />
+            <TagInput
+              label="Boberdoo Lead Type"
+              values={criteria.boberdooLeadType ?? []}
+              onChange={(v) => update({ boberdooLeadType: v })}
+              placeholder="e.g. iul, mp"
+            />
+            <TagInput
+              label="Intent"
+              values={criteria.intent ?? []}
+              onChange={(v) => update({ intent: v })}
+              placeholder="e.g. buy_now"
+            />
           </div>
         </div>
       )}
