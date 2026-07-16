@@ -14,6 +14,7 @@ const stateCodeSchema = z.enum(
 const patchSchema = z.object({
   filterStates: z.array(stateCodeSchema).min(15).max(50).optional(),
   crmWebhookUrl: z.union([z.string().url(), z.literal("")]).optional(),
+  leadType: z.enum(["traditional_iul", "high_intent_iul"]).optional(),
 });
 
 export async function GET() {
@@ -45,7 +46,11 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const data: { filterStates?: string[]; crmWebhookUrl?: string | null } = {};
+  const data: {
+    filterStates?: string[];
+    crmWebhookUrl?: string | null;
+    leadType?: "traditional_iul" | "high_intent_iul";
+  } = {};
 
   if (parsed.data.filterStates) {
     data.filterStates = Array.from(
@@ -56,6 +61,10 @@ export async function PATCH(request: NextRequest) {
   if (parsed.data.crmWebhookUrl !== undefined) {
     data.crmWebhookUrl =
       parsed.data.crmWebhookUrl === "" ? null : parsed.data.crmWebhookUrl;
+  }
+
+  if (parsed.data.leadType !== undefined) {
+    data.leadType = parsed.data.leadType;
   }
 
   if (Object.keys(data).length === 0) {

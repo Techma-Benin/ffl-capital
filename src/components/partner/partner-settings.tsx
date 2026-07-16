@@ -10,73 +10,105 @@ import {
   US_REGION_STATES,
   US_STATE_CODES,
 } from "@/lib/constants/us-states";
-import { WarningCircle, Check, MapPin, Gear, PlugsConnected, Funnel, CaretDown, CaretUp } from "@phosphor-icons/react";
+import {
+  WarningCircle,
+  Check,
+  MapPin,
+  Gear,
+  PlugsConnected,
+  Funnel,
+  CaretDown,
+  CaretUp,
+  Plus,
+  PencilSimple,
+  Trash,
+  X,
+} from "@phosphor-icons/react";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type PartnerFilterSet = {
   id: string;
   name: string;
-  leadType: string;
+  leadType: "traditional_iul" | "high_intent_iul";
+  filterStates: string[];
+  priority: number;
+  active: boolean;
+};
+
+type FilterSetFormData = {
+  name: string;
+  leadType: "traditional_iul" | "high_intent_iul";
   filterStates: string[];
   active: boolean;
 };
 
 // ---------------------------------------------------------------------------
-// Filter Sets section
+// Filter Set Editor (create/edit form)
 // ---------------------------------------------------------------------------
 
 function FilterSetEditor({
-  filterSet,
+  initialData,
   onSaved,
   onClose,
+  filterSetId,
 }: {
-  filterSet: PartnerFilterSet;
-  onSaved: (updated: PartnerFilterSet) => void;
+  initialData: FilterSetFormData;
+  onSaved: (fs: PartnerFilterSet) => void;
   onClose: () => void;
+  filterSetId?: string;
 }) {
-  const [selected, setSelected] = useState<string[]>(filterSet.filterStates);
+  const [form, setForm] = useState<FilterSetFormData>(initialData);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
-  const selectedSet = new Set(selected);
-  const isEligible = selected.length >= 15;
-  const dirty =
-    selected.length !== filterSet.filterStates.length ||
-    !selected.every((s) => filterSet.filterStates.includes(s));
+  const selectedSet = new Set(form.filterStates);
+  const isEligible = form.filterStates.length >= 15;
+  const isEditing = Boolean(filterSetId);
 
   function toggleState(code: string) {
-    setSelected((prev) =>
-      prev.includes(code) ? prev.filter((s) => s !== code) : [...prev, code],
-    );
-    setSuccess(false);
+    setForm((prev) => ({
+      ...prev,
+      filterStates: prev.filterStates.includes(code)
+        ? prev.filterStates.filter((s) => s !== code)
+        : [...prev.filterStates, code],
+    }));
     setError("");
   }
 
   function selectAll(states: readonly string[]) {
-    setSelected([...states]);
-    setSuccess(false);
+    setForm((prev) => ({ ...prev, filterStates: [...states] }));
     setError("");
   }
 
   async function save() {
-    if (selected.length < 15) {
-      setError("Select at least 15 target states.");
+    if (form.active && form.filterStates.length < 15) {
+      setError("An active filter set requires at least 15 states. Add more states or save as inactive.");
       return;
     }
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/partners/filter-sets/${filterSet.id}`, {
-        method: "PATCH",
+      const url = filterSetId
+        ? `/api/partners/filter-sets/${filterSetId}`
+        : "/api/partners/filter-sets";
+      const res = await fetch(url, {
+        method: filterSetId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filterStates: selected }),
+        body: JSON.stringify({
+          name: form.name.trim() || "Default",
+          leadType: form.leadType,
+          filterStates: form.filterStates,
+          active: form.active,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Failed to save");
         return;
       }
-      setSuccess(true);
       onSaved(data as PartnerFilterSet);
     } catch {
       setError("Request failed. Please try again.");
@@ -86,84 +118,154 @@ function FilterSetEditor({
   }
 
   return (
-    <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-5 space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => selectAll(US_STATE_CODES)} className="btn-secondary btn-sm">
-          Select All
-        </button>
-        <button type="button" onClick={() => selectAll([])} className="btn-secondary btn-sm">
-          Clear All
-        </button>
-        <button type="button" onClick={() => selectAll(US_REGION_STATES.southeast)} className="btn-secondary btn-sm">
-          Southeast
-        </button>
-        <button type="button" onClick={() => selectAll(US_REGION_STATES.northeast)} className="btn-secondary btn-sm">
-          Northeast
-        </button>
-        <button type="button" onClick={() => selectAll(US_REGION_STATES.midwest)} className="btn-secondary btn-sm">
-          Midwest
-        </button>
-        <button type="button" onClick={() => selectAll(US_REGION_STATES.west)} className="btn-secondary btn-sm">
-          West
+    <div className="border border-slate-200 rounded-xl bg-slate-50/60 p-5 space-y-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-900">
+          {isEditing ? "Edit Filter Set" : "New Filter Set"}
+        </h3>
+        <button type="button" onClick={onClose} className="rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+          <X size={16} />
         </button>
       </div>
 
-      <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
-        {US_STATE_CODES.map((code) => {
-          const isSelected = selectedSet.has(code);
-          return (
-            <button
-              key={code}
-              type="button"
-              onClick={() => toggleState(code)}
-              className={`rounded px-1 py-1.5 text-[10px] font-bold transition-colors ${
-                isSelected
-                  ? "bg-brand-100 text-brand-700"
-                  : "bg-slate-50 text-slate-500 hover:bg-brand-50"
-              }`}
-            >
-              {code}
-            </button>
-          );
-        })}
+      {/* Name + Lead Type + Priority */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label className="form-label">Name</label>
+          <input
+            className="form-input"
+            value={form.name}
+            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+            placeholder="e.g. Southeast Traditional"
+          />
+        </div>
+        <div>
+          <label className="form-label">Lead Type</label>
+          <select
+            className="form-select"
+            value={form.leadType}
+            onChange={(e) =>
+              setForm((p) => ({
+                ...p,
+                leadType: e.target.value as FilterSetFormData["leadType"],
+              }))
+            }
+          >
+            <option value="traditional_iul">Traditional IUL</option>
+            <option value="high_intent_iul">High Intent IUL</option>
+          </select>
+        </div>
+
       </div>
 
+      {/* Active toggle */}
       <div className="flex items-center gap-3">
-        <span className={`text-sm font-semibold ${isEligible ? "text-emerald-600" : "text-amber-600"}`}>
-          {selected.length} / 50 selected
+        <label className="relative inline-flex cursor-pointer items-center">
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={form.active}
+            onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))}
+          />
+          <div className="peer h-5 w-9 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-all after:content-[''] peer-checked:bg-brand-600 peer-checked:after:translate-x-full" />
+        </label>
+        <span className="text-sm font-medium text-slate-700">
+          {form.active ? "Active" : "Inactive"}
         </span>
+        {form.active && !isEligible && (
+          <span className="text-xs text-amber-600">
+            ⚠ Needs {15 - form.filterStates.length} more state{15 - form.filterStates.length !== 1 ? "s" : ""} to activate
+          </span>
+        )}
+      </div>
+
+      {/* State picker */}
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <label className="form-label mb-0">Target States</label>
+          <span className={`text-sm font-semibold ${isEligible ? "text-emerald-600" : "text-amber-600"}`}>
+            {form.filterStates.length} / 50 selected
+          </span>
+        </div>
+
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          <button type="button" onClick={() => selectAll(US_STATE_CODES)} className="btn-secondary btn-sm">
+            All
+          </button>
+          <button type="button" onClick={() => selectAll([])} className="btn-secondary btn-sm">
+            Clear
+          </button>
+          <button type="button" onClick={() => selectAll(US_REGION_STATES.southeast)} className="btn-secondary btn-sm">
+            Southeast
+          </button>
+          <button type="button" onClick={() => selectAll(US_REGION_STATES.northeast)} className="btn-secondary btn-sm">
+            Northeast
+          </button>
+          <button type="button" onClick={() => selectAll(US_REGION_STATES.midwest)} className="btn-secondary btn-sm">
+            Midwest
+          </button>
+          <button type="button" onClick={() => selectAll(US_REGION_STATES.west)} className="btn-secondary btn-sm">
+            West
+          </button>
+        </div>
+
+        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+          {US_STATE_CODES.map((code) => {
+            const isSelected = selectedSet.has(code);
+            return (
+              <button
+                key={code}
+                type="button"
+                onClick={() => toggleState(code)}
+                className={`rounded px-1 py-1.5 text-[10px] font-bold transition-colors ${
+                  isSelected
+                    ? "bg-brand-100 text-brand-700"
+                    : "bg-slate-50 text-slate-500 hover:bg-brand-50"
+                }`}
+              >
+                {code}
+              </button>
+            );
+          })}
+        </div>
+
         {!isEligible && (
-          <span className="text-xs text-amber-700">{15 - selected.length} more needed</span>
+          <p className="mt-1.5 text-xs text-amber-700">
+            {15 - form.filterStates.length} more state{15 - form.filterStates.length !== 1 ? "s" : ""} needed to activate this filter set.
+          </p>
         )}
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
-      {success && (
-        <p className="text-xs text-emerald-600 font-medium">States saved successfully.</p>
-      )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-1">
         <ActionButton
           type="button"
           loading={saving}
           loadingText="Saving…"
-          disabled={!dirty || !isEligible}
           onClick={save}
         >
-          Save Changes
+          {isEditing ? "Save Changes" : "Create Filter Set"}
         </ActionButton>
         <button type="button" onClick={onClose} className="btn-secondary btn-sm">
-          Close
+          Cancel
         </button>
       </div>
     </div>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Filter Sets section
+// ---------------------------------------------------------------------------
+
 function FilterSetsSection() {
   const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(null);
   const [loadError, setLoadError] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -177,11 +279,41 @@ function FilterSetsSection() {
 
   useEffect(() => { void load(); }, [load]);
 
-  function handleSaved(updated: PartnerFilterSet) {
+  function handleCreated(created: PartnerFilterSet) {
+    setFilterSets((prev) => [...(prev ?? []), created]);
+    setShowCreate(false);
+  }
+
+  function handleUpdated(updated: PartnerFilterSet) {
     setFilterSets((prev) =>
       prev ? prev.map((fs) => (fs.id === updated.id ? updated : fs)) : prev,
     );
+    setExpandedId(null);
   }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this filter set? It will be deactivated.")) return;
+    setDeletingId(id);
+    setDeleteError("");
+    try {
+      const res = await fetch(`/api/partners/filter-sets/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setDeleteError(data.error ?? "Failed to delete");
+        return;
+      }
+      setFilterSets((prev) => prev?.filter((fs) => fs.id !== id) ?? null);
+    } catch {
+      setDeleteError("Request failed. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  const loaded = filterSets !== null;
+  const isEmpty = loaded && filterSets.length === 0;
 
   return (
     <div className="mb-5 card overflow-hidden">
@@ -191,20 +323,69 @@ function FilterSetsSection() {
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
           Targeting
         </span>
+        <div className="ml-auto">
+          {loaded && !showCreate && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreate(true);
+                setExpandedId(null);
+              }}
+              className="btn-secondary btn-sm inline-flex items-center gap-1"
+            >
+              <Plus size={13} />
+              Add Filter Set
+            </button>
+          )}
+        </div>
       </div>
 
       {loadError && (
         <p className="px-5 py-4 text-sm text-red-600">{loadError}</p>
       )}
 
-      {filterSets === null && !loadError && (
+      {!loaded && !loadError && (
         <p className="px-5 py-4 text-sm text-slate-400">Loading…</p>
       )}
 
-      {filterSets && filterSets.length === 0 && (
-        <p className="px-5 py-4 text-sm text-slate-400">No filter sets configured.</p>
+      {/* Create form */}
+      {showCreate && (
+        <div className="px-5 py-5 border-b border-slate-100">
+          <FilterSetEditor
+            initialData={{
+              name: "",
+              leadType: "traditional_iul",
+              filterStates: [],
+              active: true,
+            }}
+            onSaved={handleCreated}
+            onClose={() => setShowCreate(false)}
+          />
+        </div>
       )}
 
+      {/* Empty state */}
+      {isEmpty && !showCreate && (
+        <div className="px-5 py-8 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+            <Funnel size={22} className="text-slate-400" />
+          </div>
+          <p className="text-sm font-semibold text-slate-900 mb-1">No filter sets yet</p>
+          <p className="text-xs text-slate-500 mb-4 max-w-xs mx-auto">
+            At least one active filter set with ≥15 states is required to receive leads. Create your first filter set to get started.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="btn-primary btn-sm inline-flex items-center gap-1.5"
+          >
+            <Plus size={13} />
+            Create First Filter Set
+          </button>
+        </div>
+      )}
+
+      {/* List */}
       {filterSets && filterSets.length > 0 && (
         <div>
           {filterSets.map((fs) => {
@@ -212,12 +393,15 @@ function FilterSetsSection() {
             const eligible = fs.filterStates.length >= 15;
             return (
               <div key={fs.id} className="border-b border-slate-100 last:border-b-0">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between px-5 py-3.5 text-left hover:bg-slate-50 transition-colors"
-                  onClick={() => setExpandedId(isExpanded ? null : fs.id)}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <button
+                    type="button"
+                    className="flex flex-1 items-center gap-3 text-left min-w-0"
+                    onClick={() => {
+                      setExpandedId(isExpanded ? null : fs.id);
+                      setShowCreate(false);
+                    }}
+                  >
                     <span className="text-sm font-medium text-slate-900 truncate">{fs.name}</span>
                     <Badge variant={fs.active ? "green" : "slate"}>
                       {fs.active ? "Active" : "Inactive"}
@@ -225,24 +409,49 @@ function FilterSetsSection() {
                     {!eligible && (
                       <Badge variant="yellow">Below minimum</Badge>
                     )}
-                  </div>
+                  </button>
+
                   <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                     <span className="text-xs text-slate-500">
                       {fs.filterStates.length} state{fs.filterStates.length !== 1 ? "s" : ""}
                     </span>
-                    {isExpanded
-                      ? <CaretUp size={14} className="text-slate-400" />
-                      : <CaretDown size={14} className="text-slate-400" />
-                    }
+                    <button
+                      type="button"
+                      title="Edit"
+                      onClick={() => {
+                        setExpandedId(isExpanded ? null : fs.id);
+                        setShowCreate(false);
+                      }}
+                      className="rounded p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                    >
+                      {isExpanded ? <CaretUp size={14} /> : <PencilSimple size={14} />}
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete"
+                      disabled={deletingId === fs.id}
+                      onClick={() => handleDelete(fs.id)}
+                      className="rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+                    >
+                      <Trash size={14} />
+                    </button>
                   </div>
-                </button>
+                </div>
 
                 {isExpanded && (
-                  <FilterSetEditor
-                    filterSet={fs}
-                    onSaved={handleSaved}
-                    onClose={() => setExpandedId(null)}
-                  />
+                  <div className="px-5 pb-5">
+                    <FilterSetEditor
+                      filterSetId={fs.id}
+                      initialData={{
+                        name: fs.name,
+                        leadType: fs.leadType,
+                        filterStates: fs.filterStates,
+                        active: fs.active,
+                      }}
+                      onSaved={handleUpdated}
+                      onClose={() => setExpandedId(null)}
+                    />
+                  </div>
                 )}
               </div>
             );
@@ -250,11 +459,9 @@ function FilterSetsSection() {
         </div>
       )}
 
-      <div className="border-t border-slate-100 px-5 py-3">
-        <p className="text-xs text-slate-400">
-          Each filter set targets a specific group of states. Contact your admin to add or remove filter sets.
-        </p>
-      </div>
+      {deleteError && (
+        <p className="px-5 py-2 text-xs text-red-600 border-t border-slate-100">{deleteError}</p>
+      )}
     </div>
   );
 }
@@ -286,6 +493,9 @@ export function PartnerSettingsView() {
 
   const [selectedStates, setSelectedStates] = useState<string[]>(partner.filterStates);
   const [webhookUrl, setWebhookUrl] = useState(partner.crmWebhookUrl ?? "");
+  const [leadType, setLeadType] = useState<"traditional_iul" | "high_intent_iul">(
+    partner.leadType as "traditional_iul" | "high_intent_iul",
+  );
 
   const [statesSaving, setStatesSaving] = useState(false);
   const [statesSuccess, setStatesSuccess] = useState(false);
@@ -295,11 +505,16 @@ export function PartnerSettingsView() {
   const [webhookSuccess, setWebhookSuccess] = useState(false);
   const [webhookError, setWebhookError] = useState("");
 
+  const [leadTypeSaving, setLeadTypeSaving] = useState(false);
+  const [leadTypeSuccess, setLeadTypeSuccess] = useState(false);
+  const [leadTypeError, setLeadTypeError] = useState("");
+
   const selected = new Set(selectedStates);
   const selectedCount = selected.size;
   const isEligible = selectedCount >= 15;
   const statesDirty = !statesEqual(selectedStates, partner.filterStates);
   const webhookDirty = webhookUrl !== (partner.crmWebhookUrl ?? "");
+  const leadTypeDirty = leadType !== partner.leadType;
 
   function toggleState(code: string) {
     setSelectedStates((prev) =>
@@ -376,6 +591,31 @@ export function PartnerSettingsView() {
     }
   }
 
+  async function saveLeadType() {
+    setLeadTypeError("");
+    setLeadTypeSuccess(false);
+    setLeadTypeSaving(true);
+
+    try {
+      const res = await fetch("/api/partners/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadType }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLeadTypeError(data.error ?? "Failed to save lead type");
+        return;
+      }
+      patchPartner({ leadType: data.leadType });
+      setLeadTypeSuccess(true);
+    } catch {
+      setLeadTypeError("Request failed. Please try again.");
+    } finally {
+      setLeadTypeSaving(false);
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -391,11 +631,36 @@ export function PartnerSettingsView() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="form-label">Lead Type</label>
-            <select className="form-select" defaultValue={partner.leadType} disabled>
-              <option value="traditional_iul">Traditional IUL</option>
-              <option value="high_intent_iul">High Intent IUL</option>
-            </select>
-            <p className="mt-1 text-xs text-slate-400">Contact admin to change lead type</p>
+            <div className="flex gap-2">
+              <select
+                className="form-select flex-1"
+                value={leadType}
+                onChange={(e) => {
+                  setLeadType(e.target.value as typeof leadType);
+                  setLeadTypeSuccess(false);
+                  setLeadTypeError("");
+                }}
+              >
+                <option value="traditional_iul">Traditional IUL</option>
+                <option value="high_intent_iul">High Intent IUL</option>
+              </select>
+              <ActionButton
+                type="button"
+                variant="secondary"
+                className="whitespace-nowrap"
+                loading={leadTypeSaving}
+                loadingText="Saving…"
+                success={leadTypeSuccess}
+                successText="Saved"
+                disabled={!leadTypeDirty}
+                onClick={saveLeadType}
+              >
+                Save
+              </ActionButton>
+            </div>
+            {leadTypeError && (
+              <p className="mt-1 text-xs text-red-600">{leadTypeError}</p>
+            )}
           </div>
           <div>
             <label className="form-label">Affiliation (Company)</label>
