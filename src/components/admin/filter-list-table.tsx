@@ -867,7 +867,7 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
             <thead>
               <tr>
                 <th>Filter Set</th>
-                <th>Partner</th>
+                <th className="w-44">Partner</th>
                 <th>Lead Type</th>
                 <th>States</th>
                 <th>Priority</th>
@@ -900,12 +900,12 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                           )}
                         </span>
                       </td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <Link href={`/admin/partners/${fs.partnerId}`} className="hover:text-brand-600">
-                          <p className="font-medium text-slate-900">
+                      <td className="w-44 max-w-[11rem]" onClick={(e) => e.stopPropagation()}>
+                        <Link href={`/admin/partners/${fs.partnerId}`} className="hover:text-brand-600 block">
+                          <p className="font-medium text-slate-900 truncate">
                             {fs.partner.firstName} {fs.partner.lastName}
                           </p>
-                          <p className="text-xs text-slate-400">{fs.partner.email}</p>
+                          <p className="text-xs text-slate-400 truncate">{fs.partner.email}</p>
                         </Link>
                       </td>
                       <td>
