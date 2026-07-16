@@ -332,12 +332,35 @@ function AdvancedFiltersAccordion({
               onChange={(v) => update({ intent: v })}
               placeholder="e.g. buy_now"
             />
-            <TagInput
-              label="Have IUL"
-              values={criteria.haveIul ?? []}
-              onChange={(v) => update({ haveIul: v })}
-              placeholder="e.g. yes"
-            />
+            <div>
+              <label className="form-label">Have IUL</label>
+              <div className="flex gap-4 mt-1">
+                {(["yes", "no"] as const).map((val) => {
+                  const checked = (criteria.haveIul ?? []).includes(val);
+                  return (
+                    <label key={val} className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const current = criteria.haveIul ?? [];
+                          update({
+                            haveIul: e.target.checked
+                              ? [...current, val]
+                              : current.filter((v) => v !== val),
+                          });
+                        }}
+                        className="rounded border-slate-300 accent-brand-600"
+                      />
+                      <span className="text-sm text-slate-700 capitalize">{val}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {(criteria.haveIul?.length ?? 0) === 0 && (
+                <p className="mt-1 text-[11px] text-slate-400">Any</p>
+              )}
+            </div>
           </div>
           <div>
             <label className="form-label">Age</label>
