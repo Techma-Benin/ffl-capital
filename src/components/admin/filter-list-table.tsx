@@ -139,6 +139,115 @@ function TagInput({
 }
 
 // ---------------------------------------------------------------------------
+// Advanced Filters — Ignore / Include / Exclude field
+// ---------------------------------------------------------------------------
+
+type FilterMode = "ignore" | "include" | "exclude";
+
+function FilterField({
+  label,
+  fieldId,
+  includeValues,
+  excludeValues = [],
+  onIncludeChange,
+  onExcludeChange,
+  supportsExclude = true,
+  placeholder = "e.g. value1, value2",
+}: {
+  label: string;
+  fieldId: string;
+  includeValues: string[];
+  excludeValues?: string[];
+  onIncludeChange: (v: string[]) => void;
+  onExcludeChange?: (v: string[]) => void;
+  supportsExclude?: boolean;
+  placeholder?: string;
+}) {
+  const derivedMode: FilterMode =
+    includeValues.length > 0 ? "include" :
+    excludeValues.length > 0 ? "exclude" : "ignore";
+
+  const [localText, setLocalText] = useState(() =>
+    derivedMode === "include" ? includeValues.join(", ") :
+    derivedMode === "exclude" ? excludeValues.join(", ") : ""
+  );
+
+  function handleModeChange(m: FilterMode) {
+    setLocalText("");
+    onIncludeChange([]);
+    onExcludeChange?.([]);
+  }
+
+  function handleTextChange(raw: string, mode: FilterMode) {
+    setLocalText(raw);
+    const vals = raw.split(",").map((v) => v.trim()).filter(Boolean);
+    if (mode === "include") onIncludeChange(vals);
+    else if (mode === "exclude") onExcludeChange?.(vals);
+  }
+
+  const modes: FilterMode[] = supportsExclude
+    ? ["ignore", "include", "exclude"]
+    : ["ignore", "include"];
+
+  const summary =
+    derivedMode === "include" && includeValues.length > 0
+      ? includeValues.join(", ")
+      : derivedMode === "exclude" && excludeValues.length > 0
+      ? excludeValues.join(", ")
+      : null;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-slate-700">{label}</p>
+      <div className="flex items-center gap-4">
+        {modes.map((m) => (
+          <label
+            key={m}
+            className="flex items-center gap-1.5 cursor-pointer select-none"
+          >
+            <input
+              type="radio"
+              name={fieldId}
+              checked={derivedMode === m}
+              onChange={() => handleModeChange(m)}
+              className="h-3.5 w-3.5 accent-brand-600"
+            />
+            <span
+              className={`text-xs font-medium ${
+                derivedMode === m ? "text-slate-800" : "text-slate-400"
+              }`}
+            >
+              {m.charAt(0).toUpperCase() + m.slice(1)}
+            </span>
+          </label>
+        ))}
+      </div>
+      {derivedMode !== "ignore" && (
+        <textarea
+          rows={2}
+          placeholder={placeholder}
+          className="form-input w-full resize-none text-xs leading-relaxed"
+          value={localText}
+          onChange={(e) => handleTextChange(e.target.value, derivedMode)}
+        />
+      )}
+      {derivedMode !== "ignore" && summary && (
+        <p className="text-[11px] text-slate-400 truncate">
+          <span
+            className={`font-semibold ${
+              derivedMode === "include" ? "text-emerald-600" : "text-rose-500"
+            }`}
+          >
+            {derivedMode === "include" ? "Including" : "Excluding"}:
+          </span>{" "}
+          {summary}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Advanced Filters accordion (no visible box — just a toggle)
 // ---------------------------------------------------------------------------
 
@@ -155,67 +264,213 @@ function AdvancedFiltersAccordion({
     onChange({ ...criteria, ...patch });
   }
 
+  // Count active filters for the summary badge
+  const activeCount = [
+    (criteria.intent?.length ?? 0) > 0,
+    (criteria.haveIul?.length ?? 0) > 0,
+    (criteria.source?.length ?? 0) > 0 || (criteria.excludeSource?.length ?? 0) > 0,
+    (criteria.subId?.length ?? 0) > 0 || (criteria.excludeSubId?.length ?? 0) > 0,
+    (criteria.pubId?.length ?? 0) > 0 || (criteria.excludePubId?.length ?? 0) > 0,
+    (criteria.boberdooLeadType?.length ?? 0) > 0,
+    criteria.ageMin !== undefined,
+    criteria.ageMax !== undefined,
+    (criteria.acceptDays?.length ?? 0) > 0,
+    criteria.acceptHoursStart !== undefined,
+    criteria.acceptHoursEnd !== undefined,
+  ].filter(Boolean).length;
+
   return (
     <div>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
+        className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
       >
-        <CaretDown size={13} className={`transition-transform ${open ? "rotate-180" : ""}`} />
-        Advanced Filters <span className="text-xs font-normal text-slate-400">(optional)</span>
+        <CaretDown
+          size={13}
+          className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+        Advanced Filters
+        {activeCount > 0 ? (
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
+            {activeCount} active
+          </span>
+        ) : (
+          <span className="text-xs font-normal text-slate-400">(optional)</span>
+        )}
       </button>
 
       {open && (
-        <div className="mt-4 space-y-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Lead Profile</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TagInput label="Intent (allow-list)" values={criteria.intent ?? []} onChange={(v) => update({ intent: v })} placeholder="e.g. buy_now" />
-            <TagInput label="Have IUL (allow-list)" values={criteria.haveIul ?? []} onChange={(v) => update({ haveIul: v })} placeholder="e.g. yes" />
+        <div className="mt-5 space-y-5">
+          {/* Lead Profile */}
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            Lead Profile
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FilterField
+              fieldId="adv-intent"
+              label="Intent"
+              includeValues={criteria.intent ?? []}
+              onIncludeChange={(v) => update({ intent: v })}
+              supportsExclude={false}
+              placeholder="e.g. buy_now, research"
+            />
+            <FilterField
+              fieldId="adv-haveIul"
+              label="Have IUL"
+              includeValues={criteria.haveIul ?? []}
+              onIncludeChange={(v) => update({ haveIul: v })}
+              supportsExclude={false}
+              placeholder="e.g. yes, no"
+            />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="form-label">Age Min</label>
-              <input type="number" min={0} max={120} placeholder="No min" className="form-input" value={criteria.ageMin ?? ""} onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })} />
+              <input
+                type="number"
+                min={0}
+                max={120}
+                placeholder="No min"
+                className="form-input"
+                value={criteria.ageMin ?? ""}
+                onChange={(e) =>
+                  update({ ageMin: e.target.value ? Number(e.target.value) : undefined })
+                }
+              />
             </div>
             <div>
               <label className="form-label">Age Max</label>
-              <input type="number" min={0} max={120} placeholder="No max" className="form-input" value={criteria.ageMax ?? ""} onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })} />
+              <input
+                type="number"
+                min={0}
+                max={120}
+                placeholder="No max"
+                className="form-input"
+                value={criteria.ageMax ?? ""}
+                onChange={(e) =>
+                  update({ ageMax: e.target.value ? Number(e.target.value) : undefined })
+                }
+              />
             </div>
           </div>
 
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Attribution</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TagInput label="Source (allow-list)" values={criteria.source ?? []} onChange={(v) => update({ source: v })} placeholder="e.g. meta_leadconduit" />
-            <TagInput label="Source (block-list)" values={criteria.excludeSource ?? []} onChange={(v) => update({ excludeSource: v })} />
-            <TagInput label="Sub ID (allow-list)" values={criteria.subId ?? []} onChange={(v) => update({ subId: v })} />
-            <TagInput label="Sub ID (block-list)" values={criteria.excludeSubId ?? []} onChange={(v) => update({ excludeSubId: v })} />
-            <TagInput label="Pub ID (allow-list)" values={criteria.pubId ?? []} onChange={(v) => update({ pubId: v })} />
-            <TagInput label="Pub ID (block-list)" values={criteria.excludePubId ?? []} onChange={(v) => update({ excludePubId: v })} />
-            <TagInput label="Boberdoo Lead Type (allow-list)" values={criteria.boberdooLeadType ?? []} onChange={(v) => update({ boberdooLeadType: v })} />
+          {/* Attribution */}
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">
+            Attribution
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FilterField
+              fieldId="adv-source"
+              label="Source"
+              includeValues={criteria.source ?? []}
+              excludeValues={criteria.excludeSource ?? []}
+              onIncludeChange={(v) => update({ source: v, excludeSource: [] })}
+              onExcludeChange={(v) => update({ excludeSource: v, source: [] })}
+              placeholder="e.g. meta_leadconduit"
+            />
+            <FilterField
+              fieldId="adv-subId"
+              label="Sub ID"
+              includeValues={criteria.subId ?? []}
+              excludeValues={criteria.excludeSubId ?? []}
+              onIncludeChange={(v) => update({ subId: v, excludeSubId: [] })}
+              onExcludeChange={(v) => update({ excludeSubId: v, subId: [] })}
+              placeholder="e.g. sub_123"
+            />
+            <FilterField
+              fieldId="adv-pubId"
+              label="Pub ID"
+              includeValues={criteria.pubId ?? []}
+              excludeValues={criteria.excludePubId ?? []}
+              onIncludeChange={(v) => update({ pubId: v, excludePubId: [] })}
+              onExcludeChange={(v) => update({ excludePubId: v, pubId: [] })}
+              placeholder="e.g. pub_456"
+            />
+            <FilterField
+              fieldId="adv-boberdoo"
+              label="Boberdoo Lead Type"
+              includeValues={criteria.boberdooLeadType ?? []}
+              onIncludeChange={(v) => update({ boberdooLeadType: v })}
+              supportsExclude={false}
+              placeholder="e.g. iul, mp"
+            />
           </div>
 
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Schedule (Eastern Time)</p>
+          {/* Schedule */}
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">
+            Schedule (Eastern Time)
+          </p>
           <div>
             <label className="form-label">Days you accept leads</label>
-            <div className="flex flex-wrap gap-3 mt-1">
-              {(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const).map((day) => (
-                <label key={day} className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
-                  <input type="checkbox" checked={(criteria.acceptDays ?? []).includes(day)} onChange={(e) => { const days = criteria.acceptDays ?? []; update({ acceptDays: e.target.checked ? [...days, day] : days.filter((d) => d !== day) }); }} className="rounded border-slate-300" />
-                  {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-                </label>
-              ))}
+            <div className="mt-1 flex flex-wrap gap-2">
+              {(
+                ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const
+              ).map((day) => {
+                const active = (criteria.acceptDays ?? []).includes(day);
+                return (
+                  <label
+                    key={day}
+                    className={`flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-brand-100 text-brand-700"
+                        : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={active}
+                      onChange={(e) => {
+                        const days = criteria.acceptDays ?? [];
+                        update({
+                          acceptDays: e.target.checked
+                            ? [...days, day]
+                            : days.filter((d) => d !== day),
+                        });
+                      }}
+                      className="hidden"
+                    />
+                    {day.charAt(0).toUpperCase() + day.slice(1, 3)}
+                  </label>
+                );
+              })}
             </div>
-            <p className="mt-1 text-xs text-slate-400">Leave all unchecked to accept any day</p>
+            {(criteria.acceptDays?.length ?? 0) === 0 && (
+              <p className="mt-1.5 text-[11px] text-slate-400">Any day</p>
+            )}
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="form-label">From hour (ET, 0–23)</label>
-              <input type="number" min={0} max={23} placeholder="No start" className="form-input" value={criteria.acceptHoursStart ?? ""} onChange={(e) => update({ acceptHoursStart: e.target.value ? Number(e.target.value) : undefined })} />
+              <input
+                type="number"
+                min={0}
+                max={23}
+                placeholder="No start"
+                className="form-input"
+                value={criteria.acceptHoursStart ?? ""}
+                onChange={(e) =>
+                  update({
+                    acceptHoursStart: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
+              />
             </div>
             <div>
               <label className="form-label">To hour (ET, 0–23, exclusive)</label>
-              <input type="number" min={0} max={23} placeholder="No end" className="form-input" value={criteria.acceptHoursEnd ?? ""} onChange={(e) => update({ acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined })} />
+              <input
+                type="number"
+                min={0}
+                max={23}
+                placeholder="No end"
+                className="form-input"
+                value={criteria.acceptHoursEnd ?? ""}
+                onChange={(e) =>
+                  update({
+                    acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
+              />
             </div>
           </div>
         </div>
