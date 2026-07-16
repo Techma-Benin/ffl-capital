@@ -317,11 +317,13 @@ function FilterSetEditor({
   onSaved,
   onClose,
   filterSetId,
+  modal = false,
 }: {
   initialData: FilterSetFormData;
   onSaved: (fs: PartnerFilterSet) => void;
   onClose: () => void;
   filterSetId?: string;
+  modal?: boolean;
 }) {
   const [form, setForm] = useState<FilterSetFormData>(initialData);
   const [saving, setSaving] = useState(false);
@@ -383,17 +385,8 @@ function FilterSetEditor({
     }
   }
 
-  return (
-    <div className="border border-slate-200 rounded-xl bg-slate-50/60 p-5 space-y-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-900">
-          {isEditing ? "Edit Filter Set" : "New Filter Set"}
-        </h3>
-        <button type="button" onClick={onClose} className="rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
-          <X size={16} />
-        </button>
-      </div>
-
+  const formBody = (
+    <div className="space-y-5">
       {/* Name + Lead Type */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -550,6 +543,91 @@ function FilterSetEditor({
       </div>
     </div>
   );
+
+  if (modal) return formBody;
+
+  return (
+    <div className="border border-slate-200 rounded-xl bg-slate-50/60 p-5 space-y-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-900">
+          {isEditing ? "Edit Filter Set" : "New Filter Set"}
+        </h3>
+        <button type="button" onClick={onClose} className="rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+          <X size={16} />
+        </button>
+      </div>
+      {formBody}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Filter Set Modal (edit existing)
+// ---------------------------------------------------------------------------
+
+function FilterSetModal({
+  filterSet,
+  onSaved,
+  onClose,
+}: {
+  filterSet: PartnerFilterSet;
+  onSaved: (updated: PartnerFilterSet) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const eligible = filterSet.filterStates.length >= 15;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4 flex-shrink-0">
+          <div className="flex flex-1 items-center gap-2 min-w-0">
+            <span className="text-sm font-semibold text-slate-900 truncate">{filterSet.name}</span>
+            <Badge variant={filterSet.active ? "green" : "slate"}>
+              {filterSet.active ? "Active" : "Inactive"}
+            </Badge>
+            {!eligible && <Badge variant="yellow">Below minimum</Badge>}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-shrink-0 rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 px-6 py-5">
+          <FilterSetEditor
+            filterSetId={filterSet.id}
+            initialData={{
+              name: filterSet.name,
+              leadType: filterSet.leadType,
+              filterStates: filterSet.filterStates,
+              active: filterSet.active,
+              weeklyLimit: filterSet.weeklyLimit != null ? String(filterSet.weeklyLimit) : "",
+              monthlyLimit: filterSet.monthlyLimit != null ? String(filterSet.monthlyLimit) : "",
+              filterCriteria: (filterSet.filterCriteria as FilterCriteria) ?? {},
+            }}
+            onSaved={onSaved}
+            onClose={onClose}
+            modal
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -572,7 +650,7 @@ const DEFAULT_FORM: FilterSetFormData = {
 function FilterSetsSection() {
   const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(null);
   const [loadError, setLoadError] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingFs, setEditingFs] = useState<PartnerFilterSet | null>(null);
   const [createMode, setCreateMode] = useState<CreateMode>(null);
   const [prefillData, setPrefillData] = useState<FilterSetFormData>(DEFAULT_FORM);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -593,7 +671,7 @@ function FilterSetsSection() {
   function openPicker() {
     setPrefillData(DEFAULT_FORM);
     setCreateMode("picker");
-    setExpandedId(null);
+    setEditingFs(null);
   }
 
   function handleTemplateSelected(t: FilterSetTemplate) {
@@ -628,7 +706,7 @@ function FilterSetsSection() {
     setFilterSets((prev) =>
       prev ? prev.map((fs) => (fs.id === updated.id ? updated : fs)) : prev,
     );
-    setExpandedId(null);
+    setEditingFs(null);
   }
 
   async function handleDelete(id: string) {
@@ -732,76 +810,49 @@ function FilterSetsSection() {
       {filterSets && filterSets.length > 0 && (
         <div>
           {filterSets.map((fs) => {
-            const isExpanded = expandedId === fs.id;
             const eligible = fs.filterStates.length >= 15;
             return (
               <div key={fs.id} className="border-b border-slate-100 last:border-b-0">
-                <div className="flex items-center justify-between px-5 py-3.5">
-                  <button
-                    type="button"
-                    className="flex flex-1 items-center gap-3 text-left min-w-0"
-                    onClick={() => {
-                      setExpandedId(isExpanded ? null : fs.id);
-                      setCreateMode(null);
-                    }}
-                  >
+                <div
+                  className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                  onClick={() => { setEditingFs(fs); setCreateMode(null); }}
+                >
+                  <div className="flex flex-1 items-center gap-3 min-w-0">
                     <span className="text-sm font-medium text-slate-900 truncate">{fs.name}</span>
                     <Badge variant={fs.active ? "green" : "slate"}>
                       {fs.active ? "Active" : "Inactive"}
                     </Badge>
-                    {!eligible && (
-                      <Badge variant="yellow">Below minimum</Badge>
-                    )}
-                  </button>
+                    {!eligible && <Badge variant="yellow">Below minimum</Badge>}
+                  </div>
 
                   <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                     <span className="text-xs text-slate-500">
                       {fs.filterStates.length} state{fs.filterStates.length !== 1 ? "s" : ""}
                     </span>
-                    <button
-                      type="button"
-                      title="Edit"
-                      onClick={() => {
-                        setExpandedId(isExpanded ? null : fs.id);
-                        setCreateMode(null);
-                      }}
-                      className="rounded p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
-                    >
-                      {isExpanded ? <CaretUp size={14} /> : <PencilSimple size={14} />}
-                    </button>
+                    <span className="rounded p-1 text-slate-400">
+                      <PencilSimple size={14} />
+                    </span>
                     <button
                       type="button"
                       title="Delete"
                       disabled={deletingId === fs.id}
-                      onClick={() => handleDelete(fs.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(fs.id); }}
                       className="rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
                     >
                       <Trash size={14} />
                     </button>
                   </div>
                 </div>
-
-                {isExpanded && (
-                  <div className="px-5 pb-5">
-                    <FilterSetEditor
-                      filterSetId={fs.id}
-                      initialData={{
-                        name: fs.name,
-                        leadType: fs.leadType,
-                        filterStates: fs.filterStates,
-                        active: fs.active,
-                        weeklyLimit: fs.weeklyLimit != null ? String(fs.weeklyLimit) : "",
-                        monthlyLimit: fs.monthlyLimit != null ? String(fs.monthlyLimit) : "",
-                        filterCriteria: fs.filterCriteria ?? {},
-                      }}
-                      onSaved={handleUpdated}
-                      onClose={() => setExpandedId(null)}
-                    />
-                  </div>
-                )}
               </div>
             );
           })}
+          {editingFs && (
+            <FilterSetModal
+              filterSet={editingFs}
+              onSaved={handleUpdated}
+              onClose={() => setEditingFs(null)}
+            />
+          )}
         </div>
       )}
 

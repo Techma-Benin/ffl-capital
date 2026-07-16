@@ -25,9 +25,9 @@ export default async function PartnerAgedPage({
   });
   if (!targeting) redirect("/onboarding");
 
-  const allowedStates = [
-    ...new Set(targeting.filterSets.flatMap((fs) => fs.filterStates)),
-  ];
+  const allowedStates = Array.from(
+    new Set(targeting.filterSets.flatMap((fs) => fs.filterStates)),
+  );
 
   const extra: Prisma.LeadWhereInput = {
     state: { in: allowedStates.length > 0 ? allowedStates : ["__none__"] },

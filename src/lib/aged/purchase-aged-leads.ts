@@ -35,9 +35,9 @@ export async function purchaseAgedLeads(
     throw new Error("Partner account is not active");
   }
 
-  const allowedStates = [
-    ...new Set(partner.filterSets.flatMap((fs) => fs.filterStates)),
-  ];
+  const allowedStates = Array.from(
+    new Set(partner.filterSets.flatMap((fs) => fs.filterStates)),
+  );
 
   if (allowedStates.length < MIN_FILTER_STATES) {
     throw new Error("Partner must have at least 15 target states across active filter sets");
