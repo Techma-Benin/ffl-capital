@@ -157,11 +157,14 @@ function AllowBlockInput({
   onBlockChange: (v: string[]) => void;
   placeholder?: string;
 }) {
-  const mode: "allow" | "block" = blockValues.length > 0 ? "block" : "allow";
+  const [mode, setMode] = useState<"allow" | "block">(
+    blockValues.length > 0 ? "block" : "allow",
+  );
   const activeValues = mode === "allow" ? allowValues : blockValues;
 
   function switchMode(next: "allow" | "block") {
     if (next === mode) return;
+    setMode(next);
     onAllowChange([]);
     onBlockChange([]);
   }
