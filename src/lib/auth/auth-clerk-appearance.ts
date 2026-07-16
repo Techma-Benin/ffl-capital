@@ -11,7 +11,7 @@ export const authClerkAppearance: Appearance = {
   elements: {
     rootBox: "w-full",
     cardBox: "w-full shadow-none",
-    card: "w-full shadow-none border-0 p-0 bg-transparent",
+    card: "w-full shadow-none border-0 px-6 py-4 bg-transparent",
     headerTitle: "hidden",
     headerSubtitle: "hidden",
     formFieldRow__name: "gap-4",
