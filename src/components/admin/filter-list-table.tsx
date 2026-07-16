@@ -898,8 +898,8 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
           <table className="data-table">
             <thead>
               <tr>
-                <th>Partner</th>
                 <th>Filter Set</th>
+                <th>Partner</th>
                 <th>Lead Type</th>
                 <th>States</th>
                 <th>Priority</th>
@@ -922,25 +922,25 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                       className="cursor-pointer hover:bg-brand-50 transition-colors"
                       onClick={() => setSelected(row)}
                     >
+                      <td className="font-medium">{fs.name}</td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <Link
                           href={`/admin/partners/${fs.partnerId}`}
                           className="hover:text-brand-600 flex items-start gap-2"
                         >
-                          {fs.active && fs.partner.status === "active" ? (
-                            <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-emerald-500" title="Active" />
-                          ) : (
-                            <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-slate-300" title="Inactive" />
-                          )}
                           <span>
                             <p className="font-medium text-slate-900">
                               {fs.partner.firstName} {fs.partner.lastName}
                             </p>
                             <p className="text-xs text-slate-400">{fs.partner.email}</p>
                           </span>
+                          {fs.active && fs.partner.status === "active" ? (
+                            <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-emerald-500" title="Active" />
+                          ) : (
+                            <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-slate-300" title="Inactive" />
+                          )}
                         </Link>
                       </td>
-                      <td className="font-medium">{fs.name}</td>
                       <td>
                         <Badge variant="blue">
                           {fs.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
