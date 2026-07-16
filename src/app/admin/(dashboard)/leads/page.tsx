@@ -14,6 +14,7 @@ import { LeadsExportButton } from "@/components/admin/leads-export-button";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
+import { ClickableRow } from "@/components/ui/clickable-row";
 
 type StatusFilter = "all" | "matched" | "unmatched" | "integrity_posted" | "aged_listed";
 
@@ -212,11 +213,7 @@ export default async function AdminLeadsPage({
                 {leads.map((lead) => {
                   const delivery = lead.leadDeliveries[0];
                   return (
-                    <tr
-                      key={lead.id}
-                      className="cursor-pointer hover:bg-brand-50 transition-colors"
-                      onClick={() => window.location.href = `/admin/leads/${lead.id}`}
-                    >
+                    <ClickableRow key={lead.id} href={`/admin/leads/${lead.id}`}>
                       <td className="font-mono text-xs text-slate-400">
                         {lead.id.slice(0, 8)}…
                       </td>
@@ -279,7 +276,7 @@ export default async function AdminLeadsPage({
                           )}
                         </div>
                       </td>
-                    </tr>
+                    </ClickableRow>
                   );
                 })}
               </tbody>

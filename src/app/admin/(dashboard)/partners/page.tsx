@@ -113,7 +113,7 @@ export default async function AdminPartnersPage({
                         affiliation: p.affiliation,
                         status: p.status,
                         priority: p.priority,
-                        walletBalance: p.walletBalance as number,
+                        walletBalance: Number(p.walletBalance),
                         leadBuying,
                         walletOk,
                         leadsCount: p._count.leadDeliveries,
