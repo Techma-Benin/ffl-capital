@@ -293,7 +293,7 @@ export function PartnerWalletView({
                 {subscribePending
                   ? "Redirecting…"
                   : subscription?.active
-                    ? `Change to ${weeklyAmount}/week`
+                    ? "Change"
                     : "Enable auto-recharge"}
               </button>
             </div>
