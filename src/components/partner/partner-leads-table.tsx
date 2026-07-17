@@ -134,12 +134,12 @@ function RefundDialog({
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Reason (optional)</label>
-            <input
-              type="text"
+            <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Describe the issue…"
-              className="form-input w-full text-sm"
+              rows={3}
+              className="form-input w-full text-sm resize-none"
             />
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
