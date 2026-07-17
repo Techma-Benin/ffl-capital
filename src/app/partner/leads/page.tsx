@@ -65,15 +65,6 @@ export default async function PartnerLeadsPage({
         subtitle="All leads delivered to your account — request refunds individually or in bulk"
       />
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total Delivered" value={total} variant="blue" />
-        <StatCard
-          label="Total Spent"
-          value={`$${totalSpent.toFixed(2)}`}
-          variant="mint"
-        />
-        <StatCard label="Refunded" value={refundedCount} variant="orange" />
-      </div>
 
       <div className="card">
         {filterSets.length > 0 && (
