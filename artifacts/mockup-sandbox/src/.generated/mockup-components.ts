@@ -2,6 +2,7 @@
 type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/partner-dashboard/ActivityFeedLayout.tsx": () => import("../components/mockups/partner-dashboard/ActivityFeedLayout.tsx"),
+  "./components/mockups/partner-dashboard/FigmaShell.tsx": () => import("../components/mockups/partner-dashboard/FigmaShell.tsx"),
   "./components/mockups/partner-dashboard/MetricsBannerFeed.tsx": () => import("../components/mockups/partner-dashboard/MetricsBannerFeed.tsx"),
   "./components/mockups/partner-dashboard/SplitPanelCommand.tsx": () => import("../components/mockups/partner-dashboard/SplitPanelCommand.tsx"),
   "./components/mockups/partner-dashboard/TopNavWideGrid.tsx": () => import("../components/mockups/partner-dashboard/TopNavWideGrid.tsx")
