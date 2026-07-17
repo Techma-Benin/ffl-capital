@@ -145,10 +145,24 @@ export function PartnerWalletView({
               </div>
             </div>
 
-            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
-              Select amount
-            </p>
-            <div className="mb-4 grid grid-cols-4 gap-2">
+            <p className="mb-2 text-xs font-medium text-slate-600">Enter Amount</p>
+            <div className="relative mb-4">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                $
+              </span>
+              <input
+                type="number"
+                min={25}
+                step={1}
+                placeholder="0"
+                value={customAmount}
+                onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
+                className="form-input w-full pl-7"
+              />
+            </div>
+
+            <p className="mb-2 text-xs font-medium text-slate-600">Quick Select</p>
+            <div className="mb-5 grid grid-cols-4 gap-2">
               {PRESET_AMOUNTS.map((amount) => {
                 const active = selectedAmount === amount && !customAmount;
                 return (
@@ -167,24 +181,6 @@ export function PartnerWalletView({
                   </button>
                 );
               })}
-            </div>
-
-            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
-              Or custom amount
-            </p>
-            <div className="relative mb-4">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                $
-              </span>
-              <input
-                type="number"
-                min={25}
-                step={1}
-                placeholder="250"
-                value={customAmount}
-                onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
-                className="form-input w-full pl-7"
-              />
             </div>
 
             <button
