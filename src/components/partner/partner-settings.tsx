@@ -632,7 +632,7 @@ export function PartnerSettingsView() {
             </p>
           </div>
 
-          <div className="max-w-xl border-t border-slate-100 pt-6">
+          <div className="border-t border-slate-100 pt-6">
             <label className="form-label">Webhook URL</label>
             <input
               type="url"
