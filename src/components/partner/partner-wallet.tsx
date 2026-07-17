@@ -4,9 +4,8 @@ import { useState } from "react";
 import { clsx } from "clsx";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
-import { StatCard } from "@/components/ui/stat-card";
 import { usePartner } from "@/components/partner/partner-provider";
-import { Wallet, TrendUp, TrendDown, ArrowUpRight, ArrowsClockwise } from "@phosphor-icons/react";
+import { Wallet, ArrowUpRight, ArrowsClockwise } from "@phosphor-icons/react";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -43,21 +42,17 @@ export function PartnerWalletView({
 
   const [selectedAmount, setSelectedAmount] = useState<number | null>(250);
   const [customAmount, setCustomAmount] = useState("");
-
-  const checkoutAmount = customAmount
-    ? Number(customAmount)
-    : selectedAmount;
-
-  const checkoutValid =
-    checkoutAmount !== null &&
-    Number.isFinite(checkoutAmount) &&
-    checkoutAmount >= 25;
-
   const [checkoutPending, setCheckoutPending] = useState(false);
   const [subscribePending, setSubscribePending] = useState(false);
   const [cancelPending, setCancelPending] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [weeklyAmount, setWeeklyAmount] = useState("500");
+
+  const checkoutAmount = customAmount ? Number(customAmount) : selectedAmount;
+  const checkoutValid =
+    checkoutAmount !== null &&
+    Number.isFinite(checkoutAmount) &&
+    checkoutAmount >= 25;
 
   async function startCheckout() {
     if (!checkoutValid || !checkoutAmount) return;
@@ -86,7 +81,6 @@ export function PartnerWalletView({
         const data = await res.json();
         throw new Error(data.error ?? "Cancel failed");
       }
-      // Refresh the page to reflect cancelled state
       window.location.reload();
     } catch {
       setCancelPending(false);
@@ -121,40 +115,29 @@ export function PartnerWalletView({
         subtitle="Manage your balance and top up your account"
       />
 
-      {/* Balance hero card */}
-      <div
-        className={clsx(
-          "mb-6 rounded-2xl p-8",
-          walletOk ? "bg-slate-900" : "bg-red-950",
-        )}
-      >
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-          Current Balance
-        </p>
-        <p className="mt-3 text-5xl font-bold tracking-tight text-white">
-          ${balance.toFixed(2)}
-        </p>
-        <p
-          className={clsx(
-            "mt-2 text-sm font-medium",
-            walletOk ? "text-emerald-400" : "text-red-400",
-          )}
-        >
-          {walletOk
-            ? "Lead buying active"
-            : "Below $25 minimum — add funds to receive leads"}
-        </p>
-      </div>
-
-      {/* Two-column layout */}
       <div className="grid gap-6 lg:grid-cols-2">
 
-        {/* LEFT — Add Funds */}
-        <div className="card p-6">
-          <h2 className="mb-5 text-base font-semibold text-slate-900">Add Funds</h2>
+        {/* ── LEFT: Balance + Add Funds ── */}
+        <div className="flex flex-col gap-6">
 
-          {/* One-Time Top-Up */}
-          <div className="mb-1">
+          {/* Balance hero */}
+          <div className={clsx("rounded-2xl p-8", walletOk ? "bg-slate-900" : "bg-red-950")}>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              Current Balance
+            </p>
+            <p className="mt-3 text-5xl font-bold tracking-tight text-white">
+              ${balance.toFixed(2)}
+            </p>
+            <p className={clsx("mt-2 text-sm font-medium", walletOk ? "text-emerald-400" : "text-red-400")}>
+              {walletOk ? "Lead buying active" : "Below $25 minimum — add funds to receive leads"}
+            </p>
+          </div>
+
+          {/* Add Funds card */}
+          <div className="card p-6">
+            <h2 className="mb-5 text-base font-semibold text-slate-900">Add Funds</h2>
+
+            {/* One-Time Top-Up */}
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-xl bg-brand-50 p-2.5">
                 <ArrowUpRight size={18} className="text-brand-600" />
@@ -193,7 +176,9 @@ export function PartnerWalletView({
               Or custom amount
             </p>
             <div className="relative mb-4">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                $
+              </span>
               <input
                 type="number"
                 min={25}
@@ -214,80 +199,78 @@ export function PartnerWalletView({
               {checkoutPending
                 ? "Redirecting to Stripe…"
                 : checkoutValid
-                  ? `Pay ${checkoutAmount!.toFixed(2)} with Stripe`
+                  ? `Pay $${checkoutAmount!.toFixed(2)} with Stripe`
                   : "Enter amount to continue"}
             </button>
             <p className="mt-2 text-center text-[11px] text-slate-400">
               Minimum top-up $25 · Secured by Stripe
             </p>
-          </div>
 
-          {/* Divider */}
-          <div className="my-6 border-t border-slate-100" />
+            {/* Divider */}
+            <div className="my-6 border-t border-slate-100" />
 
-          {/* Weekly Auto-Recharge */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="rounded-xl bg-violet-50 p-2.5">
-              <ArrowsClockwise size={18} className="text-violet-600" />
+            {/* Weekly Auto-Recharge */}
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-violet-50 p-2.5">
+                <ArrowsClockwise size={18} className="text-violet-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>
+                <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>
-              <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
-            </div>
-          </div>
 
-          {subscription?.active && (
-            <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3">
-              <p className="text-sm font-semibold text-emerald-800">
-                Active — ${subscription.amount.toFixed(2)}/week
-              </p>
-              {subscription.nextChargeAt && (
-                <p className="mt-0.5 text-xs text-emerald-700">
-                  Next charge:{" "}
-                  {new Date(subscription.nextChargeAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+            {subscription?.active ? (
+              <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                <p className="text-sm font-semibold text-emerald-800">
+                  Active — ${subscription.amount.toFixed(2)}/week
                 </p>
-              )}
+                {subscription.nextChargeAt && (
+                  <p className="mt-0.5 text-xs text-emerald-700">
+                    Next charge:{" "}
+                    {new Date(subscription.nextChargeAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="mb-4 text-xs leading-relaxed text-slate-500">
+                Set a weekly amount and never miss a lead because your balance ran low.
+              </p>
+            )}
+
+            <div className="relative mb-3">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                $
+              </span>
+              <input
+                type="number"
+                min={25}
+                placeholder="500"
+                value={weeklyAmount}
+                onChange={(e) => setWeeklyAmount(e.target.value)}
+                className="form-input w-full pl-7"
+              />
             </div>
-          )}
 
-          {!subscription?.active && (
-            <p className="mb-4 text-xs leading-relaxed text-slate-500">
-              Set a weekly amount and never miss a lead because your balance ran low.
-            </p>
-          )}
+            <button
+              type="button"
+              onClick={startSubscribe}
+              disabled={subscribePending || Number(weeklyAmount) < 25}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
+            >
+              {subscribePending
+                ? "Redirecting…"
+                : subscription?.active
+                  ? `Change to $${weeklyAmount}/week`
+                  : "Enable auto-recharge"}
+            </button>
 
-          <div className="relative mb-3">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
-            <input
-              type="number"
-              min={25}
-              placeholder="500"
-              value={weeklyAmount}
-              onChange={(e) => setWeeklyAmount(e.target.value)}
-              className="form-input w-full pl-7"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={startSubscribe}
-            disabled={subscribePending || Number(weeklyAmount) < 25}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
-          >
-            {subscribePending
-              ? "Redirecting…"
-              : subscription?.active
-                ? `Change to ${weeklyAmount}/week`
-                : "Enable auto-recharge"}
-          </button>
-
-          {subscription?.active && (
-            <>
-              {cancelConfirm ? (
+            {subscription?.active && (
+              cancelConfirm ? (
                 <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
                   <p className="mb-3 text-xs font-medium text-red-700">
                     Cancel your weekly auto-recharge? No further charges will be made.
@@ -319,12 +302,12 @@ export function PartnerWalletView({
                 >
                   Cancel auto-recharge
                 </button>
-              )}
-            </>
-          )}
+              )
+            )}
+          </div>
         </div>
 
-        {/* RIGHT — Transaction History */}
+        {/* ── RIGHT: Transaction History ── */}
         <div className="card overflow-hidden">
           <div className="border-b border-slate-100 px-5 py-4">
             <h2 className="text-base font-semibold text-slate-900">Transaction History</h2>
@@ -340,11 +323,14 @@ export function PartnerWalletView({
               {transactions.map((t) => {
                 const isCredit = t.amount > 0;
                 return (
-                  <div key={t.id} className="flex items-start justify-between gap-4 px-5 py-4 hover:bg-slate-50/60 transition-colors">
+                  <div
+                    key={t.id}
+                    className="flex items-start justify-between gap-4 px-5 py-4 hover:bg-slate-50/60 transition-colors"
+                  >
                     <div className="min-w-0 flex-1">
                       <TransactionTypeBadge type={t.type} />
                       {t.description && (
-                        <p className="mt-1 text-xs text-slate-500 truncate">{t.description}</p>
+                        <p className="mt-1 truncate text-xs text-slate-500">{t.description}</p>
                       )}
                       <p className="mt-0.5 text-[11px] text-slate-400" suppressHydrationWarning>
                         {new Date(t.createdAt).toLocaleString("en-US", {
@@ -356,10 +342,7 @@ export function PartnerWalletView({
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className={clsx(
-                        "text-sm font-bold",
-                        isCredit ? "text-emerald-600" : "text-slate-900",
-                      )}>
+                      <p className={clsx("text-sm font-bold", isCredit ? "text-emerald-600" : "text-slate-900")}>
                         {isCredit ? "+" : "−"}${Math.abs(t.amount).toFixed(2)}
                       </p>
                       <p className="mt-0.5 text-[11px] text-slate-400">
@@ -372,6 +355,7 @@ export function PartnerWalletView({
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
