@@ -10,7 +10,9 @@ export default async function PartnerDashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [deliveriesAll, deliveriesToday, recentDeliveries] = await Promise.all([
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const [deliveriesAll, deliveriesToday, recentDeliveries, spentAggregate] = await Promise.all([
     prisma.leadDelivery.count({ where: { partnerId } }),
     prisma.leadDelivery.count({
       where: { partnerId, deliveredAt: { gte: today } },
@@ -21,6 +23,10 @@ export default async function PartnerDashboardPage() {
       orderBy: { deliveredAt: "desc" },
       take: 5,
     }),
+    prisma.leadDelivery.aggregate({
+      where: { partnerId, deliveredAt: { gte: monthStart } },
+      _sum: { price: true },
+    }),
   ]);
 
   return (
@@ -28,6 +34,7 @@ export default async function PartnerDashboardPage() {
       stats={{
         deliveriesAll,
         deliveriesToday,
+        spentThisMonth: Number(spentAggregate._sum.price ?? 0),
         recentDeliveries: recentDeliveries.map((d) => ({
           id: d.id,
           price: Number(d.price),

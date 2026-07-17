@@ -26,6 +26,7 @@ type RecentDelivery = {
 type DashboardStats = {
   deliveriesAll: number;
   deliveriesToday: number;
+  spentThisMonth: number;
   recentDeliveries: RecentDelivery[];
 };
 
@@ -76,7 +77,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Wallet Balance"
           value={`$ ${balance.toFixed(2)}`}
@@ -97,6 +98,13 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           variant="hero"
           icon={TrendUp}
           heroBg="bg-violet-500"
+        />
+        <StatCard
+          label="Spent This Month"
+          value={`$ ${stats.spentThisMonth.toFixed(2)}`}
+          variant="hero"
+          icon={ShoppingBag}
+          heroBg="bg-cyan-500"
         />
       </div>
 
