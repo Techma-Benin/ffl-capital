@@ -118,45 +118,43 @@ export function PartnerWalletView({
     <div>
       <PageHeader
         title="Wallet"
-        subtitle="Manage your balance and view transaction history"
+        subtitle="Manage your balance and top up your account"
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Wallet Balance"
-          value={`$${balance.toFixed(2)}`}
-          variant="blue"
-          valueClassName={walletOk ? undefined : "text-red-600"}
-          subtitle={
-            walletOk
-              ? "Lead buying active"
-              : "Below minimum — add funds to receive leads"
-          }
-          subtitleClassName={walletOk ? "text-accent-600" : "text-red-500"}
-          icon={Wallet}
-          iconColor={walletOk ? "text-brand-700" : "text-red-600"}
-        />
-        <StatCard
-          label="Total Funded"
-          value={`$${totalTopUp.toFixed(2)}`}
-          variant="mint"
-          valueClassName="text-accent-700"
-          subtitle="All-time top-ups"
-          icon={TrendUp}
-        />
-        <StatCard
-          label="Total Spent"
-          value={`$${totalSpent.toFixed(2)}`}
-          variant="peach"
-          subtitle="Lead purchases"
-          icon={TrendDown}
-        />
+      {/* Balance hero card */}
+      <div
+        className={clsx(
+          "mb-6 rounded-2xl p-8",
+          walletOk ? "bg-slate-900" : "bg-red-950",
+        )}
+      >
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+          Current Balance
+        </p>
+        <p className="mt-3 text-5xl font-bold tracking-tight text-white">
+          ${balance.toFixed(2)}
+        </p>
+        <p
+          className={clsx(
+            "mt-2 text-sm font-medium",
+            walletOk ? "text-emerald-400" : "text-red-400",
+          )}
+        >
+          {walletOk
+            ? "Lead buying active"
+            : "Below $25 minimum — add funds to receive leads"}
+        </p>
       </div>
 
-      <div className="card mb-6 p-6">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Add Funds</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-5">
+      {/* Two-column layout */}
+      <div className="grid gap-6 lg:grid-cols-2">
+
+        {/* LEFT — Add Funds */}
+        <div className="card p-6">
+          <h2 className="mb-5 text-base font-semibold text-slate-900">Add Funds</h2>
+
+          {/* One-Time Top-Up */}
+          <div className="mb-1">
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-xl bg-brand-50 p-2.5">
                 <ArrowUpRight size={18} className="text-brand-600" />
@@ -167,25 +165,22 @@ export function PartnerWalletView({
               </div>
             </div>
 
-            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-slate-500">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
               Select amount
             </p>
-            <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mb-4 grid grid-cols-4 gap-2">
               {PRESET_AMOUNTS.map((amount) => {
                 const active = selectedAmount === amount && !customAmount;
                 return (
                   <button
                     key={amount}
                     type="button"
-                    onClick={() => {
-                      setSelectedAmount(amount);
-                      setCustomAmount("");
-                    }}
+                    onClick={() => { setSelectedAmount(amount); setCustomAmount(""); }}
                     className={clsx(
-                      "rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors",
+                      "rounded-lg border py-2.5 text-sm font-semibold transition-colors",
                       active
                         ? "border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50/50"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50/50",
                     )}
                   >
                     ${amount}
@@ -194,23 +189,18 @@ export function PartnerWalletView({
               })}
             </div>
 
-            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
               Or custom amount
             </p>
             <div className="relative mb-4">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                $
-              </span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
               <input
                 type="number"
                 min={25}
                 step={1}
                 placeholder="250"
                 value={customAmount}
-                onChange={(e) => {
-                  setCustomAmount(e.target.value);
-                  setSelectedAmount(null);
-                }}
+                onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
                 className="form-input w-full pl-7"
               />
             </div>
@@ -224,7 +214,7 @@ export function PartnerWalletView({
               {checkoutPending
                 ? "Redirecting to Stripe…"
                 : checkoutValid
-                  ? `Pay $${checkoutAmount!.toFixed(2)} with Stripe`
+                  ? `Pay ${checkoutAmount!.toFixed(2)} with Stripe`
                   : "Enter amount to continue"}
             </button>
             <p className="mt-2 text-center text-[11px] text-slate-400">
@@ -232,154 +222,154 @@ export function PartnerWalletView({
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-xl bg-violet-50 p-2.5">
-                <ArrowsClockwise size={18} className="text-violet-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>
-                <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
-              </div>
-            </div>
-            {subscription?.active ? (
-              <div className="mb-4">
-                <div className="rounded-lg bg-accent-50 p-3">
-                  <p className="text-sm font-semibold text-accent-800">
-                    Active — ${subscription.amount.toFixed(2)}/week
-                  </p>
-                  {subscription.nextChargeAt && (
-                    <p className="mt-1 text-xs text-accent-700">
-                      Next charge:{" "}
-                      {new Date(subscription.nextChargeAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  )}
-                </div>
-                {cancelConfirm ? (
-                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
-                    <p className="mb-2 text-xs font-medium text-red-700">
-                      Cancel your weekly auto-recharge? No further charges will be made.
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={cancelSubscription}
-                        disabled={cancelPending}
-                        className="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                      >
-                        {cancelPending ? "Cancelling…" : "Yes, cancel"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCancelConfirm(false)}
-                        disabled={cancelPending}
-                        className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                      >
-                        Keep active
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setCancelConfirm(true)}
-                    className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
-                  >
-                    Cancel auto-recharge
-                  </button>
-                )}
-              </div>
-            ) : (
-              <p className="mb-4 text-xs leading-relaxed text-slate-500">
-                Set a weekly amount and never miss a lead because your balance ran low.
-              </p>
-            )}
-            <div className="relative mb-3">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                $
-              </span>
-              <input
-                type="number"
-                min={25}
-                placeholder="500"
-                value={weeklyAmount}
-                onChange={(e) => setWeeklyAmount(e.target.value)}
-                className="form-input w-full pl-7"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={startSubscribe}
-              disabled={subscribePending || Number(weeklyAmount) < 25}
-              className="btn-secondary w-full disabled:opacity-50"
-            >
-              {subscribePending ? "Redirecting…" : "Enable auto-recharge"}
-            </button>
-          </div>
-        </div>
-      </div>
+          {/* Divider */}
+          <div className="my-6 border-t border-slate-100" />
 
-      <div className="card">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Transaction History</h2>
+          {/* Weekly Auto-Recharge */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="rounded-xl bg-violet-50 p-2.5">
+              <ArrowsClockwise size={18} className="text-violet-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>
+              <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
+            </div>
+          </div>
+
+          {subscription?.active && (
+            <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+              <p className="text-sm font-semibold text-emerald-800">
+                Active — ${subscription.amount.toFixed(2)}/week
+              </p>
+              {subscription.nextChargeAt && (
+                <p className="mt-0.5 text-xs text-emerald-700">
+                  Next charge:{" "}
+                  {new Date(subscription.nextChargeAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              )}
+            </div>
+          )}
+
+          {!subscription?.active && (
+            <p className="mb-4 text-xs leading-relaxed text-slate-500">
+              Set a weekly amount and never miss a lead because your balance ran low.
+            </p>
+          )}
+
+          <div className="relative mb-3">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+            <input
+              type="number"
+              min={25}
+              placeholder="500"
+              value={weeklyAmount}
+              onChange={(e) => setWeeklyAmount(e.target.value)}
+              className="form-input w-full pl-7"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={startSubscribe}
+            disabled={subscribePending || Number(weeklyAmount) < 25}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
+          >
+            {subscribePending
+              ? "Redirecting…"
+              : subscription?.active
+                ? `Change to ${weeklyAmount}/week`
+                : "Enable auto-recharge"}
+          </button>
+
+          {subscription?.active && (
+            <>
+              {cancelConfirm ? (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
+                  <p className="mb-3 text-xs font-medium text-red-700">
+                    Cancel your weekly auto-recharge? No further charges will be made.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={cancelSubscription}
+                      disabled={cancelPending}
+                      className="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {cancelPending ? "Cancelling…" : "Yes, cancel"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCancelConfirm(false)}
+                      disabled={cancelPending}
+                      className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      Keep active
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCancelConfirm(true)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                >
+                  Cancel auto-recharge
+                </button>
+              )}
+            </>
+          )}
         </div>
-        <div className="overflow-x-auto">
+
+        {/* RIGHT — Transaction History */}
+        <div className="card overflow-hidden">
+          <div className="border-b border-slate-100 px-5 py-4">
+            <h2 className="text-base font-semibold text-slate-900">Transaction History</h2>
+          </div>
+
           {transactions.length === 0 ? (
-            <div className="empty-state">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
               <Wallet size={28} className="mb-3 text-slate-300" />
               <p className="text-sm font-medium text-slate-500">No transactions yet</p>
             </div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Balance After</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((t) => {
-                  const isCredit = t.amount > 0;
-                  return (
-                    <tr key={t.id}>
-                      <td>
-                        <TransactionTypeBadge type={t.type} />
-                      </td>
-                      <td className="text-slate-500 text-sm">
-                        {t.description ?? "—"}
-                      </td>
-                      <td>
-                        <span
-                          className={`font-semibold ${
-                            isCredit ? "text-emerald-600" : "text-slate-900"
-                          }`}
-                        >
-                          {isCredit ? "+" : ""}${Math.abs(t.amount).toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="font-medium text-slate-700">
-                        ${t.balanceAfter.toFixed(2)}
-                      </td>
-                      <td className="text-xs text-slate-400" suppressHydrationWarning>
+            <div className="divide-y divide-slate-50">
+              {transactions.map((t) => {
+                const isCredit = t.amount > 0;
+                return (
+                  <div key={t.id} className="flex items-start justify-between gap-4 px-5 py-4 hover:bg-slate-50/60 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <TransactionTypeBadge type={t.type} />
+                      {t.description && (
+                        <p className="mt-1 text-xs text-slate-500 truncate">{t.description}</p>
+                      )}
+                      <p className="mt-0.5 text-[11px] text-slate-400" suppressHydrationWarning>
                         {new Date(t.createdAt).toLocaleString("en-US", {
                           month: "short",
                           day: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className={clsx(
+                        "text-sm font-bold",
+                        isCredit ? "text-emerald-600" : "text-slate-900",
+                      )}>
+                        {isCredit ? "+" : "−"}${Math.abs(t.amount).toFixed(2)}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-slate-400">
+                        bal. ${t.balanceAfter.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
