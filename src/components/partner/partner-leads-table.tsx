@@ -214,18 +214,6 @@ function RowMenu({
             </button>
           )}
 
-          {delivery.lead.trustedformCertUrl && (
-            <a
-              href={delivery.lead.trustedformCertUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition-colors"
-              onClick={() => setOpen(false)}
-            >
-              <ShieldCheck size={14} className="text-brand-500" />
-              TrustedForm
-            </a>
-          )}
         </div>
       )}
     </div>
