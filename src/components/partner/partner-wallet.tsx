@@ -5,7 +5,7 @@ import { clsx } from "clsx";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { usePartner } from "@/components/partner/partner-provider";
-import { Wallet, ArrowUpRight, ArrowsClockwise } from "@phosphor-icons/react";
+import { Wallet, ArrowUpRight, ArrowsClockwise, X } from "@phosphor-icons/react";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -198,16 +198,28 @@ export function PartnerWalletView({
 
           {/* Weekly Auto-Recharge card */}
           <div className="card p-6">
+            {/* Header row — icon+title left, cancel button right */}
             <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-xl bg-violet-50 p-2.5">
+              <div className="rounded-xl bg-violet-50 p-2.5 shrink-0">
                 <ArrowsClockwise size={18} className="text-violet-600" />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>
                 <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
               </div>
+              {subscription?.active && !cancelConfirm && (
+                <button
+                  type="button"
+                  onClick={() => setCancelConfirm(true)}
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                >
+                  <X size={12} />
+                  Cancel
+                </button>
+              )}
             </div>
 
+            {/* Active status banner */}
             {subscription?.active ? (
               <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
                 <p className="text-sm font-semibold text-emerald-800">
@@ -230,68 +242,61 @@ export function PartnerWalletView({
               </p>
             )}
 
-            <div className="relative mb-3">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                $
-              </span>
-              <input
-                type="number"
-                min={25}
-                placeholder="500"
-                value={weeklyAmount}
-                onChange={(e) => setWeeklyAmount(e.target.value)}
-                className="form-input w-full pl-7"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={startSubscribe}
-              disabled={subscribePending || Number(weeklyAmount) < 25}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
-            >
-              {subscribePending
-                ? "Redirecting…"
-                : subscription?.active
-                  ? `Change to ${weeklyAmount}/week`
-                  : "Enable auto-recharge"}
-            </button>
-
-            {subscription?.active && (
-              cancelConfirm ? (
-                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
-                  <p className="mb-3 text-xs font-medium text-red-700">
-                    Cancel your weekly auto-recharge? No further charges will be made.
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={cancelSubscription}
-                      disabled={cancelPending}
-                      className="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                    >
-                      {cancelPending ? "Cancelling…" : "Yes, cancel"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCancelConfirm(false)}
-                      disabled={cancelPending}
-                      className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                    >
-                      Keep active
-                    </button>
-                  </div>
+            {/* Cancel confirmation */}
+            {cancelConfirm && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="mb-3 text-xs font-medium text-red-700">
+                  Cancel your weekly auto-recharge? No further charges will be made.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={cancelSubscription}
+                    disabled={cancelPending}
+                    className="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {cancelPending ? "Cancelling…" : "Yes, cancel"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCancelConfirm(false)}
+                    disabled={cancelPending}
+                    className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Keep active
+                  </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setCancelConfirm(true)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
-                >
-                  Cancel auto-recharge
-                </button>
-              )
+              </div>
             )}
+
+            {/* Amount input + change button inline */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                  $
+                </span>
+                <input
+                  type="number"
+                  min={25}
+                  placeholder="500"
+                  value={weeklyAmount}
+                  onChange={(e) => setWeeklyAmount(e.target.value)}
+                  className="form-input w-full pl-7"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={startSubscribe}
+                disabled={subscribePending || Number(weeklyAmount) < 25}
+                className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {subscribePending
+                  ? "Redirecting…"
+                  : subscription?.active
+                    ? `Change to ${weeklyAmount}/week`
+                    : "Enable auto-recharge"}
+              </button>
+            </div>
           </div>
         </div>
 
