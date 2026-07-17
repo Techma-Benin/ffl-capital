@@ -101,33 +101,12 @@ export function PartnerSidebar() {
           sidebarCollapsed ? "px-2" : "px-4",
         )}
       >
-        <SidebarUserButton displayName={partnerName} />
+        <SidebarUserButton displayName={partnerName} isActive={isActiveBuyer} />
         {partner.affiliation && !sidebarCollapsed && (
           <p className="mt-1 truncate pl-12 text-xs text-sidebar-text">
             {partner.affiliation}
           </p>
         )}
-
-        <div
-          className={clsx(
-            "mt-3 flex items-center justify-between gap-2 overflow-hidden transition-all duration-300",
-            sidebarCollapsed ? "mt-2 h-0 opacity-0" : "h-auto opacity-100",
-          )}
-        >
-          <span
-            className={clsx(
-              "rounded-md px-2 py-0.5 text-[11px] font-semibold",
-              isActiveBuyer
-                ? "bg-accent-50 text-accent-700"
-                : "bg-slate-100 text-sidebar-text",
-            )}
-          >
-            {isActiveBuyer ? "● Buying Active" : "● Inactive"}
-          </span>
-          <span className="text-sm font-bold text-slate-800">
-            ${partner.walletBalance.toFixed(2)}
-          </span>
-        </div>
       </div>
 
       <div className="border-t border-sidebar-border px-3 py-3">
