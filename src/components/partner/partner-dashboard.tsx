@@ -98,13 +98,6 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           icon={TrendUp}
           heroBg="bg-violet-500"
         />
-        <StatCard
-          label="Target States"
-          value={partner.maxFilterSetStates}
-          variant="hero"
-          icon={MapPin}
-          heroBg="bg-cyan-400"
-        />
       </div>
 
 
