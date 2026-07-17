@@ -310,7 +310,7 @@ export function PartnerWalletView({
               <p className="text-sm font-medium text-slate-500">No transactions yet</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
               {transactions.map((t) => {
                 const isCredit = t.amount > 0;
                 return (
