@@ -549,26 +549,6 @@ export function PartnerSettingsView() {
         </p>
       </div>
 
-      {/* Sticky tab strip */}
-      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white shadow-[0_2px_4px_-1px_rgb(0,0,0,0.04)]">
-        <div className="flex gap-6 px-8">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => scrollTo(tab.id)}
-              className={[
-                "border-b-2 pb-3 pt-2.5 text-sm font-medium transition-colors duration-150",
-                activeTab === tab.id
-                  ? "border-brand-600 text-brand-600"
-                  : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700",
-              ].join(" ")}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Scrollable content */}
       <div className="mx-auto max-w-4xl space-y-8 px-8 py-10 pb-32">
