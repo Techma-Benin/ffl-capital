@@ -311,7 +311,7 @@ export function PartnerWalletView({
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
-              {transactions.map((t) => {
+              {transactions.slice(0, 6).map((t) => {
                 const isCredit = t.amount > 0;
                 return (
                   <div key={t.id} className="relative rounded-2xl border border-slate-200/80 bg-white shadow-none transition-shadow hover:shadow-card-hover">
