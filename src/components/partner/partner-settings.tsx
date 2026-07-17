@@ -393,14 +393,6 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
           <p className="text-xs text-slate-500 mb-4 max-w-xs mx-auto">
             At least one active filter set with ≥15 states is required to receive leads. Create your first filter set to get started.
           </p>
-          <button
-            type="button"
-            onClick={openPicker}
-            className="btn-primary btn-sm inline-flex items-center gap-1.5"
-          >
-            <Plus size={13} />
-            Create First Filter Set
-          </button>
         </div>
       )}
 
