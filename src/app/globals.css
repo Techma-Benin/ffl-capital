@@ -189,7 +189,7 @@
   }
 
   .nav-item.active {
-    @apply bg-sidebar-active text-brand-700;
+    @apply text-brand-700;
   }
 
   .nav-item-group-label {

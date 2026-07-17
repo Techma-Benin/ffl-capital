@@ -10,7 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 export function SidebarNavLink({
   href,
   label,
-  icon: Icon,
+  icon: IconComponent,
   exact,
 }: {
   href: string;
@@ -34,37 +34,32 @@ export function SidebarNavLink({
         "nav-item group relative",
         active && "active",
         pending && "pointer-events-none opacity-80",
-        sidebarCollapsed && "justify-center !px-0 !gap-0",
+        sidebarCollapsed && "justify-center px-0",
       )}
     >
-      <span
-        className={clsx(
-          "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors",
-          active
-            ? "bg-brand-700/10 text-brand-700"
-            : "bg-transparent text-sidebar-text group-hover:text-slate-700",
-        )}
-      >
+      {/* Icon — no background wrapper, larger size */}
+      <span className={clsx(
+        "flex flex-shrink-0 items-center justify-center",
+        active ? "text-brand-700" : "text-sidebar-text group-hover:text-slate-700",
+      )}>
         {pending ? (
           <Spinner size="xs" variant="brand" />
         ) : (
-          <Icon size={16} weight="duotone" />
+          <IconComponent size={22} weight="duotone" />
         )}
       </span>
 
-      <span
-        className={clsx(
-          "truncate transition-all duration-300",
-          sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100",
-        )}
-      >
-        {label}
-      </span>
+      {/* Label — hidden when collapsed */}
+      {!sidebarCollapsed && (
+        <span className="truncate">{label}</span>
+      )}
 
+      {/* Active dot — expanded only */}
       {!sidebarCollapsed && active && !pending && (
         <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-700" />
       )}
 
+      {/* Tooltip — collapsed only */}
       {sidebarCollapsed && (
         <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
           {label}
