@@ -30,58 +30,59 @@ interface StatCardProps {
   icon?: Icon;
   iconColor?: string;
   iconBgClassName?: string;
-  /** Circle background color for hero variant, e.g. "bg-green-400" */
+  /** Circle background for hero variant e.g. "bg-emerald-400" */
   heroBg?: string;
   valueClassName?: string;
   subtitleClassName?: string;
   trend?: { value: string; up: boolean };
-  /** Pastel KPI background (PNG / mockup patterns). */
   variant?: StatCardVariant;
-  /** Optional sparkline / mini-chart slot (right side). */
   sparkline?: ReactNode;
   className?: string;
 }
 
-export function StatCard({
-  label,
-  value,
-  subtitle,
-  icon: Icon,
-  iconColor = "text-brand-600",
-  iconBgClassName = "bg-white/70",
-  heroBg = "bg-blue-400",
-  valueClassName,
-  subtitleClassName,
-  trend,
-  variant = "default",
-  sparkline,
-  className,
-}: StatCardProps) {
+export function StatCard(props: StatCardProps) {
+  const {
+    label,
+    value,
+    subtitle,
+    icon: IconComponent,
+    iconColor = "text-brand-600",
+    iconBgClassName = "bg-white/70",
+    heroBg = "bg-blue-400",
+    valueClassName,
+    subtitleClassName,
+    trend,
+    variant = "default",
+    sparkline,
+    className,
+  } = props;
+
   if (variant === "hero") {
     return (
       <div className={clsx("rounded-2xl bg-white p-4 shadow-sm border border-slate-100", className)}>
-        {/* Icon circle */}
-        {Icon && (
-          <div className={clsx("mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full", heroBg)}>
-            <Icon size={22} weight="duotone" className="text-white" />
-          </div>
-        )}
-        {/* Value */}
-        <p className={clsx("text-2xl font-bold tracking-tight text-slate-900", valueClassName)}>
-          {value}
-        </p>
-        {/* Label + trend row */}
-        <div className="mt-1 flex items-center gap-3">
-          <p className="text-sm text-slate-500">{label}</p>
-          {trend && (
-            <p className={clsx("text-xs font-semibold", trend.up ? "text-emerald-500" : "text-red-500")}>
-              {trend.up ? "↑" : "↓"} {trend.value}
-            </p>
+        <div className="flex items-center gap-4">
+          {IconComponent && (
+            <div className={clsx("shrink-0 inline-flex h-14 w-14 items-center justify-center rounded-full", heroBg)}>
+              <IconComponent size={26} weight="duotone" className="text-white" />
+            </div>
           )}
+          <div className="min-w-0">
+            <p className={clsx("text-2xl font-bold tracking-tight text-slate-900", valueClassName)}>
+              {value}
+            </p>
+            <div className="mt-0.5 flex items-center gap-2">
+              <p className="text-sm text-slate-500">{label}</p>
+              {trend && (
+                <p className={clsx("text-xs font-semibold", trend.up ? "text-emerald-500" : "text-red-500")}>
+                  {trend.up ? "↑" : "↓"} {trend.value}
+                </p>
+              )}
+            </div>
+            {subtitle && (
+              <p className={clsx("mt-1 text-sm text-slate-400", subtitleClassName)}>{subtitle}</p>
+            )}
+          </div>
         </div>
-        {subtitle && (
-          <p className={clsx("mt-1 text-sm text-slate-400", subtitleClassName)}>{subtitle}</p>
-        )}
       </div>
     );
   }
@@ -91,12 +92,7 @@ export function StatCard({
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-            <p
-              className={clsx(
-                "text-3xl font-bold tracking-tight text-slate-900",
-                valueClassName,
-              )}
-            >
+            <p className={clsx("text-3xl font-bold tracking-tight text-slate-900", valueClassName)}>
               {value}
             </p>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -109,12 +105,7 @@ export function StatCard({
             </p>
           )}
           {trend && (
-            <p
-              className={clsx(
-                "mt-1.5 text-xs font-medium",
-                trend.up ? "text-accent-600" : "text-red-500",
-              )}
-            >
+            <p className={clsx("mt-1.5 text-xs font-medium", trend.up ? "text-accent-600" : "text-red-500")}>
               {trend.up ? "↑" : "↓"} {trend.value}
             </p>
           )}
@@ -122,9 +113,9 @@ export function StatCard({
 
         {sparkline ? (
           <div className="h-10 w-20 flex-shrink-0">{sparkline}</div>
-        ) : Icon ? (
+        ) : IconComponent ? (
           <div className={clsx("rounded-xl p-2.5", iconBgClassName, iconColor)}>
-            <Icon size={20} weight="duotone" />
+            <IconComponent size={20} weight="duotone" />
           </div>
         ) : null}
       </div>
