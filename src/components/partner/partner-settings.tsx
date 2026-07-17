@@ -3,25 +3,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { ActionButton } from "@/components/ui/action-button";
-import { StatusStrip } from "@/components/ui/status-strip";
 import { Badge } from "@/components/ui/badge";
 import { usePartner } from "@/components/partner/partner-provider";
-import {
-  US_REGION_STATES,
-  US_STATE_CODES,
-} from "@/lib/constants/us-states";
 import {
   Gear,
   PlugsConnected,
   Funnel,
-  CaretDown,
-  CaretUp,
   Plus,
   PencilSimple,
   Trash,
   X,
 } from "@phosphor-icons/react";
 import type { FilterCriteria } from "@/lib/matching/types";
+import {
+  FilterSetForm,
+  type FilterSetFormData,
+} from "@/components/admin/partner-filter-sets-panel";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,16 +36,6 @@ type PartnerFilterSet = {
   filterCriteria?: FilterCriteria;
 };
 
-type FilterSetFormData = {
-  name: string;
-  leadType: "traditional_iul" | "high_intent_iul";
-  filterStates: string[];
-  active: boolean;
-  weeklyLimit: string;
-  monthlyLimit: string;
-  filterCriteria: FilterCriteria;
-};
-
 type FilterSetTemplate = {
   id: string;
   name: string;
@@ -61,166 +48,6 @@ const LEAD_TYPE_LABELS: Record<string, string> = {
   traditional_iul: "Traditional IUL",
   high_intent_iul: "High Intent IUL",
 };
-
-// ---------------------------------------------------------------------------
-// Tag input
-// ---------------------------------------------------------------------------
-
-function TagInput({
-  label,
-  values,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  values: string[];
-  onChange: (vals: string[]) => void;
-  placeholder?: string;
-}) {
-  const [input, setInput] = useState("");
-
-  function commit() {
-    const trimmed = input.trim();
-    if (trimmed && !values.includes(trimmed)) {
-      onChange([...values, trimmed]);
-    }
-    setInput("");
-  }
-
-  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      commit();
-    } else if (e.key === "Backspace" && !input && values.length > 0) {
-      onChange(values.slice(0, -1));
-    }
-  }
-
-  return (
-    <div>
-      <label className="form-label">{label}</label>
-      <div className="flex flex-wrap gap-1 rounded-md border border-slate-300 bg-white p-1.5 min-h-[36px]">
-        {values.map((v) => (
-          <span
-            key={v}
-            className="inline-flex items-center gap-1 rounded bg-brand-100 px-1.5 py-0.5 text-[11px] font-medium text-brand-700"
-          >
-            {v}
-            <button
-              type="button"
-              onClick={() => onChange(values.filter((x) => x !== v))}
-              className="hover:text-brand-900"
-            >
-              ×
-            </button>
-          </span>
-        ))}
-        <input
-          className="flex-1 min-w-[100px] text-xs outline-none bg-transparent"
-          value={input}
-          placeholder={values.length === 0 ? (placeholder ?? "Type and press Enter") : ""}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKey}
-          onBlur={commit}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Advanced Filters accordion
-// ---------------------------------------------------------------------------
-
-function AdvancedFiltersAccordion({
-  criteria,
-  onChange,
-}: {
-  criteria: FilterCriteria;
-  onChange: (c: FilterCriteria) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  function update(patch: Partial<FilterCriteria>) {
-    onChange({ ...criteria, ...patch });
-  }
-
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors rounded-lg"
-      >
-        <span>Advanced Filters <span className="text-xs font-normal text-slate-400">(optional)</span></span>
-        {open ? <CaretUp size={14} /> : <CaretDown size={14} />}
-      </button>
-
-      {open && (
-        <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Lead Profile</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TagInput label="Intent (allow-list)" values={criteria.intent ?? []} onChange={(v) => update({ intent: v })} placeholder="e.g. buy_now" />
-            <TagInput label="Have IUL (allow-list)" values={criteria.haveIul ?? []} onChange={(v) => update({ haveIul: v })} placeholder="e.g. yes" />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="form-label">Age Min</label>
-              <input type="number" min={0} max={120} placeholder="No min" className="form-input" value={criteria.ageMin ?? ""} onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })} />
-            </div>
-            <div>
-              <label className="form-label">Age Max</label>
-              <input type="number" min={0} max={120} placeholder="No max" className="form-input" value={criteria.ageMax ?? ""} onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })} />
-            </div>
-          </div>
-
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Attribution</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TagInput label="Source (allow-list)" values={criteria.source ?? []} onChange={(v) => update({ source: v })} placeholder="e.g. meta_leadconduit" />
-            <TagInput label="Source (block-list)" values={criteria.excludeSource ?? []} onChange={(v) => update({ excludeSource: v })} />
-            <TagInput label="Sub ID (allow-list)" values={criteria.subId ?? []} onChange={(v) => update({ subId: v })} />
-            <TagInput label="Sub ID (block-list)" values={criteria.excludeSubId ?? []} onChange={(v) => update({ excludeSubId: v })} />
-            <TagInput label="Pub ID (allow-list)" values={criteria.pubId ?? []} onChange={(v) => update({ pubId: v })} />
-            <TagInput label="Pub ID (block-list)" values={criteria.excludePubId ?? []} onChange={(v) => update({ excludePubId: v })} />
-            <TagInput label="Boberdoo Lead Type (allow-list)" values={criteria.boberdooLeadType ?? []} onChange={(v) => update({ boberdooLeadType: v })} />
-          </div>
-
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Schedule (Eastern Time)</p>
-          <div>
-            <label className="form-label">Days you accept leads</label>
-            <div className="flex flex-wrap gap-3 mt-1">
-              {(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const).map((day) => (
-                <label key={day} className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={(criteria.acceptDays ?? []).includes(day)}
-                    onChange={(e) => {
-                      const days = criteria.acceptDays ?? [];
-                      update({ acceptDays: e.target.checked ? [...days, day] : days.filter((d) => d !== day) });
-                    }}
-                    className="rounded border-slate-300"
-                  />
-                  {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-                </label>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-slate-400">Leave all unchecked to accept any day</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="form-label">From hour (ET, 0–23)</label>
-              <input type="number" min={0} max={23} placeholder="No start" className="form-input" value={criteria.acceptHoursStart ?? ""} onChange={(e) => update({ acceptHoursStart: e.target.value ? Number(e.target.value) : undefined })} />
-            </div>
-            <div>
-              <label className="form-label">To hour (ET, 0–23, exclusive)</label>
-              <input type="number" min={0} max={23} placeholder="No end" className="form-input" value={criteria.acceptHoursEnd ?? ""} onChange={(e) => update({ acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined })} />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Template Picker
@@ -309,256 +136,18 @@ function TemplatePicker({
 }
 
 // ---------------------------------------------------------------------------
-// Filter Set Editor (create/edit form)
+// Partner URL builder for FilterSetForm
 // ---------------------------------------------------------------------------
 
-function FilterSetEditor({
-  initialData,
-  onSaved,
-  onClose,
-  filterSetId,
-  modal = false,
-}: {
-  initialData: FilterSetFormData;
-  onSaved: (fs: PartnerFilterSet) => void;
-  onClose: () => void;
-  filterSetId?: string;
-  modal?: boolean;
-}) {
-  const [form, setForm] = useState<FilterSetFormData>(initialData);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+const PARTNER_CATEGORIES = [
+  { type: "traditional_iul", label: "Traditional IUL" },
+  { type: "high_intent_iul", label: "High Intent IUL" },
+];
 
-  const selectedSet = new Set(form.filterStates);
-  const isEligible = form.filterStates.length >= 15;
-  const isEditing = Boolean(filterSetId);
-
-  function toggleState(code: string) {
-    setForm((prev) => ({
-      ...prev,
-      filterStates: prev.filterStates.includes(code)
-        ? prev.filterStates.filter((s) => s !== code)
-        : [...prev.filterStates, code],
-    }));
-    setError("");
-  }
-
-  function selectAll(states: readonly string[]) {
-    setForm((prev) => ({ ...prev, filterStates: [...states] }));
-    setError("");
-  }
-
-  async function save() {
-    if (form.active && form.filterStates.length < 15) {
-      setError("An active filter set requires at least 15 states. Add more states or save as inactive.");
-      return;
-    }
-    setSaving(true);
-    setError("");
-    try {
-      const url = filterSetId
-        ? `/api/partners/filter-sets/${filterSetId}`
-        : "/api/partners/filter-sets";
-      const res = await fetch(url, {
-        method: filterSetId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name.trim() || "Default",
-          leadType: form.leadType,
-          filterStates: form.filterStates,
-          active: form.active,
-          weeklyLimit: form.weeklyLimit ? Number(form.weeklyLimit) : null,
-          monthlyLimit: form.monthlyLimit ? Number(form.monthlyLimit) : null,
-          filterCriteria: form.filterCriteria,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Failed to save");
-        return;
-      }
-      onSaved(data as PartnerFilterSet);
-    } catch {
-      setError("Request failed. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const formBody = (
-    <div className="space-y-5">
-      {/* Name + Lead Type */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="form-label">Name</label>
-          <input
-            className="form-input"
-            value={form.name}
-            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-            placeholder="e.g. Southeast Traditional"
-          />
-        </div>
-        <div>
-          <label className="form-label">Lead Type</label>
-          <select
-            className="form-select"
-            value={form.leadType}
-            onChange={(e) =>
-              setForm((p) => ({
-                ...p,
-                leadType: e.target.value as FilterSetFormData["leadType"],
-              }))
-            }
-          >
-            <option value="traditional_iul">Traditional IUL</option>
-            <option value="high_intent_iul">High Intent IUL</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Weekly + Monthly limits */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="form-label">Weekly Limit</label>
-          <input
-            type="number"
-            min={1}
-            placeholder="No limit"
-            className="form-input"
-            value={form.weeklyLimit}
-            onChange={(e) => setForm((p) => ({ ...p, weeklyLimit: e.target.value }))}
-          />
-        </div>
-        <div>
-          <label className="form-label">Monthly Limit</label>
-          <input
-            type="number"
-            min={1}
-            placeholder="No limit"
-            className="form-input"
-            value={form.monthlyLimit}
-            onChange={(e) => setForm((p) => ({ ...p, monthlyLimit: e.target.value }))}
-          />
-        </div>
-      </div>
-
-      {/* Active toggle */}
-      <div className="flex items-center gap-3">
-        <label className="relative inline-flex cursor-pointer items-center">
-          <input
-            type="checkbox"
-            className="sr-only peer"
-            checked={form.active}
-            onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))}
-          />
-          <div className="peer h-5 w-9 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-all after:content-[''] peer-checked:bg-brand-600 peer-checked:after:translate-x-full" />
-        </label>
-        <span className="text-sm font-medium text-slate-700">
-          {form.active ? "Active" : "Inactive"}
-        </span>
-        {form.active && !isEligible && (
-          <span className="text-xs text-amber-600">
-            ⚠ Needs {15 - form.filterStates.length} more state{15 - form.filterStates.length !== 1 ? "s" : ""} to activate
-          </span>
-        )}
-      </div>
-
-      {/* State picker */}
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <label className="form-label mb-0">Target States</label>
-          <span className={`text-sm font-semibold ${isEligible ? "text-emerald-600" : "text-amber-600"}`}>
-            {form.filterStates.length} / 50 selected
-          </span>
-        </div>
-
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          <button type="button" onClick={() => selectAll(US_STATE_CODES)} className="btn-secondary btn-sm">
-            All
-          </button>
-          <button type="button" onClick={() => selectAll([])} className="btn-secondary btn-sm">
-            Clear
-          </button>
-          <button type="button" onClick={() => selectAll(US_REGION_STATES.southeast)} className="btn-secondary btn-sm">
-            Southeast
-          </button>
-          <button type="button" onClick={() => selectAll(US_REGION_STATES.northeast)} className="btn-secondary btn-sm">
-            Northeast
-          </button>
-          <button type="button" onClick={() => selectAll(US_REGION_STATES.midwest)} className="btn-secondary btn-sm">
-            Midwest
-          </button>
-          <button type="button" onClick={() => selectAll(US_REGION_STATES.west)} className="btn-secondary btn-sm">
-            West
-          </button>
-        </div>
-
-        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
-          {US_STATE_CODES.map((code) => {
-            const isSelected = selectedSet.has(code);
-            return (
-              <button
-                key={code}
-                type="button"
-                onClick={() => toggleState(code)}
-                className={`rounded px-1 py-1.5 text-[10px] font-bold transition-colors ${
-                  isSelected
-                    ? "bg-brand-100 text-brand-700"
-                    : "bg-slate-50 text-slate-500 hover:bg-brand-50"
-                }`}
-              >
-                {code}
-              </button>
-            );
-          })}
-        </div>
-
-        {!isEligible && (
-          <p className="mt-1.5 text-xs text-amber-700">
-            {15 - form.filterStates.length} more state{15 - form.filterStates.length !== 1 ? "s" : ""} needed to activate this filter set.
-          </p>
-        )}
-      </div>
-
-      {/* Advanced Filters */}
-      <AdvancedFiltersAccordion
-        criteria={form.filterCriteria}
-        onChange={(c) => setForm((p) => ({ ...p, filterCriteria: c }))}
-      />
-
-      {error && <p className="text-xs text-red-600">{error}</p>}
-
-      <div className="flex gap-2 pt-1">
-        <ActionButton
-          type="button"
-          loading={saving}
-          loadingText="Saving…"
-          onClick={save}
-        >
-          {isEditing ? "Save Changes" : "Create Filter Set"}
-        </ActionButton>
-        <button type="button" onClick={onClose} className="btn-secondary btn-sm">
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-
-  if (modal) return formBody;
-
-  return (
-    <div className="border border-slate-200 rounded-xl bg-slate-50/60 p-5 space-y-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-900">
-          {isEditing ? "Edit Filter Set" : "New Filter Set"}
-        </h3>
-        <button type="button" onClick={onClose} className="rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
-          <X size={16} />
-        </button>
-      </div>
-      {formBody}
-    </div>
-  );
+function partnerFilterSetUrl(filterSetId?: string) {
+  return filterSetId
+    ? `/api/partners/filter-sets/${filterSetId}`
+    : "/api/partners/filter-sets";
 }
 
 // ---------------------------------------------------------------------------
@@ -586,6 +175,19 @@ function FilterSetModal({
 
   const eligible = filterSet.filterStates.length >= 15;
 
+  const initial: FilterSetFormData = {
+    name: filterSet.name,
+    leadType: filterSet.leadType,
+    filterStates: filterSet.filterStates,
+    priority: filterSet.priority ?? 5,
+    priceOverride: "",
+    active: filterSet.active,
+    weeklyLimit: filterSet.weeklyLimit != null ? String(filterSet.weeklyLimit) : "",
+    monthlyLimit: filterSet.monthlyLimit != null ? String(filterSet.monthlyLimit) : "",
+    deliveryChannel: "email",
+    filterCriteria: (filterSet.filterCriteria as FilterCriteria) ?? {},
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -609,20 +211,14 @@ function FilterSetModal({
         </div>
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5">
-          <FilterSetEditor
+          <FilterSetForm
             filterSetId={filterSet.id}
-            initialData={{
-              name: filterSet.name,
-              leadType: filterSet.leadType,
-              filterStates: filterSet.filterStates,
-              active: filterSet.active,
-              weeklyLimit: filterSet.weeklyLimit != null ? String(filterSet.weeklyLimit) : "",
-              monthlyLimit: filterSet.monthlyLimit != null ? String(filterSet.monthlyLimit) : "",
-              filterCriteria: (filterSet.filterCriteria as FilterCriteria) ?? {},
-            }}
-            onSaved={onSaved}
-            onClose={onClose}
-            modal
+            initial={initial}
+            categories={PARTNER_CATEGORIES}
+            buildUrl={partnerFilterSetUrl}
+            onSavedWithData={(data) => onSaved(data as PartnerFilterSet)}
+            onSaved={onClose}
+            onCancel={onClose}
           />
         </div>
       </div>
@@ -641,9 +237,12 @@ const DEFAULT_FORM: FilterSetFormData = {
   name: "",
   leadType: "traditional_iul",
   filterStates: [],
+  priority: 5,
+  priceOverride: "",
   active: true,
   weeklyLimit: "",
   monthlyLimit: "",
+  deliveryChannel: "email",
   filterCriteria: {},
 };
 
@@ -676,13 +275,10 @@ function FilterSetsSection() {
 
   function handleTemplateSelected(t: FilterSetTemplate) {
     setPrefillData({
+      ...DEFAULT_FORM,
       name: t.name,
       leadType: t.leadType,
       filterStates: [...t.filterStates],
-      active: true,
-      weeklyLimit: "",
-      monthlyLimit: "",
-      filterCriteria: {},
     });
     setCreateMode("editor");
   }
@@ -777,10 +373,13 @@ function FilterSetsSection() {
       {/* Step 2: Editor (blank or pre-filled from template) */}
       {createMode === "editor" && (
         <div className="px-5 py-5 border-b border-slate-100">
-          <FilterSetEditor
-            initialData={prefillData}
-            onSaved={handleCreated}
-            onClose={closeCreate}
+          <FilterSetForm
+            initial={prefillData}
+            categories={PARTNER_CATEGORIES}
+            buildUrl={partnerFilterSetUrl}
+            onSavedWithData={(data) => handleCreated(data as PartnerFilterSet)}
+            onSaved={closeCreate}
+            onCancel={closeCreate}
           />
         </div>
       )}

@@ -11,6 +11,8 @@ import {
 } from "@/lib/constants/us-states";
 import type { FilterCriteria } from "@/lib/matching/types";
 
+export type CategoryOption = { type: string; label: string };
+
 export type FilterSetRow = {
   id: string;
   name: string;
@@ -25,7 +27,7 @@ export type FilterSetRow = {
   deliveryChannel: string;
 };
 
-type FilterSetFormData = {
+export type FilterSetFormData = {
   name: string;
   leadType: string;
   filterStates: string[];
@@ -38,7 +40,7 @@ type FilterSetFormData = {
   filterCriteria: FilterCriteria;
 };
 
-function emptyForm(defaultStates: string[]): FilterSetFormData {
+export function emptyForm(defaultStates: string[]): FilterSetFormData {
   return {
     name: "Default",
     leadType: "traditional_iul",
@@ -53,7 +55,7 @@ function emptyForm(defaultStates: string[]): FilterSetFormData {
   };
 }
 
-function toFormData(fs: FilterSetRow): FilterSetFormData {
+export function toFormData(fs: FilterSetRow): FilterSetFormData {
   return {
     name: fs.name,
     leadType: fs.leadType,
@@ -306,26 +308,28 @@ function AdvancedFiltersAccordion({
   );
 }
 
-type CategoryOption = { type: string; label: string };
-
 // ---------------------------------------------------------------------------
 // Filter Set Form
 // ---------------------------------------------------------------------------
 
-function FilterSetForm({
+export function FilterSetForm({
   partnerId,
   filterSetId,
   initial,
   categories,
   onCancel,
   onSaved,
+  buildUrl,
+  onSavedWithData,
 }: {
-  partnerId: string;
+  partnerId?: string;
   filterSetId?: string;
   initial: FilterSetFormData;
   categories: CategoryOption[];
   onCancel: () => void;
   onSaved: () => void;
+  buildUrl?: (filterSetId?: string) => string;
+  onSavedWithData?: (data: unknown) => void;
 }) {
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
@@ -371,18 +375,21 @@ function FilterSetForm({
     };
 
     try {
-      const url = filterSetId
-        ? `/api/admin/partners/${partnerId}/filter-sets/${filterSetId}`
-        : `/api/admin/partners/${partnerId}/filter-sets`;
+      const url = buildUrl
+        ? buildUrl(filterSetId)
+        : filterSetId
+          ? `/api/admin/partners/${partnerId}/filter-sets/${filterSetId}`
+          : `/api/admin/partners/${partnerId}/filter-sets`;
       const res = await fetch(url, {
         method: filterSetId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Save failed");
       }
+      if (onSavedWithData) onSavedWithData(data);
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
