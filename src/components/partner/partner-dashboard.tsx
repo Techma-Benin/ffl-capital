@@ -104,46 +104,6 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
         />
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <PortalLink
-          href="/partner/wallet"
-          className="card flex items-center gap-4 p-4 transition-all hover:border-brand-200"
-        >
-          <div className="rounded-xl bg-brand-50 p-3">
-            <Wallet size={20} className="text-brand-600" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900">Add Funds</p>
-            <p className="text-xs text-slate-500">Top up your wallet via Stripe</p>
-          </div>
-        </PortalLink>
-        <PortalLink
-          href="/partner/aged"
-          className="card flex items-center gap-4 p-4 transition-all hover:border-brand-200"
-        >
-          <div className="rounded-xl bg-violet-50 p-3">
-            <ShoppingBag size={20} className="text-violet-600" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900">Aged Marketplace</p>
-            <p className="text-xs text-slate-500">Browse leads 30+ days old from $5</p>
-          </div>
-        </PortalLink>
-        <PortalLink
-          href="/partner/settings"
-          className="card flex items-center gap-4 p-4 transition-all hover:border-brand-200"
-        >
-          <div className="rounded-xl bg-slate-100 p-3">
-            <MapPin size={20} className="text-slate-500" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900">Target States</p>
-            <p className="text-xs text-slate-500">
-              {partner.maxFilterSetStates} states • edit your targeting
-            </p>
-          </div>
-        </PortalLink>
-      </div>
 
       <div className="mt-6 card">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
