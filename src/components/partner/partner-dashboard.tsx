@@ -79,7 +79,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Wallet Balance"
-          value={`${balance.toFixed(2)}`}
+          value={`$ ${balance.toFixed(2)}`}
           variant="hero"
           icon={Wallet}
           heroBg={walletOk ? "bg-emerald-400" : "bg-red-400"}
