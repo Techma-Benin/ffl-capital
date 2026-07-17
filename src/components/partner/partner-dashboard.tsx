@@ -100,7 +100,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           heroBg="bg-violet-500"
         />
         <StatCard
-          label="Spent This Month"
+          label="Total Spent"
           value={`$ ${stats.spentThisMonth.toFixed(2)}`}
           variant="hero"
           icon={ShoppingBag}
