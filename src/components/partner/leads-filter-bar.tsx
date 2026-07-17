@@ -154,11 +154,9 @@ export function LeadsFilterBar({
   const openCat = categories.find((c) => c.key === openKey) ?? null;
 
   return (
-    <div ref={barRef} className="mb-4 rounded-2xl bg-white shadow-sm">
+    <div ref={barRef} className="mb-4">
       {/* Row 1 — filter pill buttons */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-        <span className="text-xs font-medium text-slate-400 mr-1">Filters</span>
-
+      <div className="flex flex-wrap items-center gap-2 px-1 py-2">
         {categories.map((cat) => {
           const selected = getSelected(cat);
           const isOpen = openKey === cat.key;
@@ -207,7 +205,7 @@ export function LeadsFilterBar({
 
       {/* Row 2 — options for the open filter */}
       {openCat && (
-        <div className="border-t border-slate-100 px-4 py-3">
+        <div className="mt-2 rounded-2xl bg-white px-4 py-3 shadow-sm">
           {openCat.options.length === 0 ? (
             <p className="text-xs text-slate-400">No options available</p>
           ) : (
