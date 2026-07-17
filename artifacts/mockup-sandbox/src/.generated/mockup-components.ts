@@ -5,5 +5,8 @@ export const modules: ModuleMap = {
   "./components/mockups/partner-dashboard/FigmaShell.tsx": () => import("../components/mockups/partner-dashboard/FigmaShell.tsx"),
   "./components/mockups/partner-dashboard/MetricsBannerFeed.tsx": () => import("../components/mockups/partner-dashboard/MetricsBannerFeed.tsx"),
   "./components/mockups/partner-dashboard/SplitPanelCommand.tsx": () => import("../components/mockups/partner-dashboard/SplitPanelCommand.tsx"),
-  "./components/mockups/partner-dashboard/TopNavWideGrid.tsx": () => import("../components/mockups/partner-dashboard/TopNavWideGrid.tsx")
+  "./components/mockups/partner-dashboard/TopNavWideGrid.tsx": () => import("../components/mockups/partner-dashboard/TopNavWideGrid.tsx"),
+  "./components/mockups/settings-layouts/AccordionSections.tsx": () => import("../components/mockups/settings-layouts/AccordionSections.tsx"),
+  "./components/mockups/settings-layouts/SidebarNav.tsx": () => import("../components/mockups/settings-layouts/SidebarNav.tsx"),
+  "./components/mockups/settings-layouts/TabbedLayout.tsx": () => import("../components/mockups/settings-layouts/TabbedLayout.tsx")
 };
