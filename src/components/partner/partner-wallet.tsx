@@ -321,47 +321,41 @@ export function PartnerWalletView({
               {transactions.map((t) => {
                 const isCredit = t.amount > 0;
                 return (
-                  <div key={t.id} className="group flex flex-col">
-
-                    {/* Top stub */}
-                    <div className="rounded-t-2xl border border-slate-200/80 bg-white px-5 pt-4 pb-3 shadow-none transition-shadow group-hover:shadow-card-hover">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0 flex-1">
-                          <TransactionTypeBadge type={t.type} />
-                          {t.description && (
-                            <p className="mt-1.5 truncate text-xs font-medium text-slate-700">{t.description}</p>
-                          )}
-                        </div>
-                        <p className={clsx("shrink-0 text-base font-bold tabular-nums", isCredit ? "text-emerald-600" : "text-slate-900")}>
-                          {isCredit ? "+" : "−"}${Math.abs(t.amount).toFixed(2)}
-                        </p>
+                  <div key={t.id} className="relative rounded-2xl border border-slate-200/80 bg-white shadow-none transition-shadow hover:shadow-card-hover">
+                    {/* Top section */}
+                    <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
+                      <div className="min-w-0 flex-1">
+                        <TransactionTypeBadge type={t.type} />
+                        {t.description && (
+                          <p className="mt-1.5 truncate text-xs font-medium text-slate-700">{t.description}</p>
+                        )}
                       </div>
+                      <p className={clsx("shrink-0 text-base font-bold tabular-nums", isCredit ? "text-emerald-600" : "text-slate-900")}>
+                        {isCredit ? "+" : "−"}${Math.abs(t.amount).toFixed(2)}
+                      </p>
                     </div>
 
-                    {/* Tear gap with notch cutouts */}
-                    <div className="relative flex h-3 items-center">
-                      <div className="absolute -left-2 z-10 h-4 w-4 rounded-full bg-[#f4f7fb]" />
-                      <div className="mx-3 flex-1 border-t border-dashed border-slate-200" />
-                      <div className="absolute -right-2 z-10 h-4 w-4 rounded-full bg-[#f4f7fb]" />
+                    {/* Dashed tear line with notch cutouts */}
+                    <div className="relative flex items-center">
+                      <div className="absolute -left-2.5 h-5 w-5 rounded-full bg-[#f4f7fb]" />
+                      <div className="mx-4 flex-1 border-t border-dashed border-slate-200" />
+                      <div className="absolute -right-2.5 h-5 w-5 rounded-full bg-[#f4f7fb]" />
                     </div>
 
-                    {/* Bottom stub */}
-                    <div className="rounded-b-2xl border border-slate-200/80 bg-white px-5 pt-2 pb-3 shadow-none transition-shadow group-hover:shadow-card-hover">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[11px] text-slate-400" suppressHydrationWarning>
-                          {new Date(t.createdAt).toLocaleString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                        <p className="text-[11px] font-medium text-slate-400">
-                          bal. ${t.balanceAfter.toFixed(2)}
-                        </p>
-                      </div>
+                    {/* Bottom section */}
+                    <div className="flex items-center justify-between px-5 pt-2.5 pb-3.5">
+                      <p className="text-[11px] text-slate-400" suppressHydrationWarning>
+                        {new Date(t.createdAt).toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                      <p className="text-[11px] font-medium text-slate-400">
+                        bal. ${t.balanceAfter.toFixed(2)}
+                      </p>
                     </div>
-
                   </div>
                 );
               })}
