@@ -317,11 +317,11 @@ export function PartnerWalletView({
               <p className="text-sm font-medium text-slate-500">No transactions yet</p>
             </div>
           ) : (
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-3">
               {transactions.map((t) => {
                 const isCredit = t.amount > 0;
                 return (
-                  <div key={t.id} className="relative overflow-hidden bg-white shadow-sm first:rounded-t-2xl last:rounded-b-2xl">
+                  <div key={t.id} className="relative overflow-hidden rounded-2xl bg-white">
                     {/* Top section */}
                     <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
                       <div className="min-w-0 flex-1">
