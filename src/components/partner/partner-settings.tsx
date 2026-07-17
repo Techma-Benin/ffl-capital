@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
 import { usePartner } from "@/components/partner/partner-provider";
@@ -460,20 +460,8 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
 
 // ---------------------------------------------------------------------------
 
-const TABS = [
-  { id: "account" as const, label: "Account" },
-  { id: "webhook" as const, label: "Webhook" },
-  { id: "filters" as const, label: "Filter Sets" },
-];
-
 export function PartnerSettingsView() {
   const { partner, patchPartner } = usePartner();
-  const [activeTab, setActiveTab] = useState<"account" | "webhook" | "filters">("account");
-
-  const accountRef = useRef<HTMLElement>(null);
-  const webhookRef = useRef<HTMLElement>(null);
-  const filtersRef = useRef<HTMLElement>(null);
-  const refs = { account: accountRef, webhook: webhookRef, filters: filtersRef } as const;
 
   const [webhookUrl, setWebhookUrl] = useState(partner.crmWebhookUrl ?? "");
   const [leadType, setLeadType] = useState<"traditional_iul" | "high_intent_iul">(
@@ -490,11 +478,6 @@ export function PartnerSettingsView() {
 
   const webhookDirty = webhookUrl !== (partner.crmWebhookUrl ?? "");
   const leadTypeDirty = leadType !== partner.leadType;
-
-  function scrollTo(tab: "account" | "webhook" | "filters") {
-    setActiveTab(tab);
-    refs[tab].current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 
   async function saveWebhook() {
     setWebhookError("");
@@ -555,11 +538,9 @@ export function PartnerSettingsView() {
 
         {/* Account Settings */}
         <section
-          ref={accountRef}
           id="account"
           className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-8 shadow-sm scroll-mt-12"
         >
-          <div className={`absolute inset-y-0 left-0 w-1 transition-colors duration-300 ${activeTab === "account" ? "bg-brand-600" : "bg-transparent"}`} />
           <div className="mb-6">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
               <Gear size={18} className="text-brand-600" />
@@ -614,11 +595,9 @@ export function PartnerSettingsView() {
 
         {/* CRM Webhook */}
         <section
-          ref={webhookRef}
           id="webhook"
           className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-8 shadow-sm scroll-mt-12"
         >
-          <div className={`absolute inset-y-0 left-0 w-1 transition-colors duration-300 ${activeTab === "webhook" ? "bg-brand-600" : "bg-transparent"}`} />
           <div className="mb-6">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
               <PlugsConnected size={18} className="text-brand-600" />
@@ -665,11 +644,9 @@ export function PartnerSettingsView() {
 
         {/* Filter Sets */}
         <section
-          ref={filtersRef}
           id="filters"
           className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm scroll-mt-12"
         >
-          <div className={`absolute inset-y-0 left-0 w-1 transition-colors duration-300 ${activeTab === "filters" ? "bg-brand-600" : "bg-transparent"}`} />
           <div className="flex items-start justify-between gap-4 px-8 pt-8 pb-6">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
