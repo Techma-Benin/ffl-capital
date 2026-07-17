@@ -308,31 +308,43 @@ export function PartnerWalletView({
         </div>
 
         {/* ── RIGHT: Transaction History ── */}
-        <div className="card overflow-hidden">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Transaction History</h2>
-          </div>
+        <div className="self-start">
+          <h2 className="mb-3 px-1 text-base font-semibold text-slate-900">Transaction History</h2>
 
           {transactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="card flex flex-col items-center justify-center py-16 text-center">
               <Wallet size={28} className="mb-3 text-slate-300" />
               <p className="text-sm font-medium text-slate-500">No transactions yet</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-50">
+            <div className="flex flex-col gap-2">
               {transactions.map((t) => {
                 const isCredit = t.amount > 0;
                 return (
-                  <div
-                    key={t.id}
-                    className="flex items-start justify-between gap-4 px-5 py-4 hover:bg-slate-50/60 transition-colors"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <TransactionTypeBadge type={t.type} />
-                      {t.description && (
-                        <p className="mt-1 truncate text-xs text-slate-500">{t.description}</p>
-                      )}
-                      <p className="mt-0.5 text-[11px] text-slate-400" suppressHydrationWarning>
+                  <div key={t.id} className="relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5">
+                    {/* Top section */}
+                    <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
+                      <div className="min-w-0 flex-1">
+                        <TransactionTypeBadge type={t.type} />
+                        {t.description && (
+                          <p className="mt-1.5 truncate text-xs font-medium text-slate-700">{t.description}</p>
+                        )}
+                      </div>
+                      <p className={clsx("shrink-0 text-base font-bold tabular-nums", isCredit ? "text-emerald-600" : "text-slate-900")}>
+                        {isCredit ? "+" : "−"}${Math.abs(t.amount).toFixed(2)}
+                      </p>
+                    </div>
+
+                    {/* Dashed tear line with notch cutouts */}
+                    <div className="relative flex items-center">
+                      <div className="absolute -left-2.5 h-5 w-5 rounded-full bg-[#f4f7fb]" />
+                      <div className="mx-4 flex-1 border-t border-dashed border-slate-200" />
+                      <div className="absolute -right-2.5 h-5 w-5 rounded-full bg-[#f4f7fb]" />
+                    </div>
+
+                    {/* Bottom section */}
+                    <div className="flex items-center justify-between px-5 pt-2.5 pb-3.5">
+                      <p className="text-[11px] text-slate-400" suppressHydrationWarning>
                         {new Date(t.createdAt).toLocaleString("en-US", {
                           month: "short",
                           day: "numeric",
@@ -340,12 +352,7 @@ export function PartnerWalletView({
                           minute: "2-digit",
                         })}
                       </p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className={clsx("text-sm font-bold", isCredit ? "text-emerald-600" : "text-slate-900")}>
-                        {isCredit ? "+" : "−"}${Math.abs(t.amount).toFixed(2)}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-slate-400">
+                      <p className="text-[11px] font-medium text-slate-400">
                         bal. ${t.balanceAfter.toFixed(2)}
                       </p>
                     </div>
