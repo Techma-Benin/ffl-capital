@@ -63,6 +63,11 @@ export default async function PartnerLeadsPage({
       <PageHeader
         title="My Leads"
         subtitle="All leads delivered to your account — request refunds individually or in bulk"
+        badge={
+          <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-sm font-semibold text-brand-700">
+            {total}
+          </span>
+        }
       />
 
 
