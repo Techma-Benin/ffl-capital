@@ -425,9 +425,6 @@ function FilterSetsSection() {
                   </div>
 
                   <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                    <span className="text-xs text-slate-500">
-                      {fs.filterStates.length} state{fs.filterStates.length !== 1 ? "s" : ""}
-                    </span>
                     <span className="rounded p-1 text-slate-400">
                       <PencilSimple size={14} />
                     </span>
