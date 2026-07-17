@@ -9,7 +9,8 @@ export type StatCardVariant =
   | "mint"
   | "blue"
   | "purple"
-  | "peach";
+  | "peach"
+  | "hero";
 
 const variantClass: Record<StatCardVariant, string> = {
   default: "stat-card",
@@ -19,6 +20,7 @@ const variantClass: Record<StatCardVariant, string> = {
   blue: "stat-card-blue",
   purple: "stat-card-purple",
   peach: "stat-card-peach",
+  hero: "stat-card",
 };
 
 interface StatCardProps {
@@ -28,6 +30,8 @@ interface StatCardProps {
   icon?: Icon;
   iconColor?: string;
   iconBgClassName?: string;
+  /** Circle background color for hero variant, e.g. "bg-green-400" */
+  heroBg?: string;
   valueClassName?: string;
   subtitleClassName?: string;
   trend?: { value: string; up: boolean };
@@ -45,6 +49,7 @@ export function StatCard({
   icon: Icon,
   iconColor = "text-brand-600",
   iconBgClassName = "bg-white/70",
+  heroBg = "bg-blue-400",
   valueClassName,
   subtitleClassName,
   trend,
@@ -52,6 +57,35 @@ export function StatCard({
   sparkline,
   className,
 }: StatCardProps) {
+  if (variant === "hero") {
+    return (
+      <div className={clsx("rounded-2xl bg-white p-5 shadow-sm border border-slate-100", className)}>
+        {/* Icon circle */}
+        {Icon && (
+          <div className={clsx("mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full", heroBg)}>
+            <Icon size={26} weight="duotone" className="text-white" />
+          </div>
+        )}
+        {/* Value */}
+        <p className={clsx("text-3xl font-bold tracking-tight text-slate-900", valueClassName)}>
+          {value}
+        </p>
+        {/* Label + trend row */}
+        <div className="mt-1.5 flex items-center gap-3">
+          <p className="text-sm text-slate-500">{label}</p>
+          {trend && (
+            <p className={clsx("text-xs font-semibold", trend.up ? "text-emerald-500" : "text-red-500")}>
+              {trend.up ? "↑" : "↓"} {trend.value}
+            </p>
+          )}
+        </div>
+        {subtitle && (
+          <p className={clsx("mt-1 text-sm text-slate-400", subtitleClassName)}>{subtitle}</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={clsx(variantClass[variant], className)}>
       <div className="flex items-center justify-between gap-3">
