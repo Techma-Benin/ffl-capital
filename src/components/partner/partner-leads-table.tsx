@@ -476,7 +476,7 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
                 </td>
 
                 {/* Delivered */}
-                <td className="px-4 py-3.5 whitespace-nowrap text-sm text-slate-400">
+                <td className="px-4 py-3.5 whitespace-nowrap text-sm text-slate-400" suppressHydrationWarning>
                   {new Date(d.deliveredAt).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",

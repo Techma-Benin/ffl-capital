@@ -4,8 +4,7 @@ import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PartnerLeadsTable } from "@/components/partner/partner-leads-table";
-import { FilterSetFilter } from "@/components/partner/filter-set-filter";
-import { StatCard } from "@/components/ui/stat-card";
+import { LeadsFilterBar } from "@/components/partner/leads-filter-bar";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
 import { FileText } from "@phosphor-icons/react/dist/ssr";
@@ -13,33 +12,66 @@ import { FileText } from "@phosphor-icons/react/dist/ssr";
 export default async function PartnerLeadsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; filterSetId?: string };
+  searchParams: {
+    page?: string;
+    filterSetId?: string;
+    loc?: string;
+    ch?: string;
+    type?: string;
+    status?: string;
+  };
 }) {
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
   const { page, pageSize, skip } = parsePageParams(searchParams);
+
+  // Parse multi-value filters (comma-separated)
+  const locations = searchParams.loc?.split(",").filter(Boolean) ?? [];
+  const channels = searchParams.ch?.split(",").filter(Boolean) ?? [];
+  const types = searchParams.type?.split(",").filter(Boolean) ?? [];
+  const statuses = searchParams.status?.split(",").filter(Boolean) ?? [];
+
+  // Validate filterSetId belongs to this partner
   const filterSetId = searchParams.filterSetId ?? null;
+  const validatedFilterSetId = filterSetId
+    ? (await prisma.partnerFilterSet.findFirst({
+        where: { id: filterSetId, partnerId },
+        select: { id: true },
+      }))?.id ?? null
+    : null;
 
-  // Validate the filterSetId belongs to this partner (ignore invalid values)
-  const validatedFilterSetId =
-    filterSetId
-      ? (await prisma.partnerFilterSet.findFirst({
-          where: { id: filterSetId, partnerId },
-          select: { id: true },
-        }))?.id ?? null
-      : null;
+  // Build lead sub-filter
+  const leadWhere: Record<string, unknown> = {};
+  if (locations.length) leadWhere.state = { in: locations };
+  if (types.length) leadWhere.leadType = { in: types };
 
-  const where = {
+  // Build status OR conditions
+  const statusConditions: Record<string, unknown>[] = [];
+  if (!statuses.length || statuses.includes("active"))
+    statusConditions.push({ refundedAt: null, refundRequests: { none: {} } });
+  if (!statuses.length || statuses.includes("refund_pending"))
+    statusConditions.push({ refundedAt: null, refundRequests: { some: {} } });
+  if (!statuses.length || statuses.includes("refunded"))
+    statusConditions.push({ refundedAt: { not: null } });
+
+  const where: Record<string, unknown> = {
     partnerId,
     ...(validatedFilterSetId ? { filterSetId: validatedFilterSetId } : {}),
+    ...(Object.keys(leadWhere).length ? { lead: leadWhere } : {}),
+    ...(channels.length ? { channel: { in: channels } } : {}),
+    // Only add OR when not all statuses selected (avoids unnecessary clause)
+    ...(statuses.length && statuses.length < 3 ? { OR: statusConditions } : {}),
   };
 
-  const [total, deliveries, filterSets] = await Promise.all([
+  const [total, deliveries, filterSets, distinctStatesRaw] = await Promise.all([
     prisma.leadDelivery.count({ where }),
     prisma.leadDelivery.findMany({
       where,
-      include: { lead: true, refundRequests: { orderBy: { createdAt: "desc" }, take: 1 } },
+      include: {
+        lead: true,
+        refundRequests: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
       orderBy: { deliveredAt: "desc" },
       skip,
       take: pageSize,
@@ -47,16 +79,17 @@ export default async function PartnerLeadsPage({
     prisma.partnerFilterSet.findMany({
       where: { partnerId },
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true, leadType: true, active: true },
+      select: { id: true, name: true },
+    }),
+    prisma.lead.findMany({
+      where: { leadDeliveries: { some: { partnerId } } },
+      select: { state: true },
+      distinct: ["state"],
+      orderBy: { state: "asc" },
     }),
   ]);
 
-  const allForStats = await prisma.leadDelivery.findMany({
-    where,
-    select: { price: true, refundedAt: true },
-  });
-  const totalSpent = allForStats.reduce((sum, d) => sum + Number(d.price), 0);
-  const refundedCount = allForStats.filter((d) => d.refundedAt).length;
+  const availableStates = distinctStatesRaw.map((l) => l.state);
 
   return (
     <div>
@@ -70,27 +103,24 @@ export default async function PartnerLeadsPage({
         }
       />
 
-
-      {filterSets.length > 0 && (
-        <div className="card mb-4 flex items-center gap-3 px-5 py-3">
-          <span className="text-xs font-medium text-slate-500">Filter by:</span>
-          <FilterSetFilter
-            filterSets={filterSets}
-            currentFilterSetId={validatedFilterSetId}
-          />
-        </div>
-      )}
+      <LeadsFilterBar
+        filterSets={filterSets}
+        availableStates={availableStates}
+        currentSelections={{
+          filterSetId: validatedFilterSetId,
+          locations,
+          channels,
+          types,
+          statuses,
+        }}
+      />
 
       {deliveries.length === 0 ? (
         <div className="card">
           <EmptyState
             icon={FileText}
-            title={validatedFilterSetId ? "No leads for this filter set" : "No leads delivered yet"}
-            description={
-              validatedFilterSetId
-                ? "No deliveries match this filter set. Try selecting a different one or view all."
-                : "Once your account is active and funded, leads matching your states will be delivered automatically."
-            }
+            title="No leads match these filters"
+            description="Try adjusting or clearing your filters to see more results."
           />
         </div>
       ) : (
