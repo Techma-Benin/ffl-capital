@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ActionButton } from "@/components/ui/action-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { usePartner } from "@/components/partner/partner-provider";
 import {
@@ -523,15 +524,11 @@ export function PartnerSettingsView() {
   }
 
   return (
-    <div className="-mx-6 -mt-6 min-h-full">
-      {/* Page header */}
-      <div className="bg-white px-8 pt-10 pb-0">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Manage your account preferences, webhook integrations, and lead filter sets.
-        </p>
-      </div>
-
+    <div className="min-h-full">
+      <PageHeader
+        title="Settings"
+        subtitle="Manage your account preferences, webhook integrations, and lead filter sets."
+      />
 
       {/* Scrollable content */}
       <div className="mx-auto max-w-4xl space-y-8 px-8 py-10 pb-32">
