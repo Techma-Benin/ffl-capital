@@ -164,12 +164,12 @@ export function PartnerWalletView({
             <p className="mb-2 text-xs font-medium text-slate-600">Quick Select</p>
             <div className="mb-5 grid grid-cols-4 gap-2">
               {PRESET_AMOUNTS.map((amount) => {
-                const active = selectedAmount === amount && !customAmount;
+                const active = Number(customAmount) === amount;
                 return (
                   <button
                     key={amount}
                     type="button"
-                    onClick={() => { setSelectedAmount(amount); setCustomAmount(""); }}
+                    onClick={() => { setCustomAmount(String(amount)); setSelectedAmount(null); }}
                     className={clsx(
                       "rounded-lg border py-2.5 text-sm font-semibold transition-colors",
                       active
@@ -187,13 +187,9 @@ export function PartnerWalletView({
               type="button"
               disabled={!checkoutValid || checkoutPending}
               onClick={startCheckout}
-              className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary w-full text-center disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {checkoutPending
-                ? "Redirecting to Stripe…"
-                : checkoutValid
-                  ? `Pay ${checkoutAmount!.toFixed(2)} with Stripe`
-                  : "Enter amount to continue"}
+              {checkoutPending ? "Redirecting to Stripe…" : "Proceed to the payment"}
             </button>
             <p className="mt-2 text-center text-[11px] text-slate-400">
               Minimum top-up $25 · Secured by Stripe
