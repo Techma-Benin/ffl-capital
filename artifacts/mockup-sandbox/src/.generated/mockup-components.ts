@@ -7,6 +7,9 @@ export const modules: ModuleMap = {
   "./components/mockups/partner-dashboard/SplitPanelCommand.tsx": () => import("../components/mockups/partner-dashboard/SplitPanelCommand.tsx"),
   "./components/mockups/partner-dashboard/TopNavWideGrid.tsx": () => import("../components/mockups/partner-dashboard/TopNavWideGrid.tsx"),
   "./components/mockups/settings-layouts/AccordionSections.tsx": () => import("../components/mockups/settings-layouts/AccordionSections.tsx"),
+  "./components/mockups/settings-layouts/AdminDescriptionFields.tsx": () => import("../components/mockups/settings-layouts/AdminDescriptionFields.tsx"),
+  "./components/mockups/settings-layouts/AdminGrid.tsx": () => import("../components/mockups/settings-layouts/AdminGrid.tsx"),
+  "./components/mockups/settings-layouts/AdminNavPanel.tsx": () => import("../components/mockups/settings-layouts/AdminNavPanel.tsx"),
   "./components/mockups/settings-layouts/SidebarNav.tsx": () => import("../components/mockups/settings-layouts/SidebarNav.tsx"),
   "./components/mockups/settings-layouts/TabbedLayout.tsx": () => import("../components/mockups/settings-layouts/TabbedLayout.tsx")
 };
