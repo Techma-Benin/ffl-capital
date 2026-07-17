@@ -85,7 +85,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           heroBg={walletOk ? "bg-emerald-400" : "bg-red-400"}
         />
         <StatCard
-          label="Total Leads Received"
+          label="Leads Received"
           value={stats.deliveriesAll}
           variant="hero"
           icon={FileText}
