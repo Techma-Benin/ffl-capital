@@ -71,70 +71,69 @@ export default async function PartnerLeadsPage({
       />
 
 
-      <div className="card">
-        {filterSets.length > 0 && (
-          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3">
-            <span className="text-xs font-medium text-slate-500">Filter by:</span>
-            <FilterSetFilter
-              filterSets={filterSets}
-              currentFilterSetId={validatedFilterSetId}
-            />
-          </div>
-        )}
-
-        <div className="overflow-x-auto">
-          {deliveries.length === 0 ? (
-            <EmptyState
-              icon={FileText}
-              title={validatedFilterSetId ? "No leads for this filter set" : "No leads delivered yet"}
-              description={
-                validatedFilterSetId
-                  ? "No deliveries match this filter set. Try selecting a different one or view all."
-                  : "Once your account is active and funded, leads matching your states will be delivered automatically."
-              }
-            />
-          ) : (
-            <PartnerLeadsTable
-              deliveries={deliveries.map((d) => {
-                const refundReq = d.refundRequests[0];
-                const isRefunded = !!d.refundedAt;
-                const canRefund =
-                  d.lead.refundable && !isRefunded && !refundReq;
-                return {
-                  id: d.id,
-                  price: Number(d.price),
-                  channel: d.channel,
-                  deliveredAt: d.deliveredAt.toISOString(),
-                  refundedAt: d.refundedAt?.toISOString() ?? null,
-                  canRefund,
-                  refundStatus: refundReq?.status ?? null,
-                  lead: {
-                    firstName: d.lead.firstName,
-                    lastName: d.lead.lastName,
-                    email: d.lead.email,
-                    phone: d.lead.phone,
-                    state: d.lead.state,
-                    address: d.lead.address,
-                    leadType: d.lead.leadType,
-                    intent: d.lead.intent,
-                    haveIul: d.lead.haveIul,
-                    primaryGoal: d.lead.primaryGoal,
-                    refundable: d.lead.refundable,
-                    trustedformCertUrl: d.lead.trustedformCertUrl,
-                  },
-                };
-              })}
-            />
-          )}
+      {filterSets.length > 0 && (
+        <div className="card mb-4 flex items-center gap-3 px-5 py-3">
+          <span className="text-xs font-medium text-slate-500">Filter by:</span>
+          <FilterSetFilter
+            filterSets={filterSets}
+            currentFilterSetId={validatedFilterSetId}
+          />
         </div>
-        <TablePagination
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          basePath="/partner/leads"
-          searchParams={searchParams}
-        />
-      </div>
+      )}
+
+      {deliveries.length === 0 ? (
+        <div className="card">
+          <EmptyState
+            icon={FileText}
+            title={validatedFilterSetId ? "No leads for this filter set" : "No leads delivered yet"}
+            description={
+              validatedFilterSetId
+                ? "No deliveries match this filter set. Try selecting a different one or view all."
+                : "Once your account is active and funded, leads matching your states will be delivered automatically."
+            }
+          />
+        </div>
+      ) : (
+        <>
+          <PartnerLeadsTable
+            deliveries={deliveries.map((d) => {
+              const refundReq = d.refundRequests[0];
+              const isRefunded = !!d.refundedAt;
+              const canRefund = d.lead.refundable && !isRefunded && !refundReq;
+              return {
+                id: d.id,
+                price: Number(d.price),
+                channel: d.channel,
+                deliveredAt: d.deliveredAt.toISOString(),
+                refundedAt: d.refundedAt?.toISOString() ?? null,
+                canRefund,
+                refundStatus: refundReq?.status ?? null,
+                lead: {
+                  firstName: d.lead.firstName,
+                  lastName: d.lead.lastName,
+                  email: d.lead.email,
+                  phone: d.lead.phone,
+                  state: d.lead.state,
+                  address: d.lead.address,
+                  leadType: d.lead.leadType,
+                  intent: d.lead.intent,
+                  haveIul: d.lead.haveIul,
+                  primaryGoal: d.lead.primaryGoal,
+                  refundable: d.lead.refundable,
+                  trustedformCertUrl: d.lead.trustedformCertUrl,
+                },
+              };
+            })}
+          />
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            basePath="/partner/leads"
+            searchParams={searchParams}
+          />
+        </>
+      )}
     </div>
   );
 }
