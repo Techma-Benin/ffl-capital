@@ -76,7 +76,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Wallet Balance"
           value={`${balance.toFixed(2)}`}

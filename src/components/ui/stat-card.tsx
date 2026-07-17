@@ -59,19 +59,19 @@ export function StatCard({
 }: StatCardProps) {
   if (variant === "hero") {
     return (
-      <div className={clsx("rounded-2xl bg-white p-5 shadow-sm border border-slate-100", className)}>
+      <div className={clsx("rounded-2xl bg-white p-4 shadow-sm border border-slate-100", className)}>
         {/* Icon circle */}
         {Icon && (
-          <div className={clsx("mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full", heroBg)}>
-            <Icon size={26} weight="duotone" className="text-white" />
+          <div className={clsx("mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full", heroBg)}>
+            <Icon size={22} weight="duotone" className="text-white" />
           </div>
         )}
         {/* Value */}
-        <p className={clsx("text-3xl font-bold tracking-tight text-slate-900", valueClassName)}>
+        <p className={clsx("text-2xl font-bold tracking-tight text-slate-900", valueClassName)}>
           {value}
         </p>
         {/* Label + trend row */}
-        <div className="mt-1.5 flex items-center gap-3">
+        <div className="mt-1 flex items-center gap-3">
           <p className="text-sm text-slate-500">{label}</p>
           {trend && (
             <p className={clsx("text-xs font-semibold", trend.up ? "text-emerald-500" : "text-red-500")}>
