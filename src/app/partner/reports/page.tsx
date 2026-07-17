@@ -4,7 +4,8 @@ import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ChartBar, FileText } from "@phosphor-icons/react/dist/ssr";
+import { ChartBar, FileText, TrendUp, TrendDown, ArrowCounterClockwise } from "@phosphor-icons/react/dist/ssr";
+import { StatCard } from "@/components/ui/stat-card";
 
 export default async function PartnerReportsPage() {
   const partnerId = await getPartnerId();
@@ -36,18 +37,35 @@ export default async function PartnerReportsPage() {
         subtitle="Transaction history and account activity"
       />
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-4">
-        {[
-          { label: "Total Funded",    value: `$${totalTopUp.toFixed(2)}`,   color: "text-emerald-600" },
-          { label: "Total on Leads",  value: `$${totalLeads.toFixed(2)}`,   color: "text-brand-700" },
-          { label: "Total Refunded",  value: `$${totalRefunds.toFixed(2)}`, color: "text-amber-600" },
-          { label: "Leads Purchased", value: deliveries.length,             color: "text-slate-900" },
-        ].map((c) => (
-          <div key={c.label} className="card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{c.label}</p>
-            <p className={`mt-1 text-2xl font-bold ${c.color}`}>{c.value}</p>
-          </div>
-        ))}
+      <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Total Funded"
+          value={`$ ${totalTopUp.toFixed(2)}`}
+          variant="hero"
+          icon={TrendUp}
+          heroBg="bg-emerald-400"
+        />
+        <StatCard
+          label="Total on Leads"
+          value={`$ ${totalLeads.toFixed(2)}`}
+          variant="hero"
+          icon={TrendDown}
+          heroBg="bg-brand-500"
+        />
+        <StatCard
+          label="Total Refunded"
+          value={`$ ${totalRefunds.toFixed(2)}`}
+          variant="hero"
+          icon={ArrowCounterClockwise}
+          heroBg="bg-amber-400"
+        />
+        <StatCard
+          label="Leads Purchased"
+          value={deliveries.length}
+          variant="hero"
+          icon={FileText}
+          heroBg="bg-violet-500"
+        />
       </div>
 
       <div className="card">
