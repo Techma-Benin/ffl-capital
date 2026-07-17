@@ -133,12 +133,9 @@ export function PartnerWalletView({
             </p>
           </div>
 
-          {/* Add Funds card */}
+          {/* One-Time Top-Up card */}
           <div className="card p-6">
-            <h2 className="mb-5 text-base font-semibold text-slate-900">Add Funds</h2>
-
-            {/* One-Time Top-Up */}
-            <div className="mb-4 flex items-center gap-3">
+            <div className="mb-5 flex items-center gap-3">
               <div className="rounded-xl bg-brand-50 p-2.5">
                 <ArrowUpRight size={18} className="text-brand-600" />
               </div>
@@ -199,18 +196,17 @@ export function PartnerWalletView({
               {checkoutPending
                 ? "Redirecting to Stripe…"
                 : checkoutValid
-                  ? `Pay $${checkoutAmount!.toFixed(2)} with Stripe`
+                  ? `Pay ${checkoutAmount!.toFixed(2)} with Stripe`
                   : "Enter amount to continue"}
             </button>
             <p className="mt-2 text-center text-[11px] text-slate-400">
               Minimum top-up $25 · Secured by Stripe
             </p>
+          </div>
 
-            {/* Divider */}
-            <div className="my-6 border-t border-slate-100" />
-
-            {/* Weekly Auto-Recharge */}
-            <div className="mb-4 flex items-center gap-3">
+          {/* Weekly Auto-Recharge card */}
+          <div className="card p-6">
+            <div className="mb-5 flex items-center gap-3">
               <div className="rounded-xl bg-violet-50 p-2.5">
                 <ArrowsClockwise size={18} className="text-violet-600" />
               </div>
@@ -265,7 +261,7 @@ export function PartnerWalletView({
               {subscribePending
                 ? "Redirecting…"
                 : subscription?.active
-                  ? `Change to $${weeklyAmount}/week`
+                  ? `Change to ${weeklyAmount}/week`
                   : "Enable auto-recharge"}
             </button>
 
