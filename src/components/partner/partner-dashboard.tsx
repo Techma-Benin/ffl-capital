@@ -83,7 +83,6 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           variant="blue"
           icon={Wallet}
           iconColor={walletOk ? "text-brand-700" : "text-red-500"}
-          subtitle={walletOk ? "Ready to purchase" : "Add funds to buy leads"}
         />
         <StatCard
           label="Total Leads Received"
@@ -102,7 +101,6 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           value={partner.maxFilterSetStates}
           variant="peach"
           icon={MapPin}
-          subtitle={statesOk ? "Eligible for matching" : "Need 15+ to be eligible"}
         />
       </div>
 
