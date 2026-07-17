@@ -321,7 +321,7 @@ export function PartnerWalletView({
               {transactions.map((t) => {
                 const isCredit = t.amount > 0;
                 return (
-                  <div key={t.id} className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-none transition-shadow hover:shadow-card-hover">
+                  <div key={t.id} className="relative rounded-2xl border border-slate-200/80 bg-white shadow-none transition-shadow hover:shadow-card-hover">
                     {/* Top section */}
                     <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
                       <div className="min-w-0 flex-1">
