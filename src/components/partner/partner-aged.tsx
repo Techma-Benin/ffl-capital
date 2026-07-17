@@ -106,20 +106,6 @@ export function PartnerAgedView({
         subtitle={`Browse leads 30+ days old — only $${agedPrice} each`}
       />
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2">
-        <StatCard
-          label="Available in your states"
-          value={total}
-          variant="mint"
-          icon={ShoppingBag}
-        />
-        <StatCard
-          label="Price per lead"
-          value={`$${agedPrice}`}
-          variant="blue"
-          subtitle="30+ days aged inventory"
-        />
-      </div>
 
       <div className="mb-5 card p-4">
         <div className="flex flex-wrap items-center gap-3">
