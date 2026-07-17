@@ -187,7 +187,7 @@ export function PartnerWalletView({
               type="button"
               disabled={!checkoutValid || checkoutPending}
               onClick={startCheckout}
-              className="btn-primary w-full text-center disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50"
             >
               {checkoutPending ? "Redirecting to Stripe…" : "Proceed to the payment"}
             </button>
