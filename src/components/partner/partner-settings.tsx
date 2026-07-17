@@ -10,7 +10,6 @@ import {
   PlugsConnected,
   Funnel,
   Plus,
-  PencilSimple,
   Trash,
   X,
 } from "@phosphor-icons/react";
@@ -425,9 +424,6 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
                   </div>
 
                   <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                    <span className="rounded p-1 text-slate-400">
-                      <PencilSimple size={14} />
-                    </span>
                     <button
                       type="button"
                       title="Delete"
