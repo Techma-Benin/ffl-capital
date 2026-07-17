@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { PageHeader } from "@/components/ui/page-header";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
 import { usePartner } from "@/components/partner/partner-provider";
@@ -246,7 +245,7 @@ const DEFAULT_FORM: FilterSetFormData = {
   filterCriteria: {},
 };
 
-function FilterSetsSection() {
+function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
   const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(null);
   const [loadError, setLoadError] = useState("");
   const [editingFs, setEditingFs] = useState<PartnerFilterSet | null>(null);
@@ -330,7 +329,7 @@ function FilterSetsSection() {
   const isEmpty = loaded && filterSets.length === 0;
 
   return (
-    <div className="mb-5 card overflow-hidden">
+    <div className={embedded ? "overflow-hidden" : "mb-5 card overflow-hidden"}>
       <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
         <Funnel size={16} className="text-slate-500" />
         <h2 className="text-sm font-semibold text-slate-900">Filter Sets</h2>
@@ -461,9 +460,20 @@ function FilterSetsSection() {
 
 // ---------------------------------------------------------------------------
 
+const TABS = [
+  { id: "account" as const, label: "Account" },
+  { id: "webhook" as const, label: "Webhook" },
+  { id: "filters" as const, label: "Filter Sets" },
+];
 
 export function PartnerSettingsView() {
   const { partner, patchPartner } = usePartner();
+  const [activeTab, setActiveTab] = useState<"account" | "webhook" | "filters">("account");
+
+  const accountRef = useRef<HTMLElement>(null);
+  const webhookRef = useRef<HTMLElement>(null);
+  const filtersRef = useRef<HTMLElement>(null);
+  const refs = { account: accountRef, webhook: webhookRef, filters: filtersRef } as const;
 
   const [webhookUrl, setWebhookUrl] = useState(partner.crmWebhookUrl ?? "");
   const [leadType, setLeadType] = useState<"traditional_iul" | "high_intent_iul">(
@@ -481,11 +491,15 @@ export function PartnerSettingsView() {
   const webhookDirty = webhookUrl !== (partner.crmWebhookUrl ?? "");
   const leadTypeDirty = leadType !== partner.leadType;
 
+  function scrollTo(tab: "account" | "webhook" | "filters") {
+    setActiveTab(tab);
+    refs[tab].current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   async function saveWebhook() {
     setWebhookError("");
     setWebhookSuccess(false);
     setWebhookSaving(true);
-
     try {
       const res = await fetch("/api/partners/me", {
         method: "PATCH",
@@ -493,10 +507,7 @@ export function PartnerSettingsView() {
         body: JSON.stringify({ crmWebhookUrl: webhookUrl.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setWebhookError(data.error ?? "Failed to save webhook");
-        return;
-      }
+      if (!res.ok) { setWebhookError(data.error ?? "Failed to save webhook"); return; }
       patchPartner({ crmWebhookUrl: data.crmWebhookUrl });
       setWebhookUrl(data.crmWebhookUrl ?? "");
       setWebhookSuccess(true);
@@ -511,7 +522,6 @@ export function PartnerSettingsView() {
     setLeadTypeError("");
     setLeadTypeSuccess(false);
     setLeadTypeSaving(true);
-
     try {
       const res = await fetch("/api/partners/me", {
         method: "PATCH",
@@ -519,10 +529,7 @@ export function PartnerSettingsView() {
         body: JSON.stringify({ leadType }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setLeadTypeError(data.error ?? "Failed to save lead type");
-        return;
-      }
+      if (!res.ok) { setLeadTypeError(data.error ?? "Failed to save lead type"); return; }
       patchPartner({ leadType: data.leadType });
       setLeadTypeSuccess(true);
     } catch {
@@ -533,23 +540,59 @@ export function PartnerSettingsView() {
   }
 
   return (
-    <div>
-      <PageHeader
-        title="Settings"
-        subtitle="Configure your lead targeting and delivery preferences"
-      />
+    <div className="-mx-6 -mt-6 min-h-full">
+      {/* Page header */}
+      <div className="bg-white px-8 pt-10 pb-0">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Manage your account preferences, webhook integrations, and lead filter sets.
+        </p>
+      </div>
 
-      <div className="mb-5 card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Gear size={16} className="text-slate-500" />
-          <h2 className="text-sm font-semibold text-slate-900">Account Settings</h2>
+      {/* Sticky tab strip */}
+      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white shadow-[0_2px_4px_-1px_rgb(0,0,0,0.04)]">
+        <div className="flex gap-6 px-8">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => scrollTo(tab.id)}
+              className={[
+                "border-b-2 pb-3 pt-2.5 text-sm font-medium transition-colors duration-150",
+                activeTab === tab.id
+                  ? "border-brand-600 text-brand-600"
+                  : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700",
+              ].join(" ")}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="form-label">Lead Type</label>
-            <div className="flex gap-2">
+      </div>
+
+      {/* Scrollable content */}
+      <div className="mx-auto max-w-4xl space-y-8 px-8 py-10 pb-32">
+
+        {/* Account Settings */}
+        <section
+          ref={accountRef}
+          id="account"
+          className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-8 shadow-sm scroll-mt-12"
+        >
+          <div className={`absolute inset-y-0 left-0 w-1 transition-colors duration-300 ${activeTab === "account" ? "bg-brand-600" : "bg-transparent"}`} />
+          <div className="mb-6">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <Gear size={18} className="text-brand-600" />
+              Account Settings
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">Manage your basic profile and preferences.</p>
+          </div>
+
+          <div className="grid gap-6 border-t border-slate-100 pt-6 sm:grid-cols-2">
+            <div>
+              <label className="form-label">Lead Type</label>
               <select
-                className="form-select flex-1"
+                className="form-select"
                 value={leadType}
                 onChange={(e) => {
                   setLeadType(e.target.value as typeof leadType);
@@ -560,51 +603,60 @@ export function PartnerSettingsView() {
                 <option value="traditional_iul">Traditional IUL</option>
                 <option value="high_intent_iul">High Intent IUL</option>
               </select>
-              <ActionButton
-                type="button"
-                variant="secondary"
-                className="whitespace-nowrap"
-                loading={leadTypeSaving}
-                loadingText="Saving…"
-                success={leadTypeSuccess}
-                successText="Saved"
-                disabled={!leadTypeDirty}
-                onClick={saveLeadType}
-              >
-                Save
-              </ActionButton>
+              {leadTypeError && <p className="mt-1 text-xs text-red-600">{leadTypeError}</p>}
             </div>
-            {leadTypeError && (
-              <p className="mt-1 text-xs text-red-600">{leadTypeError}</p>
-            )}
+            <div>
+              <label className="form-label">Affiliation (Company)</label>
+              <input
+                className="form-input bg-slate-50"
+                defaultValue={partner.affiliation ?? ""}
+                placeholder="e.g. Family First Life"
+                disabled
+              />
+              <p className="mt-1 text-xs text-slate-400">Contact admin to update</p>
+            </div>
           </div>
-          <div>
-            <label className="form-label">Affiliation (Company)</label>
-            <input
-              className="form-input"
-              defaultValue={partner.affiliation ?? ""}
-              placeholder="e.g. Family First Life"
-              disabled
-            />
-            <p className="mt-1 text-xs text-slate-400">Contact admin to update</p>
-          </div>
-        </div>
-      </div>
 
-      <div className="mb-5 card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <PlugsConnected size={16} className="text-slate-500" />
-          <h2 className="text-sm font-semibold text-slate-900">CRM Delivery Webhook</h2>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
-            Optional
-          </span>
-        </div>
-        <div className="max-w-xl">
-          <label className="form-label">Webhook URL</label>
-          <div className="flex gap-2">
+          <div className="mt-8 flex justify-end">
+            <ActionButton
+              type="button"
+              loading={leadTypeSaving}
+              loadingText="Saving…"
+              success={leadTypeSuccess}
+              successText="Saved"
+              disabled={!leadTypeDirty}
+              onClick={saveLeadType}
+            >
+              Save Changes
+            </ActionButton>
+          </div>
+        </section>
+
+        {/* CRM Webhook */}
+        <section
+          ref={webhookRef}
+          id="webhook"
+          className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-8 shadow-sm scroll-mt-12"
+        >
+          <div className={`absolute inset-y-0 left-0 w-1 transition-colors duration-300 ${activeTab === "webhook" ? "bg-brand-600" : "bg-transparent"}`} />
+          <div className="mb-6">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <PlugsConnected size={18} className="text-brand-600" />
+              CRM Delivery Webhook
+              <span className="ml-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                Optional
+              </span>
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              We&apos;ll POST lead data (JSON) to this URL on each delivery. Compatible with GHL, Ringy, HubSpot, or any REST endpoint.
+            </p>
+          </div>
+
+          <div className="max-w-xl border-t border-slate-100 pt-6">
+            <label className="form-label">Webhook URL</label>
             <input
               type="url"
-              className="form-input flex-1"
+              className="form-input"
               value={webhookUrl}
               onChange={(e) => {
                 setWebhookUrl(e.target.value);
@@ -613,10 +665,12 @@ export function PartnerSettingsView() {
               }}
               placeholder="https://rest.gohighlevel.com/v1/contacts/"
             />
+            {webhookError && <p className="mt-1.5 text-xs text-red-600">{webhookError}</p>}
+          </div>
+
+          <div className="mt-8 flex justify-end">
             <ActionButton
               type="button"
-              variant="secondary"
-              className="whitespace-nowrap"
               loading={webhookSaving}
               loadingText="Saving…"
               success={webhookSuccess}
@@ -624,19 +678,31 @@ export function PartnerSettingsView() {
               disabled={!webhookDirty}
               onClick={saveWebhook}
             >
-              Save
+              Save Webhook
             </ActionButton>
           </div>
-          {webhookError && (
-            <p className="mt-2 text-xs text-red-600">{webhookError}</p>
-          )}
-          <p className="mt-1.5 text-xs text-slate-400">
-            We&apos;ll POST lead data (JSON) to this URL on each delivery. Compatible with GHL, Ringy, HubSpot, or any REST endpoint.
-          </p>
-        </div>
-      </div>
+        </section>
 
-      <FilterSetsSection />
+        {/* Filter Sets */}
+        <section
+          ref={filtersRef}
+          id="filters"
+          className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm scroll-mt-12"
+        >
+          <div className={`absolute inset-y-0 left-0 w-1 transition-colors duration-300 ${activeTab === "filters" ? "bg-brand-600" : "bg-transparent"}`} />
+          <div className="flex items-start justify-between gap-4 px-8 pt-8 pb-6">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                <Funnel size={18} className="text-brand-600" />
+                Filter Sets
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">Manage targeting rules for your lead delivery.</p>
+            </div>
+          </div>
+          <FilterSetsSection embedded />
+        </section>
+
+      </div>
     </div>
   );
 }
