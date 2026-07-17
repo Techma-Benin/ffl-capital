@@ -75,6 +75,71 @@ function ColHeader({
   );
 }
 
+function BulkRefundDialog({
+  count,
+  pending,
+  onSubmit,
+  onClose,
+}: {
+  count: number;
+  pending: boolean;
+  onSubmit: (refundType: "wrong_filter" | "invalid_phone", reason: string) => void;
+  onClose: () => void;
+}) {
+  const [refundType, setRefundType] = useState<"wrong_filter" | "invalid_phone">("wrong_filter");
+  const [reason, setReason] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-slate-900">
+            Request Refund <span className="text-amber-600">({count})</span>
+          </h3>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Refund Type</label>
+            <select
+              value={refundType}
+              onChange={(e) => setRefundType(e.target.value as "wrong_filter" | "invalid_phone")}
+              className="form-select w-full text-sm"
+            >
+              <option value="wrong_filter">Wrong Filter</option>
+              <option value="invalid_phone">Invalid Phone</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Reason (optional)</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Describe the issue…"
+              rows={3}
+              className="form-input w-full text-sm resize-none"
+            />
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="btn-secondary btn-sm">Cancel</button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onSubmit(refundType, reason)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+          >
+            <ArrowCounterClockwise size={14} />
+            {pending ? "Submitting…" : `Submit (${count})`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RefundDialog({
   deliveryId,
   onClose,
@@ -224,7 +289,7 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
-  const [bulkRefundType, setBulkRefundType] = useState<"wrong_filter" | "invalid_phone">("wrong_filter");
+  const [bulkRefundOpen, setBulkRefundOpen] = useState(false);
   const [refundDialogId, setRefundDialogId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("deliveredAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -272,7 +337,7 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
     });
   }
 
-  async function bulkRefund() {
+  async function bulkRefund(refundType: "wrong_filter" | "invalid_phone", reason: string) {
     if (!refundableSelected.length) return;
     setPending(true);
     try {
@@ -280,11 +345,16 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          requests: refundableSelected.map((d) => ({ leadDeliveryId: d.id, refundType: bulkRefundType })),
+          requests: refundableSelected.map((d) => ({
+            leadDeliveryId: d.id,
+            refundType,
+            reason: reason || undefined,
+          })),
         }),
       });
       if (!res.ok) throw new Error();
       setSelected(new Set());
+      setBulkRefundOpen(false);
       router.refresh();
     } catch { /* allow retry */ }
     finally { setPending(false); }
@@ -301,22 +371,15 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
     <>
       {/* Bulk refund bar */}
       {selected.size > 0 && (
-        <div className="flex flex-wrap items-center justify-end gap-2 border-b border-slate-100 px-5 py-2">
-          <select
-            value={bulkRefundType}
-            onChange={(e) => setBulkRefundType(e.target.value as "wrong_filter" | "invalid_phone")}
-            className="form-select w-44 py-1.5 text-xs"
-          >
-            <option value="wrong_filter">Wrong Filter</option>
-            <option value="invalid_phone">Invalid Phone</option>
-          </select>
+        <div className="flex items-center justify-end gap-2 px-4 py-2">
           <button
             type="button"
-            disabled={pending || !refundableSelected.length}
-            onClick={bulkRefund}
-            className="btn-primary btn-sm"
+            disabled={!refundableSelected.length}
+            onClick={() => setBulkRefundOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-40"
           >
-            {pending ? "Submitting…" : `Request Refund (${refundableSelected.length})`}
+            <ArrowCounterClockwise size={14} />
+            Request Refund ({refundableSelected.length})
           </button>
         </div>
       )}
@@ -435,7 +498,17 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
         </table>
       </div>
 
-      {/* Refund dialog */}
+      {/* Bulk refund dialog */}
+      {bulkRefundOpen && (
+        <BulkRefundDialog
+          count={refundableSelected.length}
+          pending={pending}
+          onSubmit={bulkRefund}
+          onClose={() => setBulkRefundOpen(false)}
+        />
+      )}
+
+      {/* Single refund dialog */}
       {refundDialogId && (
         <RefundDialog
           deliveryId={refundDialogId}
