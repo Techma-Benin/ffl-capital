@@ -205,7 +205,7 @@ export function LeadsFilterBar({
 
       {/* Row 2 — options for the open filter */}
       {openCat && (
-        <div className="mt-2 rounded-2xl bg-white px-4 py-3 shadow-sm">
+        <div className="mt-1 px-1 py-2">
           {openCat.options.length === 0 ? (
             <p className="text-xs text-slate-400">No options available</p>
           ) : (
