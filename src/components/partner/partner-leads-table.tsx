@@ -385,7 +385,7 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
       )}
 
       {/* Table */}
-      <div className="px-4 pb-2 pt-1">
+      <div className="pb-2 pt-1">
         <table className="w-full border-separate border-spacing-y-2">
           <thead>
             <tr>
