@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable the instrumentation hook (src/instrumentation.ts) for in-process cron jobs
+  experimental: { instrumentationHook: true },
   reactStrictMode: true,
 
   // Expose Replit-managed secrets under the names Next.js and Clerk expect.

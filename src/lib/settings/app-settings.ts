@@ -35,10 +35,14 @@ export async function getDefaultAgedPrice(): Promise<number> {
 }
 
 export async function isAdminApprovalRequired(): Promise<boolean> {
+  const envVal = process.env.ADMIN_APPROVAL_REQUIRED;
+  if (envVal !== undefined) return envVal.toLowerCase() !== "false";
   return getSetting(APP_SETTING_KEYS.adminApprovalRequired, true);
 }
 
 export async function getIntegrationsMode(): Promise<"mock" | "live"> {
+  const envVal = process.env.INTEGRATIONS_MODE;
+  if (envVal === "live" || envVal === "mock") return envVal;
   return getSetting(APP_SETTING_KEYS.integrationsMode, "mock");
 }
 
@@ -47,10 +51,14 @@ export async function getAgedDaysThreshold(): Promise<number> {
 }
 
 export async function isTrustedformValidationEnabled(): Promise<boolean> {
+  const envVal = process.env.TRUSTEDFORM_VALIDATION_ENABLED;
+  if (envVal !== undefined) return envVal.toLowerCase() === "true";
   return getSetting(APP_SETTING_KEYS.trustedformValidationEnabled, false);
 }
 
 export async function isDuplicateCheckEnabled(): Promise<boolean> {
+  const envVal = process.env.DUPLICATE_CHECK_ENABLED;
+  if (envVal !== undefined) return envVal.toLowerCase() !== "false";
   return getSetting(APP_SETTING_KEYS.duplicateCheckEnabled, true);
 }
 

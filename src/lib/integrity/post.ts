@@ -22,10 +22,18 @@ function toFormBody(data: Record<string, string | undefined>): string {
   return params.toString();
 }
 
-async function rejectPosting(postingId: string, reason: string): Promise<void> {
+async function rejectPosting(
+  postingId: string,
+  leadId: string,
+  reason: string,
+): Promise<void> {
   await prisma.resalePosting.update({
     where: { id: postingId },
     data: { status: ResaleStatus.rejected },
+  });
+  await emitLeadEvent(leadId, LeadEventType.integrity_rejected, {
+    postingId,
+    reason,
   });
   console.warn(`[integrity] posting ${postingId} rejected: ${reason}`);
 }
@@ -113,17 +121,17 @@ export async function integrityPostLead(
         ping = await integrityPing(leadId, ResaleMode.storefront);
       } catch (err) {
         const reason = `Ping threw unexpectedly: ${String(err)}`;
-        await rejectPosting(posting.id, reason);
+        await rejectPosting(posting.id, leadId, reason);
         return { posted: false, reason };
       }
       if (!ping.accepted) {
-        await rejectPosting(posting.id, ping.message ?? "Integrity ping rejected");
+        await rejectPosting(posting.id, leadId, ping.message ?? "Integrity ping rejected");
         return { posted: false, reason: ping.message ?? "Integrity ping rejected" };
       }
 
       const submitUrl = process.env.INTEGRITY_STOREFRONT_SUBMIT_URL;
       if (!submitUrl) {
-        await rejectPosting(posting.id, "INTEGRITY_STOREFRONT_SUBMIT_URL not configured");
+        await rejectPosting(posting.id, leadId, "INTEGRITY_STOREFRONT_SUBMIT_URL not configured");
         return { posted: false, reason: "INTEGRITY_STOREFRONT_SUBMIT_URL not configured" };
       }
 
@@ -133,7 +141,7 @@ export async function integrityPostLead(
       });
 
       if (!result.ok) {
-        await rejectPosting(posting.id, result.reason);
+        await rejectPosting(posting.id, leadId, result.reason);
         return { posted: false, reason: result.reason };
       }
 
@@ -147,7 +155,7 @@ export async function integrityPostLead(
     } else {
       const submitUrl = process.env.INTEGRITY_REALTIME_SUBMIT_URL;
       if (!submitUrl) {
-        await rejectPosting(posting.id, "INTEGRITY_REALTIME_SUBMIT_URL not configured");
+        await rejectPosting(posting.id, leadId, "INTEGRITY_REALTIME_SUBMIT_URL not configured");
         return { posted: false, reason: "INTEGRITY_REALTIME_SUBMIT_URL not configured" };
       }
 
@@ -157,7 +165,7 @@ export async function integrityPostLead(
       });
 
       if (!result.ok) {
-        await rejectPosting(posting.id, result.reason);
+        await rejectPosting(posting.id, leadId, result.reason);
         return { posted: false, reason: result.reason };
       }
 

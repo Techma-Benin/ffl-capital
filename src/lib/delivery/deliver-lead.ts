@@ -160,10 +160,15 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
   // ── Email via Resend ────────────────────────────────────────────────────
   const resendKey = process.env.RESEND_API_KEY;
 
-  if (
-    resendKey &&
-    (crmProvider === "email_only" || deliveryChannel === "email" || !crmPosted)
-  ) {
+  // Email is required when the channel is email-only, OR when CRM/Ringy
+  // delivery was not the active path (i.e. neither succeeded nor was attempted).
+  const crmOrRingyHandled = ringyPosted || crmPosted;
+  const emailRequired =
+    crmProvider === "email_only" ||
+    deliveryChannel === "email" ||
+    !crmOrRingyHandled;
+
+  if (resendKey && emailRequired) {
     const resendMock = process.env.RESEND_MOCK === "true";
     const fromEmail = resendMock
       ? "onboarding@resend.dev"
@@ -236,7 +241,8 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
         });
       }
     }
-  } else if (!resendKey) {
+  } else if (!resendKey && emailRequired) {
+    // Email was needed but the key is missing — this is a real failure.
     await emitLeadEvent(lead.id, LeadEventType.delivery_failed, {
       step: "resend",
       deliveryId: leadDeliveryId,
@@ -244,6 +250,9 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
       toEmail: partnerEmail,
     });
     errors.push("Email skipped: RESEND_API_KEY not configured");
+  } else if (!resendKey && !emailRequired) {
+    // CRM/Ringy already handled delivery — email is not required, skip silently.
+    console.info(`[deliverLead] email skipped — ${crmProvider ?? deliveryChannel} delivery succeeded`);
   }
 
   // ── Final summary event ─────────────────────────────────────────────────

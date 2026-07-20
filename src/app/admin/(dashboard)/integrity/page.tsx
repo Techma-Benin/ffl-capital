@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Shield } from "@phosphor-icons/react/dist/ssr";
-import Link from "next/link";
 import { IntegrityTestPanel } from "@/components/admin/integrity-test-panel";
+import {
+  IntegrityPostingsTable,
+  type PostingRow,
+} from "@/components/admin/integrity-postings-table";
 
 export default async function AdminIntegrityPage() {
   const postings = await prisma.resalePosting.findMany({
@@ -12,6 +14,51 @@ export default async function AdminIntegrityPage() {
     orderBy: { createdAt: "desc" },
     take: 100,
   });
+
+  // Pull the most recent integrity_rejected event for each posting so we can
+  // surface the rejection reason in the detail modal.
+  const leadIds = postings.map((p) => p.leadId);
+  const rejectionEvents =
+    leadIds.length > 0
+      ? await prisma.leadEvent.findMany({
+          where: {
+            leadId: { in: leadIds },
+            type: "integrity_rejected",
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : [];
+
+  // Index latest rejection event by postingId (stored in payload.postingId)
+  const reasonByPostingId: Record<string, string> = {};
+  for (const evt of rejectionEvents) {
+    const payload = evt.payload as
+      | { postingId?: string; reason?: string }
+      | null;
+    if (payload?.postingId && payload.reason) {
+      // Only keep the first (most recent) entry per posting
+      if (!reasonByPostingId[payload.postingId]) {
+        reasonByPostingId[payload.postingId] = payload.reason;
+      }
+    }
+  }
+
+  const rows: PostingRow[] = postings.map((p) => ({
+    id: p.id,
+    leadId: p.leadId,
+    mode: p.mode as PostingRow["mode"],
+    status: p.status as PostingRow["status"],
+    externalRef: p.externalRef,
+    postedAt: p.postedAt?.toISOString() ?? null,
+    createdAt: p.createdAt.toISOString(),
+    lead: {
+      firstName: p.lead.firstName,
+      lastName: p.lead.lastName,
+      state: p.lead.state,
+      leadType: p.lead.leadType,
+    },
+    rejectionReason: reasonByPostingId[p.id] ?? null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -24,49 +71,14 @@ export default async function AdminIntegrityPage() {
 
       <div className="card">
         <div className="overflow-x-auto">
-          {postings.length === 0 ? (
+          {rows.length === 0 ? (
             <EmptyState
               icon={Shield}
               title="No Integrity postings yet"
               description="Unmatched leads past 24 hours are posted via the cron job."
             />
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Lead</th>
-                  <th>State</th>
-                  <th>Mode</th>
-                  <th>Status</th>
-                  <th>External Ref</th>
-                  <th>Posted</th>
-                </tr>
-              </thead>
-              <tbody>
-                {postings.map((p) => (
-                  <tr key={p.id}>
-                    <td>
-                      <Link href={`/admin/leads/${p.leadId}`} className="font-medium hover:text-brand-600">
-                        {p.lead.firstName} {p.lead.lastName}
-                      </Link>
-                    </td>
-                    <td>{p.lead.state}</td>
-                    <td className="capitalize">{p.mode}</td>
-                    <td>
-                      <Badge variant={p.status === "sold" ? "green" : "yellow"}>
-                        {p.status}
-                      </Badge>
-                    </td>
-                    <td className="text-xs text-slate-500">{p.externalRef ?? "—"}</td>
-                    <td className="text-xs text-slate-400">
-                      {p.postedAt
-                        ? new Date(p.postedAt).toLocaleDateString()
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <IntegrityPostingsTable postings={rows} />
           )}
         </div>
       </div>

@@ -5,7 +5,7 @@ import { verifyCronSecret } from "@/lib/cron/auth";
 import { integrityPostLead } from "@/lib/integrity/post";
 import { getIntegrityPostDelayHours } from "@/lib/settings/app-settings";
 
-export async function POST(request: NextRequest) {
+async function handleCronRequest(request: NextRequest): Promise<NextResponse> {
   if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -33,4 +33,13 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ attempted: leads.length, posted, errors });
+}
+
+// Vercel cron invocations use GET; manual/admin triggers may use POST
+export async function GET(request: NextRequest) {
+  return handleCronRequest(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleCronRequest(request);
 }
