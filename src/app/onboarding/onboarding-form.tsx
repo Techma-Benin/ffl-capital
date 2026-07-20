@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
@@ -64,10 +64,18 @@ type FilterSetTemplate = {
 };
 
 type InitialProfile = Partial<ProfileFields> & { email?: string };
+
+export type OnboardingSkipControl = {
+  visible: boolean;
+  disabled: boolean;
+  onSkip: () => void;
+};
+
 type Props = {
   initialProfile?: InitialProfile;
   step: 1 | 2 | 3;
   onStepChange: (step: 1 | 2 | 3) => void;
+  onSkipControlChange?: (control: OnboardingSkipControl) => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -280,7 +288,12 @@ function TemplateCard({
 // Main form
 // ---------------------------------------------------------------------------
 
-export default function OnboardingForm({ initialProfile, step, onStepChange }: Props) {
+export default function OnboardingForm({
+  initialProfile,
+  step,
+  onStepChange,
+  onSkipControlChange,
+}: Props) {
   const router = useRouter();
   const { user } = useUser();
 
@@ -394,7 +407,7 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
     onStepChange(3);
   }
 
-  async function submitOnboarding() {
+  const submitOnboarding = useCallback(async () => {
     setError("");
     if (!leadType) {
       setError("Please select a lead type before continuing.");
@@ -430,7 +443,23 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
       setError("Request failed. Please try again.");
       setLoading(false);
     }
-  }
+  }, [
+    profile,
+    leadType,
+    selectedStates,
+    filterCriteria,
+    weeklyLimit,
+    monthlyLimit,
+    router,
+  ]);
+
+  useEffect(() => {
+    onSkipControlChange?.({
+      visible: step === 3,
+      disabled: loading || success,
+      onSkip: submitOnboarding,
+    });
+  }, [step, loading, success, submitOnboarding, onSkipControlChange]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
