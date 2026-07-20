@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LeadCategoryManager } from "@/components/admin/lead-category-manager";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -308,215 +309,239 @@ export function AdminSettingsForm() {
         />
       )}
 
-      <form onSubmit={handleSave} className="card p-6 space-y-8 max-w-2xl">
-        {/* ── Pricing ─────────────────────────────────────────────────────── */}
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-slate-900">Pricing</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="form-label">Default realtime price ($)</label>
-              <input
-                type="number"
-                min={1}
-                step={0.01}
-                value={form.defaultRealtimePrice}
-                onChange={(e) =>
-                  setForm({ ...form, defaultRealtimePrice: Number(e.target.value) })
-                }
-                className="form-input"
-              />
-            </div>
-            <div>
-              <label className="form-label">Default aged price ($)</label>
-              <input
-                type="number"
-                min={1}
-                step={0.01}
-                value={form.defaultAgedPrice}
-                onChange={(e) =>
-                  setForm({ ...form, defaultAgedPrice: Number(e.target.value) })
-                }
-                className="form-input"
-              />
-            </div>
-          </div>
-        </section>
+      <form id="admin-settings-form" onSubmit={handleSave} className="space-y-5">
 
-        {/* ── Lead lifecycle ───────────────────────────────────────────────── */}
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-slate-900">Lead lifecycle</h2>
-          <div>
-            <label className="form-label">Aged days threshold</label>
-            <input
-              type="number"
-              min={1}
-              value={form.agedDaysThreshold}
-              onChange={(e) =>
-                setForm({ ...form, agedDaysThreshold: Number(e.target.value) })
-              }
-              className="form-input"
-            />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={form.trustedformValidationEnabled}
-              onChange={(e) =>
-                setForm({ ...form, trustedformValidationEnabled: e.target.checked })
-              }
-              className="rounded border-slate-300"
-            />
-            Enable TrustedForm validation on intake
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={form.duplicateCheckEnabled}
-              onChange={(e) =>
-                setForm({ ...form, duplicateCheckEnabled: e.target.checked })
-              }
-              className="rounded border-slate-300"
-            />
-            Enable duplicate lead checks
-          </label>
-          <div>
-            <label className="form-label">Duplicate check window (days)</label>
-            <input
-              type="number"
-              min={1}
-              value={form.duplicateCheckWindowDays}
-              onChange={(e) =>
-                setForm({ ...form, duplicateCheckWindowDays: Number(e.target.value) })
-              }
-              className="form-input"
-            />
-          </div>
-        </section>
-
-        {/* ── Platform ─────────────────────────────────────────────────────── */}
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-slate-900">Platform</h2>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={form.adminApprovalRequired}
-              onChange={(e) =>
-                setForm({ ...form, adminApprovalRequired: e.target.checked })
-              }
-              className="rounded border-slate-300"
-            />
-            Require admin approval for new partners
-          </label>
-          <div>
-            <label className="form-label">Integrations mode</label>
-            <select
-              value={form.integrationsMode}
-              onChange={(e) =>
-                setForm({ ...form, integrationsMode: e.target.value as "mock" | "live" })
-              }
-              className="form-select"
-            >
-              <option value="mock">Mock (log only)</option>
-              <option value="live">Live (email, CRM, Integrity)</option>
-            </select>
-          </div>
-          <div>
-            <label className="form-label">
-              Send unmatched leads to Integrity after (hours)
-            </label>
-            <p className="text-xs text-slate-400 mb-1">
-              How long a lead sits unmatched before the nightly job forwards it to Integrity
-              Connect. Default is 24 hours.
-            </p>
-            <input
-              type="number"
-              min={1}
-              value={form.integrityPostDelayHours}
-              onChange={(e) =>
-                setForm({ ...form, integrityPostDelayHours: Number(e.target.value) })
-              }
-              className="form-input"
-            />
-          </div>
-        </section>
-
-        {/* ── Resale vendors ───────────────────────────────────────────────── */}
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900">Resale vendors</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Third-party platforms that receive leads from this system. Click a row to edit.
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-slate-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
-                <tr>
-                  <th className="px-4 py-2.5 text-left">Vendor</th>
-                  <th className="px-4 py-2.5 text-left">Status</th>
-                  <th className="px-4 py-2.5 text-left">Post URL</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {resaleVendors.map((row, i) => (
-                  <tr
-                    key={row.key || i}
-                    onClick={() => openEditResale(row, i)}
-                    className="cursor-pointer hover:bg-slate-50 transition-colors"
-                  >
-                    <td className="px-4 py-3 font-mono text-xs text-slate-700">{row.key}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          row.enabled
-                            ? "bg-green-50 text-green-700"
-                            : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {row.enabled ? "Enabled" : "Disabled"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[240px] truncate">
-                      {row.postUrl || <span className="text-slate-300">—</span>}
-                    </td>
-                  </tr>
-                ))}
-                {resaleVendors.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-xs text-slate-400">
-                      No resale vendors configured
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <button
-            type="button"
-            onClick={openNewResale}
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-          >
-            + Add vendor
-          </button>
-        </section>
-
-        {/* ── save bar ─────────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
-          <button type="submit" disabled={pending} className="btn-primary btn-sm">
-            {pending ? "Saving…" : "Save Settings"}
-          </button>
-          {message && (
-            <span
-              className={`text-xs ${
-                message === "Settings saved" ? "text-green-600" : "text-red-500"
-              }`}
-            >
-              {message}
-            </span>
-          )}
+        {/* ── Lead categories — full width ─────────────────────────────── */}
+        <div className="card p-6">
+          <LeadCategoryManager />
         </div>
+
+        {/* ── 2-column grid ────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+
+          {/* Left column: Pricing + Lead lifecycle */}
+          <div className="space-y-5">
+
+            {/* Pricing */}
+            <div className="card p-6 space-y-4">
+              <h2 className="text-sm font-semibold text-slate-900">Pricing</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="form-label">Default realtime price ($)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={0.01}
+                    value={form.defaultRealtimePrice}
+                    onChange={(e) =>
+                      setForm({ ...form, defaultRealtimePrice: Number(e.target.value) })
+                    }
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Default aged price ($)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={0.01}
+                    value={form.defaultAgedPrice}
+                    onChange={(e) =>
+                      setForm({ ...form, defaultAgedPrice: Number(e.target.value) })
+                    }
+                    className="form-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Lead lifecycle */}
+            <div className="card p-6 space-y-4">
+              <h2 className="text-sm font-semibold text-slate-900">Lead lifecycle</h2>
+              <div>
+                <label className="form-label">Aged days threshold</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.agedDaysThreshold}
+                  onChange={(e) =>
+                    setForm({ ...form, agedDaysThreshold: Number(e.target.value) })
+                  }
+                  className="form-input"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={form.trustedformValidationEnabled}
+                  onChange={(e) =>
+                    setForm({ ...form, trustedformValidationEnabled: e.target.checked })
+                  }
+                  className="rounded border-slate-300"
+                />
+                Enable TrustedForm validation on intake
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={form.duplicateCheckEnabled}
+                  onChange={(e) =>
+                    setForm({ ...form, duplicateCheckEnabled: e.target.checked })
+                  }
+                  className="rounded border-slate-300"
+                />
+                Enable duplicate lead checks
+              </label>
+              {form.duplicateCheckEnabled && (
+                <div>
+                  <label className="form-label">Duplicate check window (days)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.duplicateCheckWindowDays}
+                    onChange={(e) =>
+                      setForm({ ...form, duplicateCheckWindowDays: Number(e.target.value) })
+                    }
+                    className="form-input"
+                  />
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Right column: Platform + Resale vendors */}
+          <div className="space-y-5">
+
+            {/* Platform */}
+            <div className="card p-6 space-y-4">
+              <h2 className="text-sm font-semibold text-slate-900">Platform</h2>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={form.adminApprovalRequired}
+                  onChange={(e) =>
+                    setForm({ ...form, adminApprovalRequired: e.target.checked })
+                  }
+                  className="rounded border-slate-300"
+                />
+                Require admin approval for new partners
+              </label>
+              <div>
+                <label className="form-label">Integrations mode</label>
+                <select
+                  value={form.integrationsMode}
+                  onChange={(e) =>
+                    setForm({ ...form, integrationsMode: e.target.value as "mock" | "live" })
+                  }
+                  className="form-select"
+                >
+                  <option value="mock">Mock (log only)</option>
+                  <option value="live">Live (email, CRM, Integrity)</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">
+                  Integrity unmatched lead delay (hours)
+                </label>
+                <p className="text-xs text-slate-400 mb-1">
+                  How long a lead sits unmatched before the nightly job forwards it to Integrity
+                  Connect. Default is 24 hours.
+                </p>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.integrityPostDelayHours}
+                  onChange={(e) =>
+                    setForm({ ...form, integrityPostDelayHours: Number(e.target.value) })
+                  }
+                  className="form-input"
+                />
+              </div>
+            </div>
+
+            {/* Resale vendors */}
+            <div className="card p-6 space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900">Resale vendors</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Third-party platforms that receive leads. Click to edit.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openNewResale}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap shrink-0"
+                >
+                  + Add vendor
+                </button>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left">Vendor</th>
+                      <th className="px-4 py-2.5 text-left">Status</th>
+                      <th className="px-4 py-2.5 text-left">Post URL</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {resaleVendors.map((row, i) => (
+                      <tr
+                        key={row.key || i}
+                        onClick={() => openEditResale(row, i)}
+                        className="cursor-pointer hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-4 py-3 font-mono text-xs text-slate-700">{row.key}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              row.enabled
+                                ? "bg-green-50 text-green-700"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {row.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500 max-w-[200px] truncate">
+                          {row.postUrl || <span className="text-slate-300">—</span>}
+                        </td>
+                      </tr>
+                    ))}
+                    {resaleVendors.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="px-4 py-6 text-center text-xs text-slate-400">
+                          No resale vendors configured
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ── status feedback ──────────────────────────────────────────── */}
+        {(pending || message) && (
+          <div className="flex items-center gap-3">
+            {pending && <span className="text-xs text-slate-400">Saving…</span>}
+            {message && !pending && (
+              <span
+                className={`text-xs ${
+                  message === "Settings saved" ? "text-green-600" : "text-red-500"
+                }`}
+              >
+                {message}
+              </span>
+            )}
+          </div>
+        )}
+
       </form>
     </>
   );
