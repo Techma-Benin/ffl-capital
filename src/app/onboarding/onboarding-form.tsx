@@ -778,14 +778,6 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
                 <ArrowLeft size={15} aria-hidden />
                 Back
               </button>
-              <button
-                type="button"
-                onClick={() => void submitOnboarding()}
-                className="btn-secondary"
-                disabled={loading || success}
-              >
-                Skip
-              </button>
               <ActionButton
                 type="submit"
                 className="flex-1 min-w-[10rem] justify-center"
