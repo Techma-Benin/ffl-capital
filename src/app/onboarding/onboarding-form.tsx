@@ -534,6 +534,7 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
               type="submit"
               className="w-full justify-center"
               icon={<ArrowRight size={15} />}
+              slideIconOnHover
             >
               Continue — Set Up Filter Set
             </ActionButton>
@@ -691,6 +692,7 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
                 className="flex-1 justify-center"
                 disabled={!isEligible || !leadType}
                 icon={<ArrowRight size={15} />}
+                slideIconOnHover
               >
                 Continue — Limits & filters (optional)
               </ActionButton>
