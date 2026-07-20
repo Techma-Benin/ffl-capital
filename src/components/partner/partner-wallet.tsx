@@ -5,7 +5,7 @@ import { clsx } from "clsx";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { usePartner } from "@/components/partner/partner-provider";
-import { Wallet, ArrowUpRight, ArrowsClockwise, X } from "@phosphor-icons/react";
+import { Wallet, ArrowUpRight, ArrowsClockwise, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -213,7 +213,7 @@ export function PartnerWalletView({
                   onClick={() => setCancelConfirm(true)}
                   className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
                 >
-                  <X size={12} />
+                  <X size={12} weight={ICON_WEIGHT_LINEAR} />
                   Cancel
                 </button>
               )}

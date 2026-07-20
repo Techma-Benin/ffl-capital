@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { Badge } from "@/components/ui/badge";
 import { PartnerRefundButton } from "@/components/partner/partner-refund-button";
-import { ArrowLeft, ShieldCheck, ShieldWarning } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, ShieldCheck, ShieldWarning } from "@/lib/icons/ssr";
 
 function DetailRow({
   label,

@@ -428,8 +428,8 @@ export default function AdminMigrationPage() {
                 Map CSV columns to lead fields
               </h2>
               <p className="text-sm text-slate-500">
-                We've pre-filled what we could detect. Adjust any mappings below,
-                or choose "— skip —" to ignore a column.
+                We&apos;ve pre-filled what we could detect. Adjust any mappings below,
+                or choose &quot;— skip —&quot; to ignore a column.
               </p>
             </div>
 

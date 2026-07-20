@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { X } from "@phosphor-icons/react";
+import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 type LeadFields = {
   firstName: string;
@@ -127,7 +127,7 @@ export function AdminLeadEditModal({
                 className="text-slate-400 hover:text-slate-600 transition-colors"
                 aria-label="Close"
               >
-                <X size={18} />
+                <X size={18} weight={ICON_WEIGHT_LINEAR} />
               </button>
             </div>
             <div className="px-6 py-5">

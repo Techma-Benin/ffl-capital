@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { DownloadSimple } from "@phosphor-icons/react";
+import { DownloadSimple } from "@/lib/icons/client";
 
 export function LeadsExportButton({ status }: { status?: string }) {
   const [pending, setPending] = useState(false);

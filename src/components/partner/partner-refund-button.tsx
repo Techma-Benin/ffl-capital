@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowCounterClockwise } from "@phosphor-icons/react";
+import { ArrowCounterClockwise } from "@/lib/icons/client";
 
 export function PartnerRefundButton({
   leadDeliveryId,

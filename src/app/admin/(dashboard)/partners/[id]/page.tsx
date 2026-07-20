@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { PartnerEditForm } from "@/components/admin/partner-edit-form";
 import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
 import { ViewAsPartnerButton } from "@/components/admin/view-as-partner-button";
-import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft } from "@/lib/icons/ssr";
 
 export default async function AdminPartnerDetailPage({
   params,

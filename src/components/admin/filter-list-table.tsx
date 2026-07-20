@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/components/ui/action-button";
 import Link from "next/link";
-import { X, Funnel, CopySimple, CaretDown } from "@phosphor-icons/react";
+import { X, Funnel, CopySimple, CaretDown, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 import type { FilterCriteria } from "@/lib/matching/types";
 
@@ -264,6 +264,7 @@ function AdvancedFiltersAccordion({
       >
         <CaretDown
           size={13}
+          weight={ICON_WEIGHT_LINEAR}
           className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         />
         Advanced Filters
@@ -605,7 +606,7 @@ function FilterSetModal({
             onClick={onClose}
             className="ml-4 shrink-0 rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           >
-            <X size={18} />
+            <X size={18} weight={ICON_WEIGHT_LINEAR} />
           </button>
         </div>
 

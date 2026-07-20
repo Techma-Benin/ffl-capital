@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { Eye } from "@phosphor-icons/react";
+import { Eye } from "@/lib/icons/client";
 
 interface Props {
   partnerId: string;

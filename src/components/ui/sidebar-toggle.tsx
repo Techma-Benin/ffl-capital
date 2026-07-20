@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { clsx } from "clsx";
-import { SidebarSimple } from "@phosphor-icons/react";
+import { SidebarSimple, ICON_WEIGHT } from "@/lib/icons/client";
 import { usePortal } from "@/components/layout/portal-provider";
 
 /** Toggle the sidebar when clicking empty space (not links or buttons). */
@@ -31,7 +31,7 @@ export function SidebarCollapseButton() {
         "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-sidebar-heading transition-colors hover:bg-black/5 hover:text-slate-700",
       )}
     >
-      <SidebarSimple size={16} weight="duotone" mirrored={sidebarCollapsed} />
+      <SidebarSimple size={16} weight={ICON_WEIGHT} mirrored={sidebarCollapsed} />
     </button>
   );
 }

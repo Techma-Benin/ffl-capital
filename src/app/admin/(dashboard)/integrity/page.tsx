@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Shield } from "@phosphor-icons/react/dist/ssr";
+import { Shield } from "@/lib/icons/ssr";
 import { IntegrityTestPanel } from "@/components/admin/integrity-test-panel";
 import {
   IntegrityPostingsTable,

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AdminRefundsPendingTable } from "@/components/admin/admin-refunds-pending-table";
-import { ArrowCounterClockwise } from "@phosphor-icons/react/dist/ssr";
+import { ArrowCounterClockwise } from "@/lib/icons/ssr";
 
 export default async function AdminRefundsPage() {
   const [pending, history] = await Promise.all([

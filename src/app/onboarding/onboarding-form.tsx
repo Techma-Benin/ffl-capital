@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
+import type { FilterCriteria } from "@/lib/matching/types";
 import { ActionButton } from "@/components/ui/action-button";
 import { StatusStrip } from "@/components/ui/status-strip";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +16,9 @@ import {
   MapPin,
   Funnel,
   X,
-} from "@phosphor-icons/react";
+  ICON_WEIGHT_LINEAR,
+  ICON_WEIGHT_BOLD,
+} from "@/lib/icons/client";
 import { OnboardingSuccessModal } from "./onboarding-success-modal";
 
 // ---------------------------------------------------------------------------
@@ -266,7 +269,7 @@ function TemplateCard({
         </span>
         {selected && (
           <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-brand-600">
-            <Check size={11} weight="bold" className="text-white" />
+            <Check size={11} weight={ICON_WEIGHT_BOLD} className="text-white" />
           </span>
         )}
       </div>
@@ -619,7 +622,7 @@ export default function OnboardingForm({
                       onClick={clearTemplate}
                       className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
                     >
-                      <X size={12} /> Clear template selection
+                      <X size={12} weight={ICON_WEIGHT_LINEAR} /> Clear template selection
                     </button>
                   )}
                 </div>

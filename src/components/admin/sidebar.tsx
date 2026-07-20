@@ -22,7 +22,7 @@ import {
   Shield,
   UploadSimple,
   Funnel,
-} from "@phosphor-icons/react";
+} from "@/lib/icons/client";
 
 /** Flat nav aligned to Pencil mockup; keep Filter List / Integrity / Migration. */
 const navItems = [

@@ -1,7 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import { WarningCircle, CheckCircle } from "@phosphor-icons/react";
+import { WarningCircle, CheckCircle } from "@/lib/icons/client";
 
 type Status = "success" | "error";
 

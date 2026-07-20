@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Lightning, CheckCircle, WarningCircle } from "@phosphor-icons/react";
+import { Lightning, CheckCircle, WarningCircle } from "@/lib/icons/client";
 import { ActionButton } from "@/components/ui/action-button";
 import { Spinner } from "@/components/ui/spinner";
 

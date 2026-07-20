@@ -1,4 +1,5 @@
-import type { Icon } from "@phosphor-icons/react";
+import type { Icon } from "@/lib/icons/client";
+import { ICON_WEIGHT } from "@/lib/icons/client";
 
 export function EmptyState({
   icon: Icon,
@@ -15,7 +16,7 @@ export function EmptyState({
     <div className="empty-state">
       {Icon && (
         <div className="mb-4 rounded-full bg-slate-100 p-4">
-          <Icon size={28} className="text-slate-400" weight="duotone" />
+          <Icon size={28} className="text-slate-400" weight={ICON_WEIGHT} />
         </div>
       )}
       <h3 className="text-base font-semibold text-slate-900">{title}</h3>

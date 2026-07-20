@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
-import type { Icon } from "@phosphor-icons/react";
+import type { Icon } from "@/lib/icons/client";
+import { ICON_WEIGHT } from "@/lib/icons/client";
 import type { ReactNode } from "react";
 
 export type StatCardVariant =
@@ -63,7 +64,7 @@ export function StatCard(props: StatCardProps) {
         <div className="flex items-center gap-4">
           {IconComponent && (
             <div className={clsx("shrink-0 inline-flex h-14 w-14 items-center justify-center rounded-full", heroBg)}>
-              <IconComponent size={26} weight="duotone" className="text-white" />
+              <IconComponent size={26} weight={ICON_WEIGHT} className="text-white" />
             </div>
           )}
           <div className="min-w-0">
@@ -115,7 +116,7 @@ export function StatCard(props: StatCardProps) {
           <div className="h-10 w-20 flex-shrink-0">{sparkline}</div>
         ) : IconComponent ? (
           <div className={clsx("rounded-xl p-2.5", iconBgClassName, iconColor)}>
-            <IconComponent size={20} weight="duotone" />
+            <IconComponent size={20} weight={ICON_WEIGHT} />
           </div>
         ) : null}
       </div>

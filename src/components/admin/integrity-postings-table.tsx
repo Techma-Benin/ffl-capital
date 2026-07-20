@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { X } from "@phosphor-icons/react";
+import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 type ResaleStatus = "pending" | "sold" | "rejected";
 type ResaleMode = "realtime" | "storefront";
@@ -64,7 +64,7 @@ function PostingModal({
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600"
           >
-            <X size={18} weight="bold" />
+            <X size={18} weight={ICON_WEIGHT_LINEAR} />
           </button>
         </div>
 

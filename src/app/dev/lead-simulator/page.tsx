@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import LeadSimulator from "./simulator-form";
 import { DevBackLink, DevNavLink } from "@/components/dev/dev-nav-link";
-import { Lightning, TerminalWindow } from "@phosphor-icons/react/dist/ssr";
+import { Lightning, TerminalWindow } from "@/lib/icons/ssr";
 
 export default function DevLeadSimulatorPage() {
   if (process.env.NODE_ENV === "production") {

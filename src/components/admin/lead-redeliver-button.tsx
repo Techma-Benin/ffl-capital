@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { PaperPlaneTilt } from "@phosphor-icons/react";
+import { PaperPlaneTilt } from "@/lib/icons/client";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 
 export function LeadRedeliverButton({

@@ -9,7 +9,8 @@ import {
   Prohibit,
   Lightning,
   Trash,
-} from "@phosphor-icons/react";
+  ICON_WEIGHT_BOLD,
+} from "@/lib/icons/client";
 
 type Partner = {
   id: string;
@@ -32,19 +33,19 @@ const actionMap: Record<
   { key: ActionKey; label: string; icon: React.ReactNode; tone: string }[]
 > = {
   pending_approval: [
-    { key: "approve", label: "Approve", icon: <CheckCircle size={13} weight="bold" />, tone: "emerald" },
-    { key: "block",   label: "Block",   icon: <Prohibit   size={13} weight="bold" />, tone: "red"    },
+    { key: "approve", label: "Approve", icon: <CheckCircle size={13} weight={ICON_WEIGHT_BOLD} />, tone: "emerald" },
+    { key: "block",   label: "Block",   icon: <Prohibit   size={13} weight={ICON_WEIGHT_BOLD} />, tone: "red"    },
   ],
   active: [
-    { key: "block",  label: "Block",  icon: <Prohibit size={13} weight="bold" />, tone: "red"   },
+    { key: "block",  label: "Block",  icon: <Prohibit size={13} weight={ICON_WEIGHT_BOLD} />, tone: "red"   },
   ],
   disabled: [
-    { key: "activate", label: "Activate", icon: <Lightning size={13} weight="bold" />, tone: "emerald" },
-    { key: "delete",   label: "Delete",   icon: <Trash     size={13} weight="bold" />, tone: "red"     },
+    { key: "activate", label: "Activate", icon: <Lightning size={13} weight={ICON_WEIGHT_BOLD} />, tone: "emerald" },
+    { key: "delete",   label: "Delete",   icon: <Trash     size={13} weight={ICON_WEIGHT_BOLD} />, tone: "red"     },
   ],
   rejected: [
-    { key: "activate", label: "Activate", icon: <Lightning size={13} weight="bold" />, tone: "emerald" },
-    { key: "delete",   label: "Delete",   icon: <Trash     size={13} weight="bold" />, tone: "red"     },
+    { key: "activate", label: "Activate", icon: <Lightning size={13} weight={ICON_WEIGHT_BOLD} />, tone: "emerald" },
+    { key: "delete",   label: "Delete",   icon: <Trash     size={13} weight={ICON_WEIGHT_BOLD} />, tone: "red"     },
   ],
 };
 

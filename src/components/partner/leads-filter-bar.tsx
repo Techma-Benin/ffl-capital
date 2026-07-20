@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CaretDown, CaretUp, X } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { clsx } from "clsx";
 
 type FilterOption = { value: string; label: string };
@@ -183,9 +183,9 @@ export function LeadsFilterBar({
                 </span>
               )}
               {isOpen ? (
-                <CaretUp size={12} />
+                <CaretUp size={12} weight={ICON_WEIGHT_LINEAR} />
               ) : (
-                <CaretDown size={12} />
+                <CaretDown size={12} weight={ICON_WEIGHT_LINEAR} />
               )}
             </button>
           );
@@ -197,7 +197,7 @@ export function LeadsFilterBar({
             onClick={clearAll}
             className="ml-auto inline-flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors"
           >
-            <X size={12} />
+            <X size={12} weight={ICON_WEIGHT_LINEAR} />
             Clear all
           </button>
         )}

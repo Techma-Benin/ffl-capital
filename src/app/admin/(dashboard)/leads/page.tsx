@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FileText } from "@phosphor-icons/react/dist/ssr";
+import { FileText } from "@/lib/icons/ssr";
 import { FilterTabLink } from "@/components/ui/filter-tab-link";
 import { PortalLink } from "@/components/ui/portal-link";
 import { AdminLeadsFilters } from "@/components/admin/admin-leads-filters";

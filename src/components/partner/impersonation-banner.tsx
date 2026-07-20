@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { Warning } from "@phosphor-icons/react";
+import { Warning, ICON_WEIGHT } from "@/lib/icons/client";
 
 interface Props {
   partnerName: string;
@@ -22,7 +22,7 @@ export function ImpersonationBanner({ partnerName }: Props) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-yellow-300 bg-yellow-100 px-6 py-2.5">
       <div className="flex items-center gap-2">
-        <Warning size={15} className="flex-shrink-0 text-yellow-700" weight="fill" />
+        <Warning size={15} className="flex-shrink-0 text-yellow-700" weight={ICON_WEIGHT} />
         <p className="text-sm font-medium text-yellow-800">
           Viewing <span className="font-bold">{partnerName}</span>&apos;s portal
           &mdash; admin view

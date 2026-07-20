@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowsClockwise } from "@phosphor-icons/react";
+import { ArrowsClockwise } from "@/lib/icons/client";
 
 export function LeadReprocessButton({ leadId }: { leadId: string }) {
   const router = useRouter();

@@ -2,9 +2,8 @@
 
 import { useEffect, useId } from "react";
 import { createPortal } from "react-dom";
-import { ThumbsUp, Confetti } from "@phosphor-icons/react";
+import { ThumbsUp, Confetti, ArrowRight, ICON_WEIGHT } from "@/lib/icons/client";
 import { ActionButton } from "@/components/ui/action-button";
-import { ArrowRight } from "@phosphor-icons/react";
 
 type Props = {
   open: boolean;
@@ -73,18 +72,18 @@ export function OnboardingSuccessModal({ open, onGoToDashboard }: Props) {
             <span className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-50 via-brand-50 to-emerald-100/80 ring-1 ring-emerald-200/60" />
             <span className="absolute -inset-1 rounded-full border border-dashed border-brand-200/50 motion-safe:animate-[spin_24s_linear_infinite] motion-reduce:animate-none" />
             <span className="relative flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-white shadow-md shadow-brand-700/10 ring-4 ring-white motion-safe:animate-onboarding-icon-pop motion-reduce:animate-none opacity-0 motion-reduce:opacity-100">
-              <ThumbsUp size={40} weight="duotone" className="text-brand-700" aria-hidden />
+              <ThumbsUp size={40} weight={ICON_WEIGHT} className="text-brand-700" aria-hidden />
             </span>
             <Confetti
               size={22}
-              weight="fill"
+              weight={ICON_WEIGHT}
               className="absolute -right-1 top-2 text-emerald-500 motion-safe:animate-onboarding-sparkle motion-reduce:animate-none"
               style={{ animationDelay: "0.4s" }}
               aria-hidden
             />
             <Confetti
               size={18}
-              weight="fill"
+              weight={ICON_WEIGHT}
               className="absolute -left-2 bottom-3 text-brand-500 motion-safe:animate-onboarding-sparkle motion-reduce:animate-none"
               style={{ animationDelay: "0.9s" }}
               aria-hidden

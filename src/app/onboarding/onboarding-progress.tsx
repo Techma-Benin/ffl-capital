@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "@phosphor-icons/react";
+import { Check, ICON_WEIGHT_BOLD } from "@/lib/icons/client";
 
 const STEPS = [
   { n: 1 as const, label: "Your details", shortLabel: "Details" },
@@ -20,7 +20,9 @@ export function OnboardingProgress({ step }: { step: Step }) {
     <div className="mb-8">
       <nav aria-label="Onboarding progress">
         <ol className="flex items-start">
-          {STEPS.map(({ n, label, shortLabel, optional }, i) => {
+          {STEPS.map((stepDef, i) => {
+            const { n, label, shortLabel } = stepDef;
+            const optional = "optional" in stepDef && stepDef.optional;
             const done = step > n;
             const active = step === n;
             const isFirst = i === 0;
@@ -50,7 +52,7 @@ export function OnboardingProgress({ step }: { step: Step }) {
                           : "border border-slate-200 bg-white text-slate-400"
                     }`}
                   >
-                    {done ? <Check size={16} weight="bold" aria-hidden /> : n}
+                    {done ? <Check size={16} weight={ICON_WEIGHT_BOLD} aria-hidden /> : n}
                   </div>
                   <div
                     className={`h-0.5 min-w-2 flex-1 rounded-full transition-colors ${

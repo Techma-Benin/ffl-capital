@@ -4,7 +4,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { IntakeAreaChart, DonutChart } from "@/components/ui/charts";
 import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
-import { WarningCircle, Clock, FileText, CalendarCheck, UsersThree, Warning } from "@phosphor-icons/react";
+import { WarningCircle, Clock, FileText, CalendarCheck, UsersThree, Warning, ICON_WEIGHT } from "@/lib/icons/client";
 
 type RecentLead = {
   id: string;
@@ -116,7 +116,7 @@ export function AdminDashboardCharts({
                   Pending Approvals
                 </p>
               </div>
-              <Clock size={16} className="text-amber-500" weight="duotone" />
+              <Clock size={16} className="text-amber-500" weight={ICON_WEIGHT} />
             </div>
           </PortalLink>
         ) : (
@@ -128,7 +128,7 @@ export function AdminDashboardCharts({
                   Pending Approvals
                 </p>
               </div>
-              <Clock size={16} className="text-amber-500" weight="duotone" />
+              <Clock size={16} className="text-amber-500" weight={ICON_WEIGHT} />
             </div>
           </div>
         )}
@@ -144,7 +144,7 @@ export function AdminDashboardCharts({
                   Reprocess Queue
                 </p>
               </div>
-              <WarningCircle size={16} className="text-amber-500" weight="duotone" />
+              <WarningCircle size={16} className="text-amber-500" weight={ICON_WEIGHT} />
             </div>
           </PortalLink>
         ) : (
@@ -156,7 +156,7 @@ export function AdminDashboardCharts({
                   Reprocess Queue
                 </p>
               </div>
-              <WarningCircle size={16} className="text-amber-500" weight="duotone" />
+              <WarningCircle size={16} className="text-amber-500" weight={ICON_WEIGHT} />
             </div>
           </div>
         )}

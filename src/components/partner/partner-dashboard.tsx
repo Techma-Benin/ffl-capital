@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PortalLink } from "@/components/ui/portal-link";
 import { usePartner } from "@/components/partner/partner-provider";
 import { isPartnerActive } from "@/lib/partner/active";
-import { Wallet, FileText, TrendUp, ShoppingBag, MapPin, WarningCircle } from "@phosphor-icons/react";
+import { Wallet, FileText, TrendUp, ShoppingBag, MapPin, WarningCircle } from "@/lib/icons/client";
 
 type RecentDelivery = {
   id: string;
