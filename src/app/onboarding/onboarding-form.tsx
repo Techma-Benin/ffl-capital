@@ -152,7 +152,7 @@ function AdvancedFiltersFields({
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+    <div className="space-y-4">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Lead Profile</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <TagInput label="Intent (allow-list)" values={criteria.intent ?? []} onChange={(v) => update({ intent: v })} placeholder="e.g. buy_now" />
