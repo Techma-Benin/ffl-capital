@@ -655,36 +655,6 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
               </div>
             </div>
 
-            {/* Volume limits */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="form-label">Weekly Limit <span className="font-normal text-slate-400">(optional)</span></label>
-                <input
-                  type="number"
-                  min={1}
-                  placeholder="No limit"
-                  className="form-input"
-                  value={weeklyLimit}
-                  onChange={(e) => setWeeklyLimit(e.target.value)}
-                />
-                <p className="mt-1 text-xs text-slate-400">Max leads per 7 days</p>
-              </div>
-              <div>
-                <label className="form-label">Monthly Limit <span className="font-normal text-slate-400">(optional)</span></label>
-                <input
-                  type="number"
-                  min={1}
-                  placeholder="No limit"
-                  className="form-input"
-                  value={monthlyLimit}
-                  onChange={(e) => setMonthlyLimit(e.target.value)}
-                />
-                <p className="mt-1 text-xs text-slate-400">Max leads per 30 days</p>
-              </div>
-            </div>
-
-            {/* Advanced filters moved to step 3 */}
-
             {success && (
               <StatusStrip
                 status="success"
@@ -712,14 +682,14 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
                 disabled={!isEligible}
                 icon={<ArrowRight size={15} />}
               >
-                Continue — Advanced filters (optional)
+                Continue — Limits & filters (optional)
               </ActionButton>
             </div>
           </div>
       )}
 
       {/* ================================================================ */}
-      {/* Step 3 — Advanced filters (optional)                              */}
+      {/* Step 3 — Volume limits & advanced filters (optional)                              */}
       {/* ================================================================ */}
       {step === 3 && (
         submitting ? (
@@ -735,12 +705,39 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
             <div>
               <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
                 <Funnel size={14} className="text-brand-600" />
-                Advanced filters
+                Volume limits &amp; advanced filters
                 <span className="text-xs font-normal text-slate-400">(optional)</span>
               </p>
               <p className="text-xs text-slate-500 mt-0.5">
-                Fine-tune which leads you receive, or skip to use your lead preferences only.
+                Cap how many leads you receive, fine-tune matching criteria, or skip to finish with your lead preferences only.
               </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="form-label">Weekly Limit <span className="font-normal text-slate-400">(optional)</span></label>
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="No limit"
+                  className="form-input"
+                  value={weeklyLimit}
+                  onChange={(e) => setWeeklyLimit(e.target.value)}
+                />
+                <p className="mt-1 text-xs text-slate-400">Max leads per 7 days</p>
+              </div>
+              <div>
+                <label className="form-label">Monthly Limit <span className="font-normal text-slate-400">(optional)</span></label>
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="No limit"
+                  className="form-input"
+                  value={monthlyLimit}
+                  onChange={(e) => setMonthlyLimit(e.target.value)}
+                />
+                <p className="mt-1 text-xs text-slate-400">Max leads per 30 days</p>
+              </div>
             </div>
 
             <AdvancedFiltersFields
