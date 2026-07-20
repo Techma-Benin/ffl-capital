@@ -7,8 +7,8 @@ const STEPS = [
   { n: 2 as const, label: "Lead preferences", shortLabel: "Preferences" },
   {
     n: 3 as const,
-    label: "Advanced filters",
-    shortLabel: "Filters",
+    label: "Limits & filters",
+    shortLabel: "Limits",
     optional: true,
   },
 ] as const;
@@ -57,14 +57,6 @@ export function OnboardingProgress({ step }: { step: Step }) {
                         )}
                       </span>
                     </p>
-                    {active && (
-                      <p className="mt-0.5 text-[11px] font-medium text-brand-600/80">
-                        Step {n} of {STEPS.length}
-                        {optional && (
-                          <span className="font-normal text-slate-400"> · optional</span>
-                        )}
-                      </p>
-                    )}
                   </div>
                 </div>
                 {!isLast && (
