@@ -3,12 +3,16 @@
 import {
   Area,
   AreaChart,
+  CartesianGrid,
   Cell,
   Line,
   LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 
 const BRAND = "#0B3D91";
@@ -52,18 +56,43 @@ export function IntakeAreaChart({
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="intakeFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={BRAND} stopOpacity={0.25} />
-            <stop offset="100%" stopColor={BRAND} stopOpacity={0.02} />
+            <stop offset="5%" stopColor={BRAND} stopOpacity={0.8} />
+            <stop offset="95%" stopColor={BRAND} stopOpacity={0} />
           </linearGradient>
         </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <XAxis
+          dataKey="label"
+          tick={{ fontSize: 11, fill: "#94a3b8" }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis
+          allowDecimals={false}
+          tick={{ fontSize: 11, fill: "#94a3b8" }}
+          axisLine={false}
+          tickLine={false}
+          width={30}
+        />
+        <Tooltip
+          contentStyle={{
+            borderRadius: 8,
+            border: "1px solid #e2e8f0",
+            fontSize: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+          labelStyle={{ fontWeight: 600, color: "#1e293b" }}
+          formatter={(value: number) => [value, "Leads"]}
+        />
         <Area
           type="monotone"
           dataKey="leads"
           stroke={BRAND}
           strokeWidth={2}
+          fillOpacity={1}
           fill="url(#intakeFill)"
           isAnimationActive={false}
         />

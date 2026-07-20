@@ -1,10 +1,10 @@
 "use client";
 
 import { StatCard } from "@/components/ui/stat-card";
-import { SparklineChart, IntakeAreaChart, DonutChart } from "@/components/ui/charts";
+import { IntakeAreaChart, DonutChart } from "@/components/ui/charts";
 import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
-import { WarningCircle, Clock } from "@phosphor-icons/react";
+import { WarningCircle, Clock, FileText, CalendarCheck, UsersThree, Warning } from "@phosphor-icons/react";
 
 type RecentLead = {
   id: string;
@@ -47,25 +47,30 @@ export function AdminDashboardCharts({
         <StatCard
           label="Total Leads"
           value={kpis.totalLeads.toLocaleString()}
-          variant="blue"
-          sparkline={<SparklineChart data={sparkByDay} />}
+          variant="hero"
+          icon={FileText}
+          heroBg="bg-blue-400"
         />
         <StatCard
           label="Leads Today"
           value={kpis.leadsToday}
-          variant="purple"
-          sparkline={<SparklineChart data={sparkByDay} color="#8B5CF6" />}
+          variant="hero"
+          icon={CalendarCheck}
+          heroBg="bg-purple-400"
         />
         <StatCard
           label="Active Partners"
           value={kpis.activePartners}
-          variant="peach"
+          variant="hero"
+          icon={UsersThree}
+          heroBg="bg-rose-300"
         />
         <StatCard
           label="Unmatched"
           value={kpis.unmatchedLeads}
-          subtitle="In reprocess queue"
-          variant="orange"
+          variant="hero"
+          icon={Warning}
+          heroBg="bg-orange-400"
         />
       </div>
 
