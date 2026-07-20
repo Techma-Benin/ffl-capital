@@ -12,9 +12,16 @@ import { AuthContinueRedirect } from "@/app/auth/continue/redirect";
 // This prevents the Clerk/Next.js Suspense boundary from triggering an
 // "Invalid hook call" during server rendering, which was causing a
 // hydration crash every time an authenticated user landed on this page.
-const OnboardingForm = dynamic(() => import("./onboarding-form"), {
+const OnboardingWizard = dynamic(() => import("./onboarding-wizard"), {
   ssr: false,
-  loading: () => <FormSkeleton />,
+  loading: () => (
+    <div className="space-y-8">
+      <div className="h-16 animate-pulse rounded-xl bg-slate-100" aria-hidden />
+      <div className="card p-6 sm:p-8">
+        <FormSkeleton />
+      </div>
+    </div>
+  ),
 });
 
 export default async function OnboardingPage() {
@@ -52,18 +59,7 @@ export default async function OnboardingPage() {
       </header>
 
       <div className="mx-auto max-w-2xl px-6 py-12">
-        <div className="card p-6 sm:p-8">
-          <div className="mb-6">
-            <p className="mb-2 text-xs font-medium text-emerald-600">Account created</p>
-            <h1 className="text-2xl font-bold text-slate-900">Complete your partner profile</h1>
-            <p className="mt-1.5 text-sm text-slate-500">
-              Tell us about yourself and set up where you want to receive IUL leads.
-              After you submit, an admin reviews your account before you go live.
-            </p>
-          </div>
-
-          <OnboardingForm initialProfile={initialProfile} />
-        </div>
+        <OnboardingWizard initialProfile={initialProfile} />
       </div>
     </div>
   );
