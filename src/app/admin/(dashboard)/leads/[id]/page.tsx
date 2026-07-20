@@ -221,21 +221,44 @@ export default async function AdminLeadDetailPage({
             <p className="text-sm text-slate-400">No events recorded yet.</p>
           ) : (
             <ol className="space-y-3">
-              {leadEvents.map((event) => (
-                <li key={event.id} className="border-l-2 border-brand-200 pl-3">
-                  <p className="text-sm font-medium text-slate-900">
-                    {formatEventType(event.type)}
-                  </p>
-                  {event.payload && (
-                    <p className="text-xs text-slate-500">
-                      {formatEventPayload(event.payload as Record<string, unknown>)}
+              {leadEvents.map((event) => {
+                const isDeliveryEvent =
+                  event.type === "delivered" || event.type === "delivery_failed";
+                const borderColor =
+                  event.type === "delivery_failed"
+                    ? "border-red-300"
+                    : event.type === "delivered"
+                      ? "border-green-300"
+                      : "border-brand-200";
+                return (
+                  <li key={event.id} className={`border-l-2 ${borderColor} pl-3`}>
+                    <p className={`text-sm font-medium ${event.type === "delivery_failed" ? "text-red-700" : "text-slate-900"}`}>
+                      {formatEventType(event.type)}
+                      {event.payload && (event.payload as Record<string, unknown>).step
+                        ? ` · ${(event.payload as Record<string, unknown>).step}`
+                        : ""}
                     </p>
-                  )}
-                  <p className="text-[10px] text-slate-400">
-                    {new Date(event.createdAt).toLocaleString()}
-                  </p>
-                </li>
-              ))}
+                    {event.payload && !isDeliveryEvent && (
+                      <p className="text-xs text-slate-500">
+                        {formatEventPayload(event.payload as Record<string, unknown>)}
+                      </p>
+                    )}
+                    {event.payload && isDeliveryEvent && (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
+                          {formatEventPayload(event.payload as Record<string, unknown>)}
+                        </summary>
+                        <pre className="mt-2 overflow-x-auto rounded bg-slate-50 p-2 text-[11px] text-slate-700">
+                          {JSON.stringify(event.payload, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                    <p className="text-[10px] text-slate-400">
+                      {new Date(event.createdAt).toLocaleString()}
+                    </p>
+                  </li>
+                );
+              })}
             </ol>
           )}
         </div>
@@ -279,7 +302,17 @@ function formatEventPayload(payload: Record<string, unknown>): string {
   if (payload.partnerId) parts.push(`Partner: ${payload.partnerId}`);
   if (payload.reason) parts.push(String(payload.reason));
   if (payload.channel) parts.push(`Channel: ${payload.channel}`);
-  if (payload.price != null) parts.push(`$${Number(payload.price).toFixed(2)}`);
+  if (payload.price != null) parts.push(`${Number(payload.price).toFixed(2)}`);
+  // Delivery-specific fields
+  if (payload.from) parts.push(`From: ${payload.from}`);
+  if (payload.to) parts.push(`To: ${payload.to}`);
+  if (payload.toEmail && !payload.to) parts.push(`To: ${payload.toEmail}`);
+  if (payload.resendMock != null) parts.push(`Mock: ${payload.resendMock}`);
+  if (payload.resendMessageId) parts.push(`Resend ID: ${payload.resendMessageId}`);
+  if (payload.error) parts.push(`Error: ${payload.error}`);
+  if (payload.statusCode != null) parts.push(`Status: ${payload.statusCode}`);
+  if (payload.emailSent != null) parts.push(`Email: ${payload.emailSent ? "sent" : "not sent"}`);
+  if (payload.mode) parts.push(`Mode: ${payload.mode}`);
   if (parts.length > 0) return parts.join(" · ");
   return JSON.stringify(payload);
 }

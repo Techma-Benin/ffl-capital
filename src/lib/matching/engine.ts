@@ -128,10 +128,13 @@ export async function matchLead(
   try {
     await deliverLead(result.deliveryId);
   } catch (err) {
-    console.error(
-      `[matchLead] deliverLead failed for ${result.deliveryId}:`,
-      err,
-    );
+    const errMsg = err instanceof Error ? err.message : String(err);
+    await emitLeadEvent(result.lead.id, LeadEventType.delivery_failed, {
+      step: "deliver_lead_threw",
+      deliveryId: result.deliveryId,
+      error: errMsg,
+      errorDetail: err instanceof Error ? { name: err.name, message: err.message } : String(err),
+    });
   }
 
   return {
