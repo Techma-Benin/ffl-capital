@@ -38,44 +38,11 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
   const walletOk = balance >= 25;
 
   return (
-    <div>
+    <div className={!active ? "pb-44 sm:pb-40" : undefined}>
       <PageHeader
         title={`Welcome back, ${partner.firstName}`}
         subtitle={partner.affiliation ?? "Partner Dashboard"}
       />
-
-      {!active && (
-        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-start gap-3">
-            <WarningCircle size={18} className="mt-0.5 flex-shrink-0 text-amber-600" />
-            <div>
-              <p className="text-sm font-semibold text-amber-900">Complete your setup to start receiving leads</p>
-              <div className="mt-2 space-y-1.5">
-                <ChecklistItem
-                  done={partner.status !== "pending_approval"}
-                  label="Account approved by admin"
-                />
-                <ChecklistItem
-                  done={statesOk}
-                  label={
-                    partner.hasStatesInAnyFilterSet && !statesOk
-                      ? "Target filter set must be active (contact admin if this persists)"
-                      : `At least 15 target states selected (${partner.maxFilterSetStates} selected)`
-                  }
-                  actionHref="/partner/settings"
-                  actionLabel="Edit states"
-                />
-                <ChecklistItem
-                  done={walletOk}
-                  label="Wallet funded ($25+ to purchase a lead)"
-                  actionHref="/partner/wallet"
-                  actionLabel="Add funds"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -172,6 +139,43 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           )}
         </div>
       </div>
+
+      {!active && (
+        <div
+          className="fixed bottom-4 left-4 right-4 z-40 max-w-md rounded-xl border border-amber-200 bg-amber-50 p-3.5 shadow-lg sm:bottom-6 sm:left-auto sm:right-6 sm:p-4"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-2.5 sm:gap-3">
+            <WarningCircle size={18} className="mt-0.5 flex-shrink-0 text-amber-600" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-amber-900">Complete your setup to start receiving leads</p>
+              <div className="mt-2 space-y-1.5">
+                <ChecklistItem
+                  done={partner.status !== "pending_approval"}
+                  label="Account approved by admin"
+                />
+                <ChecklistItem
+                  done={statesOk}
+                  label={
+                    partner.hasStatesInAnyFilterSet && !statesOk
+                      ? "Target filter set must be active (contact admin if this persists)"
+                      : `At least 15 target states selected (${partner.maxFilterSetStates} selected)`
+                  }
+                  actionHref="/partner/settings"
+                  actionLabel="Edit states"
+                />
+                <ChecklistItem
+                  done={walletOk}
+                  label="Wallet funded ($25+ to purchase a lead)"
+                  actionHref="/partner/wallet"
+                  actionLabel="Add funds"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
