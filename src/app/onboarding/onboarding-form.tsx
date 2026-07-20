@@ -411,6 +411,58 @@ export default function OnboardingForm({ initialProfile }: Props) {
 
   return (
     <form onSubmit={step === 1 ? continueToFilterSet : handleSubmit}>
+      {/* Form progress — mirrors the two real steps on this page */}
+      <nav aria-label="Onboarding progress" className="mb-8">
+        <ol className="flex items-start">
+          {[
+            { n: 1 as const, label: "Your details" },
+            { n: 2 as const, label: "Lead preferences" },
+          ].map(({ n, label }, i, arr) => {
+            const done = step > n;
+            const active = step === n;
+            return (
+              <li key={label} className="flex flex-1 items-start last:flex-none">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                      done
+                        ? "bg-emerald-500 text-white"
+                        : active
+                        ? "bg-brand-700 text-white ring-4 ring-brand-700/15"
+                        : "bg-slate-100 text-slate-400"
+                    }`}
+                    aria-current={active ? "step" : undefined}
+                  >
+                    {done ? <Check size={14} weight="bold" /> : n}
+                  </div>
+                  <span
+                    className={`text-[11px] font-medium whitespace-nowrap ${
+                      done
+                        ? "text-emerald-600"
+                        : active
+                        ? "text-brand-700"
+                        : "text-slate-400"
+                    }`}
+                  >
+                    {label}
+                  </span>
+                </div>
+                {i < arr.length - 1 && (
+                  <div
+                    className={`mx-3 mt-4 h-0.5 flex-1 rounded-full transition-colors ${
+                      done ? "bg-emerald-400" : "bg-slate-200"
+                    }`}
+                    aria-hidden
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+        <p className="mt-4 text-xs text-slate-400">
+          Step {step} of 2 — then admin review before you receive leads.
+        </p>
+      </nav>
 
       {/* ================================================================ */}
       {/* Step 1 — Profile                                                  */}
