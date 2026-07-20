@@ -722,9 +722,6 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
                 Volume limits &amp; advanced filters
                 <span className="text-xs font-normal text-slate-400">(optional)</span>
               </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Cap how many leads you receive, fine-tune matching criteria, or skip to finish with your lead preferences only.
-              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
