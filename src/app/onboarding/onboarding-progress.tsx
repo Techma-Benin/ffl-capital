@@ -19,19 +19,28 @@ export function OnboardingProgress({ step }: { step: Step }) {
   return (
     <div className="mb-8">
       <nav aria-label="Onboarding progress">
-        <ol className="flex items-stretch">
+        <ol className="flex items-start">
           {STEPS.map(({ n, label, shortLabel, optional }, i) => {
             const done = step > n;
             const active = step === n;
+            const isFirst = i === 0;
             const isLast = i === STEPS.length - 1;
+            const prevDone = i > 0 && step > STEPS[i - 1]!.n;
+            const segmentDone = !isLast && step > n;
 
             return (
               <li
                 key={n}
-                className={`flex items-center ${isLast ? "shrink-0" : "min-w-0 flex-1"}`}
+                className="flex min-w-0 flex-1 flex-col items-center"
                 aria-current={active ? "step" : undefined}
               >
-                <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                <div className="flex w-full items-center">
+                  <div
+                    className={`h-0.5 min-w-2 flex-1 rounded-full transition-colors ${
+                      isFirst ? "bg-transparent" : prevDone ? "bg-emerald-400" : "bg-slate-200"
+                    }`}
+                    aria-hidden
+                  />
                   <div
                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
                       done
@@ -43,34 +52,26 @@ export function OnboardingProgress({ step }: { step: Step }) {
                   >
                     {done ? <Check size={16} weight="bold" aria-hidden /> : n}
                   </div>
-                  <div className="min-w-0">
-                    <p
-                      className={`truncate text-sm font-semibold leading-tight ${
-                        done ? "text-emerald-700" : active ? "text-brand-800" : "text-slate-400"
-                      }`}
-                    >
-                      <span className="sm:hidden">{shortLabel}</span>
-                      <span className="hidden sm:inline">
-                        {label}
-                        {optional && (
-                          <span className="font-normal text-slate-400"> (optional)</span>
-                        )}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-                {!isLast && (
                   <div
-                    className="mx-3 hidden min-w-[2rem] flex-1 sm:mx-5 sm:block"
+                    className={`h-0.5 min-w-2 flex-1 rounded-full transition-colors ${
+                      isLast ? "bg-transparent" : segmentDone ? "bg-emerald-400" : "bg-slate-200"
+                    }`}
                     aria-hidden
-                  >
-                    <div
-                      className={`h-0.5 w-full rounded-full transition-colors ${
-                        done ? "bg-emerald-400" : "bg-slate-200"
-                      }`}
-                    />
-                  </div>
-                )}
+                  />
+                </div>
+                <p
+                  className={`mt-2 max-w-full px-1 text-center text-[11px] font-semibold leading-snug sm:text-xs ${
+                    done ? "text-emerald-700" : active ? "text-brand-800" : "text-slate-400"
+                  }`}
+                >
+                  <span className="line-clamp-2 sm:hidden">{shortLabel}</span>
+                  <span className="hidden line-clamp-2 sm:inline">
+                    {label}
+                    {optional && (
+                      <span className="font-normal text-slate-400"> (optional)</span>
+                    )}
+                  </span>
+                </p>
               </li>
             );
           })}
