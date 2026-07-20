@@ -169,7 +169,8 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                   done={walletOk}
                   label="Wallet funded ($25+ to purchase a lead)"
                   actionHref="/partner/wallet"
-                  actionLabel="Add funds"
+                  actionLabel="Add $25 minimum"
+                  linkOnlyWhenPending
                 />
               </div>
             </div>
@@ -185,12 +186,16 @@ function ChecklistItem({
   label,
   actionHref,
   actionLabel,
+  linkOnlyWhenPending,
 }: {
   done: boolean;
   label: string;
   actionHref?: string;
   actionLabel?: string;
+  linkOnlyWhenPending?: boolean;
 }) {
+  const linkClass = "text-xs font-medium text-brand-600 hover:underline";
+
   return (
     <div className="flex items-center gap-2">
       <span
@@ -202,13 +207,21 @@ function ChecklistItem({
       >
         {done ? "✓" : "!"}
       </span>
-      <span className={`text-xs ${done ? "text-slate-500 line-through" : "text-amber-900"}`}>
-        {label}
-      </span>
-      {!done && actionHref && (
-        <PortalLink href={actionHref} className="text-xs font-medium text-brand-600 hover:underline">
-          {actionLabel} →
+      {done ? (
+        <span className="text-xs text-slate-500 line-through">{label}</span>
+      ) : linkOnlyWhenPending && actionHref && actionLabel ? (
+        <PortalLink href={actionHref} className={linkClass}>
+          {actionLabel}
         </PortalLink>
+      ) : (
+        <>
+          <span className="text-xs text-amber-900">{label}</span>
+          {actionHref && actionLabel && (
+            <PortalLink href={actionHref} className={linkClass}>
+              {actionLabel} →
+            </PortalLink>
+          )}
+        </>
       )}
     </div>
   );
