@@ -9,6 +9,7 @@ import type { PartnerSession } from "./types";
 export function serializePartner(
   partner: Partner,
   filterSets: PartnerFilterSet[] = [],
+  clerkEmail?: string,
 ): PartnerSession {
   const defaultSet = pickDefaultFilterSet(filterSets);
   // Prefer default filter-set states when present — matching uses filter sets.
@@ -24,7 +25,7 @@ export function serializePartner(
 
   return {
     id: partner.id,
-    email: partner.email,
+    email: clerkEmail ?? partner.email,
     firstName: partner.firstName,
     lastName: partner.lastName,
     affiliation: partner.affiliation,

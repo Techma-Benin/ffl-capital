@@ -78,8 +78,21 @@ export const getPartnerSession = cache(async (): Promise<PartnerSession | null> 
   });
   if (!partner) return null;
 
+  // Always use the Clerk primary email as the source of truth.
+  const clerkEmail = user.emailAddresses.find(
+    (e) => e.id === user.primaryEmailAddressId,
+  )?.emailAddress;
+
+  // Silently sync the DB if the email has drifted.
+  if (clerkEmail && clerkEmail !== partner.email) {
+    await prisma.partner.update({
+      where: { id: partner.id },
+      data: { email: clerkEmail },
+    }).catch(() => { /* non-fatal */ });
+  }
+
   const { filterSets, ...row } = partner;
-  return serializePartner(row, filterSets);
+  return serializePartner(row, filterSets, clerkEmail);
 });
 
 /**

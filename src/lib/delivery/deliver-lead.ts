@@ -53,7 +53,11 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
   let crmPosted = false;
   let ringyPosted = false;
 
-  const payload = buildLeadDeliveryPayload(delivery, lead, partner);
+  // Resolve the partner's current Clerk email once and use it everywhere.
+  const partnerEmail = await getPartnerEmail(partner);
+  const partnerWithClerkEmail = { ...partner, email: partnerEmail };
+
+  const payload = buildLeadDeliveryPayload(delivery, lead, partnerWithClerkEmail);
   const leadTypeLabel =
     lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
 
