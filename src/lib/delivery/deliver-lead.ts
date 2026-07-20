@@ -1,4 +1,5 @@
 import { LeadEventType } from "@prisma/client";
+import { clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { getIntegrationsMode } from "@/lib/settings/app-settings";
@@ -7,6 +8,22 @@ import {
   buildLeadDeliveryPayload,
 } from "./lead-payload";
 import { deliverToRingy } from "./ringy";
+
+async function getPartnerEmail(partner: { clerkUserId: string | null; email: string }): Promise<string> {
+  if (partner.clerkUserId) {
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(partner.clerkUserId);
+      const primary = user.emailAddresses.find(
+        (e) => e.id === user.primaryEmailAddressId,
+      );
+      if (primary?.emailAddress) return primary.emailAddress;
+    } catch {
+      // fall through to DB email
+    }
+  }
+  return partner.email;
+}
 
 export interface DeliverLeadResult {
   emailSent: boolean;
@@ -97,9 +114,10 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
       const { Resend } = await import("resend");
       const resend = new Resend(resendKey);
 
+      const toEmail = await getPartnerEmail(partner);
       await resend.emails.send({
         from: fromEmail,
-        to: partner.email,
+        to: toEmail,
         subject: `New lead delivered — ${lead.state} ${leadTypeLabel}`,
         html: buildLeadDeliveryEmailHtml(delivery, lead, partner),
       });
