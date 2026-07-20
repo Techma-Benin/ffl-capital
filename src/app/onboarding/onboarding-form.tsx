@@ -15,8 +15,6 @@ import {
   MapPin,
   Funnel,
   X,
-  CaretDown,
-  CaretUp,
 } from "@phosphor-icons/react";
 import type { FilterCriteria } from "@/lib/matching/types";
 
@@ -66,8 +64,8 @@ type FilterSetTemplate = {
 type InitialProfile = Partial<ProfileFields> & { email?: string };
 type Props = {
   initialProfile?: InitialProfile;
-  step: 1 | 2;
-  onStepChange: (step: 1 | 2) => void;
+  step: 1 | 2 | 3;
+  onStepChange: (step: 1 | 2 | 3) => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -137,87 +135,72 @@ function TagInput({
 }
 
 // ---------------------------------------------------------------------------
-// Advanced Filters accordion
+// Advanced Filters (step 3)
 // ---------------------------------------------------------------------------
 
-function AdvancedFiltersAccordion({
+function AdvancedFiltersFields({
   criteria,
   onChange,
 }: {
   criteria: FilterCriteria;
   onChange: (c: FilterCriteria) => void;
 }) {
-  const [open, setOpen] = useState(false);
-
   function update(patch: Partial<FilterCriteria>) {
     onChange({ ...criteria, ...patch });
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors rounded-xl"
-      >
-        <span>Advanced Filters <span className="text-xs font-normal text-slate-400">(optional)</span></span>
-        {open ? <CaretUp size={14} /> : <CaretDown size={14} />}
-      </button>
-
-      {open && (
-        <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Lead Profile</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TagInput label="Intent (allow-list)" values={criteria.intent ?? []} onChange={(v) => update({ intent: v })} placeholder="e.g. buy_now" />
-            <TagInput label="Have IUL (allow-list)" values={criteria.haveIul ?? []} onChange={(v) => update({ haveIul: v })} placeholder="e.g. yes" />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="form-label">Age Min</label>
-              <input type="number" min={0} max={120} placeholder="No min" className="form-input" value={criteria.ageMin ?? ""} onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })} />
-            </div>
-            <div>
-              <label className="form-label">Age Max</label>
-              <input type="number" min={0} max={120} placeholder="No max" className="form-input" value={criteria.ageMax ?? ""} onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })} />
-            </div>
-          </div>
-
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Attribution</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TagInput label="Source (allow-list)" values={criteria.source ?? []} onChange={(v) => update({ source: v })} placeholder="e.g. meta_leadconduit" />
-            <TagInput label="Source (block-list)" values={criteria.excludeSource ?? []} onChange={(v) => update({ excludeSource: v })} />
-            <TagInput label="Sub ID (allow-list)" values={criteria.subId ?? []} onChange={(v) => update({ subId: v })} />
-            <TagInput label="Sub ID (block-list)" values={criteria.excludeSubId ?? []} onChange={(v) => update({ excludeSubId: v })} />
-            <TagInput label="Pub ID (allow-list)" values={criteria.pubId ?? []} onChange={(v) => update({ pubId: v })} />
-            <TagInput label="Pub ID (block-list)" values={criteria.excludePubId ?? []} onChange={(v) => update({ excludePubId: v })} />
-            <TagInput label="Boberdoo Lead Type (allow-list)" values={criteria.boberdooLeadType ?? []} onChange={(v) => update({ boberdooLeadType: v })} />
-          </div>
-
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Schedule (Eastern Time)</p>
-          <div>
-            <label className="form-label">Days you accept leads</label>
-            <div className="flex flex-wrap gap-3 mt-1">
-              {(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const).map((day) => (
-                <label key={day} className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
-                  <input type="checkbox" checked={(criteria.acceptDays ?? []).includes(day)} onChange={(e) => { const days = criteria.acceptDays ?? []; update({ acceptDays: e.target.checked ? [...days, day] : days.filter((d) => d !== day) }); }} className="rounded border-slate-300" />
-                  {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-                </label>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-slate-400">Leave all unchecked to accept any day</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="form-label">From hour (ET, 0–23)</label>
-              <input type="number" min={0} max={23} placeholder="No start" className="form-input" value={criteria.acceptHoursStart ?? ""} onChange={(e) => update({ acceptHoursStart: e.target.value ? Number(e.target.value) : undefined })} />
-            </div>
-            <div>
-              <label className="form-label">To hour (ET, 0–23, exclusive)</label>
-              <input type="number" min={0} max={23} placeholder="No end" className="form-input" value={criteria.acceptHoursEnd ?? ""} onChange={(e) => update({ acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined })} />
-            </div>
-          </div>
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Lead Profile</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TagInput label="Intent (allow-list)" values={criteria.intent ?? []} onChange={(v) => update({ intent: v })} placeholder="e.g. buy_now" />
+        <TagInput label="Have IUL (allow-list)" values={criteria.haveIul ?? []} onChange={(v) => update({ haveIul: v })} placeholder="e.g. yes" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="form-label">Age Min</label>
+          <input type="number" min={0} max={120} placeholder="No min" className="form-input" value={criteria.ageMin ?? ""} onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })} />
         </div>
-      )}
+        <div>
+          <label className="form-label">Age Max</label>
+          <input type="number" min={0} max={120} placeholder="No max" className="form-input" value={criteria.ageMax ?? ""} onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })} />
+        </div>
+      </div>
+
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Attribution</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TagInput label="Source (allow-list)" values={criteria.source ?? []} onChange={(v) => update({ source: v })} placeholder="e.g. meta_leadconduit" />
+        <TagInput label="Source (block-list)" values={criteria.excludeSource ?? []} onChange={(v) => update({ excludeSource: v })} />
+        <TagInput label="Sub ID (allow-list)" values={criteria.subId ?? []} onChange={(v) => update({ subId: v })} />
+        <TagInput label="Sub ID (block-list)" values={criteria.excludeSubId ?? []} onChange={(v) => update({ excludeSubId: v })} />
+        <TagInput label="Pub ID (allow-list)" values={criteria.pubId ?? []} onChange={(v) => update({ pubId: v })} />
+        <TagInput label="Pub ID (block-list)" values={criteria.excludePubId ?? []} onChange={(v) => update({ excludePubId: v })} />
+        <TagInput label="Boberdoo Lead Type (allow-list)" values={criteria.boberdooLeadType ?? []} onChange={(v) => update({ boberdooLeadType: v })} />
+      </div>
+
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Schedule (Eastern Time)</p>
+      <div>
+        <label className="form-label">Days you accept leads</label>
+        <div className="flex flex-wrap gap-3 mt-1">
+          {(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const).map((day) => (
+            <label key={day} className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={(criteria.acceptDays ?? []).includes(day)} onChange={(e) => { const days = criteria.acceptDays ?? []; update({ acceptDays: e.target.checked ? [...days, day] : days.filter((d) => d !== day) }); }} className="rounded border-slate-300" />
+              {day.charAt(0).toUpperCase() + day.slice(1, 3)}
+            </label>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-slate-400">Leave all unchecked to accept any day</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="form-label">From hour (ET, 0–23)</label>
+          <input type="number" min={0} max={23} placeholder="No start" className="form-input" value={criteria.acceptHoursStart ?? ""} onChange={(e) => update({ acceptHoursStart: e.target.value ? Number(e.target.value) : undefined })} />
+        </div>
+        <div>
+          <label className="form-label">To hour (ET, 0–23, exclusive)</label>
+          <input type="number" min={0} max={23} placeholder="No end" className="form-input" value={criteria.acceptHoursEnd ?? ""} onChange={(e) => update({ acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined })} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -395,8 +378,17 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
     if (selectedTemplateId) setSelectedTemplateId(null);
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function continueToAdvancedFilters(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError("");
+    if (selectedStates.length < 15) {
+      setError("Please select at least 15 target states.");
+      return;
+    }
+    onStepChange(3);
+  }
+
+  async function submitOnboarding() {
     setError("");
     if (selectedStates.length < 15) {
       setError("Please select at least 15 target states.");
@@ -419,6 +411,7 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Onboarding failed");
+        setLoading(false);
         return;
       }
       setSuccess(true);
@@ -429,16 +422,28 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
     }
   }
 
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await submitOnboarding();
+  }
+
   const isEligible = selectedStates.length >= 15;
   const templatesLoading = step === 2 && templates === null;
   const showFilterSetSetup = !templatesLoading && (templates?.length ?? 0) > 0;
+  const submitting = loading && step === 3;
+
+  function formSubmitHandler(e: React.FormEvent<HTMLFormElement>) {
+    if (step === 1) return continueToFilterSet(e);
+    if (step === 2) return continueToAdvancedFilters(e);
+    return handleSubmit(e);
+  }
 
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
 
   return (
-    <form onSubmit={step === 1 ? continueToFilterSet : handleSubmit}>
+    <form onSubmit={formSubmitHandler}>
       {/* ================================================================ */}
       {/* Step 1 — Profile                                                  */}
       {/* ================================================================ */}
@@ -531,15 +536,6 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
       {/* Step 2 — Filter set setup                                         */}
       {/* ================================================================ */}
       {step === 2 && (
-        loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Spinner size="lg" variant="brand" />
-            <div className="text-center">
-              <p className="font-semibold text-slate-800">Setting up your account…</p>
-              <p className="text-sm text-slate-500 mt-1">This will only take a moment</p>
-            </div>
-          </div>
-        ) : (
           <div className="space-y-5">
 
             {templatesLoading && <FilterSetSetupSkeleton />}
@@ -687,8 +683,67 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
               </div>
             </div>
 
-            {/* Advanced Filters */}
-            <AdvancedFiltersAccordion
+            {/* Advanced filters moved to step 3 */}
+
+            {success && (
+              <StatusStrip
+                status="success"
+                title="Profile created"
+                message="Redirecting you to your partner dashboard…"
+              />
+            )}
+
+            {error && !loading && (
+              <StatusStrip status="error" title="Could not continue" message={error} />
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => { setError(""); onStepChange(1); }}
+                className="btn-secondary"
+                disabled={loading || success}
+              >
+                ← Back
+              </button>
+              <ActionButton
+                type="submit"
+                className="flex-1 justify-center"
+                disabled={!isEligible}
+                icon={<ArrowRight size={15} />}
+              >
+                Continue — Advanced filters (optional)
+              </ActionButton>
+            </div>
+          </div>
+      )}
+
+      {/* ================================================================ */}
+      {/* Step 3 — Advanced filters (optional)                              */}
+      {/* ================================================================ */}
+      {step === 3 && (
+        submitting ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Spinner size="lg" variant="brand" />
+            <div className="text-center">
+              <p className="font-semibold text-slate-800">Setting up your account…</p>
+              <p className="text-sm text-slate-500 mt-1">This will only take a moment</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div>
+              <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                <Funnel size={14} className="text-brand-600" />
+                Advanced filters
+                <span className="text-xs font-normal text-slate-400">(optional)</span>
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Fine-tune which leads you receive, or skip to use your lead preferences only.
+              </p>
+            </div>
+
+            <AdvancedFiltersFields
               criteria={filterCriteria}
               onChange={setFilterCriteria}
             />
@@ -705,19 +760,26 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
               <StatusStrip status="error" title="Onboarding failed" message={error} />
             )}
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => { setError(""); onStepChange(1); }}
+                onClick={() => { setError(""); onStepChange(2); }}
                 className="btn-secondary"
                 disabled={loading || success}
               >
                 ← Back
               </button>
+              <button
+                type="button"
+                onClick={() => void submitOnboarding()}
+                className="btn-secondary"
+                disabled={loading || success}
+              >
+                Skip
+              </button>
               <ActionButton
                 type="submit"
-                className="flex-1 justify-center"
-                disabled={!isEligible}
+                className="flex-1 min-w-[10rem] justify-center"
                 loading={loading}
                 success={success}
                 loadingText="Setting up your account…"

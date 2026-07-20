@@ -15,7 +15,7 @@ type InitialProfile = {
 type Props = { initialProfile: InitialProfile };
 
 export default function OnboardingWizard({ initialProfile }: Props) {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   return (
     <>

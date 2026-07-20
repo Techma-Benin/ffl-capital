@@ -5,16 +5,22 @@ import { Check } from "@phosphor-icons/react";
 const STEPS = [
   { n: 1 as const, label: "Your details", shortLabel: "Details" },
   { n: 2 as const, label: "Lead preferences", shortLabel: "Preferences" },
+  {
+    n: 3 as const,
+    label: "Advanced filters",
+    shortLabel: "Filters",
+    optional: true,
+  },
 ] as const;
 
-type Step = 1 | 2;
+type Step = 1 | 2 | 3;
 
 export function OnboardingProgress({ step }: { step: Step }) {
   return (
     <div className="mb-8">
       <nav aria-label="Onboarding progress">
         <ol className="flex items-stretch">
-          {STEPS.map(({ n, label, shortLabel }, i) => {
+          {STEPS.map(({ n, label, shortLabel, optional }, i) => {
             const done = step > n;
             const active = step === n;
             const isLast = i === STEPS.length - 1;
@@ -44,11 +50,19 @@ export function OnboardingProgress({ step }: { step: Step }) {
                       }`}
                     >
                       <span className="sm:hidden">{shortLabel}</span>
-                      <span className="hidden sm:inline">{label}</span>
+                      <span className="hidden sm:inline">
+                        {label}
+                        {optional && (
+                          <span className="font-normal text-slate-400"> (optional)</span>
+                        )}
+                      </span>
                     </p>
                     {active && (
                       <p className="mt-0.5 text-[11px] font-medium text-brand-600/80">
                         Step {n} of {STEPS.length}
+                        {optional && (
+                          <span className="font-normal text-slate-400"> · optional</span>
+                        )}
                       </p>
                     )}
                   </div>
