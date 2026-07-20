@@ -10,6 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   WarningCircle,
+  ArrowLeft,
   ArrowRight,
   Check,
   MapPin,
@@ -685,7 +686,8 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
                 className="btn-secondary"
                 disabled={loading || success}
               >
-                ← Back
+                <ArrowLeft size={15} aria-hidden />
+                Back
               </button>
               <ActionButton
                 type="submit"
@@ -776,7 +778,8 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
                 className="btn-secondary"
                 disabled={loading || success}
               >
-                ← Back
+                <ArrowLeft size={15} aria-hidden />
+                Back
               </button>
               <button
                 type="button"
