@@ -52,6 +52,7 @@ type ProfileFields = {
 };
 
 type LeadType = "traditional_iul" | "high_intent_iul";
+type LeadTypeSelection = LeadType | "";
 
 type FilterSetTemplate = {
   id: string;
@@ -295,7 +296,7 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
   const accountEmail = initialProfile?.email ?? "";
 
   // Step 2 — filter set
-  const [leadType, setLeadType] = useState<LeadType>("high_intent_iul");
+  const [leadType, setLeadType] = useState<LeadTypeSelection>("");
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [filterCriteria, setFilterCriteria] = useState<FilterCriteria>({});
@@ -381,6 +382,10 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
   function continueToAdvancedFilters(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    if (!leadType) {
+      setError("Please select a lead type before continuing.");
+      return;
+    }
     if (selectedStates.length < 15) {
       setError("Please select at least 15 target states.");
       return;
@@ -390,6 +395,10 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
 
   async function submitOnboarding() {
     setError("");
+    if (!leadType) {
+      setError("Please select a lead type before continuing.");
+      return;
+    }
     if (selectedStates.length < 15) {
       setError("Please select at least 15 target states.");
       return;
@@ -591,10 +600,11 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
                 className="form-select"
                 value={leadType}
                 onChange={(e) => {
-                  setLeadType(e.target.value as LeadType);
+                  setLeadType(e.target.value as LeadTypeSelection);
                   if (selectedTemplateId) setSelectedTemplateId(null);
                 }}
               >
+                <option value="">Select lead type…</option>
                 <option value="high_intent_iul">High Intent IUL</option>
                 <option value="traditional_iul">Traditional IUL</option>
               </select>
@@ -679,7 +689,7 @@ export default function OnboardingForm({ initialProfile, step, onStepChange }: P
               <ActionButton
                 type="submit"
                 className="flex-1 justify-center"
-                disabled={!isEligible}
+                disabled={!isEligible || !leadType}
                 icon={<ArrowRight size={15} />}
               >
                 Continue — Limits & filters (optional)
