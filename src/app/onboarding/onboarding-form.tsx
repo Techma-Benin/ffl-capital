@@ -6,7 +6,6 @@ import { useUser } from "@clerk/nextjs";
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 import { ActionButton } from "@/components/ui/action-button";
 import { StatusStrip } from "@/components/ui/status-strip";
-import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   WarningCircle,
@@ -17,7 +16,7 @@ import {
   Funnel,
   X,
 } from "@phosphor-icons/react";
-import type { FilterCriteria } from "@/lib/matching/types";
+import { OnboardingSuccessModal } from "./onboarding-success-modal";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -438,7 +437,7 @@ export default function OnboardingForm({
         return;
       }
       setSuccess(true);
-      router.push("/partner");
+      setLoading(false);
     } catch {
       setError("Request failed. Please try again.");
       setLoading(false);
@@ -450,7 +449,6 @@ export default function OnboardingForm({
     filterCriteria,
     weeklyLimit,
     monthlyLimit,
-    router,
   ]);
 
   useEffect(() => {
@@ -469,7 +467,10 @@ export default function OnboardingForm({
   const isEligible = selectedStates.length >= 15;
   const templatesLoading = step === 2 && templates === null;
   const showFilterSetSetup = !templatesLoading && (templates?.length ?? 0) > 0;
-  const submitting = loading && step === 3;
+
+  function goToDashboard() {
+    router.push("/partner");
+  }
 
   function formSubmitHandler(e: React.FormEvent<HTMLFormElement>) {
     if (step === 1) return continueToFilterSet(e);
@@ -482,6 +483,7 @@ export default function OnboardingForm({
   // -------------------------------------------------------------------------
 
   return (
+    <>
     <form onSubmit={formSubmitHandler}>
       {/* ================================================================ */}
       {/* Step 1 — Profile                                                  */}
@@ -696,14 +698,6 @@ export default function OnboardingForm({
               </div>
             </div>
 
-            {success && (
-              <StatusStrip
-                status="success"
-                title="Profile created"
-                message="Redirecting you to your partner dashboard…"
-              />
-            )}
-
             {error && !loading && (
               <StatusStrip status="error" title="Could not continue" message={error} />
             )}
@@ -735,15 +729,6 @@ export default function OnboardingForm({
       {/* Step 3 — Volume limits & advanced filters (optional)                              */}
       {/* ================================================================ */}
       {step === 3 && (
-        submitting ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Spinner size="lg" variant="brand" />
-            <div className="text-center">
-              <p className="font-semibold text-slate-800">Setting up your account…</p>
-              <p className="text-sm text-slate-500 mt-1">This will only take a moment</p>
-            </div>
-          </div>
-        ) : (
           <div className="space-y-5">
             <div>
               <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
@@ -785,14 +770,6 @@ export default function OnboardingForm({
               onChange={setFilterCriteria}
             />
 
-            {success && (
-              <StatusStrip
-                status="success"
-                title="Profile created"
-                message="Redirecting you to your partner dashboard…"
-              />
-            )}
-
             {error && !loading && (
               <StatusStrip status="error" title="Onboarding failed" message={error} />
             )}
@@ -820,8 +797,9 @@ export default function OnboardingForm({
               </ActionButton>
             </div>
           </div>
-        )
       )}
     </form>
+    <OnboardingSuccessModal open={success} onGoToDashboard={goToDashboard} />
+    </>
   );
 }

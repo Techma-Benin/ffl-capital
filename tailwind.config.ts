@@ -71,9 +71,32 @@ const config: Config = {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(400%)" },
         },
+        "onboarding-backdrop-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "onboarding-modal-in": {
+          from: { opacity: "0", transform: "scale(0.94) translateY(10px)" },
+          to: { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
+        "onboarding-icon-pop": {
+          "0%": { opacity: "0", transform: "scale(0.6)" },
+          "70%": { transform: "scale(1.06)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "onboarding-sparkle": {
+          "0%, 100%": { opacity: "0", transform: "scale(0.4) rotate(0deg)" },
+          "50%": { opacity: "1", transform: "scale(1) rotate(12deg)" },
+        },
       },
       animation: {
         "nav-progress": "nav-progress 1s ease-in-out infinite",
+        "onboarding-backdrop-in": "onboarding-backdrop-in 0.28s ease-out forwards",
+        "onboarding-modal-in":
+          "onboarding-modal-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "onboarding-icon-pop":
+          "onboarding-icon-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards",
+        "onboarding-sparkle": "onboarding-sparkle 2.4s ease-in-out infinite",
       },
     },
   },
