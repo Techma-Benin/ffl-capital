@@ -7,6 +7,7 @@ import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 import { ActionButton } from "@/components/ui/action-button";
 import { StatusStrip } from "@/components/ui/status-strip";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   WarningCircle,
   ArrowRight,
@@ -63,7 +64,11 @@ type FilterSetTemplate = {
 };
 
 type InitialProfile = Partial<ProfileFields> & { email?: string };
-type Props = { initialProfile?: InitialProfile };
+type Props = {
+  initialProfile?: InitialProfile;
+  step: 1 | 2;
+  onStepChange: (step: 1 | 2) => void;
+};
 
 // ---------------------------------------------------------------------------
 // Tag input
@@ -218,6 +223,29 @@ function AdvancedFiltersAccordion({
 }
 
 // ---------------------------------------------------------------------------
+// Filter set setup skeleton (header + template grid)
+// ---------------------------------------------------------------------------
+
+function FilterSetSetupSkeleton() {
+  return (
+    <div className="space-y-3" aria-busy="true" aria-label="Loading filter set templates">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1.5">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-3 w-56" />
+        </div>
+        <Skeleton className="h-4 w-16" />
+      </div>
+      <Skeleton className="h-3 w-36" />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Skeleton className="h-[88px] rounded-xl" />
+        <Skeleton className="h-[88px] rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Template card
 // ---------------------------------------------------------------------------
 
@@ -267,15 +295,13 @@ function TemplateCard({
 // Main form
 // ---------------------------------------------------------------------------
 
-export default function OnboardingForm({ initialProfile }: Props) {
+export default function OnboardingForm({ initialProfile, step, onStepChange }: Props) {
   const router = useRouter();
   const { user } = useUser();
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1);
-
   // Step 1 — profile
   const [profile, setProfile] = useState<ProfileFields>({
     firstName: initialProfile?.firstName ?? "",
@@ -339,7 +365,7 @@ export default function OnboardingForm({ initialProfile }: Props) {
       return;
     }
     setProfile(next);
-    setStep(2);
+    onStepChange(2);
   }
 
   function selectTemplate(template: FilterSetTemplate) {
@@ -404,6 +430,8 @@ export default function OnboardingForm({ initialProfile }: Props) {
   }
 
   const isEligible = selectedStates.length >= 15;
+  const templatesLoading = step === 2 && templates === null;
+  const showFilterSetSetup = !templatesLoading && (templates?.length ?? 0) > 0;
 
   // -------------------------------------------------------------------------
   // Render
@@ -411,59 +439,6 @@ export default function OnboardingForm({ initialProfile }: Props) {
 
   return (
     <form onSubmit={step === 1 ? continueToFilterSet : handleSubmit}>
-      {/* Form progress — mirrors the two real steps on this page */}
-      <nav aria-label="Onboarding progress" className="mb-8">
-        <ol className="flex items-start">
-          {[
-            { n: 1 as const, label: "Your details" },
-            { n: 2 as const, label: "Lead preferences" },
-          ].map(({ n, label }, i, arr) => {
-            const done = step > n;
-            const active = step === n;
-            return (
-              <li key={label} className="flex flex-1 items-start last:flex-none">
-                <div className="flex flex-col items-center gap-1.5">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-                      done
-                        ? "bg-emerald-500 text-white"
-                        : active
-                        ? "bg-brand-700 text-white ring-4 ring-brand-700/15"
-                        : "bg-slate-100 text-slate-400"
-                    }`}
-                    aria-current={active ? "step" : undefined}
-                  >
-                    {done ? <Check size={14} weight="bold" /> : n}
-                  </div>
-                  <span
-                    className={`text-[11px] font-medium whitespace-nowrap ${
-                      done
-                        ? "text-emerald-600"
-                        : active
-                        ? "text-brand-700"
-                        : "text-slate-400"
-                    }`}
-                  >
-                    {label}
-                  </span>
-                </div>
-                {i < arr.length - 1 && (
-                  <div
-                    className={`mx-3 mt-4 h-0.5 flex-1 rounded-full transition-colors ${
-                      done ? "bg-emerald-400" : "bg-slate-200"
-                    }`}
-                    aria-hidden
-                  />
-                )}
-              </li>
-            );
-          })}
-        </ol>
-        <p className="mt-4 text-xs text-slate-400">
-          Step {step} of 2 — then admin review before you receive leads.
-        </p>
-      </nav>
-
       {/* ================================================================ */}
       {/* Step 1 — Profile                                                  */}
       {/* ================================================================ */}
@@ -567,55 +542,50 @@ export default function OnboardingForm({ initialProfile }: Props) {
         ) : (
           <div className="space-y-5">
 
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
-                  <Funnel size={14} className="text-brand-600" />
-                  Set Up Your Filter Set
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Choose a template to start from, or configure your own
-                </p>
-              </div>
-              <span className={`text-sm font-bold ${isEligible ? "text-emerald-600" : "text-amber-600"}`}>
-                {selectedStates.length} / 50 states
-              </span>
-            </div>
+            {templatesLoading && <FilterSetSetupSkeleton />}
 
-            {/* Templates */}
-            {templates === null && (
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Spinner size="sm" />
-                Loading templates…
-              </div>
-            )}
-
-            {templates !== null && templates.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Start from a template
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {templates.map((t) => (
-                    <TemplateCard
-                      key={t.id}
-                      template={t}
-                      selected={selectedTemplateId === t.id}
-                      onClick={() => selectTemplate(t)}
-                    />
-                  ))}
+            {showFilterSetSetup && templates && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                      <Funnel size={14} className="text-brand-600" />
+                      Set Up Your Filter Set
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Choose a template to start from, or configure your own
+                    </p>
+                  </div>
+                  <span className={`text-sm font-bold ${isEligible ? "text-emerald-600" : "text-amber-600"}`}>
+                    {selectedStates.length} / 50 states
+                  </span>
                 </div>
-                {selectedTemplateId && (
-                  <button
-                    type="button"
-                    onClick={clearTemplate}
-                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    <X size={12} /> Clear template selection
-                  </button>
-                )}
-              </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Start from a template
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {templates.map((t) => (
+                      <TemplateCard
+                        key={t.id}
+                        template={t}
+                        selected={selectedTemplateId === t.id}
+                        onClick={() => selectTemplate(t)}
+                      />
+                    ))}
+                  </div>
+                  {selectedTemplateId && (
+                    <button
+                      type="button"
+                      onClick={clearTemplate}
+                      className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      <X size={12} /> Clear template selection
+                    </button>
+                  )}
+                </div>
+              </>
             )}
 
             {/* Lead type */}
@@ -738,7 +708,7 @@ export default function OnboardingForm({ initialProfile }: Props) {
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => { setError(""); setStep(1); }}
+                onClick={() => { setError(""); onStepChange(1); }}
                 className="btn-secondary"
                 disabled={loading || success}
               >
