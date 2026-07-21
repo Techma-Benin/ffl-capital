@@ -13,7 +13,7 @@ export function SidebarUserButton({
   afterSignOutUrl?: string;
   /** Optional override (e.g. partner DB name). Falls back to Clerk profile. */
   displayName?: string;
-  /** When true, shows a small green indicator dot before the name. */
+  /** When true, shows a small green indicator dot after the name. */
   isActive?: boolean;
 }) {
   const { user } = useUser();
@@ -49,7 +49,8 @@ export function SidebarUserButton({
           sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100",
         )}
       >
-        <p className="flex items-center gap-1.5 truncate text-sm font-medium text-slate-800">
+        <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-800">
+          <span className="truncate">{name}</span>
           {isActive !== undefined && (
             <span
               className={clsx(
@@ -58,7 +59,6 @@ export function SidebarUserButton({
               )}
             />
           )}
-          {name}
         </p>
       </div>
     </div>
