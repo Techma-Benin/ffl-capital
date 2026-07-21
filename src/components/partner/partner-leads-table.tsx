@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
+import { LeadTableColumnPickerButton } from "@/components/leads/lead-table-column-picker-button";
 import { Badge } from "@/components/ui/badge";
 import {
   DotsThree,
@@ -267,6 +269,7 @@ export function PartnerLeadsTable({
   };
 }) {
   const router = useRouter();
+  const columnSettingsBridge = useLeadColumnSettingsBridge();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
   const [bulkRefundOpen, setBulkRefundOpen] = useState(false);
@@ -275,6 +278,22 @@ export function PartnerLeadsTable({
   const refundable = deliveries.filter((d) => d.canRefund);
   const refundableSelected = refundable.filter((d) => selected.has(d.id));
   const columnKeys = columns.map((c) => c.key);
+
+  const headerColumns = useMemo(() => {
+    if (!columnSettingsBridge) return columns;
+    return columns.map((col) => {
+      if (col.key !== "actions") return col;
+      return {
+        ...col,
+        headerClassName: col.headerClassName ?? "w-12 text-center",
+        headerContent: (
+          <LeadTableColumnPickerButton
+            onClick={columnSettingsBridge.openColumnSettings}
+          />
+        ),
+      };
+    });
+  }, [columns, columnSettingsBridge]);
 
   function toggleAll() {
     if (selected.size === refundable.length) setSelected(new Set());
@@ -416,11 +435,6 @@ export function PartnerLeadsTable({
         return null;
     }
   }
-
-  const headerColumns =
-    columnKeys.includes("select")
-      ? columns
-      : columns;
 
   return (
     <>

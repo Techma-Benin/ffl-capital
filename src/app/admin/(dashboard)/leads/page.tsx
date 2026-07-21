@@ -10,6 +10,7 @@ import { parsePageParams } from "@/lib/pagination";
 import { LeadsExportButton } from "@/components/admin/leads-export-button";
 import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
 import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
+import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import {
   buildAdminLeadsWhere,
   legacyStatusToSlice,
@@ -147,7 +148,8 @@ export default async function AdminLeadsPage({
         action={<LeadsExportButton viewId={view.id} />}
       />
 
-      <PortalDataTableCard
+      <LeadColumnSettingsBridge>
+        <PortalDataTableCard
         tabsSlot={
           <div className="px-1">
             <LeadViewsToolbar
@@ -224,7 +226,8 @@ export default async function AdminLeadsPage({
             }}
           />
         )}
-      </PortalDataTableCard>
+        </PortalDataTableCard>
+      </LeadColumnSettingsBridge>
     </div>
   );
 }

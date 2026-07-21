@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
+import { LeadTableColumnPickerButton } from "@/components/leads/lead-table-column-picker-button";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,7 +17,7 @@ import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import {
   ArrowsClockwise,
   ArrowUpRight,
-  DotsThree,
+  DotsThreeVertical,
   Eye,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
@@ -78,7 +80,7 @@ function AdminLeadRowMenu({ lead }: { lead: LeadRow }) {
         aria-label="Lead actions"
         aria-expanded={open}
       >
-        <DotsThree size={18} weight={ICON_WEIGHT_LINEAR} />
+        <DotsThreeVertical size={18} weight={ICON_WEIGHT_LINEAR} />
       </button>
 
       {open && (
@@ -141,7 +143,24 @@ export function AdminLeadsTable({
     hrefBySortKey: Record<string, string>;
   };
 }) {
-  const visibleKeys = new Set(columns.map((c) => c.key));
+  const columnSettingsBridge = useLeadColumnSettingsBridge();
+  const displayColumns = useMemo(() => {
+    if (!columnSettingsBridge) return columns;
+    return columns.map((col) => {
+      if (col.key !== "actions") return col;
+      return {
+        ...col,
+        headerClassName: col.headerClassName ?? "w-12 text-center",
+        headerContent: (
+          <LeadTableColumnPickerButton
+            onClick={columnSettingsBridge.openColumnSettings}
+          />
+        ),
+      };
+    });
+  }, [columns, columnSettingsBridge]);
+
+  const visibleKeys = new Set(displayColumns.map((c) => c.key));
 
   function cell(key: string, lead: LeadRow) {
     switch (key) {
@@ -240,7 +259,7 @@ export function AdminLeadsTable({
   }
 
   return (
-    <PortalDataTable columns={columns} sort={sort}>
+    <PortalDataTable columns={displayColumns} sort={sort}>
       {leads.map((lead) => (
         <tr
           key={lead.id}
@@ -249,7 +268,7 @@ export function AdminLeadsTable({
             window.location.href = `/admin/leads/${lead.id}`;
           }}
         >
-          {columns
+          {displayColumns
             .filter((c) => visibleKeys.has(c.key))
             .map((c) => cell(c.key, lead))}
         </tr>

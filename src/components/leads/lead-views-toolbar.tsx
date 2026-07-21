@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import { LeadViewSwitcher } from "@/components/leads/lead-view-switcher";
 import { LeadViewActionsMenu } from "@/components/leads/lead-view-actions-menu";
 import {
@@ -55,6 +56,7 @@ export function LeadViewsToolbar({
   exportSlot?: React.ReactNode;
 }) {
   const router = useRouter();
+  const columnSettingsBridge = useLeadColumnSettingsBridge();
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("edit");
   const [columnsOpen, setColumnsOpen] = useState(false);
@@ -96,6 +98,13 @@ export function LeadViewsToolbar({
   };
 
   const refresh = useCallback(() => router.refresh(), [router]);
+
+  useEffect(() => {
+    if (!columnSettingsBridge) return;
+    return columnSettingsBridge.registerOpenColumnSettings(() =>
+      setColumnsOpen(true),
+    );
+  }, [columnSettingsBridge]);
 
   async function apiPatch(id: string, body: Record<string, unknown>) {
     const res = await fetch(`${apiBase}/${id}`, {

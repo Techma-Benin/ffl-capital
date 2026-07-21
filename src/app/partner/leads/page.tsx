@@ -10,6 +10,7 @@ import { PortalDataTableCard } from "@/components/ui/portal-data-table";
 import { parsePageParams } from "@/lib/pagination";
 import { FileText } from "@/lib/icons/ssr";
 import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
+import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import { buildPartnerLeadsWhere } from "@/lib/partner/partner-leads-query";
 import {
   PARTNER_LEAD_SORT_KEYS,
@@ -152,7 +153,8 @@ export default async function PartnerLeadsPage({
         }
       />
 
-      <PortalDataTableCard
+      <LeadColumnSettingsBridge>
+        <PortalDataTableCard
         tabsSlot={
           <div className="px-1">
             <LeadViewsToolbar
@@ -238,7 +240,8 @@ export default async function PartnerLeadsPage({
             }}
           />
         )}
-      </PortalDataTableCard>
+        </PortalDataTableCard>
+      </LeadColumnSettingsBridge>
     </div>
   );
 }
