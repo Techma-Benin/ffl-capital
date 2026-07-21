@@ -64,7 +64,11 @@ export function IntakeAreaChart({
             <stop offset="95%" stopColor={BRAND} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#e2e8f0"
+          strokeOpacity={0.4}
+        />
         <XAxis
           dataKey="label"
           tick={{ fontSize: 11, fill: "#94a3b8" }}
