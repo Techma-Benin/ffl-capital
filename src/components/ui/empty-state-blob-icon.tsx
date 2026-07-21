@@ -36,8 +36,8 @@ function resolveEmptyStateAccentStyle(seed: string, accentOverride?: EmptyStateB
 
 /** Empty-state blob + icon sizing (box Tailwind classes, Phosphor icon px, SVG blob scale). */
 export const EMPTY_STATE_BLOB_SIZE = {
-  sm: { box: "h-16 w-16", icon: 28, blobScale: 1.2 },
-  md: { box: "h-20 w-20", icon: 35, blobScale: 1.25 },
+  sm: { box: "h-20 w-20", icon: 35, blobScale: 1.5 },
+  md: { box: "h-24 w-24", icon: 44, blobScale: 1.55 },
 } as const;
 
 const sizeStyles = EMPTY_STATE_BLOB_SIZE;

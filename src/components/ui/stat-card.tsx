@@ -76,7 +76,7 @@ function CornerIconBadge({
 
   return (
     <div
-      className="pointer-events-none absolute -right-5 -top-5 h-24 w-24"
+      className="pointer-events-none absolute -right-6 -top-6 h-28 w-28"
       aria-hidden
     >
       <svg
@@ -87,12 +87,12 @@ function CornerIconBadge({
         )}
         aria-hidden
       >
-        <g transform="translate(128 72) rotate(18) scale(1.2)">
+        <g transform="translate(128 72) rotate(18) scale(1.5)">
           <path d={pathD} className="fill-current" />
         </g>
       </svg>
       <div className="relative flex h-full w-full translate-x-[-0.375rem] translate-y-1.5 items-start justify-end p-3 pr-5 pt-5">
-        <IconComponent size={24} weight="duotone" className={iconClassName} />
+        <IconComponent size={30} weight="duotone" className={iconClassName} />
       </div>
     </div>
   );
@@ -160,7 +160,7 @@ export function StatCard(props: StatCardProps) {
           blobIndex={blobIndex}
         />
       )}
-      <div className={clsx("min-w-0 p-6", IconComponent && "pr-20")}>
+      <div className={clsx("min-w-0 p-6", IconComponent && "pr-24")}>
         <p className={clsx("text-3xl font-bold tracking-tight text-slate-900", valueClassName)}>
           {value}
         </p>
