@@ -5,6 +5,7 @@ import { AdminRefundsPendingTable } from "@/components/admin/admin-refunds-pendi
 import { AdminRefundsHistoryTable } from "@/components/admin/admin-refunds-history-table";
 import { ArrowCounterClockwise, Clock, Funnel, Phone } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
+import { refundLeadSnapshotFromDelivery } from "@/lib/admin/refund-lead-snapshot";
 import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
 
 const refundPartnerInclude = {
@@ -68,8 +69,7 @@ export default async function AdminRefundsPage() {
               refunds={pending.map((r) => ({
                 id: r.id,
                 partner: refundPartnerSnapshotFromRow(r.partner),
-                leadName: `${r.leadDelivery.lead.firstName} ${r.leadDelivery.lead.lastName}`,
-                state: r.leadDelivery.lead.state,
+                lead: refundLeadSnapshotFromDelivery(r.leadDelivery, r.partner),
                 refundType: r.refundType,
                 reason: r.reason,
                 amount: Number(r.leadDelivery.price),
@@ -90,7 +90,7 @@ export default async function AdminRefundsPage() {
               refunds={history.map((r) => ({
                 id: r.id,
                 partner: refundPartnerSnapshotFromRow(r.partner),
-                leadName: `${r.leadDelivery.lead.firstName} ${r.leadDelivery.lead.lastName}`,
+                lead: refundLeadSnapshotFromDelivery(r.leadDelivery, r.partner),
                 refundType: r.refundType,
                 amount: Number(r.leadDelivery.price),
                 status: r.status,

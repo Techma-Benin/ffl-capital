@@ -15,15 +15,17 @@ import {
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
+import type { RefundLeadSnapshot } from "@/lib/admin/refund-lead-snapshot";
 import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
+import { RefundLeadCell } from "@/components/admin/refund-lead-cell";
+import { RefundLeadDetailSheet } from "@/components/admin/refund-lead-detail-sheet";
 import { RefundPartnerCell } from "@/components/admin/refund-partner-cell";
 import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
 
 type PendingRefund = {
   id: string;
   partner: RefundPartnerSnapshot;
-  leadName: string;
-  state: string;
+  lead: RefundLeadSnapshot;
   refundType: string;
   reason: string | null;
   amount: number;
@@ -54,10 +56,17 @@ export function AdminRefundsPendingTable({
     null,
   );
   const [partnerSheetOpen, setPartnerSheetOpen] = useState(false);
+  const [leadSheet, setLeadSheet] = useState<RefundLeadSnapshot | null>(null);
+  const [leadSheetOpen, setLeadSheetOpen] = useState(false);
 
   function openPartnerSheet(partner: RefundPartnerSnapshot) {
     setPartnerSheet(partner);
     setPartnerSheetOpen(true);
+  }
+
+  function openLeadSheet(lead: RefundLeadSnapshot) {
+    setLeadSheet(lead);
+    setLeadSheetOpen(true);
   }
 
   const counts = useMemo(() => refundTypeCounts(refunds), [refunds]);
@@ -216,7 +225,7 @@ export function AdminRefundsPendingTable({
                     checked={selected.has(r.id)}
                     onChange={() => toggle(r.id)}
                     className="rounded border-slate-300"
-                    aria-label={`Select refund for ${r.leadName}`}
+                    aria-label={`Select refund for ${r.lead.name}`}
                   />
                 </td>
                 <td>
@@ -226,10 +235,12 @@ export function AdminRefundsPendingTable({
                     onSelect={openPartnerSheet}
                   />
                 </td>
-                <td className="font-medium text-slate-900">{r.leadName}</td>
+                <td>
+                  <RefundLeadCell lead={r.lead} onSelect={openLeadSheet} />
+                </td>
                 <td>
                   <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                    {r.state}
+                    {r.lead.state}
                   </span>
                 </td>
                 <td>
@@ -263,6 +274,11 @@ export function AdminRefundsPendingTable({
         partner={partnerSheet}
         open={partnerSheetOpen}
         onOpenChange={setPartnerSheetOpen}
+      />
+      <RefundLeadDetailSheet
+        lead={leadSheet}
+        open={leadSheetOpen}
+        onOpenChange={setLeadSheetOpen}
       />
     </>
   );

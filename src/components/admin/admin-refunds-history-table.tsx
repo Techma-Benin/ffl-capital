@@ -13,14 +13,17 @@ import {
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
+import type { RefundLeadSnapshot } from "@/lib/admin/refund-lead-snapshot";
 import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
+import { RefundLeadCell } from "@/components/admin/refund-lead-cell";
+import { RefundLeadDetailSheet } from "@/components/admin/refund-lead-detail-sheet";
 import { RefundPartnerCell } from "@/components/admin/refund-partner-cell";
 import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
 
 type HistoryRefund = {
   id: string;
   partner: RefundPartnerSnapshot;
-  leadName: string;
+  lead: RefundLeadSnapshot;
   refundType: string;
   amount: number;
   status: string;
@@ -48,10 +51,17 @@ export function AdminRefundsHistoryTable({
     null,
   );
   const [partnerSheetOpen, setPartnerSheetOpen] = useState(false);
+  const [leadSheet, setLeadSheet] = useState<RefundLeadSnapshot | null>(null);
+  const [leadSheetOpen, setLeadSheetOpen] = useState(false);
 
   function openPartnerSheet(partner: RefundPartnerSnapshot) {
     setPartnerSheet(partner);
     setPartnerSheetOpen(true);
+  }
+
+  function openLeadSheet(lead: RefundLeadSnapshot) {
+    setLeadSheet(lead);
+    setLeadSheetOpen(true);
   }
   const counts = useMemo(() => refundTypeCounts(refunds), [refunds]);
   const filteredRefunds = useMemo(
@@ -122,7 +132,13 @@ export function AdminRefundsHistoryTable({
                     onSelect={openPartnerSheet}
                   />
                 </td>
-                <td>{r.leadName}</td>
+                <td>
+                  <RefundLeadCell
+                    lead={r.lead}
+                    variant="compact"
+                    onSelect={openLeadSheet}
+                  />
+                </td>
                 <td>
                   <RefundTypeBadge type={r.refundType} />
                 </td>
@@ -151,6 +167,11 @@ export function AdminRefundsHistoryTable({
         partner={partnerSheet}
         open={partnerSheetOpen}
         onOpenChange={setPartnerSheetOpen}
+      />
+      <RefundLeadDetailSheet
+        lead={leadSheet}
+        open={leadSheetOpen}
+        onOpenChange={setLeadSheetOpen}
       />
     </>
   );
