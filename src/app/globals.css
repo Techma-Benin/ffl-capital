@@ -186,12 +186,12 @@
     @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text transition-all;
   }
 
-  .nav-item:hover {
+  .nav-item:hover:not(.active) {
     @apply bg-sidebar-hover text-slate-800;
   }
 
   .nav-item.active {
-    @apply text-brand-700;
+    @apply font-semibold;
   }
 
   .nav-item-group-label {

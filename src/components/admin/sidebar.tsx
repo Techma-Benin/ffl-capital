@@ -23,18 +23,26 @@ import {
   UploadSimple,
   Funnel,
 } from "@/lib/icons/client";
+import type { Icon } from "@/lib/icons/client";
+import type { SidebarNavAccent } from "@/components/ui/sidebar-nav-accent";
 
 /** Flat nav aligned to Pencil mockup; keep Filter List / Integrity / Migration. */
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: SquaresFour, exact: true },
-  { href: "/admin/partners", label: "Partners", icon: Users },
-  { href: "/admin/leads", label: "Leads", icon: FileText },
-  { href: "/admin/refunds", label: "Refunds", icon: ArrowCounterClockwise },
-  { href: "/admin/aged", label: "Aged Leads", icon: Archive },
-  { href: "/admin/filter-list", label: "Filter List", icon: Funnel },
-  { href: "/admin/integrity", label: "Integrity", icon: Shield },
-  { href: "/admin/migration", label: "Migration", icon: UploadSimple },
-  { href: "/admin/settings", label: "Settings", icon: Gear },
+const navItems: {
+  href: string;
+  label: string;
+  icon: Icon;
+  exact?: boolean;
+  accent: SidebarNavAccent;
+}[] = [
+  { href: "/admin", label: "Dashboard", icon: SquaresFour, exact: true, accent: "brand" },
+  { href: "/admin/partners", label: "Partners", icon: Users, accent: "rose" },
+  { href: "/admin/leads", label: "Leads", icon: FileText, accent: "blue" },
+  { href: "/admin/refunds", label: "Refunds", icon: ArrowCounterClockwise, accent: "orange" },
+  { href: "/admin/aged", label: "Aged Leads", icon: Archive, accent: "mint" },
+  { href: "/admin/filter-list", label: "Filter List", icon: Funnel, accent: "amber" },
+  { href: "/admin/integrity", label: "Integrity", icon: Shield, accent: "purple" },
+  { href: "/admin/migration", label: "Migration", icon: UploadSimple, accent: "cyan" },
+  { href: "/admin/settings", label: "Settings", icon: Gear, accent: "slate" },
 ];
 
 export function AdminSidebar() {
@@ -90,6 +98,7 @@ export function AdminSidebar() {
               label={item.label}
               icon={item.icon}
               exact={item.exact}
+              accent={item.accent}
             />
           ))}
         </div>

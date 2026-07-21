@@ -23,15 +23,23 @@ import {
   Phone,
   ChartBar,
 } from "@/lib/icons/client";
+import type { Icon } from "@/lib/icons/client";
+import type { SidebarNavAccent } from "@/components/ui/sidebar-nav-accent";
 
-const navItems = [
-  { href: "/partner", label: "Dashboard", icon: SquaresFour, exact: true },
-  { href: "/partner/leads", label: "My Leads", icon: FileText },
-  { href: "/partner/wallet", label: "Wallet", icon: Wallet },
-  { href: "/partner/aged", label: "Aged Marketplace", icon: ShoppingBag },
-  { href: "/partner/reports", label: "Reports", icon: ChartBar },
-  { href: "/partner/settings", label: "Settings", icon: Gear },
-  { href: "/partner/contact", label: "Contact Us", icon: Phone },
+const navItems: {
+  href: string;
+  label: string;
+  icon: Icon;
+  exact?: boolean;
+  accent: SidebarNavAccent;
+}[] = [
+  { href: "/partner", label: "Dashboard", icon: SquaresFour, exact: true, accent: "brand" },
+  { href: "/partner/leads", label: "My Leads", icon: FileText, accent: "blue" },
+  { href: "/partner/wallet", label: "Wallet", icon: Wallet, accent: "red" },
+  { href: "/partner/aged", label: "Aged Marketplace", icon: ShoppingBag, accent: "mint" },
+  { href: "/partner/reports", label: "Reports", icon: ChartBar, accent: "violet" },
+  { href: "/partner/settings", label: "Settings", icon: Gear, accent: "amber" },
+  { href: "/partner/contact", label: "Contact Us", icon: Phone, accent: "cyan" },
 ];
 
 export function PartnerSidebar() {
@@ -90,6 +98,7 @@ export function PartnerSidebar() {
               label={item.label}
               icon={item.icon}
               exact={item.exact}
+              accent={item.accent}
             />
           ))}
         </div>

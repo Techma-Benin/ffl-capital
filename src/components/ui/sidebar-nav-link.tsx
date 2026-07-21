@@ -7,23 +7,30 @@ import type { Icon } from "@/lib/icons/client";
 import { ICON_WEIGHT } from "@/lib/icons/client";
 import { usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  sidebarNavAccentStyles,
+  type SidebarNavAccent,
+} from "@/components/ui/sidebar-nav-accent";
 
 export function SidebarNavLink({
   href,
   label,
   icon: IconComponent,
   exact,
+  accent = "brand",
 }: {
   href: string;
   label: string;
   icon: Icon;
   exact?: boolean;
+  accent?: SidebarNavAccent;
 }) {
   const pathname = usePathname();
   const { sidebarCollapsed, pendingPath, startNavigation } = usePortal();
 
   const active = exact ? pathname === href : pathname.startsWith(href);
   const pending = pendingPath === href;
+  const styles = sidebarNavAccentStyles[accent];
 
   return (
     <Link
@@ -31,36 +38,39 @@ export function SidebarNavLink({
       onClick={() => startNavigation(href)}
       title={sidebarCollapsed ? label : undefined}
       aria-busy={pending}
+      aria-current={active ? "page" : undefined}
       className={clsx(
         "nav-item group relative",
         active && "active",
+        active && styles.activeBg,
+        active && styles.activeText,
         pending && "pointer-events-none opacity-80",
         sidebarCollapsed && "justify-center px-0",
       )}
     >
-      {/* Icon — no background wrapper, larger size */}
-      <span className={clsx(
-        "flex flex-shrink-0 items-center justify-center",
-        active ? "text-brand-700" : "text-sidebar-text group-hover:text-slate-700",
-      )}>
+      <span
+        className={clsx(
+          "flex flex-shrink-0 items-center justify-center",
+          active
+            ? styles.activeIcon
+            : "text-sidebar-text group-hover:text-slate-700",
+        )}
+      >
         {pending ? (
-          <Spinner size="xs" variant="brand" />
+          <Spinner size="xs" variant={styles.spinner} />
         ) : (
           <IconComponent size={22} weight={ICON_WEIGHT} />
         )}
       </span>
 
-      {/* Label — hidden when collapsed */}
-      {!sidebarCollapsed && (
-        <span className="truncate">{label}</span>
-      )}
+      {!sidebarCollapsed && <span className="truncate">{label}</span>}
 
-      {/* Active dot — expanded only */}
       {!sidebarCollapsed && active && !pending && (
-        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-700" />
+        <span
+          className={clsx("ml-auto h-1.5 w-1.5 rounded-full", styles.dot)}
+        />
       )}
 
-      {/* Tooltip — collapsed only */}
       {sidebarCollapsed && (
         <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
           {label}
