@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
-import { LeadViewSwitcher } from "@/components/leads/lead-view-switcher";
-import { LeadViewActionsMenu } from "@/components/leads/lead-view-actions-menu";
+import {
+  LeadViewNewViewButton,
+  LeadViewSwitcher,
+} from "@/components/leads/lead-view-switcher";
 import {
   LeadViewEditorSheet,
   type LeadViewEditorState,
@@ -18,7 +20,6 @@ import {
   parsePartnerFilters,
   partnerLeadViewFiltersSchema,
 } from "@/lib/leads/list-view-schema";
-import { Funnel } from "@/lib/icons/client";
 
 type ViewRecord = {
   id: string;
@@ -222,15 +223,11 @@ export function LeadViewsToolbar({
 
   return (
     <div className="mb-4 space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
         <LeadViewSwitcher
           views={views}
           activeViewId={activeView.id}
           basePath={basePath}
-          onNewView={() => {
-            setEditorMode("create");
-            setEditorOpen(true);
-          }}
           activeViewActions={{
             isDefault: activeView.isDefault,
             onRename: () => {
@@ -242,25 +239,15 @@ export function LeadViewsToolbar({
             onDelete: deleteView,
           }}
         />
-        <div className="flex items-center gap-1">
-          {exportSlot}
-          <button
-            type="button"
-            className="btn-secondary btn-sm inline-flex items-center gap-1"
-            onClick={() => setColumnsOpen(true)}
-          >
-            <Funnel size={14} />
-            Columns
-          </button>
-          <LeadViewActionsMenu
-            isDefault={activeView.isDefault}
-            onRename={() => {
-              setEditorMode("edit");
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {exportSlot ? (
+            <div className="flex items-center gap-1">{exportSlot}</div>
+          ) : null}
+          <LeadViewNewViewButton
+            onClick={() => {
+              setEditorMode("create");
               setEditorOpen(true);
             }}
-            onDuplicate={duplicateView}
-            onSetDefault={setDefault}
-            onDelete={deleteView}
           />
         </div>
       </div>
