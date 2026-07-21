@@ -1,22 +1,34 @@
 import type { Icon } from "@phosphor-icons/react";
+import {
+  EmptyStateBlobIcon,
+  type EmptyStateBlobAccent,
+} from "@/components/ui/empty-state-blob-icon";
 
 export function EmptyState({
   icon: Icon,
   title,
   description,
   action,
+  accent,
+  blobIndex,
 }: {
   icon?: Icon;
   title: string;
   description?: string;
   action?: React.ReactNode;
+  accent?: EmptyStateBlobAccent;
+  blobIndex?: number;
 }) {
   return (
     <div className="empty-state">
       {Icon && (
-        <div className="mb-4 rounded-full bg-slate-100 p-4">
-          <Icon size={28} className="text-slate-400" weight="duotone" />
-        </div>
+        <EmptyStateBlobIcon
+          icon={Icon}
+          seed={title}
+          accent={accent}
+          blobIndex={blobIndex}
+          className="mb-4"
+        />
       )}
       <h3 className="text-base font-semibold text-slate-900">{title}</h3>
       {description && (

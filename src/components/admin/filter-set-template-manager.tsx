@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import {
   Plus,
   PencilSimple,
@@ -344,9 +345,12 @@ export function FilterSetTemplateManager() {
 
       {isEmpty && !showCreate && (
         <div className="px-5 py-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-            <Funnel size={22} className="text-slate-400" />
-          </div>
+          <EmptyStateBlobIcon
+            icon={Funnel}
+            seed="No templates yet"
+            size="sm"
+            className="mb-3"
+          />
           <p className="text-sm font-semibold text-slate-900 mb-1">No templates yet</p>
           <p className="text-xs text-slate-500 mb-4 max-w-xs mx-auto">
             Create templates that partners can use as starting points when building their filter sets.

@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { usePartner } from "@/components/partner/partner-provider";
+import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { Wallet, ArrowUpRight, ArrowsClockwise, X } from "@phosphor-icons/react";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
@@ -306,7 +307,11 @@ export function PartnerWalletView({
 
           {transactions.length === 0 ? (
             <div className="card flex flex-col items-center justify-center py-16 text-center">
-              <Wallet size={28} className="mb-3 text-slate-300" />
+              <EmptyStateBlobIcon
+                icon={Wallet}
+                seed="No transactions yet"
+                className="mb-3"
+              />
               <p className="text-sm font-medium text-slate-500">No transactions yet</p>
             </div>
           ) : (
