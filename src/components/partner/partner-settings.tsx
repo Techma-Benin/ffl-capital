@@ -154,7 +154,12 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
               onClick={() => setShowCreateModal(true)}
               className="btn-secondary btn-sm inline-flex items-center gap-1"
             >
-              <Plus size={13} weight={ICON_WEIGHT_LINEAR} />
+              <Plus
+                size={16}
+                weight={ICON_WEIGHT_LINEAR}
+                className="shrink-0 text-slate-700"
+                aria-hidden
+              />
               Add Filter Set
             </button>
           )}
