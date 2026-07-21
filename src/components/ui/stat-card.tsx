@@ -55,6 +55,15 @@ const variantToAccent: Record<StatCardVariant, StatCardAccent> = {
   modern: "blue",
 };
 
+/** Top-right corner blob: outer edges follow card + rounded-tr-2xl; inner edge is one concave sweep. */
+const CORNER_BLOB_VIEWBOX = 80;
+const CORNER_BLOB_PATH =
+  "M 8 0 H 64 A 16 16 0 0 1 80 16 V 58 C 54 58 50 8 8 0 Z";
+
+function triangleFillClass(triangleClassName: string) {
+  return triangleClassName.replace(/\bbg-/g, "fill-");
+}
+
 function CornerIconBadge({
   IconComponent,
   triangleClassName,
@@ -65,19 +74,20 @@ function CornerIconBadge({
   iconClassName: string;
 }) {
   return (
-    <div
-      className={clsx(
-        "absolute right-0 top-0 flex h-14 w-14 items-center justify-center",
-        "rounded-tr-2xl rounded-bl-[2.75rem] rounded-tl-sm",
-        triangleClassName,
-      )}
-      aria-hidden
-    >
-      <IconComponent
-        size={24}
-        weight="duotone"
-        className={clsx(iconClassName, "translate-x-0.5 -translate-y-0.5")}
-      />
+    <div className="absolute right-0 top-0 h-[4.5rem] w-[4.5rem]" aria-hidden>
+      <svg
+        viewBox={`0 0 ${CORNER_BLOB_VIEWBOX} ${CORNER_BLOB_VIEWBOX}`}
+        className="absolute inset-0 h-full w-full"
+        aria-hidden
+      >
+        <path
+          d={CORNER_BLOB_PATH}
+          className={triangleFillClass(triangleClassName)}
+        />
+      </svg>
+      <div className="relative flex h-full w-full items-start justify-end p-2.5">
+        <IconComponent size={24} weight="duotone" className={iconClassName} />
+      </div>
     </div>
   );
 }
