@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CaretDown, CaretUp } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import {
   US_REGION_STATES,
   US_STATE_CODES,
@@ -163,7 +163,7 @@ function AdvancedFiltersAccordion({
           Advanced Filters{" "}
           <span className="text-xs font-normal text-slate-400">(optional)</span>
         </span>
-        {open ? <CaretUp size={14} /> : <CaretDown size={14} />}
+        {open ? <CaretUp size={14} weight={ICON_WEIGHT_LINEAR} /> : <CaretDown size={14} weight={ICON_WEIGHT_LINEAR} />}
       </button>
 
       {open && (

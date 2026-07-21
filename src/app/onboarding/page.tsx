@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentPartner } from "@/lib/auth/session";
 import { getRoleFromMetadata } from "@/lib/auth/roles";
 import { FormSkeleton } from "@/components/ui/form-skeleton";
-import { Lightning } from "@phosphor-icons/react/dist/ssr";
+import { Lightning } from "@/lib/icons/ssr";
 import { AuthContinueRedirect } from "@/app/auth/continue/redirect";
 
 // Skip SSR for the form: it is auth-gated and heavy with client state.

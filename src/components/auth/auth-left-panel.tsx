@@ -1,4 +1,4 @@
-import { Lightning } from "@phosphor-icons/react/dist/ssr";
+import { Lightning } from "@/lib/icons/ssr";
 import Image from "next/image";
 import Link from "next/link";
 

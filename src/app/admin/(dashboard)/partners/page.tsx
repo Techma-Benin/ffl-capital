@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Users, CheckCircle, Clock } from "@phosphor-icons/react/dist/ssr";
+import { Users, CheckCircle, Clock } from "@/lib/icons/ssr";
 import { FilterTabLink } from "@/components/ui/filter-tab-link";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";

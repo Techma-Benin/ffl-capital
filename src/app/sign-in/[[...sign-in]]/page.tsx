@@ -1,6 +1,6 @@
 import { SignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
-import { Lightning } from "@phosphor-icons/react/dist/ssr";
+import { Lightning } from "@/lib/icons/ssr";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLeftPanel } from "@/components/auth/auth-left-panel";

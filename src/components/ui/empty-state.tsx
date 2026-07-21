@@ -1,4 +1,4 @@
-import type { Icon } from "@phosphor-icons/react";
+import type { Icon } from "@/lib/icons/client";
 import {
   EmptyStateBlobIcon,
   type EmptyStateBlobAccent,

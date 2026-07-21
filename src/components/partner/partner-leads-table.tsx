@@ -12,7 +12,8 @@ import {
   ArrowCounterClockwise,
   ShieldCheck,
   X,
-} from "@phosphor-icons/react";
+  ICON_WEIGHT_LINEAR,
+} from "@/lib/icons/client";
 
 type DeliveryRow = {
   id: string;
@@ -97,7 +98,7 @@ function BulkRefundDialog({
             Request Refund <span className="text-amber-600">({count})</span>
           </h3>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <X size={18} />
+            <X size={18} weight={ICON_WEIGHT_LINEAR} />
           </button>
         </div>
         <div className="space-y-3">
@@ -181,7 +182,7 @@ function RefundDialog({
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-semibold text-slate-900">Request Refund</h3>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <X size={18} />
+            <X size={18} weight={ICON_WEIGHT_LINEAR} />
           </button>
         </div>
 
@@ -248,7 +249,7 @@ function RowMenu({
         onClick={() => setOpen((o) => !o)}
         className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
       >
-        <DotsThree size={18} weight="bold" />
+        <DotsThree size={18} weight={ICON_WEIGHT_LINEAR} />
       </button>
 
       {open && (

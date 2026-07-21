@@ -1,5 +1,5 @@
 import { SignOutButton } from "@clerk/nextjs";
-import { ShieldWarning } from "@phosphor-icons/react/dist/ssr";
+import { ShieldWarning } from "@/lib/icons/ssr";
 import Link from "next/link";
 
 export default function AdminAccessDeniedPage() {

@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
-import { ShoppingBag, Funnel, Clock, ShieldCheck } from "@phosphor-icons/react";
+import { ShoppingBag, Funnel, Clock, ShieldCheck } from "@/lib/icons/client";
 import { TablePagination } from "@/components/ui/table-pagination";
 
 type AgedLead = {

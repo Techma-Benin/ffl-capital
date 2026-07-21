@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AdminRefundsPendingTable } from "@/components/admin/admin-refunds-pending-table";
-import { ArrowCounterClockwise, Clock, Funnel, PhoneX } from "@phosphor-icons/react/dist/ssr";
+import { ArrowCounterClockwise, Clock, Funnel, Phone } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
 
 export default async function AdminRefundsPage() {
@@ -34,7 +34,7 @@ export default async function AdminRefundsPage() {
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <StatCard label="Pending" value={pending.length} icon={Clock} accent="orange" />
         <StatCard label="Wrong Filter" value={typeACount} icon={Funnel} accent="amber" valueClassName="text-amber-700" />
-        <StatCard label="Invalid Phone" value={typeBCount} icon={PhoneX} accent="pink" valueClassName="text-red-600" />
+        <StatCard label="Invalid Phone" value={typeBCount} icon={Phone} accent="pink" valueClassName="text-red-600" />
       </div>
 
       <div className="card mb-6">

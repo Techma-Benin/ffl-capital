@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { Lightning, Shield, TrendUp, Users, ArrowRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { Lightning, Shield, TrendUp, Users, ArrowRight, CheckCircle } from "@/lib/icons/ssr";
 import { getPostAuthRedirectPath } from "@/lib/auth/redirect";
 
 export default async function HomePage() {

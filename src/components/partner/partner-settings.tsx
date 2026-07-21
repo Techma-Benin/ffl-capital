@@ -12,7 +12,7 @@ import {
   Funnel,
   Plus,
   Trash,
-} from "@phosphor-icons/react";
+} from "@/lib/icons/client";
 import type { FilterCriteria } from "@/lib/matching/types";
 import { FilterSetModal } from "@/components/filter-sets/filter-set-modal";
 import {

@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ActionButton } from "@/components/ui/action-button";
 import { StatusStrip } from "@/components/ui/status-strip";
 import { usePartner } from "@/components/partner/partner-provider";
-import { EnvelopeSimple, PaperPlaneTilt } from "@phosphor-icons/react";
+import { EnvelopeSimple, PaperPlaneTilt } from "@/lib/icons/client";
 
 const SUPPORT_EMAIL = "support@fflcapital.com";
 

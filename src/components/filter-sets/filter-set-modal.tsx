@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { X } from "@phosphor-icons/react";
+import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { Badge } from "@/components/ui/badge";
 import {
   FilterSetForm,
@@ -199,7 +199,7 @@ export function FilterSetModal({
             onClick={onClose}
             className="flex-shrink-0 rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
           >
-            <X size={16} />
+            <X size={16} weight={ICON_WEIGHT_LINEAR} />
           </button>
         </div>
 

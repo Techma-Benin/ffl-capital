@@ -22,7 +22,7 @@ import {
   Gear,
   Phone,
   ChartBar,
-} from "@phosphor-icons/react";
+} from "@/lib/icons/client";
 
 const navItems = [
   { href: "/partner", label: "Dashboard", icon: SquaresFour, exact: true },

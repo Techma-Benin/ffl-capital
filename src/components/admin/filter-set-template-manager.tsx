@@ -10,7 +10,8 @@ import {
   Trash,
   X,
   Funnel,
-} from "@phosphor-icons/react";
+  ICON_WEIGHT_LINEAR,
+} from "@/lib/icons/client";
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 
 // ---------------------------------------------------------------------------
@@ -121,7 +122,7 @@ function TemplateEditor({
           onClick={onClose}
           className="rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
         >
-          <X size={16} />
+          <X size={16} weight={ICON_WEIGHT_LINEAR} />
         </button>
       </div>
 

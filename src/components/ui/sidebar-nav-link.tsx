@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import type { Icon } from "@phosphor-icons/react";
+import type { Icon } from "@/lib/icons/client";
+import { ICON_WEIGHT } from "@/lib/icons/client";
 import { usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -45,7 +46,7 @@ export function SidebarNavLink({
         {pending ? (
           <Spinner size="xs" variant="brand" />
         ) : (
-          <IconComponent size={22} weight="duotone" />
+          <IconComponent size={22} weight={ICON_WEIGHT} />
         )}
       </span>
 

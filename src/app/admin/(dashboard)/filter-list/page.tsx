@@ -32,7 +32,7 @@ export default async function AdminFilterListPage() {
     }),
   ]);
 
-  const sources = [...new Set(sourceRows.map((r) => r.src!).filter(Boolean))];
+  const sources = Array.from(new Set(sourceRows.map((r) => r.src!).filter(Boolean)));
 
   const rows = await Promise.all(
     filterSets.map(async (fs) => {

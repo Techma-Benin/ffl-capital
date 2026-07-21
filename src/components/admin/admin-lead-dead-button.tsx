@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Skull } from "@phosphor-icons/react";
+import { Skull } from "@/lib/icons/client";
 
 export function AdminLeadDeadButton({ leadId }: { leadId: string }) {
   const router = useRouter();

@@ -4,7 +4,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { IntakeAreaChart, DonutChart } from "@/components/ui/charts";
 import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
-import { WarningCircle, Clock, FileText, CalendarCheck, UsersThree, Warning } from "@phosphor-icons/react";
+import { WarningCircle, Clock, FileText, CalendarCheck, UsersThree, Warning } from "@/lib/icons/client";
 
 type RecentLead = {
   id: string;

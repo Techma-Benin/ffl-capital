@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CheckCircle, XCircle } from "@phosphor-icons/react";
+import { CheckCircle, XCircle } from "@/lib/icons/client";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 
 export function RefundReviewActions({ refundId }: { refundId: string }) {

@@ -8,7 +8,7 @@ import { getPartnerId } from "@/lib/partner/session";
 // ---------------------------------------------------------------------------
 
 /** Maps canonical lead field names to all CSV aliases that resolve to them */
-export const FIELD_ALIASES: Record<string, string[]> = {
+const FIELD_ALIASES: Record<string, string[]> = {
   firstName: ["first_name", "firstname"],
   lastName: ["last_name", "lastname"],
   email: ["email"],

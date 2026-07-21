@@ -4,7 +4,7 @@ import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ChartBar, FileText, TrendUp, TrendDown, ArrowCounterClockwise } from "@phosphor-icons/react/dist/ssr";
+import { ChartBar, FileText, TrendUp, TrendDown, ArrowCounterClockwise } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
 
 export default async function PartnerReportsPage() {

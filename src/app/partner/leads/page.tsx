@@ -7,7 +7,7 @@ import { PartnerLeadsTable } from "@/components/partner/partner-leads-table";
 import { LeadsFilterBar } from "@/components/partner/leads-filter-bar";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
-import { FileText } from "@phosphor-icons/react/dist/ssr";
+import { FileText } from "@/lib/icons/ssr";
 
 export default async function PartnerLeadsPage({
   searchParams,

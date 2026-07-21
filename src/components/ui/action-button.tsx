@@ -2,7 +2,7 @@
 
 import { clsx } from "clsx";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { Check } from "@phosphor-icons/react";
+import { Check, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { Spinner } from "@/components/ui/spinner";
 
 type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -76,7 +76,9 @@ export function ActionButton({
       ) : (
         <span className="flex items-center justify-center gap-2">
           {loading && <Spinner size="sm" variant={spinnerVariants[variant]} />}
-          {!loading && success && <Check size={16} className="flex-shrink-0" />}
+          {!loading && success && (
+            <Check size={16} weight={ICON_WEIGHT_LINEAR} className="flex-shrink-0" />
+          )}
           {!loading && !success && icon}
           <span>{loading ? loadingText : success ? successText : children}</span>
         </span>

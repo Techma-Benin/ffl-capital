@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
-import type { Icon } from "@phosphor-icons/react";
+import type { Icon } from "@/lib/icons/client";
 import type { ReactNode } from "react";
+import { ICON_WEIGHT } from "@/lib/icons/client";
 import { KPI_BLOB_PATHS, resolveKpiBlobIndex } from "@/components/ui/kpi-blob-shapes";
 
 /** @deprecated Use `accent` instead — legacy colored card skins are mapped to accent tints. */
@@ -96,7 +97,7 @@ function CornerIconBadge({
         </g>
       </svg>
       <div className="relative flex h-full w-full translate-x-[-0.75rem] translate-y-3 items-start justify-end p-3 pr-4 pt-6">
-        <IconComponent size={30} weight="duotone" className={iconClassName} />
+        <IconComponent size={30} weight={ICON_WEIGHT} className={iconClassName} />
       </div>
     </div>
   );

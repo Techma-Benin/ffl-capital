@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
-import type { Icon } from "@phosphor-icons/react";
+import type { Icon } from "@/lib/icons/client";
+import { ICON_WEIGHT } from "@/lib/icons/client";
 import { KPI_BLOB_PATHS, resolveKpiBlobIndex } from "@/components/ui/kpi-blob-shapes";
 
 /** Accent tints for empty-state blobs — static Tailwind classes only (text-* + fill-current). */
@@ -111,7 +112,7 @@ export function EmptyStateBlobIcon({
         </g>
       </svg>
       <div className="relative flex h-full w-full items-center justify-center">
-        <IconComponent size={iconSize} weight="duotone" className={styles.icon} />
+        <IconComponent size={iconSize} weight={ICON_WEIGHT} className={styles.icon} />
       </div>
     </div>
   );
