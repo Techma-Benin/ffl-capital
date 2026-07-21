@@ -55,9 +55,8 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
         <StatCard
           label="Leads Received"
           value={stats.deliveriesAll}
-          variant="hero"
+          variant="modern"
           icon={FileText}
-          heroBg="bg-orange-400"
         />
         <StatCard
           label="Received Today"
