@@ -253,9 +253,15 @@ export function PartnerTableRow({ partner }: { partner: Partner }) {
         </span>
       </td>
       <td className={clsx(portalTableCell, "text-center")}>
-        <span className={`font-semibold ${partner.walletOk ? "text-slate-900" : "text-red-500"}`}>
-          ${Number(partner.walletBalance).toFixed(2)}
-        </span>
+        <div
+          className={clsx(
+            "flex w-full min-w-[5.5rem] items-center justify-between font-semibold tabular-nums",
+            partner.walletOk ? "text-slate-900" : "text-red-500",
+          )}
+        >
+          <span>$</span>
+          <span>{Number(partner.walletBalance).toFixed(2)}</span>
+        </div>
       </td>
       <td className={clsx(portalTableCell, "text-center")}>
         <Badge variant={partner.leadBuying ? "green" : "slate"}>
