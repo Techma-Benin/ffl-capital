@@ -116,7 +116,7 @@ function semiGaugeGeometry(width: number, height: number) {
   const cx = DONUT_MARGIN.left + innerW / 2;
   const cy = DONUT_MARGIN.top + innerH - 4;
   const outerRadius = Math.min(innerW / 2 - 6, innerH - 12) * 0.94;
-  const innerRadius = outerRadius * 0.73;
+  const innerRadius = outerRadius * 0.8;
   return { cx, cy, innerRadius, outerRadius };
 }
 
@@ -235,15 +235,6 @@ export function DonutChart({
     fill: DONUT_COLORS[i % DONUT_COLORS.length],
   }));
 
-  const centerOffset =
-    height > 0
-      ? DONUT_MARGIN.bottom +
-        Math.min(
-          (height - DONUT_MARGIN.top - DONUT_MARGIN.bottom) * 0.22,
-          height * 0.12,
-        )
-      : 24;
-
   return (
     <div className="relative w-full min-h-0" style={{ height }}>
       <ResponsiveContainer width="100%" height={height}>
@@ -255,10 +246,7 @@ export function DonutChart({
         />
       </ResponsiveContainer>
       {total > 0 && (
-        <div
-          className="pointer-events-none absolute inset-x-0 flex flex-col items-center"
-          style={{ bottom: centerOffset }}
-        >
+        <div className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 flex-col items-center text-center">
           <span className="text-3xl font-bold tabular-nums text-slate-900">
             {centerValue}
           </span>
