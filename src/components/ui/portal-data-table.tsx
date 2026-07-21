@@ -55,7 +55,7 @@ export function PortalDataTableCard({
   className?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={clsx("flex min-h-0 flex-col", className)}>
       {tabs && tabs.length > 0 && <PortalDataTableTabs tabs={tabs} />}
       {children}
       {footer}
@@ -66,12 +66,14 @@ export function PortalDataTableCard({
 export function PortalDataTable({
   columns,
   children,
+  className,
 }: {
   columns: PortalDataTableColumn[];
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="overflow-x-auto pb-2 pt-1">
+    <div className={clsx("min-h-0 flex-1 pb-2 pt-1", className)}>
       <table className="w-full border-separate border-spacing-y-2">
         <thead>
           <tr>

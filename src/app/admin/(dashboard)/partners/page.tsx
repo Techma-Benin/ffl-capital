@@ -73,7 +73,7 @@ export default async function AdminPartnersPage({
   ];
 
   return (
-    <div>
+    <div className="flex min-h-full flex-1 flex-col">
       <PageHeader
         title="Partners"
         subtitle="Manage lead buyers and their accounts"
@@ -85,7 +85,7 @@ export default async function AdminPartnersPage({
         <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" />
       </div>
 
-      <PortalDataTableCard tabs={statusTabs}>
+      <PortalDataTableCard tabs={statusTabs} className="flex-1">
         {partners.length === 0 ? (
           <div className="card">
             <EmptyState
@@ -96,7 +96,7 @@ export default async function AdminPartnersPage({
             />
           </div>
         ) : (
-          <>
+          <div className="flex min-h-0 flex-1 flex-col">
             <PortalDataTable columns={PARTNER_COLUMNS}>
               {partners.map((p) => {
                 const isActive = p.status === "active";
@@ -131,7 +131,7 @@ export default async function AdminPartnersPage({
               basePath="/admin/partners"
               searchParams={searchParams}
             />
-          </>
+          </div>
         )}
       </PortalDataTableCard>
     </div>
