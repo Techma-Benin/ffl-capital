@@ -18,6 +18,12 @@ import {
   sortPartnersByLeadBuying,
   PARTNER_SORT_KEYS,
 } from "@/lib/admin/partner-list-sort";
+import {
+  buildPartnerListWhere,
+  buildPartnerStatusTabHref,
+  parsePartnerFamilies,
+} from "@/lib/admin/partner-list-filters";
+import { AdminPartnersFilterBar } from "@/components/admin/admin-partners-filter-bar";
 
 const PARTNER_COLUMNS = [
   { key: "partner", label: "Partner", sortKey: "partner" },
@@ -81,13 +87,15 @@ export default async function AdminPartnersPage({
     page?: string;
     sort?: string;
     dir?: string;
+    family?: string;
   };
 }) {
   const statusFilter = searchParams.status;
+  const selectedFamilies = parsePartnerFamilies(searchParams);
   const { page, pageSize, skip } = parsePageParams(searchParams);
   const { sort, dir } = parsePartnerSort(searchParams);
 
-  const where = statusFilter ? { status: statusFilter as never } : {};
+  const where = buildPartnerListWhere(statusFilter, selectedFamilies);
 
   const partnerInclude = {
     filterSets: true,
@@ -96,9 +104,21 @@ export default async function AdminPartnersPage({
 
   const countsPromise = Promise.all([
     prisma.partner.count({ where }),
-    prisma.partner.count({ where: { status: "pending_approval" } }),
-    prisma.partner.count({ where: { status: "active" } }),
-    prisma.partner.count({ where: { status: "disabled" } }),
+    // Tab counts respect the active family filter (affiliation), not global totals.
+    prisma.partner.count({
+      where: buildPartnerListWhere("pending_approval", selectedFamilies),
+    }),
+    prisma.partner.count({
+      where: buildPartnerListWhere("active", selectedFamilies),
+    }),
+    prisma.partner.count({
+      where: buildPartnerListWhere("disabled", selectedFamilies),
+    }),
+    prisma.partner.groupBy({
+      by: ["affiliation"],
+      where: { affiliation: { not: null } },
+      orderBy: { affiliation: "asc" },
+    }),
   ]);
 
   let partners: Awaited<
@@ -124,7 +144,12 @@ export default async function AdminPartnersPage({
     });
   }
 
-  const [total, pendingCount, activeCount, blockedCount] = await countsPromise;
+  const [total, pendingCount, activeCount, blockedCount, affiliationGroups] =
+    await countsPromise;
+
+  const affiliationOptions = affiliationGroups
+    .map((g) => g.affiliation)
+    .filter((a): a is string => a != null);
 
   const tableSort = {
     active: sort,
@@ -133,22 +158,27 @@ export default async function AdminPartnersPage({
   };
 
   const statusTabs = [
-    { label: "All Partners", href: "/admin/partners", active: !statusFilter, count: total },
+    {
+      label: "All Partners",
+      href: buildPartnerStatusTabHref(BASE_PATH, searchParams),
+      active: !statusFilter,
+      count: total,
+    },
     {
       label: "Pending",
-      href: "/admin/partners?status=pending_approval",
+      href: buildPartnerStatusTabHref(BASE_PATH, searchParams, "pending_approval"),
       active: statusFilter === "pending_approval",
       count: pendingCount,
     },
     {
       label: "Active",
-      href: "/admin/partners?status=active",
+      href: buildPartnerStatusTabHref(BASE_PATH, searchParams, "active"),
       active: statusFilter === "active",
       count: activeCount,
     },
     {
       label: "Blocked",
-      href: "/admin/partners?status=disabled",
+      href: buildPartnerStatusTabHref(BASE_PATH, searchParams, "disabled"),
       active: statusFilter === "disabled",
       count: blockedCount,
     },
@@ -167,7 +197,16 @@ export default async function AdminPartnersPage({
         <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" blobIndex={2} />
       </div>
 
-      <PortalDataTableCard tabs={statusTabs} className="flex-1">
+      <PortalDataTableCard
+        tabsSlot={
+          <AdminPartnersFilterBar
+            tabs={statusTabs}
+            affiliationOptions={affiliationOptions}
+            selectedFamilies={selectedFamilies}
+          />
+        }
+        className="flex-1"
+      >
         {partners.length === 0 ? (
           <div className="card">
             <EmptyState

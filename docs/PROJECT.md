@@ -343,7 +343,7 @@ resale_postings                   -- envois IntegrityCONNECT
 
 - [x] Dashboard admin : stats, leads récents, file unmatched
 - [x] Admin leads : onglets statut, filtres date/état, recherche, détail + event log
-- [x] Admin partners : liste, approbation, détail, filter sets
+- [x] Admin partners : liste, approbation, détail, filter sets ; filtre **Families** (`?family=`, affiliations = `Partner.affiliation`)
 - [x] Admin refunds : file pending + historique
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
 - [x] Partner settings (états, CRM webhook)

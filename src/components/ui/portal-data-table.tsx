@@ -58,18 +58,22 @@ export function PortalDataTableTabs({ tabs }: { tabs: PortalDataTableTabConfig[]
 /** Tabs + table on page background — same shell as partner My Leads (no outer white card). */
 export function PortalDataTableCard({
   tabs,
+  tabsSlot,
   footer,
   children,
   className,
 }: {
   tabs?: PortalDataTableTabConfig[];
+  /** Replaces default tab row (e.g. tabs + inline filters). */
+  tabsSlot?: React.ReactNode;
   footer?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <div className={clsx("flex min-h-0 flex-col", className)}>
-      {tabs && tabs.length > 0 && <PortalDataTableTabs tabs={tabs} />}
+      {tabsSlot ??
+        (tabs && tabs.length > 0 ? <PortalDataTableTabs tabs={tabs} /> : null)}
       {children}
       {footer}
     </div>
