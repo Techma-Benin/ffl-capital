@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { PencilSimple, Plus, Trash } from "@/lib/icons/client";
+import { PencilSimple, Plus, Trash, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { Badge } from "@/components/ui/badge";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 import { FilterSetModal } from "@/components/filter-sets/filter-set-modal";
@@ -96,7 +96,7 @@ export function PartnerFilterSetsPanel({
             onClick={() => setModalMode("create")}
             className="btn-secondary btn-sm inline-flex items-center gap-1"
           >
-            <Plus size={14} />
+            <Plus size={14} weight={ICON_WEIGHT_LINEAR} />
             Add Filter Set
           </button>
         )}
@@ -154,7 +154,7 @@ export function PartnerFilterSetsPanel({
                     <div className="flex items-center justify-end gap-2">
                       <InlineActionButton
                         tone="slate"
-                        icon={<PencilSimple size={12} />}
+                        icon={<PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} />}
                         disabled={modalMode !== "none"}
                         onClick={() => {
                           setEditingId(fs.id);
@@ -166,7 +166,7 @@ export function PartnerFilterSetsPanel({
                       {filterSets.length > 1 && (
                         <InlineActionButton
                           tone="red"
-                          icon={<Trash size={12} />}
+                          icon={<Trash size={12} weight={ICON_WEIGHT_LINEAR} />}
                           loading={deletingId === fs.id}
                           loadingText="Deleting…"
                           disabled={modalMode !== "none"}

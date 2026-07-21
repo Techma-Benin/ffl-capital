@@ -299,7 +299,7 @@ export function FilterSetTemplateManager() {
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-        <Funnel size={16} className="text-slate-500" />
+        <Funnel size={16} className="text-slate-500" weight={ICON_WEIGHT_LINEAR} />
         <h2 className="text-sm font-semibold text-slate-900">Filter Set Templates</h2>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
           Admin
@@ -314,7 +314,7 @@ export function FilterSetTemplateManager() {
               }}
               className="btn-secondary btn-sm inline-flex items-center gap-1"
             >
-              <Plus size={13} />
+              <Plus size={13} weight={ICON_WEIGHT_LINEAR} />
               Add Template
             </button>
           )}
@@ -364,7 +364,7 @@ export function FilterSetTemplateManager() {
             }}
             className="btn-primary btn-sm inline-flex items-center gap-1.5"
           >
-            <Plus size={13} />
+            <Plus size={13} weight={ICON_WEIGHT_LINEAR} />
             Create First Template
           </button>
         </div>
@@ -412,7 +412,7 @@ export function FilterSetTemplateManager() {
                         }}
                         className="rounded p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
                       >
-                        <PencilSimple size={14} />
+                        <PencilSimple size={14} weight={ICON_WEIGHT_LINEAR} />
                       </button>
                       <button
                         type="button"
@@ -421,7 +421,7 @@ export function FilterSetTemplateManager() {
                         onClick={() => handleDelete(t.id)}
                         className="rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
                       >
-                        <Trash size={14} />
+                        <Trash size={14} weight={ICON_WEIGHT_LINEAR} />
                       </button>
                     </div>
                   </div>

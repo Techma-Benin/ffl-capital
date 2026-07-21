@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { Badge } from "@/components/ui/badge";
 import { PartnerRefundButton } from "@/components/partner/partner-refund-button";
-import { ArrowLeft, ShieldCheck, ShieldWarning } from "@/lib/icons/ssr";
+import { ArrowLeft, ShieldCheck, ShieldWarning, ICON_WEIGHT_LINEAR } from "@/lib/icons/ssr";
 
 function DetailRow({
   label,
@@ -98,7 +98,7 @@ export default async function PartnerLeadDetailPage({
           href="/partner/leads"
           className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft size={14} weight={ICON_WEIGHT_LINEAR} />
           Back to My Leads
         </Link>
       </div>

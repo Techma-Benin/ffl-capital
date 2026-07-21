@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { PartnerEditForm } from "@/components/admin/partner-edit-form";
 import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
 import { ViewAsPartnerButton } from "@/components/admin/view-as-partner-button";
-import { ArrowLeft } from "@/lib/icons/ssr";
+import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/ssr";
 
 export default async function AdminPartnerDetailPage({
   params,
@@ -37,7 +37,7 @@ export default async function AdminPartnerDetailPage({
           <div className="flex items-center gap-2">
             <ViewAsPartnerButton partnerId={partner.id} />
             <Link href="/admin/partners" className="btn-secondary btn-sm inline-flex items-center gap-1">
-              <ArrowLeft size={14} />
+              <ArrowLeft size={14} weight={ICON_WEIGHT_LINEAR} />
               Back
             </Link>
           </div>

@@ -42,10 +42,10 @@ type DeliveryRow = {
 type SortKey = "name" | "state" | "type" | "channel" | "price" | "status" | "deliveredAt";
 
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ArrowsDownUp size={12} className="opacity-30" />;
+  if (!active) return <ArrowsDownUp size={12} className="opacity-30" weight={ICON_WEIGHT_LINEAR} />;
   return dir === "asc"
-    ? <ArrowUp size={12} className="text-brand-700" />
-    : <ArrowDown size={12} className="text-brand-700" />;
+    ? <ArrowUp size={12} className="text-brand-700" weight={ICON_WEIGHT_LINEAR} />
+    : <ArrowDown size={12} className="text-brand-700" weight={ICON_WEIGHT_LINEAR} />;
 }
 
 function ColHeader({

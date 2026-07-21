@@ -568,7 +568,7 @@ export default function OnboardingForm({
             <ActionButton
               type="submit"
               className="w-full justify-center"
-              icon={<ArrowRight size={15} />}
+              icon={<ArrowRight size={15} weight={ICON_WEIGHT_LINEAR} />}
               slideIconOnHover
             >
               Continue — Set Up Filter Set
@@ -590,7 +590,7 @@ export default function OnboardingForm({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
-                      <Funnel size={14} className="text-brand-600" />
+                      <Funnel size={14} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
                       Set Up Your Filter Set
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
@@ -712,14 +712,14 @@ export default function OnboardingForm({
                 className="btn-secondary"
                 disabled={loading || success}
               >
-                <ArrowLeft size={15} aria-hidden />
+                <ArrowLeft size={15} weight={ICON_WEIGHT_LINEAR} aria-hidden />
                 Back
               </button>
               <ActionButton
                 type="submit"
                 className="flex-1 justify-center"
                 disabled={!isEligible || !leadType}
-                icon={<ArrowRight size={15} />}
+                icon={<ArrowRight size={15} weight={ICON_WEIGHT_LINEAR} />}
                 slideIconOnHover
               >
                 Continue — Limits & filters (optional)
@@ -735,7 +735,7 @@ export default function OnboardingForm({
           <div className="space-y-5">
             <div>
               <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
-                <Funnel size={14} className="text-brand-600" />
+                <Funnel size={14} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
                 Volume limits &amp; advanced filters
                 <span className="text-xs font-normal text-slate-400">(optional)</span>
               </p>
@@ -784,7 +784,7 @@ export default function OnboardingForm({
                 className="btn-secondary"
                 disabled={loading || success}
               >
-                <ArrowLeft size={15} aria-hidden />
+                <ArrowLeft size={15} weight={ICON_WEIGHT_LINEAR} aria-hidden />
                 Back
               </button>
               <ActionButton

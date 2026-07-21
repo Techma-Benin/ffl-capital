@@ -12,6 +12,7 @@ import {
   Funnel,
   Plus,
   Trash,
+  ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 import type { FilterCriteria } from "@/lib/matching/types";
 import { FilterSetModal } from "@/components/filter-sets/filter-set-modal";
@@ -141,7 +142,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className={embedded ? "overflow-hidden" : "mb-5 card overflow-hidden"}>
       <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-        <Funnel size={16} className="text-slate-500" />
+        <Funnel size={16} className="text-slate-500" weight={ICON_WEIGHT_LINEAR} />
         <h2 className="text-sm font-semibold text-slate-900">Filter Sets</h2>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
           Targeting
@@ -153,7 +154,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
               onClick={() => setShowCreateModal(true)}
               className="btn-secondary btn-sm inline-flex items-center gap-1"
             >
-              <Plus size={13} />
+              <Plus size={13} weight={ICON_WEIGHT_LINEAR} />
               Add Filter Set
             </button>
           )}
@@ -223,7 +224,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
                       }}
                       className="rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
                     >
-                      <Trash size={14} />
+                      <Trash size={14} weight={ICON_WEIGHT_LINEAR} />
                     </button>
                   </div>
                 </div>
@@ -358,7 +359,7 @@ export function PartnerSettingsView() {
         >
           <div className="mb-6">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <Gear size={18} className="text-brand-600" />
+              <Gear size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
               Account Settings
             </h2>
             <p className="mt-1 text-sm text-slate-500">
@@ -421,7 +422,7 @@ export function PartnerSettingsView() {
         >
           <div className="mb-6">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <PlugsConnected size={18} className="text-brand-600" />
+              <PlugsConnected size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
               CRM Delivery Webhook
               <span className="ml-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
                 Optional
@@ -474,7 +475,7 @@ export function PartnerSettingsView() {
           <div className="flex items-start justify-between gap-4 px-8 pt-8 pb-6">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <Funnel size={18} className="text-brand-600" />
+                <Funnel size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
                 Filter Sets
               </h2>
               <p className="mt-1 text-sm text-slate-500">

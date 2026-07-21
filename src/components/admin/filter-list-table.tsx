@@ -792,7 +792,7 @@ function FilterSetModal({
               variant="secondary"
               loading={savingTemplate}
               loadingText="Saving template…"
-              icon={<CopySimple size={14} />}
+              icon={<CopySimple size={14} weight={ICON_WEIGHT_LINEAR} />}
               onClick={handleSaveAsTemplate}
             >
               Save as template
@@ -860,7 +860,7 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
 
       <div>
         <h2 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-          <Funnel size={15} className="text-slate-400" />
+          <Funnel size={15} className="text-slate-400" weight={ICON_WEIGHT_LINEAR} />
           Partner Filter Sets
         </h2>
         <div className="card overflow-x-auto">

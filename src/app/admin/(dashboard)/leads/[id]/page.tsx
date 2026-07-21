@@ -9,7 +9,7 @@ import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-butt
 import { AdminLeadEditModal } from "@/components/admin/admin-lead-edit-form";
 import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { getLeadEvents } from "@/lib/leads/lead-events";
-import { ArrowLeft } from "@/lib/icons/ssr";
+import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/ssr";
 
 function DetailRow({
   label,
@@ -147,7 +147,7 @@ export default async function AdminLeadDetailPage({
               }}
             />
             <Link href="/admin/leads" className="btn-secondary btn-sm inline-flex items-center gap-1">
-              <ArrowLeft size={14} />
+              <ArrowLeft size={14} weight={ICON_WEIGHT_LINEAR} />
               Back
             </Link>
           </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useId } from "react";
 import { createPortal } from "react-dom";
-import { ThumbsUp, Confetti, ArrowRight, ICON_WEIGHT } from "@/lib/icons/client";
+import { ThumbsUp, Confetti, ArrowRight, ICON_WEIGHT, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { ActionButton } from "@/components/ui/action-button";
 
 type Props = {
@@ -105,7 +105,7 @@ export function OnboardingSuccessModal({ open, onGoToDashboard }: Props) {
               type="button"
               className="w-full justify-center"
               onClick={onGoToDashboard}
-              icon={<ArrowRight size={15} />}
+              icon={<ArrowRight size={15} weight={ICON_WEIGHT_LINEAR} />}
               slideIconOnHover
             >
               Go to dashboard
