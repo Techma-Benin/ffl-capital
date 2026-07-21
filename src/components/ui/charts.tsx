@@ -28,11 +28,11 @@ const CHART_ENTRANCE_MS = 250;
 const CHART_ENTRANCE_EASING = "ease-out";
 const INTAKE_AREA_ENTRANCE_MS = 2000;
 const GAUGE_TRACK_MS = 180;
-const GAUGE_SEGMENT_MS = 250;
-const GAUGE_SEGMENT_STAGGER_MS = 45;
+/** Total stroke-draw budget split across segments by arc degrees (after track). */
+const GAUGE_SEGMENT_ENTRANCE_MS = 960;
 const GAUGE_TRACK_DELAY_MS = 0;
-const GAUGE_SEGMENT_BASE_DELAY_MS = 70;
-const GAUGE_CENTER_DELAY_MS = 320;
+const GAUGE_CENTER_FADE_MS = 200;
+const GAUGE_ENTRANCE_TAIL_MS = 40;
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -194,6 +194,32 @@ const GAUGE_START_ANGLE = 225;
 const GAUGE_END_ANGLE = -45;
 const GAUGE_ARC_SPAN = GAUGE_START_ANGLE - GAUGE_END_ANGLE;
 
+/** Per-segment delay/duration: segment i starts when i−1 finishes; duration ∝ arc degrees. */
+function gaugeSegmentEntranceTiming(
+  segmentDegs: number[],
+  arcSpan = GAUGE_ARC_SPAN,
+): Array<{ delayMs: number; durationMs: number }> {
+  let cursor = GAUGE_TRACK_DELAY_MS + GAUGE_TRACK_MS;
+  return segmentDegs.map((segDeg) => {
+    const durationMs =
+      arcSpan > 0 && segDeg > 0
+        ? Math.round((segDeg / arcSpan) * GAUGE_SEGMENT_ENTRANCE_MS)
+        : 0;
+    const delayMs = cursor;
+    cursor += durationMs;
+    return { delayMs, durationMs };
+  });
+}
+
+function gaugeEntranceCompleteMs(segmentDegs: number[]): number {
+  const timings = gaugeSegmentEntranceTiming(segmentDegs);
+  if (timings.length === 0) {
+    return GAUGE_TRACK_DELAY_MS + GAUGE_TRACK_MS + GAUGE_ENTRANCE_TAIL_MS;
+  }
+  const last = timings[timings.length - 1]!;
+  return last.delayMs + last.durationMs + GAUGE_ENTRANCE_TAIL_MS;
+}
+
 const DONUT_MARGIN = { top: 20, right: 20, left: 20, bottom: 28 };
 
 function semiGaugeGeometry(width: number, height: number) {
@@ -312,6 +338,7 @@ function DonutChartGauge({
   const cornerRadius = ringThickness / 2;
   const midRadius = innerRadius + cornerRadius;
   const segmentDegs = segmentAngles(dataWithFill, total);
+  const segmentEntranceTimings = gaugeSegmentEntranceTiming(segmentDegs);
 
   let cumulative = 0;
   const segmentLayers = dataWithFill.map((entry, index) => {
@@ -369,11 +396,7 @@ function DonutChartGauge({
 
   useEffect(() => {
     if (reducedMotion || !revealed || entranceDoneRef.current) return;
-    const segmentCount = dataWithFill.length;
-    const lastDelay =
-      GAUGE_SEGMENT_BASE_DELAY_MS +
-      Math.max(0, segmentCount - 1) * GAUGE_SEGMENT_STAGGER_MS;
-    const totalMs = lastDelay + GAUGE_SEGMENT_MS + 40;
+    const totalMs = gaugeEntranceCompleteMs(segmentDegs);
     const timer = window.setTimeout(() => {
       if (!entranceDoneRef.current) {
         entranceDoneRef.current = true;
@@ -381,7 +404,7 @@ function DonutChartGauge({
       }
     }, totalMs);
     return () => window.clearTimeout(timer);
-  }, [revealed, reducedMotion, dataWithFill.length, onEntranceComplete]);
+  }, [revealed, reducedMotion, dataKey, onEntranceComplete]);
 
   if (!ready) return null;
 
@@ -488,12 +511,12 @@ function DonutChartGauge({
           const d = describeArcPath(cx, cy, midRadius, startAngle, endAngle);
           if (!d) return null;
           const segLength = pathLengths.segments[entry.name] ?? 0;
-          const segmentDelay =
-            GAUGE_SEGMENT_BASE_DELAY_MS + index * GAUGE_SEGMENT_STAGGER_MS;
+          const { delayMs: segmentDelay, durationMs: segmentDuration } =
+            segmentEntranceTimings[index] ?? { delayMs: 0, durationMs: 0 };
           const dashStyle = dashRevealStyle(
             segLength,
             segmentDelay,
-            GAUGE_SEGMENT_MS,
+            segmentDuration,
           );
           return (
             <path
@@ -655,7 +678,7 @@ export function DonutChart({
               ? {}
               : {
                   opacity: centerVisible ? 1 : 0,
-                  transition: `opacity ${GAUGE_TRACK_MS}ms ${CHART_ENTRANCE_EASING} ${GAUGE_CENTER_DELAY_MS}ms, transform ${GAUGE_TRACK_MS}ms ${CHART_ENTRANCE_EASING} ${GAUGE_CENTER_DELAY_MS}ms`,
+                  transition: `opacity ${GAUGE_CENTER_FADE_MS}ms ${CHART_ENTRANCE_EASING} 0ms, transform ${GAUGE_CENTER_FADE_MS}ms ${CHART_ENTRANCE_EASING} 0ms`,
                 }),
           }}
         >
