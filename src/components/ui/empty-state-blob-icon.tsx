@@ -34,10 +34,13 @@ function resolveEmptyStateAccentStyle(seed: string, accentOverride?: EmptyStateB
   return EMPTY_STATE_BLOB_ACCENTS[hashSeed(seed) % EMPTY_STATE_BLOB_ACCENTS.length];
 }
 
-const sizeStyles = {
-  sm: { box: "h-12 w-12", icon: 22 },
-  md: { box: "h-16 w-16", icon: 28 },
+/** Empty-state blob + icon sizing (box Tailwind classes, Phosphor icon px, SVG blob scale). */
+export const EMPTY_STATE_BLOB_SIZE = {
+  sm: { box: "h-16 w-16", icon: 28, blobScale: 1.2 },
+  md: { box: "h-20 w-20", icon: 35, blobScale: 1.25 },
 } as const;
+
+const sizeStyles = EMPTY_STATE_BLOB_SIZE;
 
 export function EmptyStateBlobIcon({
   icon: IconComponent,
@@ -62,7 +65,7 @@ export function EmptyStateBlobIcon({
     label: seed,
   });
   const pathD = KPI_BLOB_PATHS[blobIndex];
-  const { box, icon: iconSize } = sizeStyles[size];
+  const { box, icon: iconSize, blobScale } = sizeStyles[size];
 
   return (
     <div
@@ -73,7 +76,7 @@ export function EmptyStateBlobIcon({
         viewBox="0 0 200 200"
         className={clsx("absolute inset-0 h-full w-full", styles.blobFill)}
       >
-        <g transform="translate(100 100)">
+        <g transform={`translate(100 100) scale(${blobScale})`}>
           <path d={pathD} className="fill-current" />
         </g>
       </svg>
