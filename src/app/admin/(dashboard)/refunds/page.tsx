@@ -3,7 +3,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AdminRefundsPendingTable } from "@/components/admin/admin-refunds-pending-table";
-import { ArrowCounterClockwise } from "@phosphor-icons/react/dist/ssr";
+import { ArrowCounterClockwise, Clock, Funnel, PhoneX } from "@phosphor-icons/react/dist/ssr";
+import { StatCard } from "@/components/ui/stat-card";
 
 export default async function AdminRefundsPage() {
   const [pending, history] = await Promise.all([
@@ -30,19 +31,10 @@ export default async function AdminRefundsPage() {
         subtitle="Review and approve partner refund requests"
       />
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <div className="stat-card-orange">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pending</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{pending.length}</p>
-        </div>
-        <div className="stat-card-yellow">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Wrong Filter</p>
-          <p className="mt-1 text-2xl font-bold text-amber-700">{typeACount}</p>
-        </div>
-        <div className="stat-card-pink">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Invalid Phone</p>
-          <p className="mt-1 text-2xl font-bold text-red-600">{typeBCount}</p>
-        </div>
+      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+        <StatCard label="Pending" value={pending.length} icon={Clock} accent="orange" />
+        <StatCard label="Wrong Filter" value={typeACount} icon={Funnel} accent="amber" valueClassName="text-amber-700" />
+        <StatCard label="Invalid Phone" value={typeBCount} icon={PhoneX} accent="pink" valueClassName="text-red-600" />
       </div>
 
       <div className="card mb-6">

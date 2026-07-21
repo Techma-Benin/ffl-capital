@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Users } from "@phosphor-icons/react/dist/ssr";
+import { Users, CheckCircle, Clock } from "@phosphor-icons/react/dist/ssr";
 import { FilterTabLink } from "@/components/ui/filter-tab-link";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -52,9 +53,9 @@ export default async function AdminPartnersPage({
 
       {/* Summary cards */}
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total Partners" value={total} variant="blue" />
-        <StatCard label="Active" value={activeCount} variant="mint" />
-        <StatCard label="Pending" value={pendingCount} variant="orange" />
+        <StatCard label="Total Partners" value={total} icon={Users} accent="blue" />
+        <StatCard label="Active" value={activeCount} icon={CheckCircle} accent="mint" />
+        <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" />
       </div>
 
       <div className="card">

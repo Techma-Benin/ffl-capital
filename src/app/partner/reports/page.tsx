@@ -38,34 +38,15 @@ export default async function PartnerReportsPage() {
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Total Funded"
-          value={`$ ${totalTopUp.toFixed(2)}`}
-          variant="hero"
-          icon={TrendUp}
-          heroBg="bg-emerald-400"
-        />
-        <StatCard
-          label="Total on Leads"
-          value={`$ ${totalLeads.toFixed(2)}`}
-          variant="hero"
-          icon={TrendDown}
-          heroBg="bg-brand-500"
-        />
+        <StatCard label="Total Funded" value={`$ ${totalTopUp.toFixed(2)}`} icon={TrendUp} accent="emerald" />
+        <StatCard label="Total on Leads" value={`$ ${totalLeads.toFixed(2)}`} icon={TrendDown} accent="brand" />
         <StatCard
           label="Total Refunded"
           value={`$ ${totalRefunds.toFixed(2)}`}
-          variant="hero"
           icon={ArrowCounterClockwise}
-          heroBg="bg-amber-400"
+          accent="amber"
         />
-        <StatCard
-          label="Leads Purchased"
-          value={deliveries.length}
-          variant="hero"
-          icon={FileText}
-          heroBg="bg-violet-500"
-        />
+        <StatCard label="Leads Purchased" value={deliveries.length} icon={FileText} accent="violet" />
       </div>
 
       <div className="card">

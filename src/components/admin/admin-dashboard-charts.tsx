@@ -44,34 +44,10 @@ export function AdminDashboardCharts({
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Total Leads"
-          value={kpis.totalLeads.toLocaleString()}
-          variant="hero"
-          icon={FileText}
-          heroBg="bg-blue-400"
-        />
-        <StatCard
-          label="Leads Today"
-          value={kpis.leadsToday}
-          variant="hero"
-          icon={CalendarCheck}
-          heroBg="bg-purple-400"
-        />
-        <StatCard
-          label="Active Partners"
-          value={kpis.activePartners}
-          variant="hero"
-          icon={UsersThree}
-          heroBg="bg-rose-300"
-        />
-        <StatCard
-          label="Unmatched"
-          value={kpis.unmatchedLeads}
-          variant="hero"
-          icon={Warning}
-          heroBg="bg-orange-400"
-        />
+        <StatCard label="Total Leads" value={kpis.totalLeads.toLocaleString()} icon={FileText} accent="blue" />
+        <StatCard label="Leads Today" value={kpis.leadsToday} icon={CalendarCheck} accent="purple" />
+        <StatCard label="Active Partners" value={kpis.activePartners} icon={UsersThree} accent="rose" />
+        <StatCard label="Unmatched" value={kpis.unmatchedLeads} icon={Warning} accent="orange" />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -107,58 +83,37 @@ export function AdminDashboardCharts({
         {pendingPartners > 0 ? (
           <PortalLink
             href="/admin/partners?status=pending_approval"
-            className="card p-5 block hover:bg-brand-50 transition-colors"
+            className="block transition-opacity hover:opacity-95"
           >
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="flex flex-wrap items-baseline gap-x-2.5">
-                <p className="text-3xl font-bold text-slate-900">{pendingPartners}</p>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Pending Approvals
-                </p>
-              </div>
-              <Clock size={16} className="text-amber-500" weight="duotone" />
-            </div>
+            <StatCard
+              label="Pending Approvals"
+              value={pendingPartners}
+              icon={Clock}
+              accent="amber"
+            />
           </PortalLink>
         ) : (
-          <div className="card p-5">
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="flex flex-wrap items-baseline gap-x-2.5">
-                <p className="text-3xl font-bold text-slate-900">{pendingPartners}</p>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Pending Approvals
-                </p>
-              </div>
-              <Clock size={16} className="text-amber-500" weight="duotone" />
-            </div>
-          </div>
+          <StatCard label="Pending Approvals" value={pendingPartners} icon={Clock} accent="amber" />
         )}
         {unmatchedLeads > 0 ? (
           <PortalLink
             href="/admin/leads?status=unmatched"
-            className="card p-5 block hover:bg-brand-50 transition-colors"
+            className="block transition-opacity hover:opacity-95"
           >
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="flex flex-wrap items-baseline gap-x-2.5">
-                <p className="text-3xl font-bold text-slate-900">{unmatchedLeads}</p>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Reprocess Queue
-                </p>
-              </div>
-              <WarningCircle size={16} className="text-amber-500" weight="duotone" />
-            </div>
+            <StatCard
+              label="Reprocess Queue"
+              value={unmatchedLeads}
+              icon={WarningCircle}
+              accent="amber"
+            />
           </PortalLink>
         ) : (
-          <div className="card p-5">
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="flex flex-wrap items-baseline gap-x-2.5">
-                <p className="text-3xl font-bold text-slate-900">{unmatchedLeads}</p>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Reprocess Queue
-                </p>
-              </div>
-              <WarningCircle size={16} className="text-amber-500" weight="duotone" />
-            </div>
-          </div>
+          <StatCard
+            label="Reprocess Queue"
+            value={unmatchedLeads}
+            icon={WarningCircle}
+            accent="amber"
+          />
         )}
       </div>
 
