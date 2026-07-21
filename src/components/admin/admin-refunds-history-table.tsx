@@ -13,10 +13,13 @@ import {
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
+import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
+import { RefundPartnerCell } from "@/components/admin/refund-partner-cell";
+import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
 
 type HistoryRefund = {
   id: string;
-  partnerName: string;
+  partner: RefundPartnerSnapshot;
   leadName: string;
   refundType: string;
   amount: number;
@@ -41,6 +44,15 @@ export function AdminRefundsHistoryTable({
 }) {
   const [typeFilter, setTypeFilter] = useState<RefundTypeFilter>("all");
   const [page, setPage] = useState(1);
+  const [partnerSheet, setPartnerSheet] = useState<RefundPartnerSnapshot | null>(
+    null,
+  );
+  const [partnerSheetOpen, setPartnerSheetOpen] = useState(false);
+
+  function openPartnerSheet(partner: RefundPartnerSnapshot) {
+    setPartnerSheet(partner);
+    setPartnerSheetOpen(true);
+  }
   const counts = useMemo(() => refundTypeCounts(refunds), [refunds]);
   const filteredRefunds = useMemo(
     () => refunds.filter((r) => matchesRefundTypeFilter(r.refundType, typeFilter)),
@@ -103,7 +115,13 @@ export function AdminRefundsHistoryTable({
           <tbody>
             {pageRefunds.map((r) => (
               <tr key={r.id}>
-                <td className="font-medium text-slate-900">{r.partnerName}</td>
+                <td>
+                  <RefundPartnerCell
+                    partner={r.partner}
+                    variant="compact"
+                    onSelect={openPartnerSheet}
+                  />
+                </td>
                 <td>{r.leadName}</td>
                 <td>
                   <RefundTypeBadge type={r.refundType} />
@@ -129,6 +147,11 @@ export function AdminRefundsHistoryTable({
         />
         </>
       )}
+      <RefundPartnerDetailSheet
+        partner={partnerSheet}
+        open={partnerSheetOpen}
+        onOpenChange={setPartnerSheetOpen}
+      />
     </>
   );
 }

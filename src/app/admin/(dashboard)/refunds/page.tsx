@@ -5,17 +5,30 @@ import { AdminRefundsPendingTable } from "@/components/admin/admin-refunds-pendi
 import { AdminRefundsHistoryTable } from "@/components/admin/admin-refunds-history-table";
 import { ArrowCounterClockwise, Clock, Funnel, Phone } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
+import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
+
+const refundPartnerInclude = {
+  include: {
+    _count: { select: { leadDeliveries: true } },
+  },
+} as const;
 
 export default async function AdminRefundsPage() {
   const [pending, history] = await Promise.all([
     prisma.refundRequest.findMany({
       where: { status: "pending" },
-      include: { leadDelivery: { include: { lead: true } }, partner: true },
+      include: {
+        leadDelivery: { include: { lead: true } },
+        partner: refundPartnerInclude,
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.refundRequest.findMany({
       where: { status: { not: "pending" } },
-      include: { leadDelivery: { include: { lead: true } }, partner: true },
+      include: {
+        leadDelivery: { include: { lead: true } },
+        partner: refundPartnerInclude,
+      },
       orderBy: { reviewedAt: "desc" },
       take: 30,
     }),
@@ -54,8 +67,7 @@ export default async function AdminRefundsPage() {
             <AdminRefundsPendingTable
               refunds={pending.map((r) => ({
                 id: r.id,
-                partnerName: `${r.partner.firstName} ${r.partner.lastName}`,
-                partnerEmail: r.partner.email,
+                partner: refundPartnerSnapshotFromRow(r.partner),
                 leadName: `${r.leadDelivery.lead.firstName} ${r.leadDelivery.lead.lastName}`,
                 state: r.leadDelivery.lead.state,
                 refundType: r.refundType,
@@ -77,7 +89,7 @@ export default async function AdminRefundsPage() {
             <AdminRefundsHistoryTable
               refunds={history.map((r) => ({
                 id: r.id,
-                partnerName: `${r.partner.firstName} ${r.partner.lastName}`,
+                partner: refundPartnerSnapshotFromRow(r.partner),
                 leadName: `${r.leadDelivery.lead.firstName} ${r.leadDelivery.lead.lastName}`,
                 refundType: r.refundType,
                 amount: Number(r.leadDelivery.price),

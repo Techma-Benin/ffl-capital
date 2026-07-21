@@ -88,6 +88,14 @@ const config: Config = {
           "0%, 100%": { opacity: "0", transform: "scale(0.4) rotate(0deg)" },
           "50%": { opacity: "1", transform: "scale(1) rotate(12deg)" },
         },
+        "sheet-backdrop-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "sheet-panel-in": {
+          from: { opacity: "0", transform: "translateX(100%)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
       },
       animation: {
         "nav-progress": "nav-progress 1s ease-in-out infinite",
@@ -97,6 +105,9 @@ const config: Config = {
         "onboarding-icon-pop":
           "onboarding-icon-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards",
         "onboarding-sparkle": "onboarding-sparkle 2.4s ease-in-out infinite",
+        "sheet-backdrop-in": "sheet-backdrop-in 0.22s ease-out forwards",
+        "sheet-panel-in":
+          "sheet-panel-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards",
       },
     },
   },

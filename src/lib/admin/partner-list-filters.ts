@@ -8,7 +8,7 @@ export function parsePartnerFamilies(searchParams: {
 }): string[] {
   const raw = searchParams.family?.trim();
   if (!raw) return [];
-  return [...new Set(raw.split(",").map((s) => s.trim()).filter(Boolean))];
+  return Array.from(new Set(raw.split(",").map((s) => s.trim()).filter(Boolean)));
 }
 
 export function buildPartnerListWhere(

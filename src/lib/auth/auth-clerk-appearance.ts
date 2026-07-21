@@ -1,7 +1,5 @@
-import type { Appearance } from "@clerk/types";
-
 /** Clerk theme for standalone sign-in / sign-up pages. */
-export const authClerkAppearance: Appearance = {
+export const authClerkAppearance = {
   variables: {
     colorText: "#0f172a",
     colorInputText: "#0f172a",
@@ -33,7 +31,7 @@ export const authClerkAppearance: Appearance = {
  * - Google button centered (single social button, not a grid)
  * - Sign-up footer link hidden (admin accounts are provisioned manually)
  */
-export const adminClerkAppearance: Appearance = {
+export const adminClerkAppearance = {
   ...authClerkAppearance,
   elements: {
     ...authClerkAppearance.elements,

@@ -15,11 +15,13 @@ import {
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
+import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
+import { RefundPartnerCell } from "@/components/admin/refund-partner-cell";
+import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
 
 type PendingRefund = {
   id: string;
-  partnerName: string;
-  partnerEmail: string;
+  partner: RefundPartnerSnapshot;
   leadName: string;
   state: string;
   refundType: string;
@@ -48,6 +50,15 @@ export function AdminRefundsPendingTable({
   const [pending, setPending] = useState(false);
   const [typeFilter, setTypeFilter] = useState<RefundTypeFilter>("all");
   const [page, setPage] = useState(1);
+  const [partnerSheet, setPartnerSheet] = useState<RefundPartnerSnapshot | null>(
+    null,
+  );
+  const [partnerSheetOpen, setPartnerSheetOpen] = useState(false);
+
+  function openPartnerSheet(partner: RefundPartnerSnapshot) {
+    setPartnerSheet(partner);
+    setPartnerSheetOpen(true);
+  }
 
   const counts = useMemo(() => refundTypeCounts(refunds), [refunds]);
 
@@ -209,8 +220,11 @@ export function AdminRefundsPendingTable({
                   />
                 </td>
                 <td>
-                  <p className="font-medium text-slate-900">{r.partnerName}</p>
-                  <p className="text-xs text-slate-400">{r.partnerEmail}</p>
+                  <RefundPartnerCell
+                    partner={r.partner}
+                    showEmail
+                    onSelect={openPartnerSheet}
+                  />
                 </td>
                 <td className="font-medium text-slate-900">{r.leadName}</td>
                 <td>
@@ -245,6 +259,11 @@ export function AdminRefundsPendingTable({
         />
         </>
       )}
+      <RefundPartnerDetailSheet
+        partner={partnerSheet}
+        open={partnerSheetOpen}
+        onOpenChange={setPartnerSheetOpen}
+      />
     </>
   );
 }
