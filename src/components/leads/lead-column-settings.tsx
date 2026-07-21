@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { Funnel, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
@@ -21,6 +21,10 @@ export function LeadColumnSettings({
   onChange: (columns: LeadViewColumn[]) => void;
 }) {
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (open) setQuery("");
+  }, [open, columns]);
 
   const ordered = useMemo(() => {
     const byKey = new Map(columns.map((c) => [c.key, c]));

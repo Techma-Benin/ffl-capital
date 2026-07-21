@@ -248,6 +248,7 @@ export function LeadViewsToolbar({
       {filterSummary}
 
       <LeadViewEditorSheet
+        key={`${editorMode}-${activeView.id}`}
         open={editorOpen}
         onOpenChange={setEditorOpen}
         scope={scope}

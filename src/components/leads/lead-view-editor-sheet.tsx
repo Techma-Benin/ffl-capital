@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
@@ -20,6 +20,15 @@ export type LeadViewEditorState = {
   sort: LeadViewSort;
   columns: LeadViewColumn[];
 };
+
+function cloneEditorState(initial: LeadViewEditorState): LeadViewEditorState {
+  return {
+    name: initial.name,
+    filters: { ...initial.filters },
+    sort: { ...initial.sort },
+    columns: initial.columns.map((c) => ({ ...c })),
+  };
+}
 
 export function LeadViewEditorSheet({
   open,
@@ -47,9 +56,18 @@ export function LeadViewEditorSheet({
   onSave: (state: LeadViewEditorState) => Promise<void>;
   pending?: boolean;
 }) {
-  const [state, setState] = useState(initial);
+  const [state, setState] = useState(() => cloneEditorState(initial));
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const initialRef = useRef(initial);
+  initialRef.current = initial;
+
+  useEffect(() => {
+    if (!open) return;
+    setState(cloneEditorState(initialRef.current));
+    setError(null);
+    setColumnsOpen(false);
+  }, [open]);
 
   function setFilters(
     patch: Partial<AdminLeadViewFilters & PartnerLeadViewFilters>,
@@ -250,6 +268,7 @@ export function LeadViewEditorSheet({
       </Sheet>
 
       <LeadColumnSettings
+        key={`${mode}-${open}`}
         open={columnsOpen}
         onOpenChange={setColumnsOpen}
         catalog={catalog}
