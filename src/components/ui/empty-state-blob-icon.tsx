@@ -37,14 +37,16 @@ function resolveEmptyStateAccentStyle(seed: string, accentOverride?: EmptyStateB
 
 /**
  * Empty-state blob + icon sizing (box Tailwind classes, Phosphor icon px, SVG blob scale).
- * Paths in KPI_BLOB_PATHS extend ~91 units from center; viewBox half-width is 100 — keep scale ≤ ~1.08
- * so the full organic shape stays inside the SVG (default overflow is hidden).
+ * Paths in KPI_BLOB_PATHS extend ~91 units from center; viewBox half-width is 100 — scale ~1.1
+ * fills the box; SVG uses overflow visible so slight edge bleed is acceptable.
  */
 export const EMPTY_STATE_BLOB_SIZE = {
   /** ~40px — inline card / section headers */
   xs: { box: "h-10 w-10 shrink-0", icon: 18, blobScale: 1.08, centered: false },
-  sm: { box: "h-20 w-20", icon: 35, blobScale: 1.08, centered: true },
-  md: { box: "h-24 w-24", icon: 44, blobScale: 1.08, centered: true },
+  /** ~96px — inline section empties */
+  sm: { box: "h-24 w-24", icon: 40, blobScale: 1.1, centered: true },
+  /** ~128px — default EmptyState hero */
+  md: { box: "h-32 w-32", icon: 56, blobScale: 1.1, centered: true },
 } as const;
 
 const sizeStyles = EMPTY_STATE_BLOB_SIZE;
