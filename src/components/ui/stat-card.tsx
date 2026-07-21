@@ -55,7 +55,7 @@ const variantToAccent: Record<StatCardVariant, StatCardAccent> = {
   modern: "blue",
 };
 
-function TriangleIconBadge({
+function CornerIconBadge({
   IconComponent,
   triangleClassName,
   iconClassName,
@@ -66,13 +66,18 @@ function TriangleIconBadge({
 }) {
   return (
     <div
-      className={clsx("absolute right-0 top-0 h-[4.25rem] w-[4.25rem]", triangleClassName)}
-      style={{ clipPath: "polygon(100% 0, 0 0, 100% 100%)" }}
+      className={clsx(
+        "absolute right-0 top-0 flex h-14 w-14 items-center justify-center",
+        "rounded-tr-2xl rounded-bl-[2.75rem] rounded-tl-sm",
+        triangleClassName,
+      )}
       aria-hidden
     >
-      <div className="absolute right-2.5 top-3 flex items-center justify-center">
-        <IconComponent size={26} weight="duotone" className={iconClassName} />
-      </div>
+      <IconComponent
+        size={24}
+        weight="duotone"
+        className={clsx(iconClassName, "translate-x-0.5 -translate-y-0.5")}
+      />
     </div>
   );
 }
@@ -84,7 +89,7 @@ interface StatCardProps {
   icon?: Icon;
   /** Icon color override (Tailwind text-* class). */
   iconColor?: string;
-  /** Triangle fill override (Tailwind bg-* class). */
+  /** Corner blob fill override (Tailwind bg-* class). */
   iconBgClassName?: string;
   accent?: StatCardAccent;
   valueClassName?: string;
@@ -124,7 +129,7 @@ export function StatCard(props: StatCardProps) {
       )}
     >
       {IconComponent && (
-        <TriangleIconBadge
+        <CornerIconBadge
           IconComponent={IconComponent}
           triangleClassName={triangleClass}
           iconClassName={iconClass}
