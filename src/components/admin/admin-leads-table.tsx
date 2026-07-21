@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
 import {
   PortalDataTable,
   portalTableCell,
@@ -11,6 +12,13 @@ import {
 } from "@/components/ui/portal-data-table";
 import { formatDateTime } from "@/lib/format-datetime";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
+import {
+  ArrowsClockwise,
+  ArrowUpRight,
+  DotsThree,
+  Eye,
+  ICON_WEIGHT_LINEAR,
+} from "@/lib/icons/client";
 
 type LeadRow = {
   id: string;
@@ -27,6 +35,98 @@ type LeadRow = {
   partnerName: string | null;
   price: string | null;
 };
+
+function AdminLeadRowMenu({ lead }: { lead: LeadRow }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [reprocessPending, setReprocessPending] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const canReprocess = lead.status === "unmatched" && lead.available;
+
+  useEffect(() => {
+    if (!open) return;
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [open]);
+
+  async function handleReprocess() {
+    setReprocessPending(true);
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/reprocess`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Request failed");
+      setOpen(false);
+      router.refresh();
+    } catch {
+      // allow retry
+    } finally {
+      setReprocessPending(false);
+    }
+  }
+
+  return (
+    <div ref={ref} className="relative flex justify-end" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        aria-label="Lead actions"
+        aria-expanded={open}
+      >
+        <DotsThree size={18} weight={ICON_WEIGHT_LINEAR} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-10 z-30 w-44 rounded-xl border border-slate-100 bg-white py-1.5 shadow-lg">
+          <button
+            type="button"
+            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            onClick={() => {
+              setOpen(false);
+              router.push(`/admin/leads/${lead.id}`);
+            }}
+          >
+            <Eye size={14} className="text-slate-400" />
+            View lead
+          </button>
+
+          {lead.trustedformCertUrl && (
+            <a
+              href={lead.trustedformCertUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              <ArrowUpRight size={14} className="text-slate-400" />
+              TrustedForm cert
+            </a>
+          )}
+
+          {canReprocess && (
+            <button
+              type="button"
+              disabled={reprocessPending}
+              className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-50"
+              onClick={handleReprocess}
+            >
+              <ArrowsClockwise
+                size={14}
+                className={`text-brand-600 ${reprocessPending ? "animate-spin" : ""}`}
+              />
+              {reprocessPending ? "Processing…" : "Reprocess"}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AdminLeadsTable({
   leads,
@@ -130,12 +230,8 @@ export function AdminLeadsTable({
         );
       case "actions":
         return (
-          <td key={key} className={`text-right ${portalTableCellLast}`}>
-            <div className="flex justify-end">
-              {lead.status === "unmatched" && lead.available && (
-                <LeadReprocessButton leadId={lead.id} />
-              )}
-            </div>
+          <td key={key} className={portalTableCellLast}>
+            <AdminLeadRowMenu lead={lead} />
           </td>
         );
       default:

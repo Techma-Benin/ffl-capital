@@ -20,7 +20,7 @@ export const ADMIN_LEAD_COLUMNS: LeadColumnDef[] = [
   { key: "price", label: "Price" },
   { key: "received", label: "Received", sortable: true, sortKey: "receivedAt" },
   { key: "trustedform", label: "TrustedForm" },
-  { key: "actions", label: "Actions", required: true, headerClassName: "text-right" },
+  { key: "actions", label: "", required: true },
 ];
 
 export const PARTNER_LEAD_COLUMNS: LeadColumnDef[] = [
