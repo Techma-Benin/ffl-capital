@@ -72,8 +72,11 @@ export function PortalDataTableCard({
 }) {
   return (
     <div className={clsx("flex min-h-0 flex-col", className)}>
-      {tabsSlot ??
-        (tabs && tabs.length > 0 ? <PortalDataTableTabs tabs={tabs} /> : null)}
+      {tabsSlot ? (
+        <div className="shrink-0">{tabsSlot}</div>
+      ) : (
+        tabs && tabs.length > 0 ? <PortalDataTableTabs tabs={tabs} /> : null
+      )}
       {children}
       {footer}
     </div>

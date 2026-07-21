@@ -26,13 +26,21 @@ export function AdminPartnersFilterBar({
 
   useEffect(() => {
     if (!familiesOpen) return;
-    function handle(e: MouseEvent) {
-      if (barRef.current && !barRef.current.contains(e.target as Node)) {
-        setFamiliesOpen(false);
+    let removeListener: (() => void) | undefined;
+    // Defer so the opening click/mousedown is not treated as an outside dismiss.
+    const deferId = window.setTimeout(() => {
+      function handle(e: MouseEvent) {
+        if (barRef.current && !barRef.current.contains(e.target as Node)) {
+          setFamiliesOpen(false);
+        }
       }
-    }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
+      document.addEventListener("mousedown", handle);
+      removeListener = () => document.removeEventListener("mousedown", handle);
+    }, 0);
+    return () => {
+      window.clearTimeout(deferId);
+      removeListener?.();
+    };
   }, [familiesOpen]);
 
   function navigateFamily(nextFamilies: string[]) {
@@ -59,7 +67,7 @@ export function AdminPartnersFilterBar({
   const hasFamilySelection = selectedFamilies.length > 0;
 
   return (
-    <div ref={barRef} className="mb-4">
+    <div ref={barRef} className="relative z-10 mb-4 shrink-0">
       <div className="flex flex-wrap items-center gap-2 px-1 py-2">
         {tabs.map((tab) => (
           <PortalDataTableTab
@@ -74,7 +82,11 @@ export function AdminPartnersFilterBar({
 
         <button
           type="button"
-          onClick={() => setFamiliesOpen((open) => !open)}
+          aria-expanded={familiesOpen}
+          onClick={(e) => {
+            e.stopPropagation();
+            setFamiliesOpen((open) => !open);
+          }}
           className={clsx(
             "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
             familiesOpen

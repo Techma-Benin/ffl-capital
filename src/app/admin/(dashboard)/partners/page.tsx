@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -197,16 +198,15 @@ export default async function AdminPartnersPage({
         <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" blobIndex={2} />
       </div>
 
-      <PortalDataTableCard
-        tabsSlot={
-          <AdminPartnersFilterBar
-            tabs={statusTabs}
-            affiliationOptions={affiliationOptions}
-            selectedFamilies={selectedFamilies}
-          />
-        }
-        className="flex-1"
-      >
+      <Suspense fallback={null}>
+        <AdminPartnersFilterBar
+          tabs={statusTabs}
+          affiliationOptions={affiliationOptions}
+          selectedFamilies={selectedFamilies}
+        />
+      </Suspense>
+
+      <PortalDataTableCard className="flex-1">
         {partners.length === 0 ? (
           <div className="card">
             <EmptyState
