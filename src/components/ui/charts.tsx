@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -103,30 +103,17 @@ export function IntakeAreaChart({
 }
 
 const DONUT_COLORS = [BRAND, ACCENT, "#72A5E1", "#F59E0B", "#8B5CF6"];
-const TRACK_BG = "#E2E8F0";
 
 const DONUT_MARGIN = { top: 8, right: 12, left: 12, bottom: 12 };
 
-function semiGaugeGeometry(width: number, height: number, trackCount: number) {
+function semiGaugeGeometry(width: number, height: number) {
   const innerW = width - DONUT_MARGIN.left - DONUT_MARGIN.right;
   const innerH = height - DONUT_MARGIN.top - DONUT_MARGIN.bottom;
   const cx = DONUT_MARGIN.left + innerW / 2;
   const cy = DONUT_MARGIN.top + innerH - 4;
-  const maxOuter = Math.min(innerW / 2 - 6, innerH - 12) * 0.94;
-  const minInner = maxOuter * 0.42;
-  const trackGap = 6;
-  const trackWidth =
-    trackCount > 0
-      ? (maxOuter - minInner - (trackCount - 1) * trackGap) / trackCount
-      : 0;
-
-  const trackRadii = Array.from({ length: trackCount }, (_, index) => {
-    const outer = maxOuter - index * (trackWidth + trackGap);
-    const inner = outer - trackWidth;
-    return { inner, outer };
-  });
-
-  return { cx, cy, maxOuter, trackRadii };
+  const outerRadius = Math.min(innerW / 2 - 6, innerH - 12) * 0.94;
+  const innerRadius = outerRadius * 0.58;
+  return { cx, cy, innerRadius, outerRadius };
 }
 
 function DonutTooltip({
@@ -137,9 +124,7 @@ function DonutTooltip({
   payload?: Array<{ name: string; value: number; payload: { fill: string } }>;
 }) {
   if (!active || !payload?.length) return null;
-  const item = payload.find(
-    (p) => p.name && p.name !== "__remainder" && p.name !== "__empty",
-  );
+  const item = payload.find((p) => p.name && p.name !== "__empty");
   if (!item) return null;
   const color = item.payload.fill;
   return (
@@ -157,7 +142,7 @@ function DonutTooltip({
   );
 }
 
-function DonutChartLayers({
+function DonutChartGauge({
   width = 0,
   height = 0,
   dataWithFill,
@@ -174,90 +159,55 @@ function DonutChartLayers({
 }) {
   if (!width || !height) return null;
 
-  const trackCount = dataWithFill.length;
-  const { cx, cy, trackRadii } = semiGaugeGeometry(
+  const { cx, cy, innerRadius, outerRadius } = semiGaugeGeometry(
     width,
     height,
-    trackCount,
   );
-  const semiProps = {
-    cx,
-    cy,
-    startAngle: 180,
-    endAngle: 0,
-    stroke: "none" as const,
-    isAnimationActive: false as const,
-  };
+  const pieData =
+    total > 0
+      ? dataWithFill
+      : [{ name: "__empty", value: 1, fill: "transparent" }];
 
   return (
     <PieChart width={width} height={height} margin={DONUT_MARGIN}>
-      {dataWithFill.map((entry, i) => {
-        const { inner, outer } = trackRadii[i] ?? { inner: 0, outer: 0 };
-        const trackOpacity =
-          activeIndex === null || activeIndex === i ? 1 : 0.35;
-        const remainder = Math.max(0, total - entry.value);
-        const foregroundData =
-          total > 0
-            ? [
-                { ...entry, fill: entry.fill },
-                {
-                  name: "__remainder",
-                  value: remainder,
-                  fill: "transparent",
-                },
-              ]
-            : [
-                {
-                  name: "__empty",
-                  value: 1,
-                  fill: "transparent",
-                },
-              ];
-
-        return (
-          <Fragment key={entry.name}>
-            <Pie
-              data={[{ value: 1 }]}
-              dataKey="value"
-              innerRadius={inner}
-              outerRadius={outer}
-              {...semiProps}
-            >
-              <Cell fill={TRACK_BG} opacity={trackOpacity} />
-            </Pie>
-            <Pie
-              data={foregroundData}
-              dataKey="value"
-              nameKey="name"
-              innerRadius={inner}
-              outerRadius={outer}
-              paddingAngle={0}
-              cornerRadius={8}
-              {...semiProps}
-              onMouseEnter={() => setActiveIndex(i)}
-              onMouseLeave={() => setActiveIndex(null)}
-            >
-              {foregroundData.map((row, j) => (
-                <Cell
-                  key={j}
-                  fill={"fill" in row ? row.fill : entry.fill}
-                  opacity={
-                    row.name === "__remainder" || row.name === "__empty"
-                      ? 0
-                      : trackOpacity
-                  }
-                  style={{
-                    cursor:
-                      row.name === "__remainder" || row.name === "__empty"
-                        ? "default"
-                        : "pointer",
-                  }}
-                />
-              ))}
-            </Pie>
-          </Fragment>
-        );
-      })}
+      <Pie
+        data={pieData}
+        dataKey="value"
+        nameKey="name"
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius}
+        startAngle={180}
+        endAngle={0}
+        paddingAngle={total > 0 ? 3 : 0}
+        cornerRadius={8}
+        stroke="none"
+        isAnimationActive={false}
+        onMouseEnter={(_, index) => {
+          if (total > 0) setActiveIndex(index);
+        }}
+        onMouseLeave={() => setActiveIndex(null)}
+      >
+        {pieData.map((entry, i) => {
+          const opacity =
+            entry.name === "__empty"
+              ? 0
+              : activeIndex === null || activeIndex === i
+                ? 1
+                : 0.35;
+          return (
+            <Cell
+              key={entry.name}
+              fill={entry.fill}
+              opacity={opacity}
+              style={{
+                cursor: entry.name === "__empty" ? "default" : "pointer",
+              }}
+            />
+          );
+        })}
+      </Pie>
       <Tooltip content={<DonutTooltip />} />
     </PieChart>
   );
@@ -293,7 +243,7 @@ export function DonutChart({
   return (
     <div className="relative w-full min-h-0" style={{ height }}>
       <ResponsiveContainer width="100%" height={height}>
-        <DonutChartLayers
+        <DonutChartGauge
           dataWithFill={dataWithFill}
           total={total}
           activeIndex={activeIndex}
