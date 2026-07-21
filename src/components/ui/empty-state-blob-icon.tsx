@@ -4,6 +4,7 @@ import { KPI_BLOB_PATHS, resolveKpiBlobIndex } from "@/components/ui/kpi-blob-sh
 
 /** Accent tints for empty-state blobs — static Tailwind classes only (text-* + fill-current). */
 const EMPTY_STATE_BLOB_ACCENTS = [
+  { accent: "brand", blobFill: "text-brand-50", icon: "text-brand-600" },
   { accent: "blue", blobFill: "text-blue-50", icon: "text-blue-600" },
   { accent: "violet", blobFill: "text-violet-50", icon: "text-violet-600" },
   { accent: "teal", blobFill: "text-teal-50", icon: "text-teal-600" },
@@ -40,8 +41,10 @@ function resolveEmptyStateAccentStyle(seed: string, accentOverride?: EmptyStateB
  * so the full organic shape stays inside the SVG (default overflow is hidden).
  */
 export const EMPTY_STATE_BLOB_SIZE = {
-  sm: { box: "h-20 w-20", icon: 35, blobScale: 1.08 },
-  md: { box: "h-24 w-24", icon: 44, blobScale: 1.08 },
+  /** ~40px — inline card / section headers */
+  xs: { box: "h-10 w-10 shrink-0", icon: 18, blobScale: 1.08, centered: false },
+  sm: { box: "h-20 w-20", icon: 35, blobScale: 1.08, centered: true },
+  md: { box: "h-24 w-24", icon: 44, blobScale: 1.08, centered: true },
 } as const;
 
 const sizeStyles = EMPTY_STATE_BLOB_SIZE;
@@ -52,6 +55,7 @@ export function EmptyStateBlobIcon({
   accent,
   blobIndex: blobIndexProp,
   size = "md",
+  hoverGroup = "empty",
   className,
 }: {
   icon: Icon;
@@ -60,6 +64,8 @@ export function EmptyStateBlobIcon({
   accent?: EmptyStateBlobAccent;
   blobIndex?: number;
   size?: keyof typeof sizeStyles;
+  /** Which ancestor `group` triggers blob hover motion (`empty` = group/empty, `card` = group). */
+  hoverGroup?: "empty" | "card";
   className?: string;
 }) {
   const styles = resolveEmptyStateAccentStyle(seed, accent);
@@ -69,11 +75,20 @@ export function EmptyStateBlobIcon({
     label: seed,
   });
   const pathD = KPI_BLOB_PATHS[blobIndex];
-  const { box, icon: iconSize, blobScale } = sizeStyles[size];
+  const { box, icon: iconSize, blobScale, centered } = sizeStyles[size];
+  const hoverMotion =
+    hoverGroup === "card"
+      ? "group-hover:scale-110 group-hover:rotate-6 motion-reduce:group-hover:scale-100 motion-reduce:group-hover:rotate-0"
+      : "group-hover/empty:scale-110 group-hover/empty:rotate-6 motion-reduce:group-hover/empty:scale-100 motion-reduce:group-hover/empty:rotate-0";
 
   return (
     <div
-      className={clsx("relative mx-auto overflow-visible", box, className)}
+      className={clsx(
+        "relative overflow-visible",
+        centered && "mx-auto",
+        box,
+        className,
+      )}
       aria-hidden
     >
       <svg
@@ -84,7 +99,10 @@ export function EmptyStateBlobIcon({
       >
         <g transform={`translate(100 100) scale(${blobScale})`}>
           <g
-            className="origin-center transition-transform duration-300 ease-out group-hover/empty:scale-110 group-hover/empty:rotate-6 motion-reduce:transition-none motion-reduce:group-hover/empty:scale-100 motion-reduce:group-hover/empty:rotate-0"
+            className={clsx(
+              "origin-center transition-transform duration-300 ease-out motion-reduce:transition-none",
+              hoverMotion,
+            )}
           >
             <path d={pathD} className="fill-current" />
           </g>

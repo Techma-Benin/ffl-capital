@@ -153,10 +153,15 @@ export function PartnerWalletView({
 
           {/* One-Time Top-Up card */}
           <div className="card p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-xl bg-brand-50 p-2.5">
-                <ArrowUpRight size={18} className="text-brand-600" />
-              </div>
+            <div className="group mb-5 flex items-center gap-3">
+              <EmptyStateBlobIcon
+                icon={ArrowUpRight}
+                seed="One-Time Top-Up"
+                accent="brand"
+                size="xs"
+                hoverGroup="card"
+                blobIndex={0}
+              />
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">One-Time Top-Up</h3>
                 <p className="text-xs text-slate-500">Instant wallet credit via Stripe</p>
@@ -217,10 +222,15 @@ export function PartnerWalletView({
           {/* Weekly Auto-Recharge card */}
           <div className="card p-6">
             {/* Header row — icon+title left, cancel button right */}
-            <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-xl bg-violet-50 p-2.5 shrink-0">
-                <ArrowsClockwise size={18} className="text-violet-600" />
-              </div>
+            <div className="group mb-5 flex items-center gap-3">
+              <EmptyStateBlobIcon
+                icon={ArrowsClockwise}
+                seed="Weekly Auto-Recharge"
+                accent="violet"
+                size="xs"
+                hoverGroup="card"
+                blobIndex={1}
+              />
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>
                 <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
