@@ -17,7 +17,7 @@ import {
   Prohibit,
   Lightning,
   Trash,
-  DotsThree,
+  DotsThreeVertical,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 
@@ -179,11 +179,14 @@ function PartnerRowMenu({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        className={clsx(
+          "flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-opacity",
+          open ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+        )}
         aria-label="Partner actions"
         aria-expanded={open}
       >
-        <DotsThree size={18} weight={ICON_WEIGHT_LINEAR} />
+        <DotsThreeVertical size={18} weight={ICON_WEIGHT_LINEAR} />
       </button>
 
       {open &&

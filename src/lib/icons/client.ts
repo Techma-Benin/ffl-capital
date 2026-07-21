@@ -1,6 +1,7 @@
 export type { Icon, IconProps, IconWeight } from "./types";
 export { ICON_WEIGHT, ICON_WEIGHT_LINEAR, ICON_WEIGHT_BOLD } from "./types";
 export { Plus } from "./plus";
+export { DotsThreeVertical } from "./dots-three-vertical";
 
 export {
   Widget as SquaresFour,
