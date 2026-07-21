@@ -1,10 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { RefundReviewActions } from "@/components/admin/refund-review-actions";
 import { RefundTypeFilterChips } from "@/components/admin/refund-type-filter-chips";
+import { ClientTablePagination } from "@/components/ui/table-pagination";
+import {
+  CLIENT_TABLE_PAGE_SIZE,
+  paginateClientList,
+} from "@/lib/client-table-pagination";
 import {
   matchesRefundTypeFilter,
   type RefundTypeFilter,
@@ -42,6 +47,7 @@ export function AdminRefundsPendingTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
   const [typeFilter, setTypeFilter] = useState<RefundTypeFilter>("all");
+  const [page, setPage] = useState(1);
 
   const counts = useMemo(() => refundTypeCounts(refunds), [refunds]);
 
@@ -50,8 +56,24 @@ export function AdminRefundsPendingTable({
     [refunds, typeFilter],
   );
 
+  const { pageItems: pageRefunds, page: currentPage } = useMemo(
+    () => paginateClientList(filteredRefunds, page, CLIENT_TABLE_PAGE_SIZE),
+    [filteredRefunds, page],
+  );
+
+  useEffect(() => {
+    setPage((p) => {
+      const totalPages = Math.max(
+        1,
+        Math.ceil(filteredRefunds.length / CLIENT_TABLE_PAGE_SIZE),
+      );
+      return Math.min(p, totalPages);
+    });
+  }, [filteredRefunds.length]);
+
   function handleTypeFilterChange(next: RefundTypeFilter) {
     setTypeFilter(next);
+    setPage(1);
     setSelected((prev) => {
       if (prev.size === 0) return prev;
       const visible = new Set(
@@ -67,12 +89,27 @@ export function AdminRefundsPendingTable({
   }
 
   function toggleAll() {
-    if (selected.size === filteredRefunds.length && filteredRefunds.length > 0) {
-      setSelected(new Set());
+    const pageIds = pageRefunds.map((r) => r.id);
+    const allPageSelected =
+      pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+    if (allPageSelected) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        for (const id of pageIds) next.delete(id);
+        return next;
+      });
     } else {
-      setSelected(new Set(filteredRefunds.map((r) => r.id)));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        for (const id of pageIds) next.add(id);
+        return next;
+      });
     }
   }
+
+  const allOnPageSelected =
+    pageRefunds.length > 0 &&
+    pageRefunds.every((r) => selected.has(r.id));
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -136,19 +173,17 @@ export function AdminRefundsPendingTable({
           .
         </p>
       ) : (
+        <>
         <table className="data-table">
           <thead>
             <tr>
               <th className="w-8">
                 <input
                   type="checkbox"
-                  checked={
-                    filteredRefunds.length > 0 &&
-                    selected.size === filteredRefunds.length
-                  }
+                  checked={allOnPageSelected}
                   onChange={toggleAll}
                   className="rounded border-slate-300"
-                  aria-label="Select all visible refund requests"
+                  aria-label="Select all refund requests on this page"
                 />
               </th>
               <th>Partner</th>
@@ -162,7 +197,7 @@ export function AdminRefundsPendingTable({
             </tr>
           </thead>
           <tbody>
-            {filteredRefunds.map((r) => (
+            {pageRefunds.map((r) => (
               <tr key={r.id}>
                 <td>
                   <input
@@ -202,6 +237,13 @@ export function AdminRefundsPendingTable({
             ))}
           </tbody>
         </table>
+        <ClientTablePagination
+          page={currentPage}
+          pageSize={CLIENT_TABLE_PAGE_SIZE}
+          total={filteredRefunds.length}
+          onPageChange={setPage}
+        />
+        </>
       )}
     </>
   );

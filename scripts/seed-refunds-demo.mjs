@@ -25,6 +25,18 @@ const REFUND_PLAN = [
   { n: 8, status: "approved", refundType: "wrong_filter", reason: "Second approved wrong filter (demo)" },
   { n: 9, status: "rejected", refundType: "invalid_phone", reason: "Rejected — phone verified (demo)" },
   { n: 10, status: "rejected", refundType: "wrong_filter", reason: "Rejected — matched filter set (demo)" },
+  { n: 11, status: "pending", refundType: "wrong_filter", reason: "Extra pending wrong filter (demo)" },
+  { n: 12, status: "pending", refundType: "invalid_phone", reason: "Extra pending invalid phone (demo)" },
+  { n: 13, status: "pending", refundType: "wrong_filter", reason: "Pagination test pending 13 (demo)" },
+  { n: 14, status: "pending", refundType: "invalid_phone", reason: "Pagination test pending 14 (demo)" },
+  { n: 15, status: "pending", refundType: "wrong_filter", reason: "Pagination test pending 15 (demo)" },
+  { n: 16, status: "pending", refundType: "invalid_phone", reason: "Pagination test pending 16 (demo)" },
+  { n: 17, status: "approved", refundType: "wrong_filter", reason: "History pagination approved 17 (demo)" },
+  { n: 18, status: "approved", refundType: "invalid_phone", reason: "History pagination approved 18 (demo)" },
+  { n: 19, status: "rejected", refundType: "wrong_filter", reason: "History pagination rejected 19 (demo)" },
+  { n: 20, status: "rejected", refundType: "invalid_phone", reason: "History pagination rejected 20 (demo)" },
+  { n: 21, status: "approved", refundType: "wrong_filter", reason: "History pagination approved 21 (demo)" },
+  { n: 22, status: "rejected", refundType: "invalid_phone", reason: "History pagination rejected 22 (demo)" },
 ];
 
 async function getOrCreatePartner() {

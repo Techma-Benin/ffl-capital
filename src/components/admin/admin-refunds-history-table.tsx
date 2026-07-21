@@ -1,8 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { RefundTypeFilterChips } from "@/components/admin/refund-type-filter-chips";
+import { ClientTablePagination } from "@/components/ui/table-pagination";
+import {
+  CLIENT_TABLE_PAGE_SIZE,
+  paginateClientList,
+} from "@/lib/client-table-pagination";
 import {
   matchesRefundTypeFilter,
   type RefundTypeFilter,
@@ -35,11 +40,32 @@ export function AdminRefundsHistoryTable({
   refunds: HistoryRefund[];
 }) {
   const [typeFilter, setTypeFilter] = useState<RefundTypeFilter>("all");
+  const [page, setPage] = useState(1);
   const counts = useMemo(() => refundTypeCounts(refunds), [refunds]);
   const filteredRefunds = useMemo(
     () => refunds.filter((r) => matchesRefundTypeFilter(r.refundType, typeFilter)),
     [refunds, typeFilter],
   );
+
+  const { pageItems: pageRefunds, page: currentPage } = useMemo(
+    () => paginateClientList(filteredRefunds, page, CLIENT_TABLE_PAGE_SIZE),
+    [filteredRefunds, page],
+  );
+
+  useEffect(() => {
+    setPage((p) => {
+      const totalPages = Math.max(
+        1,
+        Math.ceil(filteredRefunds.length / CLIENT_TABLE_PAGE_SIZE),
+      );
+      return Math.min(p, totalPages);
+    });
+  }, [filteredRefunds.length]);
+
+  function handleTypeFilterChange(next: RefundTypeFilter) {
+    setTypeFilter(next);
+    setPage(1);
+  }
 
   if (refunds.length === 0) return null;
 
@@ -47,7 +73,7 @@ export function AdminRefundsHistoryTable({
     <>
       <RefundTypeFilterChips
         value={typeFilter}
-        onChange={setTypeFilter}
+        onChange={handleTypeFilterChange}
         counts={counts}
       />
       {filteredRefunds.length === 0 ? (
@@ -55,13 +81,14 @@ export function AdminRefundsHistoryTable({
           No history entries match this type.{" "}
           <button
             type="button"
-            onClick={() => setTypeFilter("all")}
+            onClick={() => handleTypeFilterChange("all")}
             className="font-semibold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-sm"
           >
             Show all
           </button>
         </p>
       ) : (
+        <>
         <table className="data-table">
           <thead>
             <tr>
@@ -74,7 +101,7 @@ export function AdminRefundsHistoryTable({
             </tr>
           </thead>
           <tbody>
-            {filteredRefunds.map((r) => (
+            {pageRefunds.map((r) => (
               <tr key={r.id}>
                 <td className="font-medium text-slate-900">{r.partnerName}</td>
                 <td>{r.leadName}</td>
@@ -94,6 +121,13 @@ export function AdminRefundsHistoryTable({
             ))}
           </tbody>
         </table>
+        <ClientTablePagination
+          page={currentPage}
+          pageSize={CLIENT_TABLE_PAGE_SIZE}
+          total={filteredRefunds.length}
+          onPageChange={setPage}
+        />
+        </>
       )}
     </>
   );
