@@ -41,9 +41,9 @@ export default async function PartnerLayout({
             )}
 
             {approvalRequired && isPending && (
-              <div className="flex items-center gap-3 border-b border-amber-200 bg-amber-50 px-6 py-3">
-                <WarningCircle size={15} className="flex-shrink-0 text-amber-600" weight={ICON_WEIGHT} />
-                <p className="text-sm text-amber-800">
+              <div className="flex items-center gap-3 border-b border-amber-200 bg-white px-6 py-3">
+                <WarningCircle size={15} className="flex-shrink-0 text-amber-700" weight={ICON_WEIGHT} />
+                <p className="text-sm text-slate-800">
                   <span className="font-semibold">Account pending approval.</span>{" "}
                   You won&apos;t receive leads until an admin activates your account. Please ensure you have at least 15 states selected.
                 </p>
