@@ -20,9 +20,9 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDirection }) {
     );
   }
   return dir === "asc" ? (
-    <ArrowUp size={12} className="text-slate-700" weight={ICON_WEIGHT_LINEAR} />
+    <ArrowUp size={12} className="text-orange-700" weight={ICON_WEIGHT_LINEAR} />
   ) : (
-    <ArrowDown size={12} className="text-slate-700" weight={ICON_WEIGHT_LINEAR} />
+    <ArrowDown size={12} className="text-orange-700" weight={ICON_WEIGHT_LINEAR} />
   );
 }
 
@@ -66,8 +66,8 @@ export function PortalSortableHeaderCell({
         onClick={() => startNavigation(href)}
         aria-busy={pending}
         className={clsx(
-          "inline-flex cursor-pointer items-center gap-1 hover:text-slate-700",
-          active && "text-slate-600",
+          "inline-flex cursor-pointer items-center gap-1 text-slate-500 hover:text-slate-700",
+          active && "text-orange-600 hover:text-orange-700",
           pending && "pointer-events-none opacity-70",
           headerClassName?.includes("text-center") && "justify-center",
         )}
