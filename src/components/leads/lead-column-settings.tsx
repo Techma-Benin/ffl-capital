@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
-import { Funnel, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type { LeadViewColumn } from "@/lib/leads/list-view-schema";
 
@@ -108,7 +107,6 @@ export function LeadColumnSettings({
                     ▼
                   </button>
                 </span>
-                <Funnel size={14} className="shrink-0 text-slate-300" weight={ICON_WEIGHT_LINEAR} />
                 <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-sm text-slate-700">
                   <input
                     type="checkbox"
