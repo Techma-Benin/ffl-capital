@@ -38,15 +38,8 @@ export default async function AdminRefundsPage() {
       </div>
 
       <div className="card mb-6">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-900">Pending Requests</h2>
-            {pending.length > 0 && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
-                {pending.length}
-              </span>
-            )}
-          </div>
+        <div className="border-b border-slate-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-slate-900">Pending Requests</h2>
         </div>
 
         <div className="overflow-x-auto">
