@@ -30,6 +30,13 @@ type ViewRecord = {
   isDefault: boolean;
 };
 
+function defaultViewSort(scope: "admin" | "partner"): LeadViewSort {
+  return {
+    field: scope === "admin" ? "receivedAt" : "deliveredAt",
+    direction: "desc",
+  };
+}
+
 export function LeadViewsToolbar({
   scope,
   apiBase,
@@ -37,7 +44,6 @@ export function LeadViewsToolbar({
   views,
   activeView,
   catalog,
-  sortOptions,
   partnerMeta,
   filterSummary,
   exportSlot,
@@ -48,7 +54,6 @@ export function LeadViewsToolbar({
   views: ViewRecord[];
   activeView: ViewRecord;
   catalog: LeadColumnDef[];
-  sortOptions: { value: string; label: string }[];
   partnerMeta?: {
     filterSets: { id: string; name: string }[];
     availableStates: string[];
@@ -80,10 +85,6 @@ export function LeadViewsToolbar({
           scope === "admin"
             ? { statusSlice: "all" }
             : {},
-        sort: (activeView.sort as LeadViewSort) ?? {
-          field: scope === "admin" ? "receivedAt" : "deliveredAt",
-          direction: "desc",
-        },
         columns,
       };
     }
@@ -93,7 +94,6 @@ export function LeadViewsToolbar({
         scope === "admin"
           ? parseAdminFilters(activeView.filters)
           : parsePartnerFilters(activeView.filters),
-      sort: activeView.sort as LeadViewSort,
       columns,
     };
   };
@@ -135,7 +135,7 @@ export function LeadViewsToolbar({
           body: JSON.stringify({
             name: state.name,
             filters,
-            sort: state.sort,
+            sort: defaultViewSort(scope),
             columns: state.columns,
           }),
         });
@@ -146,7 +146,6 @@ export function LeadViewsToolbar({
         await apiPatch(activeView.id, {
           name: state.name,
           filters,
-          sort: state.sort,
           columns: state.columns,
         });
         setDraftColumns(null);
@@ -179,7 +178,7 @@ export function LeadViewsToolbar({
         body: JSON.stringify({
           name: `${activeView.name} copy`,
           filters: state.filters,
-          sort: state.sort,
+          sort: (activeView.sort as LeadViewSort) ?? defaultViewSort(scope),
           columns: state.columns,
         }),
       });
@@ -261,7 +260,6 @@ export function LeadViewsToolbar({
         mode={editorMode}
         initial={editorInitial()}
         catalog={catalog}
-        sortOptions={sortOptions}
         partnerMeta={partnerMeta}
         onSave={saveView}
         pending={pending}

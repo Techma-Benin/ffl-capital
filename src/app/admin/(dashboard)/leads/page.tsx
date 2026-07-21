@@ -41,15 +41,6 @@ import {
 
 const BASE_PATH = "/admin/leads";
 
-const ADMIN_SORT_OPTIONS = [
-  { value: "receivedAt", label: "Received" },
-  { value: "name", label: "Name" },
-  { value: "state", label: "State" },
-  { value: "leadType", label: "Type" },
-  { value: "status", label: "Status" },
-  { value: "phone", label: "Phone" },
-];
-
 export default async function AdminLeadsPage({
   searchParams,
 }: {
@@ -160,7 +151,6 @@ export default async function AdminLeadsPage({
               views={views}
               activeView={view}
               catalog={ADMIN_LEAD_COLUMNS}
-              sortOptions={ADMIN_SORT_OPTIONS}
               filterSummary={
                 filterChips.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 px-1 text-xs text-slate-500">

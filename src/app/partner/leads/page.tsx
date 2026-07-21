@@ -37,16 +37,6 @@ import {
 
 const BASE_PATH = "/partner/leads";
 
-const PARTNER_SORT_OPTIONS = [
-  { value: "deliveredAt", label: "Delivered" },
-  { value: "name", label: "Name" },
-  { value: "state", label: "State" },
-  { value: "type", label: "Type" },
-  { value: "channel", label: "Channel" },
-  { value: "price", label: "Price" },
-  { value: "status", label: "Status" },
-];
-
 export default async function PartnerLeadsPage({
   searchParams,
 }: {
@@ -164,7 +154,6 @@ export default async function PartnerLeadsPage({
               views={views}
               activeView={view}
               catalog={PARTNER_LEAD_COLUMNS}
-              sortOptions={PARTNER_SORT_OPTIONS}
               partnerMeta={{ filterSets, availableStates }}
               filterSummary={
                 filterChips.length > 0 ? (

@@ -8,7 +8,6 @@ import type {
   AdminDatePeriod,
   AdminLeadViewFilters,
   LeadViewColumn,
-  LeadViewSort,
   PartnerLeadViewFilters,
 } from "@/lib/leads/list-view-schema";
 import { ADMIN_DATE_PERIOD_OPTIONS } from "@/lib/admin/admin-date-period";
@@ -19,7 +18,6 @@ type Scope = "admin" | "partner";
 export type LeadViewEditorState = {
   name: string;
   filters: AdminLeadViewFilters | PartnerLeadViewFilters;
-  sort: LeadViewSort;
   columns: LeadViewColumn[];
 };
 
@@ -27,7 +25,6 @@ function cloneEditorState(initial: LeadViewEditorState): LeadViewEditorState {
   return {
     name: initial.name,
     filters: { ...initial.filters },
-    sort: { ...initial.sort },
     columns: initial.columns.map((c) => ({ ...c })),
   };
 }
@@ -39,7 +36,6 @@ export function LeadViewEditorSheet({
   mode,
   initial,
   catalog,
-  sortOptions,
   partnerMeta,
   onSave,
   pending,
@@ -50,7 +46,6 @@ export function LeadViewEditorSheet({
   mode: "create" | "edit";
   initial: LeadViewEditorState;
   catalog: LeadColumnDef[];
-  sortOptions: { value: string; label: string }[];
   partnerMeta?: {
     filterSets: { id: string; name: string }[];
     availableStates: string[];
@@ -101,7 +96,7 @@ export function LeadViewEditorSheet({
         open={open}
         onOpenChange={onOpenChange}
         title={mode === "create" ? "New view" : "Edit view"}
-        description="Configure filters, sort, and columns for this list view"
+        description="Configure filters and columns for this list view"
       >
         <SheetBody>
           <div className="space-y-4">
@@ -226,44 +221,6 @@ export function LeadViewEditorSheet({
                 onChange={setFilters}
               />
             )}
-
-            <div>
-              <label className="form-label">Default sort</label>
-              <div className="flex gap-2">
-                <select
-                  className="form-select flex-1 text-sm"
-                  value={state.sort.field}
-                  onChange={(e) =>
-                    setState((s) => ({
-                      ...s,
-                      sort: { ...s.sort, field: e.target.value },
-                    }))
-                  }
-                >
-                  {sortOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="form-select w-28 text-sm"
-                  value={state.sort.direction}
-                  onChange={(e) =>
-                    setState((s) => ({
-                      ...s,
-                      sort: {
-                        ...s.sort,
-                        direction: e.target.value as "asc" | "desc",
-                      },
-                    }))
-                  }
-                >
-                  <option value="desc">Desc</option>
-                  <option value="asc">Asc</option>
-                </select>
-              </div>
-            </div>
 
             <button
               type="button"
