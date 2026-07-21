@@ -4,7 +4,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { IntakeAreaChart, DonutChart } from "@/components/ui/charts";
 import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
-import { WarningCircle, Clock, FileText, CalendarCheck, UsersThree, Warning } from "@/lib/icons/client";
+import { FileText, CalendarCheck, UsersThree, Warning } from "@/lib/icons/client";
 
 type RecentLead = {
   id: string;
@@ -59,20 +59,12 @@ export function AdminDashboardCharts({
           <IntakeAreaChart data={intakeByDay} />
         </div>
 
-        <div className="card p-5">
-          <h2 className="mb-2 text-sm font-semibold text-slate-900">Delivering</h2>
+        <div className="card flex flex-col p-5">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">Delivering</h2>
           {hasDeliveries ? (
-            <>
+            <div className="flex flex-1 flex-col justify-center">
               <DonutChart data={deliveringDonut} />
-              <ul className="mt-3 space-y-1.5">
-                {deliveringDonut.map((d) => (
-                  <li key={d.name} className="flex justify-between text-xs text-slate-600">
-                    <span>{d.name}</span>
-                    <span className="font-semibold">{d.value}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
+            </div>
           ) : (
             <p className="py-8 text-center text-sm text-slate-400">No deliveries yet</p>
           )}
