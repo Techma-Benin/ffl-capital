@@ -63,13 +63,13 @@ export function StatCard(props: StatCardProps) {
     return (
       <div
         className={clsx(
-          "relative overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm",
+          "relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm",
           className,
         )}
       >
         {IconComponent && (
           <div
-            className="absolute right-0 top-0 flex h-14 w-14 items-center justify-center rounded-[1.25rem] rounded-tr-[2rem] rounded-bl-[2rem] bg-blue-50"
+            className="absolute right-0 top-0 flex h-14 w-14 items-center justify-center rounded-[0.625rem] rounded-tr-2xl rounded-bl-2xl bg-blue-50"
           >
             <IconComponent size={26} weight="duotone" className={clsx("text-blue-600", iconColor)} />
           </div>
@@ -78,7 +78,7 @@ export function StatCard(props: StatCardProps) {
           <p className={clsx("text-3xl font-bold tracking-tight text-slate-900", valueClassName)}>
             {value}
           </p>
-          <p className="mt-1 text-sm font-medium text-slate-700">{label}</p>
+          <p className="mt-1 text-sm text-slate-500">{label}</p>
           {trend && (
             <p className="mt-2 text-sm">
               <span
