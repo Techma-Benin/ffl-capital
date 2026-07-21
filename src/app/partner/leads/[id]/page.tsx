@@ -24,7 +24,7 @@ function DetailRow({
       <dt className="shrink-0 text-sm text-slate-500">{label}</dt>
       <dd className={`text-right text-sm text-slate-900 ${mono ? "font-mono text-xs" : ""}`}>
         {href ? (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline">
             {display as string}
           </a>
         ) : (
@@ -112,7 +112,7 @@ export default async function PartnerLeadDetailPage({
           <p className="mt-1 text-sm text-slate-500">{lead.email}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="blue">{typeLabel}</Badge>
+          <Badge variant="purple">{typeLabel}</Badge>
           <Badge variant={delivery.channel === "realtime" ? "green" : "purple"}>{channelLabel}</Badge>
           {isRefunded ? (
             <Badge variant="slate">Refunded</Badge>
@@ -178,7 +178,7 @@ export default async function PartnerLeadDetailPage({
                   href={lead.trustedformCertUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-brand-600 hover:underline"
+                  className="text-sm text-violet-600 hover:underline"
                 >
                   View Certificate
                 </a>

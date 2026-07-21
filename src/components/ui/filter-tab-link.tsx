@@ -5,13 +5,20 @@ import { clsx } from "clsx";
 import { usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
 
+const activeAccentClasses = {
+  brand: "bg-brand-50 text-brand-700",
+  violet: "bg-violet-50 text-violet-700",
+} as const;
+
 export function FilterTabLink({
   href,
   active,
+  accent = "brand",
   children,
 }: {
   href: string;
   active: boolean;
+  accent?: keyof typeof activeAccentClasses;
   children: React.ReactNode;
 }) {
   const { pendingPath, startNavigation } = usePortal();
@@ -24,7 +31,7 @@ export function FilterTabLink({
       aria-busy={pending}
       className={clsx(
         "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-        active ? "bg-brand-50 text-brand-700" : "text-slate-500 hover:text-slate-700",
+        active ? activeAccentClasses[accent] : "text-slate-500 hover:text-slate-700",
         pending && "pointer-events-none opacity-70",
       )}
     >

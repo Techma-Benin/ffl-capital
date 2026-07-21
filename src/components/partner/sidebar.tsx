@@ -34,7 +34,7 @@ const navItems: {
   accent: SidebarNavAccent;
 }[] = [
   { href: "/partner", label: "Dashboard", icon: SquaresFour, exact: true, accent: "brand" },
-  { href: "/partner/leads", label: "My Leads", icon: FileText, accent: "blue" },
+  { href: "/partner/leads", label: "My Leads", icon: FileText, accent: "violet" },
   { href: "/partner/wallet", label: "Wallet", icon: Wallet, accent: "red" },
   { href: "/partner/aged", label: "Aged Marketplace", icon: ShoppingBag, accent: "mint" },
   { href: "/partner/reports", label: "Reports", icon: ChartBar, accent: "violet" },
