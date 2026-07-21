@@ -103,17 +103,6 @@ export function AdminSidebar() {
       >
         <SidebarUserButton afterSignOutUrl="/admin/sign-in" />
       </div>
-
-      <div className="border-t border-sidebar-border px-3 py-3">
-        <p
-          className={clsx(
-            "px-3 text-[11px] text-sidebar-heading transition-all duration-300",
-            sidebarCollapsed ? "h-0 overflow-hidden opacity-0" : "opacity-100",
-          )}
-        >
-          FFL Capital Platform v1.0
-        </p>
-      </div>
     </aside>
   );
 }
