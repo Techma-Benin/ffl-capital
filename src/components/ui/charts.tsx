@@ -126,6 +126,8 @@ export function IntakeAreaChart({
 
 const DONUT_COLORS = [BRAND, ACCENT, "#72A5E1", "#F59E0B", "#8B5CF6"];
 const DONUT_TRACK = "#E2E8F0";
+/** Degrees each segment extends into the next (earlier segment draws on top). */
+const SEGMENT_OVERLAP_DEG = 3;
 /** Speedometer-style arc: bottom-left → over top → bottom-right (~270°). */
 const GAUGE_START_ANGLE = 225;
 const GAUGE_END_ANGLE = -45;
@@ -241,11 +243,12 @@ function DonutChartGauge({
   const segmentDegs = segmentAngles(dataWithFill, total);
 
   let cumulative = 0;
-  const segmentCount = dataWithFill.length;
   const segmentLayers = dataWithFill.map((entry, index) => {
     const segDeg = segmentDegs[index] ?? 0;
     const startAngle = GAUGE_START_ANGLE - cumulative;
-    const endAngle = GAUGE_START_ANGLE - cumulative - segDeg;
+    const isLast = index === dataWithFill.length - 1;
+    const overlap = isLast ? 0 : SEGMENT_OVERLAP_DEG;
+    const endAngle = GAUGE_START_ANGLE - cumulative - segDeg - overlap;
     cumulative += segDeg;
     return { entry, index, startAngle, endAngle };
   });
@@ -305,8 +308,6 @@ function DonutChartGauge({
             activeIndex === null || activeIndex === index ? 1 : 0.35;
           const d = describeArcPath(cx, cy, midRadius, startAngle, endAngle);
           if (!d) return null;
-          const strokeLinecap =
-            segmentCount === 1 ? "round" : ("butt" as const);
           return (
             <path
               key={entry.name}
@@ -314,13 +315,10 @@ function DonutChartGauge({
               fill="none"
               stroke={entry.fill}
               strokeWidth={ringThickness}
-              strokeLinecap={strokeLinecap}
+              strokeLinecap="round"
               strokeLinejoin="round"
               opacity={opacity}
-              style={{
-                cursor: "pointer",
-                transition: "opacity 150ms ease-out",
-              }}
+              style={{ cursor: "pointer" }}
               onMouseEnter={(e) => {
                 setActiveIndex(index);
                 setTooltip({
@@ -347,49 +345,6 @@ function DonutChartGauge({
             />
           );
         })}
-      {total > 0 && segmentCount > 1
-        ? (() => {
-            const first = dataWithFill[0];
-            const last = dataWithFill[segmentCount - 1];
-            const startPt = polarToCartesian(
-              cx,
-              cy,
-              midRadius,
-              GAUGE_START_ANGLE,
-            );
-            const endPt = polarToCartesian(
-              cx,
-              cy,
-              midRadius,
-              GAUGE_END_ANGLE,
-            );
-            const capR = cornerRadius;
-            const capOpacity = (i: number) =>
-              activeIndex === null || activeIndex === i ? 1 : 0.35;
-            return (
-              <>
-                <circle
-                  cx={startPt.x}
-                  cy={startPt.y}
-                  r={capR}
-                  fill={first.fill}
-                  opacity={capOpacity(0)}
-                  pointerEvents="none"
-                  style={{ transition: "opacity 150ms ease-out" }}
-                />
-                <circle
-                  cx={endPt.x}
-                  cy={endPt.y}
-                  r={capR}
-                  fill={last.fill}
-                  opacity={capOpacity(segmentCount - 1)}
-                  pointerEvents="none"
-                  style={{ transition: "opacity 150ms ease-out" }}
-                />
-              </>
-            );
-          })()
-        : null}
     </svg>
       {tooltip ? (
         <div
