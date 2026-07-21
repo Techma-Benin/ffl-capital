@@ -88,7 +88,11 @@ function CornerIconBadge({
         aria-hidden
       >
         <g transform="translate(128 72) rotate(18) scale(1.5)">
-          <path d={pathD} className="fill-current" />
+          <g
+            className="origin-center transition-transform duration-300 ease-out group-hover:scale-110 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          >
+            <path d={pathD} className="fill-current" />
+          </g>
         </g>
       </svg>
       <div className="relative flex h-full w-full translate-x-[-0.375rem] translate-y-1.5 items-start justify-end p-3 pr-5 pt-5">
@@ -148,7 +152,7 @@ export function StatCard(props: StatCardProps) {
   return (
     <div
       className={clsx(
-        "relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm",
+        "group relative cursor-default overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm",
         className,
       )}
     >
