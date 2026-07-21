@@ -95,7 +95,7 @@ function CornerIconBadge({
           </g>
         </g>
       </svg>
-      <div className="relative flex h-full w-full translate-x-[-0.375rem] translate-y-1.5 items-start justify-end p-3 pr-5 pt-5">
+      <div className="relative flex h-full w-full translate-x-[-0.75rem] translate-y-3 items-start justify-end p-3 pr-4 pt-6">
         <IconComponent size={30} weight="duotone" className={iconClassName} />
       </div>
     </div>
