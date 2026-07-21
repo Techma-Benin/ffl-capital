@@ -80,7 +80,7 @@ export function PartnerContactView() {
           <EnvelopeSimple
             size={32}
             weight={ICON_WEIGHT}
-            className="flex-shrink-0 text-brand-600"
+            className="flex-shrink-0 text-cyan-700"
           />
           <div className="min-w-0 text-sm">
             <p className="text-slate-500">Email</p>
