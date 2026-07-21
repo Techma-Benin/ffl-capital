@@ -11,44 +11,126 @@ import {
 import { parsePageParams } from "@/lib/pagination";
 import { hasEligibleFilterSet } from "@/lib/partner/default-filter-set";
 import { PartnerTableRow } from "@/components/admin/partner-table-row";
+import {
+  buildPartnerOrderBy,
+  buildPartnerSortHref,
+  parsePartnerSort,
+  sortPartnersByLeadBuying,
+  PARTNER_SORT_KEYS,
+} from "@/lib/admin/partner-list-sort";
 
 const PARTNER_COLUMNS = [
-  { key: "partner", label: "Partner" },
-  { key: "affiliation", label: "Affiliation", headerClassName: "text-center" },
-  { key: "status", label: "Status", headerClassName: "text-center" },
-  { key: "priority", label: "Priority", headerClassName: "text-center" },
-  { key: "wallet", label: "Wallet", headerClassName: "text-center" },
-  { key: "leadBuying", label: "Lead Buying", headerClassName: "text-center" },
-  { key: "leads", label: "Leads Purchased", headerClassName: "text-center" },
+  { key: "partner", label: "Partner", sortKey: "partner" },
+  {
+    key: "affiliation",
+    label: "Affiliation",
+    headerClassName: "text-center",
+    sortKey: "affiliation",
+  },
+  {
+    key: "status",
+    label: "Status",
+    headerClassName: "text-center",
+    sortKey: "status",
+  },
+  {
+    key: "priority",
+    label: "Priority",
+    headerClassName: "text-center",
+    sortKey: "priority",
+  },
+  {
+    key: "wallet",
+    label: "Wallet",
+    headerClassName: "text-center",
+    sortKey: "wallet",
+  },
+  {
+    key: "leadBuying",
+    label: "Lead Buying",
+    headerClassName: "text-center",
+    sortKey: "leadBuying",
+  },
+  {
+    key: "leads",
+    label: "Leads Purchased",
+    headerClassName: "text-center",
+    sortKey: "leads",
+  },
   { key: "actions", label: "", headerClassName: "w-12 text-center" },
 ];
+
+const BASE_PATH = "/admin/partners";
+
+function sortHrefMap(
+  searchParams: Record<string, string | undefined>,
+): Record<string, string> {
+  return Object.fromEntries(
+    PARTNER_SORT_KEYS.map((key) => [
+      key,
+      buildPartnerSortHref(BASE_PATH, searchParams, key),
+    ]),
+  );
+}
 
 export default async function AdminPartnersPage({
   searchParams,
 }: {
-  searchParams: { status?: string; page?: string };
+  searchParams: {
+    status?: string;
+    page?: string;
+    sort?: string;
+    dir?: string;
+  };
 }) {
   const statusFilter = searchParams.status;
   const { page, pageSize, skip } = parsePageParams(searchParams);
+  const { sort, dir } = parsePartnerSort(searchParams);
 
   const where = statusFilter ? { status: statusFilter as never } : {};
 
-  const [partners, total, pendingCount, activeCount, blockedCount] = await Promise.all([
-    prisma.partner.findMany({
-      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-      skip,
-      take: pageSize,
-      where,
-      include: {
-        filterSets: true,
-        _count: { select: { leadDeliveries: true } },
-      },
-    }),
+  const partnerInclude = {
+    filterSets: true,
+    _count: { select: { leadDeliveries: true } },
+  } as const;
+
+  const countsPromise = Promise.all([
     prisma.partner.count({ where }),
     prisma.partner.count({ where: { status: "pending_approval" } }),
     prisma.partner.count({ where: { status: "active" } }),
     prisma.partner.count({ where: { status: "disabled" } }),
   ]);
+
+  let partners: Awaited<
+    ReturnType<
+      typeof prisma.partner.findMany<{ include: typeof partnerInclude }>
+    >
+  >;
+
+  if (sort === "leadBuying") {
+    const all = await prisma.partner.findMany({
+      where,
+      include: partnerInclude,
+    });
+    const sorted = sortPartnersByLeadBuying(all, dir);
+    partners = sorted.slice(skip, skip + pageSize);
+  } else {
+    partners = await prisma.partner.findMany({
+      orderBy: buildPartnerOrderBy(sort, dir),
+      skip,
+      take: pageSize,
+      where,
+      include: partnerInclude,
+    });
+  }
+
+  const [total, pendingCount, activeCount, blockedCount] = await countsPromise;
+
+  const tableSort = {
+    active: sort,
+    dir,
+    hrefBySortKey: sortHrefMap(searchParams),
+  };
 
   const statusTabs = [
     { label: "All Partners", href: "/admin/partners", active: !statusFilter, count: total },
@@ -97,7 +179,7 @@ export default async function AdminPartnersPage({
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
-            <PortalDataTable columns={PARTNER_COLUMNS}>
+            <PortalDataTable columns={PARTNER_COLUMNS} sort={tableSort}>
               {partners.map((p) => {
                 const isActive = p.status === "active";
                 const walletOk = Number(p.walletBalance) >= 25;

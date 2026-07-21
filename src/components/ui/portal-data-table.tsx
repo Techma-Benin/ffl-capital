@@ -1,10 +1,23 @@
 import { clsx } from "clsx";
 import { PortalDataTableTab } from "@/components/ui/portal-data-table-tab";
+import {
+  PortalSortableHeaderCell,
+  PortalTableHeaderCell,
+  type SortDirection,
+} from "@/components/ui/portal-sortable-table-header";
 
 export type PortalDataTableColumn = {
   key: string;
   label: string;
   headerClassName?: string;
+  /** When set, column header is sortable (requires `sort` on the table). */
+  sortKey?: string;
+};
+
+export type PortalDataTableSortState = {
+  active?: string;
+  dir: SortDirection;
+  hrefBySortKey: Record<string, string>;
 };
 
 export const portalTableCell = "px-4 py-3.5";
@@ -67,27 +80,39 @@ export function PortalDataTable({
   columns,
   children,
   className,
+  sort,
 }: {
   columns: PortalDataTableColumn[];
   children: React.ReactNode;
   className?: string;
+  sort?: PortalDataTableSortState;
 }) {
   return (
     <div className={clsx("min-h-0 flex-1 pb-2 pt-1", className)}>
       <table className="w-full border-separate border-spacing-y-2">
         <thead>
           <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={clsx(
-                  "whitespace-nowrap px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-orange-600/70",
-                  col.headerClassName,
-                )}
-              >
-                {col.label}
-              </th>
-            ))}
+            {columns.map((col) => {
+              if (col.sortKey && sort?.hrefBySortKey[col.sortKey]) {
+                return (
+                  <PortalSortableHeaderCell
+                    key={col.key}
+                    label={col.label}
+                    href={sort.hrefBySortKey[col.sortKey]}
+                    active={sort.active === col.sortKey}
+                    dir={sort.dir}
+                    headerClassName={col.headerClassName}
+                  />
+                );
+              }
+              return (
+                <PortalTableHeaderCell
+                  key={col.key}
+                  label={col.label}
+                  headerClassName={col.headerClassName}
+                />
+              );
+            })}
           </tr>
         </thead>
         <tbody>{children}</tbody>
