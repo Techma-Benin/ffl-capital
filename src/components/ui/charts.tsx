@@ -250,7 +250,13 @@ function DonutChartGauge({
     return { entry, index, startAngle, endAngle };
   });
 
-  const drawOrder = segmentLayers;
+  const drawOrder =
+    activeIndex === null
+      ? segmentLayers
+      : [
+          ...segmentLayers.filter(({ index }) => index !== activeIndex),
+          ...segmentLayers.filter(({ index }) => index === activeIndex),
+        ];
   const trackPath = describeArcPath(
     cx,
     cy,
