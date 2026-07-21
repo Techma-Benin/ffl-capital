@@ -80,9 +80,9 @@ export default async function AdminPartnersPage({
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total Partners" value={total} icon={Users} accent="blue" />
-        <StatCard label="Active" value={activeCount} icon={CheckCircle} accent="mint" />
-        <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" />
+        <StatCard label="Total Partners" value={total} icon={Users} accent="blue" blobIndex={0} />
+        <StatCard label="Active" value={activeCount} icon={CheckCircle} accent="mint" blobIndex={1} />
+        <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" blobIndex={2} />
       </div>
 
       <PortalDataTableCard tabs={statusTabs} className="flex-1">
