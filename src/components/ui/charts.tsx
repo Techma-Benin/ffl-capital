@@ -205,8 +205,8 @@ function DonutChartGauge({
         outerRadius={outerRadius}
         startAngle={180}
         endAngle={0}
-        paddingAngle={total > 0 ? 3 : 0}
-        cornerRadius={8}
+        paddingAngle={0}
+        cornerRadius={10}
         stroke="none"
         isAnimationActive={false}
         onMouseEnter={(_, index) => {
