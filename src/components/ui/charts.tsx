@@ -126,8 +126,7 @@ export function IntakeAreaChart({
 
 const DONUT_COLORS = [BRAND, ACCENT, "#72A5E1", "#F59E0B", "#8B5CF6"];
 const DONUT_TRACK = "#E2E8F0";
-/** Degrees each segment extends into the next (earlier segment draws on top). */
-const SEGMENT_OVERLAP_DEG = 3;
+/** Paint order: first segment along the arc is bottom; later segments stack on top at junctions. */
 /** Speedometer-style arc: bottom-left → over top → bottom-right (~270°). */
 const GAUGE_START_ANGLE = 225;
 const GAUGE_END_ANGLE = -45;
@@ -246,14 +245,12 @@ function DonutChartGauge({
   const segmentLayers = dataWithFill.map((entry, index) => {
     const segDeg = segmentDegs[index] ?? 0;
     const startAngle = GAUGE_START_ANGLE - cumulative;
-    const isLast = index === dataWithFill.length - 1;
-    const overlap = isLast ? 0 : SEGMENT_OVERLAP_DEG;
-    const endAngle = GAUGE_START_ANGLE - cumulative - segDeg - overlap;
+    const endAngle = GAUGE_START_ANGLE - cumulative - segDeg;
     cumulative += segDeg;
     return { entry, index, startAngle, endAngle };
   });
 
-  const drawOrder = [...segmentLayers].reverse();
+  const drawOrder = segmentLayers;
   const trackPath = describeArcPath(
     cx,
     cy,
@@ -318,7 +315,10 @@ function DonutChartGauge({
               strokeLinecap="round"
               strokeLinejoin="round"
               opacity={opacity}
-              style={{ cursor: "pointer" }}
+              style={{
+                cursor: "pointer",
+                transition: "opacity 150ms ease-out",
+              }}
               onMouseEnter={(e) => {
                 setActiveIndex(index);
                 setTooltip({

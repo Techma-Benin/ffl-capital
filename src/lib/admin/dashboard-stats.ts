@@ -43,10 +43,15 @@ export async function getAdminDashboardChartData() {
     channelMap.set(key, (channelMap.get(key) ?? 0) + 1);
   }
 
-  const deliveringDonut = Array.from(channelMap.entries()).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  const deliveringChannelOrder = ["Real-time", "Aged"] as const;
+  const deliveringDonut = [
+    ...deliveringChannelOrder
+      .filter((name) => channelMap.has(name))
+      .map((name) => ({ name, value: channelMap.get(name)! })),
+    ...Array.from(channelMap.entries())
+      .filter(([name]) => !deliveringChannelOrder.includes(name as "Real-time" | "Aged"))
+      .map(([name, value]) => ({ name, value })),
+  ];
 
   return { intakeByDay, sparkByDay, deliveringDonut };
 }
