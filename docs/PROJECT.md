@@ -312,7 +312,7 @@ resale_postings                   -- envois IntegrityCONNECT
 | Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue), partners, refunds, settings, migration, filter list | ✅ |
 | Partner : dashboard, leads (vues sauvegardées), wallet, aged, settings, contact, refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
-| Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
+| Dev tools : `/dev/lead-simulator`, `/feeding-platform`, `create-demo-partner` | ✅ |
 | Tables `lead_events`, `partner_filter_sets`, champs Boberdoo étendus | ✅ |
 
 ### ⏳ Restant / bloqué client
@@ -376,6 +376,7 @@ resale_postings                   -- envois IntegrityCONNECT
 | **Feeding platform** | `/feeding-platform` | UI statique pour soumissions test |
 | **Fixture JSON** | Fichiers `fixtures/lead-payload-*.json` | Payloads conformes au format LeadConduit attendu |
 | **Script CLI** | `npm run seed:lead` ou curl | Injection en masse pour tester matching / aging |
+| **Partner démo Clerk** | `npm run create-demo-partner` (`DEMO_PARTNER_*` dans `.env`) | Compte partner actif pour démos portail / Replit (hors seed `@ffl-test.local`) |
 | **Webhook mock** | `POST /api/leads/intake` | Endpoint identique à celui branché en prod |
 | **TrustedForm simulé** | URL factice `https://cert.trustedform.com/test-{uuid}` | Suffisant en dev ; champ string en BDD |
 
