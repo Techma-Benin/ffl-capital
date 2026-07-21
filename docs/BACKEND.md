@@ -272,24 +272,8 @@ npm run dev
 npm run verify          # checklist backend
 node scripts/verify-cron.mjs  # smoke test cron routes
 npm run seed:lead       # POST fixture intake
-npm run create-demo-partner   # Clerk + Partner actif (démos / Replit)
 stripe:listen           # webhook Stripe local
 ```
-
----
-
-## Partner démo (Clerk)
-
-Compte partner **réel** (Clerk + ligne `partners` active, filter set, wallet 500 $) — distinct des emails `@ffl-test.local` du seed Prisma.
-
-```bash
-# .env : CLERK_SECRET_KEY, DATABASE_URL, DEMO_PARTNER_PASSWORD (obligatoire)
-# DEMO_PARTNER_EMAIL optionnel (défaut bill.ahognonvi@techma.ca ; aussi dans .replit)
-npm run create-demo-partner
-# ou : npm run create-demo-partner -- --email you@example.com --password '...'
-```
-
-Idempotent : met à jour mot de passe Clerk, réactive le partner, pose `publicMetadata.partnerId`. Connexion : `/partner/sign-in`.
 
 ---
 
@@ -325,4 +309,3 @@ Idempotent : met à jour mot de passe Clerk, réactive le partner, pose `publicM
 | 2026-07-10 | Integrity live bloqué sur specs client ; mock en place |
 | 2026-07-10 | Core backend 9 phases implémentées — voir journal ci-dessus |
 | 2026-07-21 | Vues liste leads (`lead_list_views`) — remplace onglets statut admin ; CRUD admin/partner |
-| 2026-07-21 | Script `create-demo-partner` — provisioning partner démo Clerk + Prisma |

@@ -57,9 +57,6 @@ npm run seed:lead
 
 # Données demo remboursements admin (/admin/refunds)
 npm run seed:refunds-demo
-
-# Compte partner demo (Clerk + ligne Partner active) — voir DEMO_PARTNER_* dans .env
-npm run create-demo-partner
 ```
 
 ## Endpoints API (principaux)
