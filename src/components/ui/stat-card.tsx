@@ -89,7 +89,7 @@ function CornerIconBadge({
       >
         <g transform="translate(128 72) rotate(18) scale(1.5)">
           <g
-            className="origin-center transition-transform duration-300 ease-out group-hover:scale-110 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className="origin-top-right transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-6 motion-reduce:transition-none motion-reduce:group-hover:scale-100 motion-reduce:group-hover:rotate-0"
           >
             <path d={pathD} className="fill-current" />
           </g>
