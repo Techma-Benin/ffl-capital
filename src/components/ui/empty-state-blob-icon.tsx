@@ -34,10 +34,14 @@ function resolveEmptyStateAccentStyle(seed: string, accentOverride?: EmptyStateB
   return EMPTY_STATE_BLOB_ACCENTS[hashSeed(seed) % EMPTY_STATE_BLOB_ACCENTS.length];
 }
 
-/** Empty-state blob + icon sizing (box Tailwind classes, Phosphor icon px, SVG blob scale). */
+/**
+ * Empty-state blob + icon sizing (box Tailwind classes, Phosphor icon px, SVG blob scale).
+ * Paths in KPI_BLOB_PATHS extend ~91 units from center; viewBox half-width is 100 — keep scale ≤ ~1.08
+ * so the full organic shape stays inside the SVG (default overflow is hidden).
+ */
 export const EMPTY_STATE_BLOB_SIZE = {
-  sm: { box: "h-20 w-20", icon: 35, blobScale: 1.5 },
-  md: { box: "h-24 w-24", icon: 44, blobScale: 1.55 },
+  sm: { box: "h-20 w-20", icon: 35, blobScale: 1.08 },
+  md: { box: "h-24 w-24", icon: 44, blobScale: 1.08 },
 } as const;
 
 const sizeStyles = EMPTY_STATE_BLOB_SIZE;
@@ -69,12 +73,14 @@ export function EmptyStateBlobIcon({
 
   return (
     <div
-      className={clsx("relative mx-auto", box, className)}
+      className={clsx("relative mx-auto overflow-visible", box, className)}
       aria-hidden
     >
       <svg
         viewBox="0 0 200 200"
-        className={clsx("absolute inset-0 h-full w-full", styles.blobFill)}
+        preserveAspectRatio="xMidYMid meet"
+        overflow="visible"
+        className={clsx("absolute inset-0 h-full w-full overflow-visible", styles.blobFill)}
       >
         <g transform={`translate(100 100) scale(${blobScale})`}>
           <path d={pathD} className="fill-current" />
