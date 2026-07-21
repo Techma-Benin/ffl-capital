@@ -50,19 +50,28 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           value={`$ ${balance.toFixed(2)}`}
           icon={Wallet}
           accent={walletOk ? "emerald" : "red"}
+          blobIndex={0}
         />
-        <StatCard label="Leads Received" value={stats.deliveriesAll} icon={FileText} accent="blue" />
+        <StatCard
+          label="Leads Received"
+          value={stats.deliveriesAll}
+          icon={FileText}
+          accent="blue"
+          blobIndex={1}
+        />
         <StatCard
           label="Received Today"
           value={stats.deliveriesToday}
           icon={TrendUp}
           accent="violet"
+          blobIndex={2}
         />
         <StatCard
           label="Total Spent"
           value={`$ ${stats.spentThisMonth.toFixed(2)}`}
           icon={ShoppingBag}
           accent="cyan"
+          blobIndex={3}
         />
       </div>
 

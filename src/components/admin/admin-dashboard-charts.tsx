@@ -44,10 +44,10 @@ export function AdminDashboardCharts({
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Leads" value={kpis.totalLeads.toLocaleString()} icon={FileText} accent="blue" />
-        <StatCard label="Leads Today" value={kpis.leadsToday} icon={CalendarCheck} accent="purple" />
-        <StatCard label="Active Partners" value={kpis.activePartners} icon={UsersThree} accent="rose" />
-        <StatCard label="Unmatched" value={kpis.unmatchedLeads} icon={Warning} accent="orange" />
+        <StatCard label="Total Leads" value={kpis.totalLeads.toLocaleString()} icon={FileText} accent="blue" blobIndex={0} />
+        <StatCard label="Leads Today" value={kpis.leadsToday} icon={CalendarCheck} accent="purple" blobIndex={1} />
+        <StatCard label="Active Partners" value={kpis.activePartners} icon={UsersThree} accent="rose" blobIndex={2} />
+        <StatCard label="Unmatched" value={kpis.unmatchedLeads} icon={Warning} accent="orange" blobIndex={3} />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">

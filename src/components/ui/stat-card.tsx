@@ -76,7 +76,7 @@ function CornerIconBadge({
 
   return (
     <div
-      className="pointer-events-none absolute -right-2 -top-2 h-[5.75rem] w-[5.75rem]"
+      className="pointer-events-none absolute -right-4 -top-4 h-[5.75rem] w-[5.75rem]"
       aria-hidden
     >
       <svg
@@ -87,7 +87,7 @@ function CornerIconBadge({
         )}
         aria-hidden
       >
-        <g transform="translate(118 82) rotate(18) scale(1.05)">
+        <g transform="translate(128 72) rotate(18) scale(1.08)">
           <path d={pathD} className="fill-current" />
         </g>
       </svg>
