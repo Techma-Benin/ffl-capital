@@ -1,14 +1,27 @@
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Users, CheckCircle, Clock } from "@/lib/icons/ssr";
-import { FilterTabLink } from "@/components/ui/filter-tab-link";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
+import {
+  PortalDataTable,
+  PortalDataTableCard,
+} from "@/components/ui/portal-data-table";
 import { parsePageParams } from "@/lib/pagination";
 import { hasEligibleFilterSet } from "@/lib/partner/default-filter-set";
 import { PartnerTableRow } from "@/components/admin/partner-table-row";
+
+const PARTNER_COLUMNS = [
+  { key: "partner", label: "Partner" },
+  { key: "affiliation", label: "Affiliation" },
+  { key: "status", label: "Status" },
+  { key: "priority", label: "Priority" },
+  { key: "wallet", label: "Wallet" },
+  { key: "leadBuying", label: "Lead Buying" },
+  { key: "leads", label: "Leads Purchased" },
+  { key: "actions", label: "", headerClassName: "w-12" },
+];
 
 export default async function AdminPartnersPage({
   searchParams,
@@ -38,10 +51,25 @@ export default async function AdminPartnersPage({
   ]);
 
   const statusTabs = [
-    { label: "All Partners", value: undefined, count: total },
-    { label: "Pending", value: "pending_approval", count: pendingCount },
-    { label: "Active", value: "active", count: activeCount },
-    { label: "Blocked", value: "disabled", count: blockedCount },
+    { label: "All Partners", href: "/admin/partners", active: !statusFilter, count: total },
+    {
+      label: "Pending",
+      href: "/admin/partners?status=pending_approval",
+      active: statusFilter === "pending_approval",
+      count: pendingCount,
+    },
+    {
+      label: "Active",
+      href: "/admin/partners?status=active",
+      active: statusFilter === "active",
+      count: activeCount,
+    },
+    {
+      label: "Blocked",
+      href: "/admin/partners?status=disabled",
+      active: statusFilter === "disabled",
+      count: blockedCount,
+    },
   ];
 
   return (
@@ -51,101 +79,61 @@ export default async function AdminPartnersPage({
         subtitle="Manage lead buyers and their accounts"
       />
 
-      {/* Summary cards */}
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <StatCard label="Total Partners" value={total} icon={Users} accent="blue" />
         <StatCard label="Active" value={activeCount} icon={CheckCircle} accent="mint" />
         <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" />
       </div>
 
-      <div className="card">
-        {/* Filter tabs */}
-        <div className="flex items-center gap-1 border-b border-slate-100 px-4 py-2">
-          {statusTabs.map((tab) => (
-            <FilterTabLink
-              key={tab.label}
-              href={tab.value ? `/admin/partners?status=${tab.value}` : "/admin/partners"}
-              active={statusFilter === tab.value || (!statusFilter && !tab.value)}
-            >
-              {tab.label}
-              <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-                {tab.count}
-              </span>
-            </FilterTabLink>
-          ))}
-        </div>
+      <PortalDataTableCard
+        tabs={statusTabs}
+        footer={
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            basePath="/admin/partners"
+            searchParams={searchParams}
+          />
+        }
+      >
+        {partners.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No partners yet"
+            description="Partners will appear here once they sign up and complete onboarding."
+            accent="rose"
+          />
+        ) : (
+          <PortalDataTable columns={PARTNER_COLUMNS}>
+            {partners.map((p) => {
+              const isActive = p.status === "active";
+              const walletOk = Number(p.walletBalance) >= 25;
+              const statesOk = hasEligibleFilterSet(p.filterSets);
+              const leadBuying = isActive && walletOk && statesOk;
 
-        <div className="overflow-x-auto">
-          {partners.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="No partners yet"
-              description="Partners will appear here once they sign up and complete onboarding."
-              accent="rose"
-            />
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Partner</th>
-                  <th>Affiliation</th>
-                  <th>Status</th>
-                  <th>Priority</th>
-                  <th>Wallet</th>
-                  <th>Lead Buying</th>
-                  <th>Leads Purchased</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {partners.map((p) => {
-                  const isActive = p.status === "active";
-                  const walletOk = Number(p.walletBalance) >= 25;
-                  const statesOk = hasEligibleFilterSet(p.filterSets);
-                  const leadBuying = isActive && walletOk && statesOk;
-
-                  return (
-                    <PartnerTableRow
-                      key={p.id}
-                      partner={{
-                        id: p.id,
-                        firstName: p.firstName,
-                        lastName: p.lastName,
-                        email: p.email,
-                        affiliation: p.affiliation,
-                        status: p.status,
-                        priority: p.priority,
-                        walletBalance: Number(p.walletBalance),
-                        leadBuying,
-                        walletOk,
-                        leadsCount: p._count.leadDeliveries,
-                      }}
-                    />
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-        <TablePagination
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          basePath="/admin/partners"
-          searchParams={searchParams}
-        />
-      </div>
+              return (
+                <PartnerTableRow
+                  key={p.id}
+                  partner={{
+                    id: p.id,
+                    firstName: p.firstName,
+                    lastName: p.lastName,
+                    email: p.email,
+                    affiliation: p.affiliation,
+                    status: p.status,
+                    priority: p.priority,
+                    walletBalance: Number(p.walletBalance),
+                    leadBuying,
+                    walletOk,
+                    leadsCount: p._count.leadDeliveries,
+                  }}
+                />
+              );
+            })}
+          </PortalDataTable>
+        )}
+      </PortalDataTableCard>
     </div>
   );
-}
-
-function PartnerStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { variant: "green" | "yellow" | "red" | "slate"; label: string }> = {
-    active:           { variant: "green",  label: "Active" },
-    pending_approval: { variant: "yellow", label: "Pending" },
-    rejected:         { variant: "red",    label: "Rejected" },
-    disabled:         { variant: "slate",  label: "Disabled" },
-  };
-  const c = map[status] ?? { variant: "slate" as const, label: status };
-  return <Badge variant={c.variant}>{c.label}</Badge>;
 }

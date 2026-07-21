@@ -3,9 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import {
+  portalTableCell,
+  portalTableCellFirst,
+  portalTableCellLast,
+  portalTableRowClassName,
+  PortalTablePrimaryCell,
+} from "@/components/ui/portal-data-table";
+import { clsx } from "clsx";
 import {
   CheckCircle,
-  XCircle,
   Prohibit,
   Lightning,
   Trash,
@@ -54,11 +62,18 @@ const toneClasses: Record<string, string> = {
   red:     "bg-red-50 text-red-700 hover:bg-red-100",
 };
 
-const statusBadgeMap: Record<string, { color: string; label: string }> = {
-  active:           { color: "bg-emerald-100 text-emerald-700", label: "Active"   },
-  pending_approval: { color: "bg-amber-100 text-amber-700",     label: "Pending"  },
-  rejected:         { color: "bg-red-100 text-red-700",         label: "Rejected" },
-  disabled:         { color: "bg-slate-100 text-slate-500",     label: "Disabled" },
+const statusBadgeVariant: Record<string, "green" | "yellow" | "red" | "slate"> = {
+  active: "green",
+  pending_approval: "yellow",
+  rejected: "red",
+  disabled: "slate",
+};
+
+const statusLabel: Record<string, string> = {
+  active: "Active",
+  pending_approval: "Pending",
+  rejected: "Rejected",
+  disabled: "Disabled",
 };
 
 export function PartnerTableRow({ partner }: { partner: Partner }) {
@@ -67,7 +82,8 @@ export function PartnerTableRow({ partner }: { partner: Partner }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const actions = actionMap[partner.status] ?? [];
-  const badge = statusBadgeMap[partner.status] ?? { color: "bg-slate-100 text-slate-500", label: partner.status };
+  const badgeVariant = statusBadgeVariant[partner.status] ?? "slate";
+  const badgeLabel = statusLabel[partner.status] ?? partner.status;
 
   async function handleAction(key: ActionKey) {
     if (key === "delete") {
@@ -107,44 +123,43 @@ export function PartnerTableRow({ partner }: { partner: Partner }) {
 
   return (
     <tr
-      className="group relative"
+      className={portalTableRowClassName()}
       onMouseLeave={() => setConfirmDelete(false)}
     >
-      <td>
-        <Link href={`/admin/partners/${partner.id}`} className="hover:text-brand-600">
-          <p className="font-medium text-slate-900">
-            {partner.firstName} {partner.lastName}
-          </p>
-          <p className="text-xs text-slate-400">{partner.email}</p>
+      <td className={portalTableCellFirst}>
+        <Link href={`/admin/partners/${partner.id}`} className="block hover:text-brand-600">
+          <PortalTablePrimaryCell
+            primary={`${partner.firstName} ${partner.lastName}`}
+            secondary={partner.email}
+          />
         </Link>
       </td>
-      <td className="text-slate-500">{partner.affiliation ?? "—"}</td>
-      <td>
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.color}`}>
-          {badge.label}
-        </span>
+      <td className={clsx(portalTableCell, "text-sm text-slate-500")}>
+        {partner.affiliation ?? "—"}
       </td>
-      <td>
-        <span
-          className={`inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700`}
-        >
+      <td className={portalTableCell}>
+        <Badge variant={badgeVariant}>{badgeLabel}</Badge>
+      </td>
+      <td className={portalTableCell}>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-xs font-bold text-slate-600">
           {partner.priority}
         </span>
       </td>
-      <td>
+      <td className={portalTableCell}>
         <span className={`font-semibold ${partner.walletOk ? "text-slate-900" : "text-red-500"}`}>
           ${Number(partner.walletBalance).toFixed(2)}
         </span>
       </td>
-      <td>
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${partner.leadBuying ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+      <td className={portalTableCell}>
+        <Badge variant={partner.leadBuying ? "green" : "slate"}>
           {partner.leadBuying ? "Active" : "Inactive"}
-        </span>
+        </Badge>
       </td>
-      <td className="text-slate-700 font-medium">{partner.leadsCount}</td>
-      {/* Hover action cell */}
-      <td className="w-0 overflow-visible p-0">
-        <div className="invisible flex items-center gap-1 pr-4 group-hover:visible">
+      <td className={clsx(portalTableCell, "font-medium text-slate-700")}>
+        {partner.leadsCount}
+      </td>
+      <td className={clsx(portalTableCellLast, "w-12 text-right")}>
+        <div className="invisible flex items-center justify-end gap-1 group-hover:visible">
           {actions.map((a) => {
             const isThisLoading = pending === a.key;
             const isDeleteConfirm = a.key === "delete" && confirmDelete;
