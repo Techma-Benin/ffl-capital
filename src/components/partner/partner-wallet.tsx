@@ -133,7 +133,7 @@ export function PartnerWalletView({
             <p
               className={clsx(
                 "text-xs font-semibold uppercase tracking-widest",
-                walletOk ? "text-slate-400" : "text-red-300/80",
+                walletOk ? "text-slate-400" : "text-white",
               )}
             >
               Current Balance
@@ -144,7 +144,7 @@ export function PartnerWalletView({
             <p
               className={clsx(
                 "mt-2 text-sm font-medium",
-                walletOk ? "text-emerald-400" : "text-amber-300",
+                walletOk ? "text-emerald-400" : "text-red-400",
               )}
             >
               {walletOk ? "Lead buying active" : "Below $25 minimum — add funds to receive leads"}
