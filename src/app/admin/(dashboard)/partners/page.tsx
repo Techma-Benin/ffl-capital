@@ -14,13 +14,13 @@ import { PartnerTableRow } from "@/components/admin/partner-table-row";
 
 const PARTNER_COLUMNS = [
   { key: "partner", label: "Partner" },
-  { key: "affiliation", label: "Affiliation" },
-  { key: "status", label: "Status" },
-  { key: "priority", label: "Priority" },
-  { key: "wallet", label: "Wallet" },
-  { key: "leadBuying", label: "Lead Buying" },
-  { key: "leads", label: "Leads Purchased" },
-  { key: "actions", label: "", headerClassName: "w-12" },
+  { key: "affiliation", label: "Affiliation", headerClassName: "text-center" },
+  { key: "status", label: "Status", headerClassName: "text-center" },
+  { key: "priority", label: "Priority", headerClassName: "text-center" },
+  { key: "wallet", label: "Wallet", headerClassName: "text-center" },
+  { key: "leadBuying", label: "Lead Buying", headerClassName: "text-center" },
+  { key: "leads", label: "Leads Purchased", headerClassName: "text-center" },
+  { key: "actions", label: "", headerClassName: "w-12 text-center" },
 ];
 
 export default async function AdminPartnersPage({

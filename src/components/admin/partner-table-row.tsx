@@ -241,31 +241,31 @@ export function PartnerTableRow({ partner }: { partner: Partner }) {
           />
         </Link>
       </td>
-      <td className={clsx(portalTableCell, "text-sm text-slate-500")}>
+      <td className={clsx(portalTableCell, "text-center text-sm text-slate-500")}>
         {partner.affiliation ?? "—"}
       </td>
-      <td className={portalTableCell}>
+      <td className={clsx(portalTableCell, "text-center")}>
         <Badge variant={badgeVariant}>{badgeLabel}</Badge>
       </td>
-      <td className={portalTableCell}>
+      <td className={clsx(portalTableCell, "text-center")}>
         <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-xs font-bold text-slate-600">
           {partner.priority}
         </span>
       </td>
-      <td className={portalTableCell}>
+      <td className={clsx(portalTableCell, "text-center")}>
         <span className={`font-semibold ${partner.walletOk ? "text-slate-900" : "text-red-500"}`}>
           ${Number(partner.walletBalance).toFixed(2)}
         </span>
       </td>
-      <td className={portalTableCell}>
+      <td className={clsx(portalTableCell, "text-center")}>
         <Badge variant={partner.leadBuying ? "green" : "slate"}>
           {partner.leadBuying ? "Active" : "Inactive"}
         </Badge>
       </td>
-      <td className={clsx(portalTableCell, "font-medium text-slate-700")}>
+      <td className={clsx(portalTableCell, "text-center font-medium text-slate-700")}>
         {partner.leadsCount}
       </td>
-      <td className="rounded-r-xl px-3 py-3.5 text-right">
+      <td className="rounded-r-xl px-3 py-3.5 text-center">
         {actions.length > 0 && (
           <PartnerRowMenu
             actions={actions}
