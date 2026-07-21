@@ -30,20 +30,25 @@ export type StatCardAccent =
   | "peach";
 
 const accentStyles: Record<StatCardAccent, { blobFill: string; icon: string }> = {
-  blue: { blobFill: "bg-blue-50", icon: "text-blue-600" },
-  emerald: { blobFill: "bg-emerald-50", icon: "text-emerald-600" },
-  red: { blobFill: "bg-red-50", icon: "text-red-600" },
-  violet: { blobFill: "bg-violet-50", icon: "text-violet-600" },
-  cyan: { blobFill: "bg-cyan-50", icon: "text-cyan-600" },
-  purple: { blobFill: "bg-purple-50", icon: "text-purple-600" },
-  rose: { blobFill: "bg-rose-50", icon: "text-rose-600" },
-  orange: { blobFill: "bg-orange-50", icon: "text-orange-600" },
-  amber: { blobFill: "bg-amber-50", icon: "text-amber-600" },
-  mint: { blobFill: "bg-teal-50", icon: "text-teal-600" },
-  brand: { blobFill: "bg-brand-50", icon: "text-brand-600" },
-  pink: { blobFill: "bg-pink-50", icon: "text-pink-600" },
-  peach: { blobFill: "bg-orange-50", icon: "text-orange-500" },
+  blue: { blobFill: "text-blue-50", icon: "text-blue-600" },
+  emerald: { blobFill: "text-emerald-50", icon: "text-emerald-600" },
+  red: { blobFill: "text-red-50", icon: "text-red-600" },
+  violet: { blobFill: "text-violet-50", icon: "text-violet-600" },
+  cyan: { blobFill: "text-cyan-50", icon: "text-cyan-600" },
+  purple: { blobFill: "text-purple-50", icon: "text-purple-600" },
+  rose: { blobFill: "text-rose-50", icon: "text-rose-600" },
+  orange: { blobFill: "text-orange-50", icon: "text-orange-600" },
+  amber: { blobFill: "text-amber-50", icon: "text-amber-600" },
+  mint: { blobFill: "text-teal-50", icon: "text-teal-600" },
+  brand: { blobFill: "text-brand-50", icon: "text-brand-600" },
+  pink: { blobFill: "text-pink-50", icon: "text-pink-600" },
+  peach: { blobFill: "text-orange-50", icon: "text-orange-500" },
 };
+
+/** Map legacy bg-* blob overrides to text-* so SVG fill-current picks up a scanned Tailwind class. */
+function blobSvgColorClass(className: string) {
+  return className.replace(/\bbg-/g, "text-");
+}
 
 const variantToAccent: Record<StatCardVariant, StatCardAccent> = {
   default: "blue",
@@ -55,10 +60,6 @@ const variantToAccent: Record<StatCardVariant, StatCardAccent> = {
   peach: "peach",
   modern: "blue",
 };
-
-function blobFillClass(blobClassName: string) {
-  return blobClassName.replace(/\bbg-/g, "fill-");
-}
 
 function CornerIconBadge({
   IconComponent,
@@ -75,16 +76,19 @@ function CornerIconBadge({
 
   return (
     <div
-      className="pointer-events-none absolute -right-3 -top-3 h-[5.75rem] w-[5.75rem]"
+      className="pointer-events-none absolute -right-2 -top-2 h-[5.75rem] w-[5.75rem]"
       aria-hidden
     >
       <svg
         viewBox="0 0 200 200"
-        className="absolute inset-0 h-full w-full overflow-visible"
+        className={clsx(
+          "absolute inset-0 h-full w-full",
+          blobSvgColorClass(blobFillClassName),
+        )}
         aria-hidden
       >
         <g transform="translate(118 82) rotate(18) scale(1.05)">
-          <path d={pathD} className={blobFillClass(blobFillClassName)} />
+          <path d={pathD} className="fill-current" />
         </g>
       </svg>
       <div className="relative flex h-full w-full items-start justify-end p-3 pr-4 pt-4">
@@ -144,7 +148,7 @@ export function StatCard(props: StatCardProps) {
   return (
     <div
       className={clsx(
-        "relative overflow-visible rounded-2xl border border-slate-100 bg-white shadow-sm",
+        "relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm",
         className,
       )}
     >
@@ -156,7 +160,7 @@ export function StatCard(props: StatCardProps) {
           blobIndex={blobIndex}
         />
       )}
-      <div className={clsx("min-w-0 overflow-hidden rounded-2xl p-6", IconComponent && "pr-20")}>
+      <div className={clsx("min-w-0 p-6", IconComponent && "pr-20")}>
         <p className={clsx("text-3xl font-bold tracking-tight text-slate-900", valueClassName)}>
           {value}
         </p>
