@@ -222,6 +222,16 @@ export function LeadViewsToolbar({
             setEditorMode("create");
             setEditorOpen(true);
           }}
+          activeViewActions={{
+            isDefault: activeView.isDefault,
+            onRename: () => {
+              setEditorMode("edit");
+              setEditorOpen(true);
+            },
+            onDuplicate: duplicateView,
+            onSetDefault: setDefault,
+            onDelete: deleteView,
+          }}
         />
         <div className="flex items-center gap-1">
           {exportSlot}

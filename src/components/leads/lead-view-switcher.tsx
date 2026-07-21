@@ -1,9 +1,14 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import { Plus } from "@/lib/icons/client";
+import {
+  LeadViewActionsMenuPanel,
+  MenuBackdrop,
+  type LeadViewActionsHandlers,
+} from "@/components/leads/lead-view-actions-menu";
 
 export type LeadViewSummary = {
   id: string;
@@ -16,18 +21,26 @@ export function LeadViewSwitcher({
   activeViewId,
   basePath,
   onNewView,
+  activeViewActions,
 }: {
   views: LeadViewSummary[];
   activeViewId: string;
   basePath: string;
   onNewView: () => void;
+  activeViewActions?: LeadViewActionsHandlers;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   useEffect(() => {
     const el = scrollRef.current?.querySelector('[data-active="true"]');
     el?.scrollIntoView({ inline: "nearest", block: "nearest" });
   }, [activeViewId]);
+
+  const closeContextMenu = () => setContextMenu(null);
 
   return (
     <div
@@ -47,6 +60,14 @@ export function LeadViewSwitcher({
             aria-selected={active}
             data-active={active ? "true" : undefined}
             tabIndex={active ? 0 : -1}
+            onContextMenu={
+              active && activeViewActions
+                ? (e) => {
+                    e.preventDefault();
+                    setContextMenu({ x: e.clientX, y: e.clientY });
+                  }
+                : undefined
+            }
             className={clsx(
               "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
               active
@@ -69,6 +90,18 @@ export function LeadViewSwitcher({
         <Plus size={14} />
         New view
       </button>
+
+      {contextMenu && activeViewActions && (
+        <>
+          <MenuBackdrop onClose={closeContextMenu} />
+          <LeadViewActionsMenuPanel
+            handlers={activeViewActions}
+            onClose={closeContextMenu}
+            className="fixed z-50 w-44 rounded-xl border border-slate-100 bg-white py-1 shadow-lg"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          />
+        </>
+      )}
     </div>
   );
 }
