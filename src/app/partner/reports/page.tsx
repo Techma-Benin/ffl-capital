@@ -46,7 +46,13 @@ export default async function PartnerReportsPage() {
           icon={ArrowCounterClockwise}
           accent="amber"
         />
-        <StatCard label="Leads Purchased" value={deliveries.length} icon={FileText} accent="violet" />
+        <StatCard
+          label="Leads Purchased"
+          value={deliveries.length}
+          icon={FileText}
+          accent="violet"
+          blobIndex={5}
+        />
       </div>
 
       <div className="card">
