@@ -306,7 +306,7 @@ export function PartnerTableRow({ partner }: { partner: Partner }) {
           {partner.priority}
         </span>
       </td>
-      <td className={clsx(portalTableCell, "text-center")}>
+      <td className={clsx(portalTableCell, "text-right")}>
         <span
           className={clsx(
             "font-semibold tabular-nums",

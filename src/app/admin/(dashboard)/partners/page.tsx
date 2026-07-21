@@ -48,7 +48,7 @@ const PARTNER_COLUMNS = [
   {
     key: "wallet",
     label: "Wallet",
-    headerClassName: "text-center",
+    headerClassName: "text-right",
     sortKey: "wallet",
   },
   {

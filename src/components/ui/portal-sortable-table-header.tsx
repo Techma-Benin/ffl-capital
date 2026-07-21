@@ -70,6 +70,7 @@ export function PortalSortableHeaderCell({
           active && "text-orange-600 hover:text-orange-700",
           pending && "pointer-events-none opacity-70",
           headerClassName?.includes("text-center") && "justify-center",
+          headerClassName?.includes("text-right") && "w-full justify-end",
         )}
       >
         {pending && <Spinner size="xs" />}
