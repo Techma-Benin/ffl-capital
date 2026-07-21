@@ -133,15 +133,15 @@ const GAUGE_START_ANGLE = 225;
 const GAUGE_END_ANGLE = -45;
 const GAUGE_ARC_SPAN = GAUGE_START_ANGLE - GAUGE_END_ANGLE;
 
-const DONUT_MARGIN = { top: 16, right: 20, left: 20, bottom: 28 };
+const DONUT_MARGIN = { top: 20, right: 20, left: 20, bottom: 28 };
 
 function semiGaugeGeometry(width: number, height: number) {
   const innerW = width - DONUT_MARGIN.left - DONUT_MARGIN.right;
   const innerH = height - DONUT_MARGIN.top - DONUT_MARGIN.bottom;
   const cx = DONUT_MARGIN.left + innerW / 2;
-  const cy = DONUT_MARGIN.top + innerH * 0.58;
+  const cy = DONUT_MARGIN.top + innerH * 0.59;
   const outerRadius =
-    Math.min(innerW / 2, innerH * 0.72) * 0.92;
+    Math.min(innerW / 2, innerH * 0.72) * 0.9;
   const innerRadius = outerRadius * 0.78;
   return { cx, cy, innerRadius, outerRadius };
 }
