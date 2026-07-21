@@ -76,7 +76,7 @@ function CornerIconBadge({
 
   return (
     <div
-      className="pointer-events-none absolute -right-4 -top-4 h-[5.75rem] w-[5.75rem]"
+      className="pointer-events-none absolute -right-5 -top-5 h-24 w-24"
       aria-hidden
     >
       <svg
@@ -87,11 +87,11 @@ function CornerIconBadge({
         )}
         aria-hidden
       >
-        <g transform="translate(128 72) rotate(18) scale(1.08)">
+        <g transform="translate(128 72) rotate(18) scale(1.2)">
           <path d={pathD} className="fill-current" />
         </g>
       </svg>
-      <div className="relative flex h-full w-full items-start justify-end p-3 pr-4 pt-4">
+      <div className="relative flex h-full w-full translate-x-[-0.375rem] translate-y-1.5 items-start justify-end p-3 pr-5 pt-5">
         <IconComponent size={24} weight="duotone" className={iconClassName} />
       </div>
     </div>
