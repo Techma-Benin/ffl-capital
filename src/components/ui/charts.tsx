@@ -115,70 +115,74 @@ export function IntakeAreaChart({
   height?: number;
 }) {
   const reducedMotion = usePrefersReducedMotion();
-  const [animateIn, setAnimateIn] = useState(false);
+  const [revealed, setRevealed] = useState(reducedMotion);
 
   useEffect(() => {
     if (reducedMotion) {
-      setAnimateIn(true);
+      setRevealed(true);
       return;
     }
-    setAnimateIn(false);
+    setRevealed(false);
     const frame = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setAnimateIn(true));
+      requestAnimationFrame(() => setRevealed(true));
     });
     return () => cancelAnimationFrame(frame);
   }, [reducedMotion]);
 
   if (data.length === 0) return null;
 
-  const runEntrance = !reducedMotion && animateIn;
-  const chartData =
-    reducedMotion || animateIn
-      ? data
-      : data.map((point) => ({ ...point, leads: 0 }));
+  const revealStyle: CSSProperties = reducedMotion
+    ? {}
+    : {
+        clipPath: revealed ? "inset(0 0 0 0)" : "inset(0 100% 0 0)",
+        transition: revealed
+          ? `clip-path ${INTAKE_AREA_ENTRANCE_MS}ms ${CHART_ENTRANCE_EASING}`
+          : "none",
+      };
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="intakeFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={BRAND} stopOpacity={0.8} />
-            <stop offset="95%" stopColor={BRAND} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="#e2e8f0"
-          strokeOpacity={0.4}
-        />
-        <XAxis
-          dataKey="label"
-          tick={{ fontSize: 11, fill: "#94a3b8" }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          allowDecimals={false}
-          tick={{ fontSize: 11, fill: "#94a3b8" }}
-          axisLine={false}
-          tickLine={false}
-          width={30}
-        />
-        <Tooltip content={<IntakeAreaTooltip />} />
-        <Area
-          type="monotone"
-          dataKey="leads"
-          stroke={BRAND}
-          strokeWidth={2}
-          fillOpacity={1}
-          fill="url(#intakeFill)"
-          isAnimationActive={runEntrance}
-          animationBegin={0}
-          animationDuration={INTAKE_AREA_ENTRANCE_MS}
-          animationEasing={CHART_ENTRANCE_EASING}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div className="overflow-hidden" style={{ height }}>
+      <div className="h-full w-full" style={revealStyle}>
+        <ResponsiveContainer width="100%" height={height}>
+          <AreaChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="intakeFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={BRAND} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={BRAND} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#e2e8f0"
+              strokeOpacity={0.4}
+            />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              axisLine={false}
+              tickLine={false}
+              width={30}
+            />
+            <Tooltip content={<IntakeAreaTooltip />} />
+            <Area
+              type="monotone"
+              dataKey="leads"
+              stroke={BRAND}
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#intakeFill)"
+              isAnimationActive={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }
 
