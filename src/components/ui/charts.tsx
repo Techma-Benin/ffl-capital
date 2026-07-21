@@ -124,7 +124,9 @@ export function DonutChart({
             cy="50%"
             innerRadius="58%"
             outerRadius="82%"
-            paddingAngle={2}
+            paddingAngle={3}
+            cornerRadius={10}
+            stroke="none"
             isAnimationActive={false}
           >
             {data.map((_, i) => (
