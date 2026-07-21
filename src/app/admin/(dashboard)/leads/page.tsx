@@ -238,7 +238,13 @@ function buildFilterChips(filters: ReturnType<typeof parseAdminFilters>) {
   if (filters.statusSlice && filters.statusSlice !== "all") {
     chips.push(`Status: ${filters.statusSlice.replace(/_/g, " ")}`);
   }
-  if (filters.state) chips.push(`State: ${filters.state}`);
+  if (filters.states?.length) {
+    const label =
+      filters.states.length <= 4
+        ? filters.states.join(", ")
+        : `${filters.states.length} states`;
+    chips.push(`State: ${label}`);
+  }
   if (filters.datePeriod) {
     if (filters.datePeriod === "custom") {
       if (filters.from) chips.push(`From: ${filters.from}`);

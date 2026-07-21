@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
-import { US_STATE_CODES } from "@/lib/constants/us-states";
+import { TargetStatesGrid } from "@/components/filter-sets/target-states-grid";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type {
   AdminDatePeriod,
@@ -149,21 +149,13 @@ export function LeadViewEditorSheet({
                   />
                 </div>
                 <div>
-                  <label className="form-label text-[10px]">State</label>
-                  <select
-                    className="form-select w-full text-sm"
-                    value={adminFilters.state ?? ""}
-                    onChange={(e) =>
-                      setFilters({ state: e.target.value || undefined })
+                  <label className="form-label text-[10px]">States</label>
+                  <TargetStatesGrid
+                    selected={adminFilters.states ?? []}
+                    onChange={(states) =>
+                      setFilters({ states: states.length ? states : undefined })
                     }
-                  >
-                    <option value="">All</option>
-                    {US_STATE_CODES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="form-label text-[10px]">Date period</label>

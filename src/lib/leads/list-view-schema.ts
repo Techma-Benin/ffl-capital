@@ -34,26 +34,40 @@ function preprocessAdminFilters(raw: unknown): unknown {
   if ((o.from || o.to) && o.datePeriod == null) {
     o.datePeriod = "custom";
   }
+  const legacyState = o.state;
+  if (
+    typeof legacyState === "string" &&
+    legacyState.length === 2 &&
+    o.states == null
+  ) {
+    o.states = [legacyState];
+  }
+  delete o.state;
   return o;
 }
 
 function normalizeAdminFiltersForSave(
   f: z.infer<typeof adminLeadViewFiltersSchemaInner>,
 ): z.infer<typeof adminLeadViewFiltersSchemaInner> {
-  if (f.datePeriod && f.datePeriod !== "custom") {
-    const { from: _from, to: _to, ...rest } = f;
+  let out = f;
+  if (!out.states?.length) {
+    const { states: _states, ...rest } = out;
+    out = rest;
+  }
+  if (out.datePeriod && out.datePeriod !== "custom") {
+    const { from: _from, to: _to, ...rest } = out;
     return rest;
   }
-  if (!f.datePeriod) {
-    const { from: _from, to: _to, ...rest } = f;
+  if (!out.datePeriod) {
+    const { from: _from, to: _to, ...rest } = out;
     return rest;
   }
-  return f;
+  return out;
 }
 
 const adminLeadViewFiltersSchemaInner = z.object({
   statusSlice: adminStatusSliceSchema.default("all"),
-  state: z.string().length(2).optional(),
+  states: z.array(z.string().length(2)).optional(),
   datePeriod: adminDatePeriodSchema.optional(),
   from: z.string().optional(),
   to: z.string().optional(),

@@ -50,7 +50,7 @@ export async function buildAdminLeadsWhere(
     where = await buildAgedLeadWhere();
   }
 
-  if (f.state) where.state = f.state;
+  if (f.states?.length) where.state = { in: f.states };
   const receivedRange = resolveAdminReceivedAtRange(f);
   if (receivedRange) {
     where.receivedAt = {};
