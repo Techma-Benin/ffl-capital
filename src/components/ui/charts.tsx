@@ -410,7 +410,7 @@ function DonutChartGauge({
 
   const drawOrder =
     activeIndex === null
-      ? segmentLayers
+      ? [...segmentLayers].reverse()
       : [
           ...segmentLayers.filter(({ index }) => index !== activeIndex),
           ...segmentLayers.filter(({ index }) => index === activeIndex),
