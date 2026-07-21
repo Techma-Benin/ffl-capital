@@ -142,8 +142,6 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className={embedded ? "overflow-hidden" : "mb-5 card overflow-hidden"}>
       <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-        <Funnel size={16} className="text-slate-500" weight={ICON_WEIGHT_LINEAR} />
-        <h2 className="text-sm font-semibold text-slate-900">Filter Sets</h2>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
           Targeting
         </span>
