@@ -45,8 +45,8 @@ export const EMPTY_STATE_BLOB_SIZE = {
   xs: { box: "h-12 w-12 shrink-0", icon: 24, blobScale: 1.1, centered: false },
   /** ~96px — inline section empties */
   sm: { box: "h-24 w-24", icon: 40, blobScale: 1.1, centered: true },
-  /** ~128px — default EmptyState hero */
-  md: { box: "h-32 w-32", icon: 56, blobScale: 1.1, centered: true },
+  /** ~160px — default EmptyState hero */
+  md: { box: "h-40 w-40", icon: 68, blobScale: 1.11, centered: true },
 } as const;
 
 const sizeStyles = EMPTY_STATE_BLOB_SIZE;
