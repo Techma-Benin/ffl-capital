@@ -5,13 +5,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Users, CheckCircle, Clock } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
-import {
-  PortalDataTable,
-  PortalDataTableCard,
-} from "@/components/ui/portal-data-table";
+import { PortalDataTableCard } from "@/components/ui/portal-data-table";
 import { parsePageParams } from "@/lib/pagination";
 import { hasEligibleFilterSet } from "@/lib/partner/default-filter-set";
-import { PartnerTableRow } from "@/components/admin/partner-table-row";
+import { AdminPartnersTable } from "@/components/admin/admin-partners-table";
 import {
   buildPartnerOrderBy,
   buildPartnerSortHref,
@@ -25,47 +22,6 @@ import {
   parsePartnerFamilies,
 } from "@/lib/admin/partner-list-filters";
 import { AdminPartnersFilterBar } from "@/components/admin/admin-partners-filter-bar";
-
-const PARTNER_COLUMNS = [
-  { key: "partner", label: "Partner", sortKey: "partner" },
-  {
-    key: "affiliation",
-    label: "Affiliation",
-    headerClassName: "text-center",
-    sortKey: "affiliation",
-  },
-  {
-    key: "status",
-    label: "Status",
-    headerClassName: "text-center",
-    sortKey: "status",
-  },
-  {
-    key: "priority",
-    label: "Priority",
-    headerClassName: "text-center",
-    sortKey: "priority",
-  },
-  {
-    key: "wallet",
-    label: "Wallet",
-    headerClassName: "text-right",
-    sortKey: "wallet",
-  },
-  {
-    key: "leadBuying",
-    label: "Lead Buying",
-    headerClassName: "text-center",
-    sortKey: "leadBuying",
-  },
-  {
-    key: "leads",
-    label: "Leads Purchased",
-    headerClassName: "text-center",
-    sortKey: "leads",
-  },
-  { key: "actions", label: "", headerClassName: "w-12 text-center" },
-];
 
 const BASE_PATH = "/admin/partners";
 
@@ -218,33 +174,29 @@ export default async function AdminPartnersPage({
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
-            <PortalDataTable columns={PARTNER_COLUMNS} sort={tableSort}>
-              {partners.map((p) => {
+            <AdminPartnersTable
+              sort={tableSort}
+              partners={partners.map((p) => {
                 const isActive = p.status === "active";
                 const walletOk = Number(p.walletBalance) >= 25;
                 const statesOk = hasEligibleFilterSet(p.filterSets);
                 const leadBuying = isActive && walletOk && statesOk;
 
-                return (
-                  <PartnerTableRow
-                    key={p.id}
-                    partner={{
-                      id: p.id,
-                      firstName: p.firstName,
-                      lastName: p.lastName,
-                      email: p.email,
-                      affiliation: p.affiliation,
-                      status: p.status,
-                      priority: p.priority,
-                      walletBalance: Number(p.walletBalance),
-                      leadBuying,
-                      walletOk,
-                      leadsCount: p._count.leadDeliveries,
-                    }}
-                  />
-                );
+                return {
+                  id: p.id,
+                  firstName: p.firstName,
+                  lastName: p.lastName,
+                  email: p.email,
+                  affiliation: p.affiliation,
+                  status: p.status,
+                  priority: p.priority,
+                  walletBalance: Number(p.walletBalance),
+                  leadBuying,
+                  walletOk,
+                  leadsCount: p._count.leadDeliveries,
+                };
               })}
-            </PortalDataTable>
+            />
             <TablePagination
               page={page}
               pageSize={pageSize}

@@ -11,6 +11,10 @@ import {
   portalTableRowClassName,
   PortalTablePrimaryCell,
 } from "@/components/ui/portal-data-table";
+import {
+  defaultPartnersColumnVisibility,
+  type PartnersColumnVisibilityState,
+} from "@/lib/admin/partners-table-columns";
 import { clsx } from "clsx";
 import {
   CheckCircle,
@@ -237,7 +241,13 @@ function PartnerRowMenu({
   );
 }
 
-export function PartnerTableRow({ partner }: { partner: Partner }) {
+export function PartnerTableRow({
+  partner,
+  columnVisibility = defaultPartnersColumnVisibility(),
+}: {
+  partner: Partner;
+  columnVisibility?: PartnersColumnVisibilityState;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState<ActionKey | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -298,35 +308,47 @@ export function PartnerTableRow({ partner }: { partner: Partner }) {
           />
         </Link>
       </td>
-      <td className={clsx(portalTableCell, "text-center text-sm text-slate-500")}>
-        {partner.affiliation ?? "—"}
-      </td>
-      <td className={clsx(portalTableCell, "text-center")}>
-        <Badge variant={badgeVariant}>{badgeLabel}</Badge>
-      </td>
-      <td className={clsx(portalTableCell, "text-center")}>
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-xs font-bold text-slate-600">
-          {partner.priority}
-        </span>
-      </td>
-      <td className={clsx(portalTableCell, "text-right")}>
-        <span
-          className={clsx(
-            "font-semibold tabular-nums",
-            partner.walletOk ? "text-slate-900" : "text-red-500",
-          )}
-        >
-          ${Number(partner.walletBalance).toFixed(2)}
-        </span>
-      </td>
-      <td className={clsx(portalTableCell, "text-center")}>
-        <Badge variant={partner.leadBuying ? "green" : "slate"}>
-          {partner.leadBuying ? "Active" : "Inactive"}
-        </Badge>
-      </td>
-      <td className={clsx(portalTableCell, "text-center font-medium text-slate-700")}>
-        {partner.leadsCount}
-      </td>
+      {columnVisibility.affiliation && (
+        <td className={clsx(portalTableCell, "text-center text-sm text-slate-500")}>
+          {partner.affiliation ?? "—"}
+        </td>
+      )}
+      {columnVisibility.status && (
+        <td className={clsx(portalTableCell, "text-center")}>
+          <Badge variant={badgeVariant}>{badgeLabel}</Badge>
+        </td>
+      )}
+      {columnVisibility.priority && (
+        <td className={clsx(portalTableCell, "text-center")}>
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-xs font-bold text-slate-600">
+            {partner.priority}
+          </span>
+        </td>
+      )}
+      {columnVisibility.wallet && (
+        <td className={clsx(portalTableCell, "text-right")}>
+          <span
+            className={clsx(
+              "font-semibold tabular-nums",
+              partner.walletOk ? "text-slate-900" : "text-red-500",
+            )}
+          >
+            ${Number(partner.walletBalance).toFixed(2)}
+          </span>
+        </td>
+      )}
+      {columnVisibility.leadBuying && (
+        <td className={clsx(portalTableCell, "text-center")}>
+          <Badge variant={partner.leadBuying ? "green" : "slate"}>
+            {partner.leadBuying ? "Active" : "Inactive"}
+          </Badge>
+        </td>
+      )}
+      {columnVisibility.leads && (
+        <td className={clsx(portalTableCell, "text-center font-medium text-slate-700")}>
+          {partner.leadsCount}
+        </td>
+      )}
       <td className="rounded-r-xl px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
         {actions.length > 0 && (
           <PartnerRowMenu

@@ -32,13 +32,15 @@ const headerBase =
 export function PortalTableHeaderCell({
   label,
   headerClassName,
+  children,
 }: {
   label: string;
   headerClassName?: string;
+  children?: React.ReactNode;
 }) {
   return (
     <th className={clsx(headerBase, headerClassName)}>
-      {label}
+      {children ?? label}
     </th>
   );
 }

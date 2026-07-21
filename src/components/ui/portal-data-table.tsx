@@ -12,6 +12,8 @@ export type PortalDataTableColumn = {
   headerClassName?: string;
   /** When set, column header is sortable (requires `sort` on the table). */
   sortKey?: string;
+  /** Custom header content (e.g. column picker); sortable columns use label only. */
+  headerContent?: React.ReactNode;
 };
 
 export type PortalDataTableSortState = {
@@ -117,7 +119,9 @@ export function PortalDataTable({
                   key={col.key}
                   label={col.label}
                   headerClassName={col.headerClassName}
-                />
+                >
+                  {col.headerContent}
+                </PortalTableHeaderCell>
               );
             })}
           </tr>
