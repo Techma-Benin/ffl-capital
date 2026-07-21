@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
 import type { Icon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
+import { KPI_BLOB_PATHS, resolveKpiBlobIndex } from "@/components/ui/kpi-blob-shapes";
 
 /** @deprecated Use `accent` instead — legacy colored card skins are mapped to accent tints. */
 export type StatCardVariant =
@@ -28,20 +29,20 @@ export type StatCardAccent =
   | "pink"
   | "peach";
 
-const accentStyles: Record<StatCardAccent, { triangle: string; icon: string }> = {
-  blue: { triangle: "bg-blue-50", icon: "text-blue-600" },
-  emerald: { triangle: "bg-emerald-50", icon: "text-emerald-600" },
-  red: { triangle: "bg-red-50", icon: "text-red-600" },
-  violet: { triangle: "bg-violet-50", icon: "text-violet-600" },
-  cyan: { triangle: "bg-cyan-50", icon: "text-cyan-600" },
-  purple: { triangle: "bg-purple-50", icon: "text-purple-600" },
-  rose: { triangle: "bg-rose-50", icon: "text-rose-600" },
-  orange: { triangle: "bg-orange-50", icon: "text-orange-600" },
-  amber: { triangle: "bg-amber-50", icon: "text-amber-600" },
-  mint: { triangle: "bg-teal-50", icon: "text-teal-600" },
-  brand: { triangle: "bg-brand-50", icon: "text-brand-600" },
-  pink: { triangle: "bg-pink-50", icon: "text-pink-600" },
-  peach: { triangle: "bg-orange-50", icon: "text-orange-500" },
+const accentStyles: Record<StatCardAccent, { blobFill: string; icon: string }> = {
+  blue: { blobFill: "bg-blue-50", icon: "text-blue-600" },
+  emerald: { blobFill: "bg-emerald-50", icon: "text-emerald-600" },
+  red: { blobFill: "bg-red-50", icon: "text-red-600" },
+  violet: { blobFill: "bg-violet-50", icon: "text-violet-600" },
+  cyan: { blobFill: "bg-cyan-50", icon: "text-cyan-600" },
+  purple: { blobFill: "bg-purple-50", icon: "text-purple-600" },
+  rose: { blobFill: "bg-rose-50", icon: "text-rose-600" },
+  orange: { blobFill: "bg-orange-50", icon: "text-orange-600" },
+  amber: { blobFill: "bg-amber-50", icon: "text-amber-600" },
+  mint: { blobFill: "bg-teal-50", icon: "text-teal-600" },
+  brand: { blobFill: "bg-brand-50", icon: "text-brand-600" },
+  pink: { blobFill: "bg-pink-50", icon: "text-pink-600" },
+  peach: { blobFill: "bg-orange-50", icon: "text-orange-500" },
 };
 
 const variantToAccent: Record<StatCardVariant, StatCardAccent> = {
@@ -55,37 +56,38 @@ const variantToAccent: Record<StatCardVariant, StatCardAccent> = {
   modern: "blue",
 };
 
-/** Top-right corner blob: outer edges follow card + rounded-tr-2xl; inner edge is one concave sweep. */
-const CORNER_BLOB_VIEWBOX = 80;
-const CORNER_BLOB_PATH =
-  "M 8 0 H 64 A 16 16 0 0 1 80 16 V 58 C 54 58 50 8 8 0 Z";
-
-function triangleFillClass(triangleClassName: string) {
-  return triangleClassName.replace(/\bbg-/g, "fill-");
+function blobFillClass(blobClassName: string) {
+  return blobClassName.replace(/\bbg-/g, "fill-");
 }
 
 function CornerIconBadge({
   IconComponent,
-  triangleClassName,
+  blobFillClassName,
   iconClassName,
+  blobIndex,
 }: {
   IconComponent: Icon;
-  triangleClassName: string;
+  blobFillClassName: string;
   iconClassName: string;
+  blobIndex: number;
 }) {
+  const pathD = KPI_BLOB_PATHS[blobIndex];
+
   return (
-    <div className="absolute right-0 top-0 h-[4.5rem] w-[4.5rem]" aria-hidden>
+    <div
+      className="pointer-events-none absolute -right-3 -top-3 h-[5.75rem] w-[5.75rem]"
+      aria-hidden
+    >
       <svg
-        viewBox={`0 0 ${CORNER_BLOB_VIEWBOX} ${CORNER_BLOB_VIEWBOX}`}
-        className="absolute inset-0 h-full w-full"
+        viewBox="0 0 200 200"
+        className="absolute inset-0 h-full w-full overflow-visible"
         aria-hidden
       >
-        <path
-          d={CORNER_BLOB_PATH}
-          className={triangleFillClass(triangleClassName)}
-        />
+        <g transform="translate(118 82) rotate(18) scale(1.05)">
+          <path d={pathD} className={blobFillClass(blobFillClassName)} />
+        </g>
       </svg>
-      <div className="relative flex h-full w-full items-start justify-end p-2.5">
+      <div className="relative flex h-full w-full items-start justify-end p-3 pr-4 pt-4">
         <IconComponent size={24} weight="duotone" className={iconClassName} />
       </div>
     </div>
@@ -101,6 +103,8 @@ interface StatCardProps {
   iconColor?: string;
   /** Corner blob fill override (Tailwind bg-* class). */
   iconBgClassName?: string;
+  /** Pick one of eight organic blob shapes (0–7). Defaults to a stable hash of accent + label. */
+  blobIndex?: number;
   accent?: StatCardAccent;
   valueClassName?: string;
   subtitleClassName?: string;
@@ -118,6 +122,7 @@ export function StatCard(props: StatCardProps) {
     icon: IconComponent,
     iconColor,
     iconBgClassName,
+    blobIndex: blobIndexProp,
     accent: accentProp,
     valueClassName,
     subtitleClassName,
@@ -128,24 +133,30 @@ export function StatCard(props: StatCardProps) {
 
   const accent = accentProp ?? variantToAccent[variant];
   const styles = accentStyles[accent];
-  const triangleClass = iconBgClassName ?? styles.triangle;
+  const blobFill = iconBgClassName ?? styles.blobFill;
   const iconClass = iconColor ?? styles.icon;
+  const blobIndex = resolveKpiBlobIndex({
+    blobIndex: blobIndexProp,
+    accent,
+    label,
+  });
 
   return (
     <div
       className={clsx(
-        "relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm",
+        "relative overflow-visible rounded-2xl border border-slate-100 bg-white shadow-sm",
         className,
       )}
     >
       {IconComponent && (
         <CornerIconBadge
           IconComponent={IconComponent}
-          triangleClassName={triangleClass}
+          blobFillClassName={blobFill}
           iconClassName={iconClass}
+          blobIndex={blobIndex}
         />
       )}
-      <div className={clsx("min-w-0 p-6", IconComponent && "pr-20")}>
+      <div className={clsx("min-w-0 overflow-hidden rounded-2xl p-6", IconComponent && "pr-20")}>
         <p className={clsx("text-3xl font-bold tracking-tight text-slate-900", valueClassName)}>
           {value}
         </p>
