@@ -186,6 +186,7 @@ export default async function AdminLeadsPage({
               icon={FileText}
               title="No leads found"
               description="Use the lead simulator to inject test leads into the platform."
+              accent="blue"
               action={
                 <PortalLink href="/dev/lead-simulator" className="btn-secondary btn-sm">
                   Open Simulator

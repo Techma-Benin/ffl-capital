@@ -1,4 +1,30 @@
-/** Per-route sidebar accents — aligned with StatCard / KPI tints where possible. */
+/**
+ * Per-route sidebar accents — aligned with StatCard / KPI tints where possible.
+ *
+ * Empty-state blob accents (`EmptyState` / `EmptyStateBlobIcon`): sidebar `mint` → blob `teal`;
+ * sidebar `slate` has no blob twin (settings has no hero empty). Explicit `accent` on empties
+ * matches sidebar keys below (partner + admin).
+ *
+ * | Route (partner)     | Sidebar | Empty-state accent |
+ * | /partner            | brand   | brand              |
+ * | /partner/leads      | blue    | blue               |
+ * | /partner/wallet     | red     | red                |
+ * | /partner/aged       | mint    | teal               |
+ * | /partner/reports    | violet  | violet             |
+ * | /partner/settings   | amber   | amber              |
+ * | /partner/contact    | cyan    | (no empty)         |
+ *
+ * | Route (admin)       | Sidebar | Empty-state accent |
+ * | /admin              | brand   | (no hero empty)    |
+ * | /admin/partners     | rose    | rose               |
+ * | /admin/leads        | blue    | blue               |
+ * | /admin/refunds      | orange  | orange             |
+ * | /admin/aged         | mint    | teal               |
+ * | /admin/filter-list  | amber   | amber              |
+ * | /admin/integrity    | purple  | purple             |
+ * | /admin/migration    | cyan    | (no empty)         |
+ * | /admin/settings     | slate   | (no empty)         |
+ */
 export type SidebarNavAccent =
   | "brand"
   | "blue"

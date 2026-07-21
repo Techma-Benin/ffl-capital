@@ -174,6 +174,7 @@ export function PartnerAgedView({
             <EmptyState
               icon={ShoppingBag}
               title="No aged leads available"
+              accent="teal"
               description={
                 partner.filterStates.length === 0
                   ? "You have no target states selected. Set up your states in Settings to see leads."

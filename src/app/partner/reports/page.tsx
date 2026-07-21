@@ -65,6 +65,7 @@ export default async function PartnerReportsPage() {
               icon={ChartBar}
               title="No transactions yet"
               description="Your transaction history will appear here."
+              accent="violet"
             />
           ) : (
             <table className="data-table">

@@ -55,6 +55,7 @@ export default async function AdminRefundsPage() {
               icon={ArrowCounterClockwise}
               title="No pending refund requests"
               description="Refund requests from partners will appear here for review."
+              accent="orange"
             />
           ) : (
             <AdminRefundsPendingTable

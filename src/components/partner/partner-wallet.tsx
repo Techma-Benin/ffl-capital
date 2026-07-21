@@ -337,6 +337,7 @@ export function PartnerWalletView({
               <EmptyStateBlobIcon
                 icon={Wallet}
                 seed="No transactions yet"
+                accent="red"
                 className="mb-3"
               />
               <p className="text-sm font-medium text-slate-500">No transactions yet</p>

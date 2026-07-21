@@ -76,6 +76,7 @@ export default async function AdminIntegrityPage() {
               icon={Shield}
               title="No Integrity postings yet"
               description="Unmatched leads past 24 hours are posted via the cron job."
+              accent="purple"
             />
           ) : (
             <IntegrityPostingsTable postings={rows} />

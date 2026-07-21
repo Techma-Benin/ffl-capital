@@ -89,6 +89,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
               icon={FileText}
               title="No leads yet"
               description="Once your account is active and your wallet is funded, leads will be distributed here automatically."
+              accent="brand"
             />
           ) : (
             <table className="data-table">

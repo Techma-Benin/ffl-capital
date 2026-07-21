@@ -121,6 +121,7 @@ export default async function PartnerLeadsPage({
             icon={FileText}
             title="No leads match these filters"
             description="Try adjusting or clearing your filters to see more results."
+            accent="blue"
           />
         </div>
       ) : (

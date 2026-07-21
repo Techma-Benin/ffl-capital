@@ -349,6 +349,7 @@ export function FilterSetTemplateManager() {
           <EmptyStateBlobIcon
             icon={Funnel}
             seed="No templates yet"
+            accent="amber"
             size="sm"
             className="mb-3"
           />

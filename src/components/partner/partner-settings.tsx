@@ -177,6 +177,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
           <EmptyStateBlobIcon
             icon={Funnel}
             seed="No filter sets yet"
+            accent="amber"
             size="sm"
             className="mb-3"
           />

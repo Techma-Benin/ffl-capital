@@ -65,6 +65,7 @@ export default async function AdminAgedPage({
               icon={Archive}
               title="No aged leads"
               description="Leads become eligible 30 days after receipt."
+              accent="teal"
             />
           ) : (
             <table className="data-table">

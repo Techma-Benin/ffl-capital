@@ -81,6 +81,7 @@ export default async function AdminPartnersPage({
               icon={Users}
               title="No partners yet"
               description="Partners will appear here once they sign up and complete onboarding."
+              accent="rose"
             />
           ) : (
             <table className="data-table">
