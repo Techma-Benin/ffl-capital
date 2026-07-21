@@ -90,7 +90,7 @@ export function IntakeAreaChart({
             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
           }}
           labelStyle={{ fontWeight: 600, color: "#1e293b" }}
-          formatter={(value: number) => [value, "Leads"]}
+          formatter={(value: number) => [value, ""]}
         />
         <Area
           type="monotone"
