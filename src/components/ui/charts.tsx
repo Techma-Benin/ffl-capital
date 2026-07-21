@@ -116,7 +116,7 @@ function semiGaugeGeometry(width: number, height: number) {
   const cx = DONUT_MARGIN.left + innerW / 2;
   const cy = DONUT_MARGIN.top + innerH - 4;
   const outerRadius = Math.min(innerW / 2 - 6, innerH - 12) * 0.94;
-  const innerRadius = outerRadius * 0.58;
+  const innerRadius = outerRadius * 0.73;
   return { cx, cy, innerRadius, outerRadius };
 }
 
