@@ -5,11 +5,8 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Cell,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -129,8 +126,8 @@ export function IntakeAreaChart({
 
 const DONUT_COLORS = [BRAND, ACCENT, "#72A5E1", "#F59E0B", "#8B5CF6"];
 const DONUT_TRACK = "#E2E8F0";
-/** Extra degrees each segment extends over the next (left/on-top at junctions). */
-const SEGMENT_OVERLAP_DEG = 2;
+/** Degrees each segment extends into the next (earlier segment draws on top). */
+const SEGMENT_OVERLAP_DEG = 4;
 
 const DONUT_MARGIN = { top: 8, right: 12, left: 12, bottom: 12 };
 
@@ -173,10 +170,36 @@ function DonutTooltip({
 function segmentAngles(
   dataWithFill: Array<{ value: number }>,
   total: number,
+  arcSpan = 180,
 ): number[] {
   if (total <= 0) return [];
-  const semiArc = 180;
-  return dataWithFill.map((d) => (d.value / total) * semiArc);
+  return dataWithFill.map((d) => (d.value / total) * arcSpan);
+}
+
+/** Recharts-compatible polar coords (0° = 3 o'clock, arc runs through top). */
+function polarToCartesian(
+  cx: number,
+  cy: number,
+  r: number,
+  angleDeg: number,
+) {
+  const rad = (-angleDeg * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function describeArcPath(
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number,
+) {
+  const span = startAngle - endAngle;
+  if (span <= 0) return "";
+  const start = polarToCartesian(cx, cy, r, startAngle);
+  const end = polarToCartesian(cx, cy, r, endAngle);
+  const largeArc = span > 180 ? 1 : 0;
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
 }
 
 function DonutChartGauge({
@@ -194,6 +217,14 @@ function DonutChartGauge({
   activeIndex: number | null;
   setActiveIndex: (index: number | null) => void;
 }) {
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    y: number;
+    name: string;
+    value: number;
+    fill: string;
+  } | null>(null);
+
   if (!width || !height) return null;
 
   const { cx, cy, innerRadius, outerRadius } = semiGaugeGeometry(
@@ -202,6 +233,7 @@ function DonutChartGauge({
   );
   const ringThickness = outerRadius - innerRadius;
   const cornerRadius = ringThickness / 2;
+  const midRadius = innerRadius + cornerRadius;
   const segmentDegs = segmentAngles(dataWithFill, total);
 
   let cumulative = 0;
@@ -216,57 +248,90 @@ function DonutChartGauge({
   });
 
   const drawOrder = [...segmentLayers].reverse();
+  const trackPath = describeArcPath(cx, cy, midRadius, 180, 0);
 
   return (
-    <PieChart width={width} height={height} margin={DONUT_MARGIN}>
-      <Pie
-        data={[{ name: "__track", value: 1 }]}
-        dataKey="value"
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius}
-        startAngle={180}
-        endAngle={0}
-        stroke="none"
-        isAnimationActive={false}
-      >
-        <Cell fill={DONUT_TRACK} />
-      </Pie>
+    <>
+    <svg
+      width={width}
+      height={height}
+      className="overflow-visible"
+      role="img"
+      aria-hidden={total <= 0}
+    >
+      {trackPath ? (
+        <path
+          d={trackPath}
+          fill="none"
+          stroke={DONUT_TRACK}
+          strokeWidth={ringThickness}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          pointerEvents="none"
+        />
+      ) : null}
       {total > 0 &&
         drawOrder.map(({ entry, index, startAngle, endAngle }) => {
           const opacity =
             activeIndex === null || activeIndex === index ? 1 : 0.35;
-          const slice = [{ name: entry.name, value: 1, fill: entry.fill }];
+          const d = describeArcPath(cx, cy, midRadius, startAngle, endAngle);
+          if (!d) return null;
           return (
-            <Pie
+            <path
               key={entry.name}
-              data={slice}
-              dataKey="value"
-              nameKey="name"
-              cx={cx}
-              cy={cy}
-              innerRadius={innerRadius}
-              outerRadius={outerRadius}
-              startAngle={startAngle}
-              endAngle={endAngle}
-              paddingAngle={0}
-              cornerRadius={cornerRadius}
-              stroke="none"
-              isAnimationActive={false}
-              onMouseEnter={() => setActiveIndex(index)}
-              onMouseLeave={() => setActiveIndex(null)}
-            >
-              <Cell
-                fill={entry.fill}
-                opacity={opacity}
-                style={{ cursor: "pointer" }}
-              />
-            </Pie>
+              d={d}
+              fill="none"
+              stroke={entry.fill}
+              strokeWidth={ringThickness}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={opacity}
+              style={{ cursor: "pointer" }}
+              onMouseEnter={(e) => {
+                setActiveIndex(index);
+                setTooltip({
+                  x: e.clientX,
+                  y: e.clientY,
+                  name: entry.name,
+                  value: entry.value,
+                  fill: entry.fill,
+                });
+              }}
+              onMouseMove={(e) => {
+                setTooltip({
+                  x: e.clientX,
+                  y: e.clientY,
+                  name: entry.name,
+                  value: entry.value,
+                  fill: entry.fill,
+                });
+              }}
+              onMouseLeave={() => {
+                setActiveIndex(null);
+                setTooltip(null);
+              }}
+            />
           );
         })}
-      <Tooltip content={<DonutTooltip />} />
-    </PieChart>
+    </svg>
+      {tooltip ? (
+        <div
+          className="pointer-events-none fixed z-50"
+          style={{ left: tooltip.x + 12, top: tooltip.y + 12 }}
+        >
+          <DonutTooltip
+            active
+            payload={[
+              {
+                name: tooltip.name,
+                value: tooltip.value,
+                payload: { fill: tooltip.fill },
+              },
+            ]}
+          />
+        </div>
+      ) : null}
+    </>
   );
 }
 
