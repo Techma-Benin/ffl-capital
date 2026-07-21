@@ -1,5 +1,6 @@
 export type { Icon, IconProps, IconWeight } from "./types";
 export { ICON_WEIGHT, ICON_WEIGHT_LINEAR, ICON_WEIGHT_BOLD } from "./types";
+export { Plus } from "./plus";
 
 export {
   Widget as SquaresFour,
@@ -43,7 +44,7 @@ export {
   UsersGroupRounded as UsersThree,
   CalendarMark as CalendarCheck,
   Pen as PencilSimple,
-  AddSquare as Plus,
+  AddSquare,
   AddCircle as PlusCircle,
   TrashBinTrash as Trash,
   MenuDots as DotsThree,
