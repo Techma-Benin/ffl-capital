@@ -28,8 +28,8 @@ export function PortalDataTableTab({
       className={clsx(
         "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
         active
-          ? "border-orange-500 bg-orange-600 text-white"
-          : "border-slate-200 bg-slate-50 text-slate-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700",
+          ? "border-orange-300 bg-orange-50 text-orange-700"
+          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
         pending && "pointer-events-none opacity-70",
       )}
     >
@@ -39,7 +39,9 @@ export function PortalDataTableTab({
         <span
           className={clsx(
             "flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-bold",
-            active ? "bg-orange-500 text-white" : "bg-slate-200 text-slate-600",
+            active
+              ? "bg-orange-600 text-white"
+              : "bg-slate-200 text-slate-600",
           )}
         >
           {count}

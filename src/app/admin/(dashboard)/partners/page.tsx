@@ -19,7 +19,7 @@ import {
 import {
   buildPartnerListWhere,
   buildPartnerStatusTabHref,
-  parsePartnerFamilies,
+  parsePartnerCompanies,
 } from "@/lib/admin/partner-list-filters";
 import { AdminPartnersFilterBar } from "@/components/admin/admin-partners-filter-bar";
 
@@ -44,15 +44,16 @@ export default async function AdminPartnersPage({
     page?: string;
     sort?: string;
     dir?: string;
+    company?: string;
     family?: string;
   };
 }) {
   const statusFilter = searchParams.status;
-  const selectedFamilies = parsePartnerFamilies(searchParams);
+  const selectedCompanies = parsePartnerCompanies(searchParams);
   const { page, pageSize, skip } = parsePageParams(searchParams);
   const { sort, dir } = parsePartnerSort(searchParams);
 
-  const where = buildPartnerListWhere(statusFilter, selectedFamilies);
+  const where = buildPartnerListWhere(statusFilter, selectedCompanies);
 
   const partnerInclude = {
     filterSets: true,
@@ -61,15 +62,15 @@ export default async function AdminPartnersPage({
 
   const countsPromise = Promise.all([
     prisma.partner.count({ where }),
-    // Tab counts respect the active family filter (affiliation), not global totals.
+    // Tab counts respect the active company filter (affiliation), not global totals.
     prisma.partner.count({
-      where: buildPartnerListWhere("pending_approval", selectedFamilies),
+      where: buildPartnerListWhere("pending_approval", selectedCompanies),
     }),
     prisma.partner.count({
-      where: buildPartnerListWhere("active", selectedFamilies),
+      where: buildPartnerListWhere("active", selectedCompanies),
     }),
     prisma.partner.count({
-      where: buildPartnerListWhere("disabled", selectedFamilies),
+      where: buildPartnerListWhere("disabled", selectedCompanies),
     }),
     prisma.partner.groupBy({
       by: ["affiliation"],
@@ -158,7 +159,7 @@ export default async function AdminPartnersPage({
         <AdminPartnersFilterBar
           tabs={statusTabs}
           affiliationOptions={affiliationOptions}
-          selectedFamilies={selectedFamilies}
+          selectedCompanies={selectedCompanies}
         />
       </Suspense>
 

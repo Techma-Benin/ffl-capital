@@ -6,32 +6,40 @@ import { CaretDown, CaretUp, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { clsx } from "clsx";
 import { PortalDataTableTab } from "@/components/ui/portal-data-table-tab";
 import type { PortalDataTableTabConfig } from "@/components/ui/portal-data-table";
-import { PARTNER_FAMILY_PARAM } from "@/lib/admin/partner-list-filters";
+import { PARTNER_COMPANY_PARAM } from "@/lib/admin/partner-list-filters";
 
 const BASE_PATH = "/admin/partners";
+const LEGACY_FAMILY_PARAM = "family";
+
+const filterPillActive =
+  "border-orange-300 bg-orange-50 text-orange-700";
+const filterPillWithSelection =
+  "border-orange-200 bg-orange-50/60 text-orange-600";
+const filterPillIdle =
+  "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
 
 export function AdminPartnersFilterBar({
   tabs,
   affiliationOptions,
-  selectedFamilies,
+  selectedCompanies,
 }: {
   tabs: PortalDataTableTabConfig[];
   affiliationOptions: string[];
-  selectedFamilies: string[];
+  selectedCompanies: string[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [familiesOpen, setFamiliesOpen] = useState(false);
+  const [companyOpen, setCompanyOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!familiesOpen) return;
+    if (!companyOpen) return;
     let removeListener: (() => void) | undefined;
     // Defer so the opening click/mousedown is not treated as an outside dismiss.
     const deferId = window.setTimeout(() => {
       function handle(e: MouseEvent) {
         if (barRef.current && !barRef.current.contains(e.target as Node)) {
-          setFamiliesOpen(false);
+          setCompanyOpen(false);
         }
       }
       document.addEventListener("mousedown", handle);
@@ -41,30 +49,31 @@ export function AdminPartnersFilterBar({
       window.clearTimeout(deferId);
       removeListener?.();
     };
-  }, [familiesOpen]);
+  }, [companyOpen]);
 
-  function navigateFamily(nextFamilies: string[]) {
+  function navigateCompany(nextCompanies: string[]) {
     const next = new URLSearchParams(searchParams.toString());
     next.delete("page");
-    if (nextFamilies.length === 0) next.delete(PARTNER_FAMILY_PARAM);
-    else next.set(PARTNER_FAMILY_PARAM, nextFamilies.join(","));
+    next.delete(LEGACY_FAMILY_PARAM);
+    if (nextCompanies.length === 0) next.delete(PARTNER_COMPANY_PARAM);
+    else next.set(PARTNER_COMPANY_PARAM, nextCompanies.join(","));
     const qs = next.toString();
     router.push(qs ? `${BASE_PATH}?${qs}` : BASE_PATH);
   }
 
-  function toggleFamily(value: string) {
-    const next = selectedFamilies.includes(value)
-      ? selectedFamilies.filter((v) => v !== value)
-      : [...selectedFamilies, value];
-    navigateFamily(next);
+  function toggleCompany(value: string) {
+    const next = selectedCompanies.includes(value)
+      ? selectedCompanies.filter((v) => v !== value)
+      : [...selectedCompanies, value];
+    navigateCompany(next);
   }
 
-  function clearFamilies() {
-    navigateFamily([]);
-    setFamiliesOpen(false);
+  function clearCompany() {
+    navigateCompany([]);
+    setCompanyOpen(false);
   }
 
-  const hasFamilySelection = selectedFamilies.length > 0;
+  const hasCompanySelection = selectedCompanies.length > 0;
 
   return (
     <div ref={barRef} className="relative z-10 mb-4 shrink-0">
@@ -82,62 +91,62 @@ export function AdminPartnersFilterBar({
 
         <button
           type="button"
-          aria-expanded={familiesOpen}
+          aria-expanded={companyOpen}
           onClick={(e) => {
             e.stopPropagation();
-            setFamiliesOpen((open) => !open);
+            setCompanyOpen((open) => !open);
           }}
           className={clsx(
             "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
-            familiesOpen
-              ? "border-orange-300 bg-orange-50 text-orange-700"
-              : hasFamilySelection
-                ? "border-orange-200 bg-orange-50/60 text-orange-600"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+            companyOpen
+              ? filterPillActive
+              : hasCompanySelection
+                ? filterPillWithSelection
+                : filterPillIdle,
           )}
         >
-          Families
-          {hasFamilySelection && (
+          Company
+          {hasCompanySelection && (
             <span className="flex h-4 w-4 items-center justify-center rounded-full bg-orange-600 text-[10px] font-bold text-white">
-              {selectedFamilies.length}
+              {selectedCompanies.length}
             </span>
           )}
-          {familiesOpen ? (
+          {companyOpen ? (
             <CaretUp size={12} weight={ICON_WEIGHT_LINEAR} />
           ) : (
             <CaretDown size={12} weight={ICON_WEIGHT_LINEAR} />
           )}
         </button>
 
-        {hasFamilySelection && (
+        {hasCompanySelection && (
           <button
             type="button"
-            onClick={clearFamilies}
+            onClick={clearCompany}
             className="ml-auto inline-flex items-center gap-1 text-xs text-slate-400 transition-colors hover:text-red-500"
           >
             <X size={12} weight={ICON_WEIGHT_LINEAR} />
-            Clear families
+            Clear company
           </button>
         )}
       </div>
 
-      {familiesOpen && (
+      {companyOpen && (
         <div className="mt-1 px-1 py-2">
           {affiliationOptions.length === 0 ? (
-            <p className="text-xs text-slate-400">No affiliations recorded yet</p>
+            <p className="text-xs text-slate-400">No companies recorded yet</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {affiliationOptions.map((name) => {
-                const isSelected = selectedFamilies.includes(name);
+                const isSelected = selectedCompanies.includes(name);
                 return (
                   <button
                     key={name}
                     type="button"
-                    onClick={() => toggleFamily(name)}
+                    onClick={() => toggleCompany(name)}
                     className={clsx(
                       "rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
                       isSelected
-                        ? "border-orange-500 bg-orange-600 text-white"
+                        ? filterPillActive
                         : "border-slate-200 bg-slate-50 text-slate-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700",
                     )}
                   >
