@@ -127,7 +127,7 @@ export function PartnerWalletView({
               "rounded-2xl p-8",
               walletOk
                 ? "bg-slate-900 ring-1 ring-slate-800"
-                : "border border-red-500/30 border-l-4 border-l-red-500/50 bg-gradient-to-br from-slate-900 to-slate-950 ring-1 ring-slate-800 shadow-[0_0_28px_-6px_rgba(239,68,68,0.12)]",
+                : "border border-red-500/30 bg-gradient-to-br from-slate-900 to-slate-950 ring-1 ring-slate-800 shadow-[0_0_28px_-6px_rgba(239,68,68,0.12)]",
             )}
           >
             <p
