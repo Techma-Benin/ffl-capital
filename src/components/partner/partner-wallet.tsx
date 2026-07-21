@@ -126,25 +126,30 @@ export function PartnerWalletView({
             className={clsx(
               "rounded-2xl p-8",
               walletOk
-                ? "bg-slate-900"
-                : "bg-gradient-to-br from-[#1a0404] via-[#140303] to-[#080101]",
+                ? "bg-slate-900 ring-1 ring-slate-800"
+                : "border border-red-200 bg-white shadow-sm ring-1 ring-red-100",
             )}
           >
             <p
               className={clsx(
                 "text-xs font-semibold uppercase tracking-widest",
-                walletOk ? "text-slate-400" : "text-red-200/70",
+                walletOk ? "text-slate-400" : "text-red-600/90",
               )}
             >
               Current Balance
             </p>
-            <p className="mt-3 text-5xl font-bold tracking-tight text-white">
+            <p
+              className={clsx(
+                "mt-3 text-5xl font-bold tracking-tight tabular-nums",
+                walletOk ? "text-white" : "text-red-600",
+              )}
+            >
               ${balance.toFixed(2)}
             </p>
             <p
               className={clsx(
                 "mt-2 text-sm font-medium",
-                walletOk ? "text-emerald-400" : "text-amber-200",
+                walletOk ? "text-emerald-400" : "text-red-700",
               )}
             >
               {walletOk ? "Lead buying active" : "Below $25 minimum — add funds to receive leads"}
