@@ -52,7 +52,7 @@ export function AdminDashboardCharts({
             <h2 className="text-sm font-semibold text-slate-900">Lead Intake (7 days)</h2>
             <span className="text-xs text-slate-400">Daily volume</span>
           </div>
-          <IntakeAreaChart data={intakeByDay} />
+          <IntakeAreaChart data={intakeByDay} height={300} />
         </div>
 
         <div className="card flex flex-col p-5">
