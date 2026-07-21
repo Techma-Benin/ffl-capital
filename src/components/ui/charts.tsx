@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -103,6 +103,20 @@ export function IntakeAreaChart({
 }
 
 const DONUT_COLORS = [BRAND, ACCENT, "#72A5E1", "#F59E0B", "#8B5CF6"];
+const TRACK_BG = "#E2E8F0";
+
+function donutTrackRadii(index: number, trackCount: number) {
+  const maxOuter = 88;
+  const minInner = 48;
+  const trackGap = 5;
+  const trackWidth =
+    trackCount > 0
+      ? (maxOuter - minInner - (trackCount - 1) * trackGap) / trackCount
+      : 0;
+  const outer = maxOuter - index * (trackWidth + trackGap);
+  const inner = outer - trackWidth;
+  return { inner: `${inner}%`, outer: `${outer}%` };
+}
 
 function DonutTooltip({
   active,
@@ -112,7 +126,10 @@ function DonutTooltip({
   payload?: Array<{ name: string; value: number; payload: { fill: string } }>;
 }) {
   if (!active || !payload?.length) return null;
-  const item = payload[0];
+  const item = payload.find(
+    (p) => p.name && p.name !== "__remainder" && p.name !== "__empty",
+  );
+  if (!item) return null;
   const color = item.payload.fill;
   return (
     <div
@@ -147,38 +164,87 @@ export function DonutChart({
     fill: DONUT_COLORS[i % DONUT_COLORS.length],
   }));
 
+  const trackCount = dataWithFill.length;
+  const semiProps = {
+    cx: "50%" as const,
+    cy: "92%" as const,
+    startAngle: 180,
+    endAngle: 0,
+    stroke: "none" as const,
+    isAnimationActive: false as const,
+  };
+
   return (
     <div className="relative w-full">
       <ResponsiveContainer width="100%" height={height}>
         <PieChart margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
-          <Pie
-            data={dataWithFill}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="92%"
-            startAngle={180}
-            endAngle={0}
-            innerRadius="52%"
-            outerRadius="88%"
-            paddingAngle={3}
-            cornerRadius={10}
-            stroke="none"
-            isAnimationActive={false}
-            onMouseEnter={(_, index) => setActiveIndex(index)}
-            onMouseLeave={() => setActiveIndex(null)}
-          >
-            {dataWithFill.map((entry, i) => (
-              <Cell
-                key={entry.name}
-                fill={entry.fill}
-                opacity={
-                  activeIndex === null || activeIndex === i ? 1 : 0.35
-                }
-                style={{ cursor: "pointer" }}
-              />
-            ))}
-          </Pie>
+          {dataWithFill.map((entry, i) => {
+            const { inner, outer } = donutTrackRadii(i, trackCount);
+            const trackOpacity =
+              activeIndex === null || activeIndex === i ? 1 : 0.35;
+            const remainder = Math.max(0, total - entry.value);
+            const foregroundData =
+              total > 0
+                ? [
+                    { ...entry, fill: entry.fill },
+                    {
+                      name: "__remainder",
+                      value: remainder,
+                      fill: "transparent",
+                    },
+                  ]
+                : [
+                    {
+                      name: "__empty",
+                      value: 1,
+                      fill: "transparent",
+                    },
+                  ];
+
+            return (
+              <Fragment key={entry.name}>
+                <Pie
+                  data={[{ value: 1 }]}
+                  dataKey="value"
+                  innerRadius={inner}
+                  outerRadius={outer}
+                  {...semiProps}
+                >
+                  <Cell fill={TRACK_BG} opacity={trackOpacity} />
+                </Pie>
+                <Pie
+                  data={foregroundData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={inner}
+                  outerRadius={outer}
+                  paddingAngle={0}
+                  cornerRadius={8}
+                  {...semiProps}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  onMouseLeave={() => setActiveIndex(null)}
+                >
+                  {foregroundData.map((row, j) => (
+                    <Cell
+                      key={j}
+                      fill={"fill" in row ? row.fill : entry.fill}
+                      opacity={
+                        row.name === "__remainder" || row.name === "__empty"
+                          ? 0
+                          : trackOpacity
+                      }
+                      style={{
+                        cursor:
+                          row.name === "__remainder" || row.name === "__empty"
+                            ? "default"
+                            : "pointer",
+                      }}
+                    />
+                  ))}
+                </Pie>
+              </Fragment>
+            );
+          })}
           <Tooltip content={<DonutTooltip />} />
         </PieChart>
       </ResponsiveContainer>
