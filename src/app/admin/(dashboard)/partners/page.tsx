@@ -85,53 +85,53 @@ export default async function AdminPartnersPage({
         <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" />
       </div>
 
-      <PortalDataTableCard
-        tabs={statusTabs}
-        footer={
-          <TablePagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            basePath="/admin/partners"
-            searchParams={searchParams}
-          />
-        }
-      >
+      <PortalDataTableCard tabs={statusTabs}>
         {partners.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No partners yet"
-            description="Partners will appear here once they sign up and complete onboarding."
-            accent="rose"
-          />
+          <div className="card">
+            <EmptyState
+              icon={Users}
+              title="No partners yet"
+              description="Partners will appear here once they sign up and complete onboarding."
+              accent="rose"
+            />
+          </div>
         ) : (
-          <PortalDataTable columns={PARTNER_COLUMNS}>
-            {partners.map((p) => {
-              const isActive = p.status === "active";
-              const walletOk = Number(p.walletBalance) >= 25;
-              const statesOk = hasEligibleFilterSet(p.filterSets);
-              const leadBuying = isActive && walletOk && statesOk;
+          <>
+            <PortalDataTable columns={PARTNER_COLUMNS}>
+              {partners.map((p) => {
+                const isActive = p.status === "active";
+                const walletOk = Number(p.walletBalance) >= 25;
+                const statesOk = hasEligibleFilterSet(p.filterSets);
+                const leadBuying = isActive && walletOk && statesOk;
 
-              return (
-                <PartnerTableRow
-                  key={p.id}
-                  partner={{
-                    id: p.id,
-                    firstName: p.firstName,
-                    lastName: p.lastName,
-                    email: p.email,
-                    affiliation: p.affiliation,
-                    status: p.status,
-                    priority: p.priority,
-                    walletBalance: Number(p.walletBalance),
-                    leadBuying,
-                    walletOk,
-                    leadsCount: p._count.leadDeliveries,
-                  }}
-                />
-              );
-            })}
-          </PortalDataTable>
+                return (
+                  <PartnerTableRow
+                    key={p.id}
+                    partner={{
+                      id: p.id,
+                      firstName: p.firstName,
+                      lastName: p.lastName,
+                      email: p.email,
+                      affiliation: p.affiliation,
+                      status: p.status,
+                      priority: p.priority,
+                      walletBalance: Number(p.walletBalance),
+                      leadBuying,
+                      walletOk,
+                      leadsCount: p._count.leadDeliveries,
+                    }}
+                  />
+                );
+              })}
+            </PortalDataTable>
+            <TablePagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              basePath="/admin/partners"
+              searchParams={searchParams}
+            />
+          </>
         )}
       </PortalDataTableCard>
     </div>

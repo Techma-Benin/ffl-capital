@@ -25,6 +25,24 @@ export type PortalDataTableTabConfig = {
   count?: number;
 };
 
+export function PortalDataTableTabs({ tabs }: { tabs: PortalDataTableTabConfig[] }) {
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2 px-1 py-2">
+      {tabs.map((tab) => (
+        <PortalDataTableTab
+          key={tab.label}
+          href={tab.href}
+          active={tab.active}
+          count={tab.count}
+        >
+          {tab.label}
+        </PortalDataTableTab>
+      ))}
+    </div>
+  );
+}
+
+/** Tabs + table on page background — same shell as partner My Leads (no outer white card). */
 export function PortalDataTableCard({
   tabs,
   footer,
@@ -37,21 +55,8 @@ export function PortalDataTableCard({
   className?: string;
 }) {
   return (
-    <div className={clsx("card", className)}>
-      {tabs && tabs.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 py-3">
-          {tabs.map((tab) => (
-            <PortalDataTableTab
-              key={tab.label}
-              href={tab.href}
-              active={tab.active}
-              count={tab.count}
-            >
-              {tab.label}
-            </PortalDataTableTab>
-          ))}
-        </div>
-      )}
+    <div className={className}>
+      {tabs && tabs.length > 0 && <PortalDataTableTabs tabs={tabs} />}
       {children}
       {footer}
     </div>
@@ -66,7 +71,7 @@ export function PortalDataTable({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto px-2 pb-2 pt-1">
+    <div className="overflow-x-auto pb-2 pt-1">
       <table className="w-full border-separate border-spacing-y-2">
         <thead>
           <tr>
