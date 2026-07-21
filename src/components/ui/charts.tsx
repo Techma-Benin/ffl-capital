@@ -128,6 +128,9 @@ export function IntakeAreaChart({
 }
 
 const DONUT_COLORS = [BRAND, ACCENT, "#72A5E1", "#F59E0B", "#8B5CF6"];
+const DONUT_TRACK = "#E2E8F0";
+/** Extra degrees each segment extends over the next (left/on-top at junctions). */
+const SEGMENT_OVERLAP_DEG = 2;
 
 const DONUT_MARGIN = { top: 8, right: 12, left: 12, bottom: 12 };
 
@@ -167,6 +170,15 @@ function DonutTooltip({
   );
 }
 
+function segmentAngles(
+  dataWithFill: Array<{ value: number }>,
+  total: number,
+): number[] {
+  if (total <= 0) return [];
+  const semiArc = 180;
+  return dataWithFill.map((d) => (d.value / total) * semiArc);
+}
+
 function DonutChartGauge({
   width = 0,
   height = 0,
@@ -188,51 +200,71 @@ function DonutChartGauge({
     width,
     height,
   );
-  const pieData =
-    total > 0
-      ? dataWithFill
-      : [{ name: "__empty", value: 1, fill: "transparent" }];
+  const ringThickness = outerRadius - innerRadius;
+  const cornerRadius = ringThickness / 2;
+  const segmentDegs = segmentAngles(dataWithFill, total);
+
+  let cumulative = 0;
+  const segmentLayers = dataWithFill.map((entry, index) => {
+    const segDeg = segmentDegs[index] ?? 0;
+    const startAngle = 180 - cumulative;
+    const isLast = index === dataWithFill.length - 1;
+    const overlap = isLast ? 0 : SEGMENT_OVERLAP_DEG;
+    const endAngle = 180 - cumulative - segDeg - overlap;
+    cumulative += segDeg;
+    return { entry, index, startAngle, endAngle };
+  });
+
+  const drawOrder = [...segmentLayers].reverse();
 
   return (
     <PieChart width={width} height={height} margin={DONUT_MARGIN}>
       <Pie
-        data={pieData}
+        data={[{ name: "__track", value: 1 }]}
         dataKey="value"
-        nameKey="name"
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
         outerRadius={outerRadius}
         startAngle={180}
         endAngle={0}
-        paddingAngle={0}
-        cornerRadius={10}
         stroke="none"
         isAnimationActive={false}
-        onMouseEnter={(_, index) => {
-          if (total > 0) setActiveIndex(index);
-        }}
-        onMouseLeave={() => setActiveIndex(null)}
       >
-        {pieData.map((entry, i) => {
+        <Cell fill={DONUT_TRACK} />
+      </Pie>
+      {total > 0 &&
+        drawOrder.map(({ entry, index, startAngle, endAngle }) => {
           const opacity =
-            entry.name === "__empty"
-              ? 0
-              : activeIndex === null || activeIndex === i
-                ? 1
-                : 0.35;
+            activeIndex === null || activeIndex === index ? 1 : 0.35;
+          const slice = [{ name: entry.name, value: 1, fill: entry.fill }];
           return (
-            <Cell
+            <Pie
               key={entry.name}
-              fill={entry.fill}
-              opacity={opacity}
-              style={{
-                cursor: entry.name === "__empty" ? "default" : "pointer",
-              }}
-            />
+              data={slice}
+              dataKey="value"
+              nameKey="name"
+              cx={cx}
+              cy={cy}
+              innerRadius={innerRadius}
+              outerRadius={outerRadius}
+              startAngle={startAngle}
+              endAngle={endAngle}
+              paddingAngle={0}
+              cornerRadius={cornerRadius}
+              stroke="none"
+              isAnimationActive={false}
+              onMouseEnter={() => setActiveIndex(index)}
+              onMouseLeave={() => setActiveIndex(null)}
+            >
+              <Cell
+                fill={entry.fill}
+                opacity={opacity}
+                style={{ cursor: "pointer" }}
+              />
+            </Pie>
           );
         })}
-      </Pie>
       <Tooltip content={<DonutTooltip />} />
     </PieChart>
   );
@@ -240,7 +272,7 @@ function DonutChartGauge({
 
 export function DonutChart({
   data,
-  height = 280,
+  height = 300,
 }: {
   data: Array<{ name: string; value: number }>;
   height?: number;
