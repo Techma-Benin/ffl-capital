@@ -152,7 +152,7 @@ export function StatCard(props: StatCardProps) {
   return (
     <div
       className={clsx(
-        "group relative cursor-default overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm",
+        "group relative cursor-default overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-shadow duration-300 ease-out hover:shadow-md motion-reduce:transition-none",
         className,
       )}
     >
