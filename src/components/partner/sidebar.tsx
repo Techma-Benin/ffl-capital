@@ -102,11 +102,6 @@ export function PartnerSidebar() {
         )}
       >
         <SidebarUserButton displayName={partnerName} isActive={isActiveBuyer} />
-        {partner.affiliation && !sidebarCollapsed && (
-          <p className="mt-1 truncate pl-12 text-xs text-sidebar-text">
-            {partner.affiliation}
-          </p>
-        )}
       </div>
 
       <div className="border-t border-sidebar-border px-3 py-3">
