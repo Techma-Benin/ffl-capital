@@ -26,7 +26,7 @@ function DetailRow({
       <dt className="shrink-0 text-slate-500">{label}</dt>
       <dd className="text-right text-slate-900">
         {href ? (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline">
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">
             {value}
           </a>
         ) : (
@@ -229,7 +229,7 @@ export default async function AdminLeadDetailPage({
                     ? "border-red-300"
                     : event.type === "delivered"
                       ? "border-green-300"
-                      : "border-violet-200";
+                      : "border-orange-200";
                 return (
                   <li key={event.id} className={`border-l-2 ${borderColor} pl-3`}>
                     <p className={`text-sm font-medium ${event.type === "delivery_failed" ? "text-red-700" : "text-slate-900"}`}>
@@ -267,7 +267,7 @@ export default async function AdminLeadDetailPage({
           <h2 className="mb-4 text-sm font-semibold text-slate-900">Delivery Timeline</h2>
           <ol className="space-y-3">
             {timeline.map((event, i) => (
-              <li key={i} className="border-l-2 border-violet-200 pl-3">
+              <li key={i} className="border-l-2 border-orange-200 pl-3">
                 <p className="text-sm font-medium text-slate-900">{event.label}</p>
                 <p className="text-xs text-slate-500">{event.detail}</p>
                 <p className="text-[10px] text-slate-400">

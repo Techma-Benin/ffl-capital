@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 const activeAccentClasses = {
   brand: "bg-brand-50 text-brand-700",
   violet: "bg-violet-50 text-violet-700",
+  orange: "bg-orange-50 text-orange-700",
 } as const;
 
 export function FilterTabLink({

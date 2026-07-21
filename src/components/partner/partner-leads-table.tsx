@@ -44,8 +44,8 @@ type SortKey = "name" | "state" | "type" | "channel" | "price" | "status" | "del
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   if (!active) return <ArrowsDownUp size={12} className="opacity-30" weight={ICON_WEIGHT_LINEAR} />;
   return dir === "asc"
-    ? <ArrowUp size={12} className="text-violet-700" weight={ICON_WEIGHT_LINEAR} />
-    : <ArrowDown size={12} className="text-violet-700" weight={ICON_WEIGHT_LINEAR} />;
+    ? <ArrowUp size={12} className="text-orange-700" weight={ICON_WEIGHT_LINEAR} />
+    : <ArrowDown size={12} className="text-orange-700" weight={ICON_WEIGHT_LINEAR} />;
 }
 
 function ColHeader({
@@ -65,7 +65,7 @@ function ColHeader({
 }) {
   return (
     <th
-      className={`px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-violet-600/70 select-none cursor-pointer whitespace-nowrap ${className ?? ""}`}
+      className={`px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-orange-600/70 select-none cursor-pointer whitespace-nowrap ${className ?? ""}`}
       onClick={() => onSort(sortKey)}
     >
       <span className="inline-flex items-center gap-1">

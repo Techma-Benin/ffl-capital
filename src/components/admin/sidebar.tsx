@@ -36,7 +36,7 @@ const navItems: {
 }[] = [
   { href: "/admin", label: "Dashboard", icon: SquaresFour, exact: true, accent: "brand" },
   { href: "/admin/partners", label: "Partners", icon: Users, accent: "rose" },
-  { href: "/admin/leads", label: "Leads", icon: FileText, accent: "violet" },
+  { href: "/admin/leads", label: "Leads", icon: FileText, accent: "orange" },
   { href: "/admin/refunds", label: "Refunds", icon: ArrowCounterClockwise, accent: "orange" },
   { href: "/admin/aged", label: "Aged Leads", icon: Archive, accent: "mint" },
   { href: "/admin/filter-list", label: "Filter List", icon: Funnel, accent: "amber" },

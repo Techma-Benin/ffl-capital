@@ -170,15 +170,15 @@ export function LeadsFilterBar({
               className={clsx(
                 "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
                 isOpen
-                  ? "border-violet-300 bg-violet-50 text-violet-700"
+                  ? "border-orange-300 bg-orange-50 text-orange-700"
                   : hasSelection
-                  ? "border-violet-200 bg-violet-50/60 text-violet-600"
+                  ? "border-orange-200 bg-orange-50/60 text-orange-600"
                   : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
               )}
             >
               {cat.label}
               {hasSelection && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-violet-600 text-[10px] font-bold text-white">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-orange-600 text-[10px] font-bold text-white">
                   {selected.length}
                 </span>
               )}
@@ -225,8 +225,8 @@ export function LeadsFilterBar({
                     className={clsx(
                       "rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
                       isSelected
-                        ? "border-violet-500 bg-violet-600 text-white"
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700",
+                        ? "border-orange-500 bg-orange-600 text-white"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700",
                     )}
                   >
                     {opt.label}

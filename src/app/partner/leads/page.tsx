@@ -97,7 +97,7 @@ export default async function PartnerLeadsPage({
         title="My Leads"
         subtitle="All leads delivered to your account — request refunds individually or in bulk"
         badge={
-          <span className="inline-flex items-center rounded-full bg-violet-50 px-2.5 py-0.5 text-sm font-semibold text-violet-700">
+          <span className="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-sm font-semibold text-orange-700">
             {total}
           </span>
         }
@@ -121,7 +121,7 @@ export default async function PartnerLeadsPage({
             icon={FileText}
             title="No leads match these filters"
             description="Try adjusting or clearing your filters to see more results."
-            accent="violet"
+            accent="orange"
           />
         </div>
       ) : (

@@ -166,7 +166,7 @@ export default async function AdminLeadsPage({
                 key={tab.value}
                 href={href}
                 active={(statusFilter ?? "all") === tab.value}
-                accent="violet"
+                accent="orange"
               >
                 {tab.label}
                 <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
@@ -187,7 +187,7 @@ export default async function AdminLeadsPage({
               icon={FileText}
               title="No leads found"
               description="Use the lead simulator to inject test leads into the platform."
-              accent="violet"
+              accent="orange"
               action={
                 <PortalLink href="/dev/lead-simulator" className="btn-secondary btn-sm">
                   Open Simulator
@@ -263,7 +263,7 @@ export default async function AdminLeadsPage({
                             href={lead.trustedformCertUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-violet-600 hover:underline"
+                            className="text-xs text-orange-600 hover:underline"
                           >
                             View cert
                           </a>

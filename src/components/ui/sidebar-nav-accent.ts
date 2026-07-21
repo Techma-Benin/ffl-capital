@@ -7,7 +7,7 @@
  *
  * | Route (partner)     | Sidebar | Empty-state accent |
  * | /partner            | brand   | brand              |
- * | /partner/leads      | violet  | violet             |
+ * | /partner/leads      | orange  | orange             |
  * | /partner/wallet     | red     | red                |
  * | /partner/aged       | mint    | teal               |
  * | /partner/reports    | violet  | violet             |
@@ -17,7 +17,7 @@
  * | Route (admin)       | Sidebar | Empty-state accent |
  * | /admin              | brand   | (no hero empty)    |
  * | /admin/partners     | rose    | rose               |
- * | /admin/leads        | violet  | violet             |
+ * | /admin/leads        | orange  | orange             |
  * | /admin/refunds      | orange  | orange             |
  * | /admin/aged         | mint    | teal               |
  * | /admin/filter-list  | amber   | amber              |
