@@ -48,6 +48,36 @@ export function SparklineChart({
   );
 }
 
+function IntakeAreaTooltip({
+  active,
+  label,
+  payload,
+}: {
+  active?: boolean;
+  label?: string;
+  payload?: Array<{ value: number }>;
+}) {
+  if (!active || !payload?.length || label == null) return null;
+  const value = payload[0]?.value;
+  if (value == null) return null;
+  return (
+    <div
+      style={{
+        borderRadius: 8,
+        border: "1px solid #e2e8f0",
+        fontSize: 12,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        backgroundColor: "#fff",
+        padding: "8px 12px",
+        fontWeight: 600,
+        color: "#1e293b",
+      }}
+    >
+      {label} · {value}
+    </div>
+  );
+}
+
 export function IntakeAreaChart({
   data,
   height = 220,
@@ -82,16 +112,7 @@ export function IntakeAreaChart({
           tickLine={false}
           width={30}
         />
-        <Tooltip
-          contentStyle={{
-            borderRadius: 8,
-            border: "1px solid #e2e8f0",
-            fontSize: 12,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-          }}
-          labelStyle={{ fontWeight: 600, color: "#1e293b" }}
-          formatter={(value: number) => [value, ""]}
-        />
+        <Tooltip content={<IntakeAreaTooltip />} />
         <Area
           type="monotone"
           dataKey="leads"
