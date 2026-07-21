@@ -144,7 +144,7 @@ Auth : session **admin** ou **partner** (routes miroir sous `/api/admin/lead-vie
 }
 ```
 
-**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `state` (2 lettres), `from`, `to`, `q`.
+**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `state` (2 lettres), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `custom`), et si `datePeriod` = `custom` optionnel `from` / `to` (dates ISO `YYYY-MM-DD`, bornes `receivedAt` en jours calendaires locaux), optionnel `q`. Les vues sans `datePeriod` mais avec `from`/`to` sont traitées comme `custom`.
 
 **Filtres partner** (`filters`) : optionnel `filterSetId`, `locations[]`, `channels[]` (`realtime` \| `aged`), `types[]`, `statuses[]` (`active` \| `refund_pending` \| `refunded`).
 

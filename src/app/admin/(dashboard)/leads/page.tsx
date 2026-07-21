@@ -11,6 +11,7 @@ import { LeadsExportButton } from "@/components/admin/leads-export-button";
 import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
 import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
 import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
+import { adminDatePeriodLabel } from "@/lib/admin/admin-date-period";
 import {
   buildAdminLeadsWhere,
   legacyStatusToSlice,
@@ -238,8 +239,15 @@ function buildFilterChips(filters: ReturnType<typeof parseAdminFilters>) {
     chips.push(`Status: ${filters.statusSlice.replace(/_/g, " ")}`);
   }
   if (filters.state) chips.push(`State: ${filters.state}`);
-  if (filters.from) chips.push(`From: ${filters.from}`);
-  if (filters.to) chips.push(`To: ${filters.to}`);
+  if (filters.datePeriod) {
+    if (filters.datePeriod === "custom") {
+      if (filters.from) chips.push(`From: ${filters.from}`);
+      if (filters.to) chips.push(`To: ${filters.to}`);
+    } else {
+      const label = adminDatePeriodLabel(filters.datePeriod);
+      if (label) chips.push(`Period: ${label}`);
+    }
+  }
   if (filters.q) chips.push(`Search: ${filters.q}`);
   return chips;
 }

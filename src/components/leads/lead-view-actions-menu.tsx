@@ -44,7 +44,7 @@ export function LeadViewActionsMenuPanel({
           onRename();
         }}
       >
-        Rename / edit
+        Edit
       </button>
       <button
         type="button"

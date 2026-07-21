@@ -1,5 +1,6 @@
 import { LeadStatus, Prisma } from "@prisma/client";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
+import { resolveAdminReceivedAtRange } from "@/lib/admin/admin-date-period";
 import {
   parseAdminFilters,
   type AdminLeadViewFilters,
@@ -50,14 +51,11 @@ export async function buildAdminLeadsWhere(
   }
 
   if (f.state) where.state = f.state;
-  if (f.from || f.to) {
+  const receivedRange = resolveAdminReceivedAtRange(f);
+  if (receivedRange) {
     where.receivedAt = {};
-    if (f.from) where.receivedAt.gte = new Date(f.from);
-    if (f.to) {
-      const end = new Date(f.to);
-      end.setHours(23, 59, 59, 999);
-      where.receivedAt.lte = end;
-    }
+    if (receivedRange.gte) where.receivedAt.gte = receivedRange.gte;
+    if (receivedRange.lte) where.receivedAt.lte = receivedRange.lte;
   }
 
   return where;

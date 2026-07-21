@@ -18,13 +18,52 @@ export const adminStatusSliceSchema = z.enum([
   "aged_listed",
 ]);
 
-export const adminLeadViewFiltersSchema = z.object({
+export const adminDatePeriodSchema = z.enum([
+  "today",
+  "yesterday",
+  "last_7_days",
+  "last_month",
+  "custom",
+]);
+
+export type AdminDatePeriod = z.infer<typeof adminDatePeriodSchema>;
+
+function preprocessAdminFilters(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null) return raw ?? {};
+  const o = { ...(raw as Record<string, unknown>) };
+  if ((o.from || o.to) && o.datePeriod == null) {
+    o.datePeriod = "custom";
+  }
+  return o;
+}
+
+function normalizeAdminFiltersForSave(
+  f: z.infer<typeof adminLeadViewFiltersSchemaInner>,
+): z.infer<typeof adminLeadViewFiltersSchemaInner> {
+  if (f.datePeriod && f.datePeriod !== "custom") {
+    const { from: _from, to: _to, ...rest } = f;
+    return rest;
+  }
+  if (!f.datePeriod) {
+    const { from: _from, to: _to, ...rest } = f;
+    return rest;
+  }
+  return f;
+}
+
+const adminLeadViewFiltersSchemaInner = z.object({
   statusSlice: adminStatusSliceSchema.default("all"),
   state: z.string().length(2).optional(),
+  datePeriod: adminDatePeriodSchema.optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   q: z.string().optional(),
 });
+
+export const adminLeadViewFiltersSchema = z.preprocess(
+  preprocessAdminFilters,
+  adminLeadViewFiltersSchemaInner.transform(normalizeAdminFiltersForSave),
+);
 
 export const partnerLeadViewFiltersSchema = z.object({
   filterSetId: z.string().uuid().optional().nullable(),
@@ -51,7 +90,7 @@ export const leadViewUpdateSchema = z.object({
   columns: z.array(leadViewColumnSchema).min(1).optional(),
 });
 
-export type AdminLeadViewFilters = z.infer<typeof adminLeadViewFiltersSchema>;
+export type AdminLeadViewFilters = z.infer<typeof adminLeadViewFiltersSchemaInner>;
 export type PartnerLeadViewFilters = z.infer<typeof partnerLeadViewFiltersSchema>;
 export type LeadViewSort = z.infer<typeof leadViewSortSchema>;
 export type LeadViewColumn = z.infer<typeof leadViewColumnSchema>;

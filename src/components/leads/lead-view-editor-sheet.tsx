@@ -5,11 +5,13 @@ import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type {
+  AdminDatePeriod,
   AdminLeadViewFilters,
   LeadViewColumn,
   LeadViewSort,
   PartnerLeadViewFilters,
 } from "@/lib/leads/list-view-schema";
+import { ADMIN_DATE_PERIOD_OPTIONS } from "@/lib/admin/admin-date-period";
 import { LeadColumnSettings } from "@/components/leads/lead-column-settings";
 
 type Scope = "admin" | "partner";
@@ -115,7 +117,7 @@ export function LeadViewEditorSheet({
             </div>
 
             {scope === "admin" && adminFilters && (
-              <div className="space-y-3 rounded-xl border border-slate-100 p-3">
+              <>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Filters
                 </p>
@@ -146,48 +148,83 @@ export function LeadViewEditorSheet({
                     onChange={(e) => setFilters({ q: e.target.value || undefined })}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="form-label text-[10px]">State</label>
-                    <select
-                      className="form-select w-full text-sm"
-                      value={adminFilters.state ?? ""}
-                      onChange={(e) =>
-                        setFilters({ state: e.target.value || undefined })
-                      }
-                    >
-                      <option value="">All</option>
-                      {US_STATE_CODES.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="form-label text-[10px]">From</label>
-                    <input
-                      type="date"
-                      className="form-input w-full text-sm"
-                      value={adminFilters.from ?? ""}
-                      onChange={(e) =>
-                        setFilters({ from: e.target.value || undefined })
-                      }
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="form-label text-[10px]">To</label>
-                    <input
-                      type="date"
-                      className="form-input w-full text-sm"
-                      value={adminFilters.to ?? ""}
-                      onChange={(e) =>
-                        setFilters({ to: e.target.value || undefined })
-                      }
-                    />
-                  </div>
+                <div>
+                  <label className="form-label text-[10px]">State</label>
+                  <select
+                    className="form-select w-full text-sm"
+                    value={adminFilters.state ?? ""}
+                    onChange={(e) =>
+                      setFilters({ state: e.target.value || undefined })
+                    }
+                  >
+                    <option value="">All</option>
+                    {US_STATE_CODES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
+                <div>
+                  <label className="form-label text-[10px]">Date period</label>
+                  <select
+                    className="form-select w-full text-sm"
+                    value={adminFilters.datePeriod ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (!value) {
+                        setFilters({
+                          datePeriod: undefined,
+                          from: undefined,
+                          to: undefined,
+                        });
+                        return;
+                      }
+                      if (value === "custom") {
+                        setFilters({ datePeriod: "custom" });
+                        return;
+                      }
+                      setFilters({
+                        datePeriod: value as AdminDatePeriod,
+                        from: undefined,
+                        to: undefined,
+                      });
+                    }}
+                  >
+                    {ADMIN_DATE_PERIOD_OPTIONS.map((o) => (
+                      <option key={o.value || "none"} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {adminFilters.datePeriod === "custom" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="form-label text-[10px]">From</label>
+                      <input
+                        type="date"
+                        className="form-input w-full text-sm"
+                        value={adminFilters.from ?? ""}
+                        onChange={(e) =>
+                          setFilters({ from: e.target.value || undefined })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label text-[10px]">To</label>
+                      <input
+                        type="date"
+                        className="form-input w-full text-sm"
+                        value={adminFilters.to ?? ""}
+                        onChange={(e) =>
+                          setFilters({ to: e.target.value || undefined })
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {scope === "partner" && partnerFilters && partnerMeta && (
@@ -303,7 +340,7 @@ function PartnerFilterFields({
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-100 p-3">
+    <>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Filters
       </p>
@@ -360,7 +397,7 @@ function PartnerFilterFields({
         selected={filters.statuses ?? []}
         onToggle={(v) => toggleArray("statuses", v)}
       />
-    </div>
+    </>
   );
 }
 
