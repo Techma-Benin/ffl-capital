@@ -105,17 +105,28 @@ export function IntakeAreaChart({
 const DONUT_COLORS = [BRAND, ACCENT, "#72A5E1", "#F59E0B", "#8B5CF6"];
 const TRACK_BG = "#E2E8F0";
 
-function donutTrackRadii(index: number, trackCount: number) {
-  const maxOuter = 88;
-  const minInner = 48;
-  const trackGap = 5;
+const DONUT_MARGIN = { top: 8, right: 12, left: 12, bottom: 12 };
+
+function semiGaugeGeometry(width: number, height: number, trackCount: number) {
+  const innerW = width - DONUT_MARGIN.left - DONUT_MARGIN.right;
+  const innerH = height - DONUT_MARGIN.top - DONUT_MARGIN.bottom;
+  const cx = DONUT_MARGIN.left + innerW / 2;
+  const cy = DONUT_MARGIN.top + innerH - 4;
+  const maxOuter = Math.min(innerW / 2 - 6, innerH - 12) * 0.94;
+  const minInner = maxOuter * 0.42;
+  const trackGap = 6;
   const trackWidth =
     trackCount > 0
       ? (maxOuter - minInner - (trackCount - 1) * trackGap) / trackCount
       : 0;
-  const outer = maxOuter - index * (trackWidth + trackGap);
-  const inner = outer - trackWidth;
-  return { inner: `${inner}%`, outer: `${outer}%` };
+
+  const trackRadii = Array.from({ length: trackCount }, (_, index) => {
+    const outer = maxOuter - index * (trackWidth + trackGap);
+    const inner = outer - trackWidth;
+    return { inner, outer };
+  });
+
+  return { cx, cy, maxOuter, trackRadii };
 }
 
 function DonutTooltip({
@@ -146,9 +157,115 @@ function DonutTooltip({
   );
 }
 
+function DonutChartLayers({
+  width = 0,
+  height = 0,
+  dataWithFill,
+  total,
+  activeIndex,
+  setActiveIndex,
+}: {
+  width?: number;
+  height?: number;
+  dataWithFill: Array<{ name: string; value: number; fill: string }>;
+  total: number;
+  activeIndex: number | null;
+  setActiveIndex: (index: number | null) => void;
+}) {
+  if (!width || !height) return null;
+
+  const trackCount = dataWithFill.length;
+  const { cx, cy, trackRadii } = semiGaugeGeometry(
+    width,
+    height,
+    trackCount,
+  );
+  const semiProps = {
+    cx,
+    cy,
+    startAngle: 180,
+    endAngle: 0,
+    stroke: "none" as const,
+    isAnimationActive: false as const,
+  };
+
+  return (
+    <PieChart width={width} height={height} margin={DONUT_MARGIN}>
+      {dataWithFill.map((entry, i) => {
+        const { inner, outer } = trackRadii[i] ?? { inner: 0, outer: 0 };
+        const trackOpacity =
+          activeIndex === null || activeIndex === i ? 1 : 0.35;
+        const remainder = Math.max(0, total - entry.value);
+        const foregroundData =
+          total > 0
+            ? [
+                { ...entry, fill: entry.fill },
+                {
+                  name: "__remainder",
+                  value: remainder,
+                  fill: "transparent",
+                },
+              ]
+            : [
+                {
+                  name: "__empty",
+                  value: 1,
+                  fill: "transparent",
+                },
+              ];
+
+        return (
+          <Fragment key={entry.name}>
+            <Pie
+              data={[{ value: 1 }]}
+              dataKey="value"
+              innerRadius={inner}
+              outerRadius={outer}
+              {...semiProps}
+            >
+              <Cell fill={TRACK_BG} opacity={trackOpacity} />
+            </Pie>
+            <Pie
+              data={foregroundData}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={inner}
+              outerRadius={outer}
+              paddingAngle={0}
+              cornerRadius={8}
+              {...semiProps}
+              onMouseEnter={() => setActiveIndex(i)}
+              onMouseLeave={() => setActiveIndex(null)}
+            >
+              {foregroundData.map((row, j) => (
+                <Cell
+                  key={j}
+                  fill={"fill" in row ? row.fill : entry.fill}
+                  opacity={
+                    row.name === "__remainder" || row.name === "__empty"
+                      ? 0
+                      : trackOpacity
+                  }
+                  style={{
+                    cursor:
+                      row.name === "__remainder" || row.name === "__empty"
+                        ? "default"
+                        : "pointer",
+                  }}
+                />
+              ))}
+            </Pie>
+          </Fragment>
+        );
+      })}
+      <Tooltip content={<DonutTooltip />} />
+    </PieChart>
+  );
+}
+
 export function DonutChart({
   data,
-  height = 160,
+  height = 280,
 }: {
   data: Array<{ name: string; value: number }>;
   height?: number;
@@ -164,99 +281,34 @@ export function DonutChart({
     fill: DONUT_COLORS[i % DONUT_COLORS.length],
   }));
 
-  const trackCount = dataWithFill.length;
-  const semiProps = {
-    cx: "50%" as const,
-    cy: "92%" as const,
-    startAngle: 180,
-    endAngle: 0,
-    stroke: "none" as const,
-    isAnimationActive: false as const,
-  };
+  const centerOffset =
+    height > 0
+      ? DONUT_MARGIN.bottom +
+        Math.min(
+          (height - DONUT_MARGIN.top - DONUT_MARGIN.bottom) * 0.22,
+          height * 0.12,
+        )
+      : 24;
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full min-h-0" style={{ height }}>
       <ResponsiveContainer width="100%" height={height}>
-        <PieChart margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
-          {dataWithFill.map((entry, i) => {
-            const { inner, outer } = donutTrackRadii(i, trackCount);
-            const trackOpacity =
-              activeIndex === null || activeIndex === i ? 1 : 0.35;
-            const remainder = Math.max(0, total - entry.value);
-            const foregroundData =
-              total > 0
-                ? [
-                    { ...entry, fill: entry.fill },
-                    {
-                      name: "__remainder",
-                      value: remainder,
-                      fill: "transparent",
-                    },
-                  ]
-                : [
-                    {
-                      name: "__empty",
-                      value: 1,
-                      fill: "transparent",
-                    },
-                  ];
-
-            return (
-              <Fragment key={entry.name}>
-                <Pie
-                  data={[{ value: 1 }]}
-                  dataKey="value"
-                  innerRadius={inner}
-                  outerRadius={outer}
-                  {...semiProps}
-                >
-                  <Cell fill={TRACK_BG} opacity={trackOpacity} />
-                </Pie>
-                <Pie
-                  data={foregroundData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={inner}
-                  outerRadius={outer}
-                  paddingAngle={0}
-                  cornerRadius={8}
-                  {...semiProps}
-                  onMouseEnter={() => setActiveIndex(i)}
-                  onMouseLeave={() => setActiveIndex(null)}
-                >
-                  {foregroundData.map((row, j) => (
-                    <Cell
-                      key={j}
-                      fill={"fill" in row ? row.fill : entry.fill}
-                      opacity={
-                        row.name === "__remainder" || row.name === "__empty"
-                          ? 0
-                          : trackOpacity
-                      }
-                      style={{
-                        cursor:
-                          row.name === "__remainder" || row.name === "__empty"
-                            ? "default"
-                            : "pointer",
-                      }}
-                    />
-                  ))}
-                </Pie>
-              </Fragment>
-            );
-          })}
-          <Tooltip content={<DonutTooltip />} />
-        </PieChart>
+        <DonutChartLayers
+          dataWithFill={dataWithFill}
+          total={total}
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+        />
       </ResponsiveContainer>
       {total > 0 && (
         <div
           className="pointer-events-none absolute inset-x-0 flex flex-col items-center"
-          style={{ bottom: height * 0.06 }}
+          style={{ bottom: centerOffset }}
         >
-          <span className="text-2xl font-bold tabular-nums text-slate-900">
+          <span className="text-3xl font-bold tabular-nums text-slate-900">
             {centerValue}
           </span>
-          <span className="max-w-[8rem] truncate text-center text-[10px] font-medium uppercase tracking-wider text-slate-400">
+          <span className="max-w-[10rem] truncate text-center text-[10px] font-medium uppercase tracking-wider text-slate-400">
             {centerLabel}
           </span>
         </div>

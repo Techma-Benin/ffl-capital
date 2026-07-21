@@ -55,11 +55,11 @@ export function AdminDashboardCharts({
           <IntakeAreaChart data={intakeByDay} height={300} />
         </div>
 
-        <div className="card flex flex-col p-5">
+        <div className="card flex min-h-0 flex-col p-5">
           <h2 className="mb-1 text-sm font-semibold text-slate-900">Delivering</h2>
           {hasDeliveries ? (
-            <div className="flex flex-1 flex-col justify-center">
-              <DonutChart data={deliveringDonut} />
+            <div className="flex w-full min-h-[300px] flex-1 flex-col items-center justify-center">
+              <DonutChart data={deliveringDonut} height={300} />
             </div>
           ) : (
             <p className="py-8 text-center text-sm text-slate-400">No deliveries yet</p>
