@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -127,17 +127,22 @@ export function IntakeAreaChart({
 const DONUT_COLORS = [BRAND, ACCENT, "#72A5E1", "#F59E0B", "#8B5CF6"];
 const DONUT_TRACK = "#E2E8F0";
 /** Degrees each segment extends into the next (earlier segment draws on top). */
-const SEGMENT_OVERLAP_DEG = 4;
+const SEGMENT_OVERLAP_DEG = 3;
+/** Speedometer-style arc: bottom-left → over top → bottom-right (~270°). */
+const GAUGE_START_ANGLE = 225;
+const GAUGE_END_ANGLE = -45;
+const GAUGE_ARC_SPAN = GAUGE_START_ANGLE - GAUGE_END_ANGLE;
 
-const DONUT_MARGIN = { top: 8, right: 12, left: 12, bottom: 12 };
+const DONUT_MARGIN = { top: 16, right: 20, left: 20, bottom: 28 };
 
 function semiGaugeGeometry(width: number, height: number) {
   const innerW = width - DONUT_MARGIN.left - DONUT_MARGIN.right;
   const innerH = height - DONUT_MARGIN.top - DONUT_MARGIN.bottom;
   const cx = DONUT_MARGIN.left + innerW / 2;
-  const cy = DONUT_MARGIN.top + innerH - 4;
-  const outerRadius = Math.min(innerW / 2 - 6, innerH - 12) * 0.94;
-  const innerRadius = outerRadius * 0.8;
+  const cy = DONUT_MARGIN.top + innerH * 0.58;
+  const outerRadius =
+    Math.min(innerW / 2, innerH * 0.72) * 0.92;
+  const innerRadius = outerRadius * 0.78;
   return { cx, cy, innerRadius, outerRadius };
 }
 
@@ -170,21 +175,21 @@ function DonutTooltip({
 function segmentAngles(
   dataWithFill: Array<{ value: number }>,
   total: number,
-  arcSpan = 180,
+  arcSpan = GAUGE_ARC_SPAN,
 ): number[] {
   if (total <= 0) return [];
   return dataWithFill.map((d) => (d.value / total) * arcSpan);
 }
 
-/** Recharts-compatible polar coords (0° = 3 o'clock, arc runs through top). */
+/** Polar coords: 0° = 3 o'clock, angles increase counter-clockwise (math convention). */
 function polarToCartesian(
   cx: number,
   cy: number,
   r: number,
   angleDeg: number,
 ) {
-  const rad = (-angleDeg * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  const rad = (angleDeg * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
 }
 
 function describeArcPath(
@@ -199,7 +204,8 @@ function describeArcPath(
   const start = polarToCartesian(cx, cy, r, startAngle);
   const end = polarToCartesian(cx, cy, r, endAngle);
   const largeArc = span > 180 ? 1 : 0;
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+  /** sweep=1 keeps the arc on the upper side (speedometer), not the lower bulge. */
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
 }
 
 function DonutChartGauge({
@@ -239,26 +245,52 @@ function DonutChartGauge({
   let cumulative = 0;
   const segmentLayers = dataWithFill.map((entry, index) => {
     const segDeg = segmentDegs[index] ?? 0;
-    const startAngle = 180 - cumulative;
+    const startAngle = GAUGE_START_ANGLE - cumulative;
     const isLast = index === dataWithFill.length - 1;
     const overlap = isLast ? 0 : SEGMENT_OVERLAP_DEG;
-    const endAngle = 180 - cumulative - segDeg - overlap;
+    const endAngle = GAUGE_START_ANGLE - cumulative - segDeg - overlap;
     cumulative += segDeg;
     return { entry, index, startAngle, endAngle };
   });
 
   const drawOrder = [...segmentLayers].reverse();
-  const trackPath = describeArcPath(cx, cy, midRadius, 180, 0);
+  const trackPath = describeArcPath(
+    cx,
+    cy,
+    midRadius,
+    GAUGE_START_ANGLE,
+    GAUGE_END_ANGLE,
+  );
+  const guideRadius = midRadius - ringThickness / 2 - 5;
+  const guidePath = describeArcPath(
+    cx,
+    cy,
+    guideRadius,
+    GAUGE_START_ANGLE,
+    GAUGE_END_ANGLE,
+  );
 
   return (
     <>
     <svg
       width={width}
       height={height}
-      className="overflow-visible"
+      viewBox={`0 0 ${width} ${height}`}
+      className="max-h-full max-w-full overflow-hidden"
       role="img"
       aria-hidden={total <= 0}
     >
+      {guidePath ? (
+        <path
+          d={guidePath}
+          fill="none"
+          stroke="#CBD5E1"
+          strokeWidth={1.5}
+          strokeDasharray="4 6"
+          strokeLinecap="round"
+          pointerEvents="none"
+        />
+      ) : null}
       {trackPath ? (
         <path
           d={trackPath}
@@ -335,6 +367,38 @@ function DonutChartGauge({
   );
 }
 
+function ChartSizeMeasure({
+  height,
+  children,
+}: {
+  height: number;
+  children: (size: { width: number; height: number }) => ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height });
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const update = () => {
+      const { width } = el.getBoundingClientRect();
+      if (width > 0) setSize({ width, height });
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [height]);
+
+  return (
+    <div ref={ref} className="h-full w-full min-h-0">
+      {size.width > 0 ? children(size) : null}
+    </div>
+  );
+}
+
 export function DonutChart({
   data,
   height = 300,
@@ -354,17 +418,23 @@ export function DonutChart({
   }));
 
   return (
-    <div className="relative w-full min-h-0" style={{ height }}>
-      <ResponsiveContainer width="100%" height={height}>
-        <DonutChartGauge
-          dataWithFill={dataWithFill}
-          total={total}
-          activeIndex={activeIndex}
-          setActiveIndex={setActiveIndex}
-        />
-      </ResponsiveContainer>
+    <div className="relative flex w-full min-h-0 flex-col items-center" style={{ height }}>
+      <div className="flex w-full flex-1 items-center justify-center">
+        <ChartSizeMeasure height={height}>
+          {(size) => (
+            <DonutChartGauge
+              width={size.width}
+              height={size.height}
+              dataWithFill={dataWithFill}
+              total={total}
+              activeIndex={activeIndex}
+              setActiveIndex={setActiveIndex}
+            />
+          )}
+        </ChartSizeMeasure>
+      </div>
       {total > 0 && (
-        <div className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 flex-col items-center text-center">
+        <div className="pointer-events-none absolute left-1/2 top-[52%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center">
           <span className="text-3xl font-bold tabular-nums text-slate-900">
             {centerValue}
           </span>
