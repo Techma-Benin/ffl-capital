@@ -20,7 +20,7 @@ export function EmptyState({
   blobIndex?: number;
 }) {
   return (
-    <div className="empty-state group">
+    <div className="empty-state group/empty">
       {Icon && (
         <EmptyStateBlobIcon
           icon={Icon}

@@ -323,7 +323,7 @@ export function PartnerWalletView({
           <h2 className="mb-3 px-1 text-base font-semibold text-slate-900">Transaction History</h2>
 
           {transactions.length === 0 ? (
-            <div className="card flex flex-col items-center justify-center py-16 text-center">
+            <div className="card group/empty flex flex-col items-center justify-center py-16 text-center">
               <EmptyStateBlobIcon
                 icon={Wallet}
                 seed="No transactions yet"

@@ -170,7 +170,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
 
       {/* Empty state */}
       {isEmpty && (
-        <div className="px-5 py-8 text-center">
+        <div className="group/empty px-5 py-8 text-center">
           <EmptyStateBlobIcon
             icon={Funnel}
             seed="No filter sets yet"

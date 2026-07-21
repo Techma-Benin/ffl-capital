@@ -344,7 +344,7 @@ export function FilterSetTemplateManager() {
       )}
 
       {isEmpty && !showCreate && (
-        <div className="px-5 py-8 text-center">
+        <div className="group/empty px-5 py-8 text-center">
           <EmptyStateBlobIcon
             icon={Funnel}
             seed="No templates yet"

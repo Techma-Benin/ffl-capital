@@ -73,11 +73,7 @@ export function EmptyStateBlobIcon({
 
   return (
     <div
-      className={clsx(
-        "group relative mx-auto overflow-visible",
-        box,
-        className,
-      )}
+      className={clsx("relative mx-auto overflow-visible", box, className)}
       aria-hidden
     >
       <svg
@@ -88,7 +84,7 @@ export function EmptyStateBlobIcon({
       >
         <g transform={`translate(100 100) scale(${blobScale})`}>
           <g
-            className="origin-center transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-6 motion-reduce:transition-none motion-reduce:group-hover:scale-100 motion-reduce:group-hover:rotate-0"
+            className="origin-center transition-transform duration-300 ease-out group-hover/empty:scale-110 group-hover/empty:rotate-6 motion-reduce:transition-none motion-reduce:group-hover/empty:scale-100 motion-reduce:group-hover/empty:rotate-0"
           >
             <path d={pathD} className="fill-current" />
           </g>
