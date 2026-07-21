@@ -41,8 +41,8 @@ function resolveEmptyStateAccentStyle(seed: string, accentOverride?: EmptyStateB
  * fills the box; SVG uses overflow visible so slight edge bleed is acceptable.
  */
 export const EMPTY_STATE_BLOB_SIZE = {
-  /** ~40px — inline card / section headers */
-  xs: { box: "h-10 w-10 shrink-0", icon: 18, blobScale: 1.08, centered: false },
+  /** ~48px — inline card / section headers */
+  xs: { box: "h-12 w-12 shrink-0", icon: 24, blobScale: 1.1, centered: false },
   /** ~96px — inline section empties */
   sm: { box: "h-24 w-24", icon: 40, blobScale: 1.1, centered: true },
   /** ~128px — default EmptyState hero */
