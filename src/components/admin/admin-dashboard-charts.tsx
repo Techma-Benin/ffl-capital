@@ -23,8 +23,6 @@ export function AdminDashboardCharts({
   deliveringDonut,
   kpis,
   recentLeads,
-  pendingPartners,
-  unmatchedLeads,
 }: {
   intakeByDay: Array<{ label: string; leads: number }>;
   sparkByDay: Array<{ value: number }>;
@@ -36,8 +34,6 @@ export function AdminDashboardCharts({
     unmatchedLeads: number;
   };
   recentLeads: RecentLead[];
-  pendingPartners: number;
-  unmatchedLeads: number;
 }) {
   const hasDeliveries = deliveringDonut.length > 0;
 
@@ -69,44 +65,6 @@ export function AdminDashboardCharts({
             <p className="py-8 text-center text-sm text-slate-400">No deliveries yet</p>
           )}
         </div>
-      </div>
-
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {pendingPartners > 0 ? (
-          <PortalLink
-            href="/admin/partners?status=pending_approval"
-            className="block transition-opacity hover:opacity-95"
-          >
-            <StatCard
-              label="Pending Approvals"
-              value={pendingPartners}
-              icon={Clock}
-              accent="amber"
-            />
-          </PortalLink>
-        ) : (
-          <StatCard label="Pending Approvals" value={pendingPartners} icon={Clock} accent="amber" />
-        )}
-        {unmatchedLeads > 0 ? (
-          <PortalLink
-            href="/admin/leads?status=unmatched"
-            className="block transition-opacity hover:opacity-95"
-          >
-            <StatCard
-              label="Reprocess Queue"
-              value={unmatchedLeads}
-              icon={WarningCircle}
-              accent="amber"
-            />
-          </PortalLink>
-        ) : (
-          <StatCard
-            label="Reprocess Queue"
-            value={unmatchedLeads}
-            icon={WarningCircle}
-            accent="amber"
-          />
-        )}
       </div>
 
       <div className="mt-6 card">

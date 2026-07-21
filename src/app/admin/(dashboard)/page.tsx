@@ -12,7 +12,6 @@ export default async function AdminDashboardPage() {
     totalLeads,
     leadsToday,
     activePartners,
-    pendingPartners,
     unmatchedLeads,
     recentLeads,
     chartData,
@@ -20,7 +19,6 @@ export default async function AdminDashboardPage() {
     prisma.lead.count(),
     prisma.lead.count({ where: { receivedAt: { gte: today } } }),
     prisma.partner.count({ where: { status: PartnerStatus.active } }),
-    prisma.partner.count({ where: { status: PartnerStatus.pending_approval } }),
     prisma.lead.count({ where: { status: "unmatched", available: true } }),
     prisma.lead.findMany({
       orderBy: { receivedAt: "desc" },
@@ -68,8 +66,6 @@ export default async function AdminDashboardPage() {
               : null,
           };
         })}
-        pendingPartners={pendingPartners}
-        unmatchedLeads={unmatchedLeads}
       />
     </div>
   );
