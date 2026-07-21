@@ -1,20 +1,24 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowUp,
-  ArrowDown,
-  ArrowsDownUp,
   DotsThree,
   Eye,
   ArrowCounterClockwise,
-  ShieldCheck,
   X,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
+import {
+  PortalDataTable,
+  portalTableCell,
+  portalTableCellFirst,
+  portalTableCellLast,
+  portalTableRowClassName,
+  type PortalDataTableColumn,
+} from "@/components/ui/portal-data-table";
 
 type DeliveryRow = {
   id: string;
@@ -39,43 +43,6 @@ type DeliveryRow = {
     trustedformCertUrl: string | null;
   };
 };
-
-type SortKey = "name" | "state" | "type" | "channel" | "price" | "status" | "deliveredAt";
-
-function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ArrowsDownUp size={12} className="opacity-30" weight={ICON_WEIGHT_LINEAR} />;
-  return dir === "asc"
-    ? <ArrowUp size={12} className="text-orange-700" weight={ICON_WEIGHT_LINEAR} />
-    : <ArrowDown size={12} className="text-orange-700" weight={ICON_WEIGHT_LINEAR} />;
-}
-
-function ColHeader({
-  label,
-  sortKey,
-  active,
-  dir,
-  onSort,
-  className,
-}: {
-  label: string;
-  sortKey: SortKey;
-  active: boolean;
-  dir: "asc" | "desc";
-  onSort: (k: SortKey) => void;
-  className?: string;
-}) {
-  return (
-    <th
-      className={`px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-orange-600/70 select-none cursor-pointer whitespace-nowrap ${className ?? ""}`}
-      onClick={() => onSort(sortKey)}
-    >
-      <span className="inline-flex items-center gap-1">
-        {label}
-        <SortIcon active={active} dir={dir} />
-      </span>
-    </th>
-  );
-}
 
 function BulkRefundDialog({
   count,
@@ -280,51 +247,34 @@ function RowMenu({
               Request Refund
             </button>
           )}
-
         </div>
       )}
     </div>
   );
 }
 
-export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] }) {
+export function PartnerLeadsTable({
+  deliveries,
+  columns,
+  sort,
+}: {
+  deliveries: DeliveryRow[];
+  columns: PortalDataTableColumn[];
+  sort?: {
+    active?: string;
+    dir: "asc" | "desc";
+    hrefBySortKey: Record<string, string>;
+  };
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
   const [bulkRefundOpen, setBulkRefundOpen] = useState(false);
   const [refundDialogId, setRefundDialogId] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>("deliveredAt");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir("asc"); }
-  }
-
-  const sorted = useMemo(() => {
-    return [...deliveries].sort((a, b) => {
-      let av: string | number = "";
-      let bv: string | number = "";
-      switch (sortKey) {
-        case "name":  av = `${a.lead.firstName} ${a.lead.lastName}`; bv = `${b.lead.firstName} ${b.lead.lastName}`; break;
-        case "state": av = a.lead.state; bv = b.lead.state; break;
-        case "type":  av = a.lead.leadType; bv = b.lead.leadType; break;
-        case "channel": av = a.channel; bv = b.channel; break;
-        case "price": av = a.price; bv = b.price; break;
-        case "status":
-          av = a.refundedAt ? "refunded" : a.refundStatus ?? "active";
-          bv = b.refundedAt ? "refunded" : b.refundStatus ?? "active";
-          break;
-        case "deliveredAt": av = a.deliveredAt; bv = b.deliveredAt; break;
-      }
-      if (av < bv) return sortDir === "asc" ? -1 : 1;
-      if (av > bv) return sortDir === "asc" ? 1 : -1;
-      return 0;
-    });
-  }, [deliveries, sortKey, sortDir]);
 
   const refundable = deliveries.filter((d) => d.canRefund);
   const refundableSelected = refundable.filter((d) => selected.has(d.id));
+  const columnKeys = columns.map((c) => c.key);
 
   function toggleAll() {
     if (selected.size === refundable.length) setSelected(new Set());
@@ -334,7 +284,8 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -358,20 +309,121 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
       setSelected(new Set());
       setBulkRefundOpen(false);
       router.refresh();
-    } catch { /* allow retry */ }
-    finally { setPending(false); }
+    } catch {
+      /* allow retry */
+    } finally {
+      setPending(false);
+    }
   }
 
-  const colProps = (key: SortKey) => ({
-    sortKey: key,
-    active: sortKey === key,
-    dir: sortDir,
-    onSort: toggleSort,
-  });
+  function renderCell(key: string, d: DeliveryRow, isFirst: boolean, isLast: boolean) {
+    const cellClass = isFirst
+      ? portalTableCellFirst
+      : isLast
+        ? portalTableCellLast
+        : portalTableCell;
+
+    switch (key) {
+      case "select":
+        return (
+          <td
+            key={key}
+            className={portalTableCellFirst}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="checkbox"
+              disabled={!d.canRefund}
+              checked={selected.has(d.id)}
+              onChange={() => toggle(d.id)}
+              className="rounded border-slate-300 disabled:opacity-30"
+            />
+          </td>
+        );
+      case "name":
+        return (
+          <td key={key} className={`whitespace-nowrap ${cellClass}`}>
+            <p className="font-semibold text-slate-900">
+              {d.lead.firstName} {d.lead.lastName}
+            </p>
+          </td>
+        );
+      case "contact":
+        return (
+          <td key={key} className={`whitespace-nowrap text-sm text-slate-500 ${cellClass}`}>
+            {d.lead.phone}
+          </td>
+        );
+      case "location":
+        return (
+          <td key={key} className={cellClass}>
+            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
+              {d.lead.state}
+            </span>
+          </td>
+        );
+      case "type":
+        return (
+          <td key={key} className={cellClass}>
+            <Badge variant="purple">
+              {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+            </Badge>
+          </td>
+        );
+      case "channel":
+        return (
+          <td key={key} className={cellClass}>
+            <Badge variant={d.channel === "realtime" ? "green" : "purple"}>
+              {d.channel === "realtime" ? "Real-time" : "Aged"}
+            </Badge>
+          </td>
+        );
+      case "price":
+        return (
+          <td key={key} className={`whitespace-nowrap font-semibold text-slate-900 ${cellClass}`}>
+            ${d.price.toFixed(2)}
+          </td>
+        );
+      case "status":
+        return (
+          <td key={key} className={cellClass}>
+            {d.refundedAt ? (
+              <Badge variant="slate">Refunded</Badge>
+            ) : d.refundStatus ? (
+              <Badge variant="yellow">Refund {d.refundStatus}</Badge>
+            ) : (
+              <Badge variant="green">Active</Badge>
+            )}
+          </td>
+        );
+      case "delivered":
+        return (
+          <td
+            key={key}
+            className={`whitespace-nowrap text-sm text-slate-400 ${cellClass}`}
+            suppressHydrationWarning
+          >
+            {formatDateTime(d.deliveredAt)}
+          </td>
+        );
+      case "actions":
+        return (
+          <td key={key} className={`text-right ${portalTableCellLast}`}>
+            <RowMenu delivery={d} onRefund={() => setRefundDialogId(d.id)} />
+          </td>
+        );
+      default:
+        return null;
+    }
+  }
+
+  const headerColumns =
+    columnKeys.includes("select")
+      ? columns
+      : columns;
 
   return (
     <>
-      {/* Bulk refund bar */}
       {selected.size > 0 && (
         <div className="flex items-center justify-end gap-2 px-4 py-2">
           <button
@@ -386,116 +438,37 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
         </div>
       )}
 
-      {/* Table */}
-      <div className="pb-2 pt-1">
-        <table className="w-full border-separate border-spacing-y-2">
-          <thead>
-            <tr>
-              <th className="w-8 px-3 py-2">
-                <input
-                  type="checkbox"
-                  checked={refundable.length > 0 && selected.size === refundable.length}
-                  onChange={toggleAll}
-                  className="rounded border-slate-300"
-                />
-              </th>
-              <ColHeader label="Lead" {...colProps("name")} />
-              <ColHeader label="Contact" sortKey="state" active={false} dir={sortDir} onSort={() => {}} className="cursor-default" />
-              <ColHeader label="Location" {...colProps("state")} />
-              <ColHeader label="Type" {...colProps("type")} />
-              <ColHeader label="Channel" {...colProps("channel")} />
-              <ColHeader label="Price" {...colProps("price")} />
-              <ColHeader label="Status" {...colProps("status")} />
-              <ColHeader label="Delivered" {...colProps("deliveredAt")} />
-              <th className="w-12" />
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((d) => (
-              <tr
-                key={d.id}
-                className="bg-white shadow-sm hover:shadow-md transition-all group cursor-pointer"
-                onClick={() => router.push(`/partner/leads/${d.id}`)}
-              >
-                {/* Checkbox */}
-                <td className="rounded-l-xl px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    disabled={!d.canRefund}
-                    checked={selected.has(d.id)}
-                    onChange={() => toggle(d.id)}
-                    className="rounded border-slate-300 disabled:opacity-30"
-                  />
-                </td>
+      {columnKeys.includes("select") && (
+        <div className="mb-1 flex px-3">
+          <input
+            type="checkbox"
+            checked={refundable.length > 0 && selected.size === refundable.length}
+            onChange={toggleAll}
+            className="rounded border-slate-300"
+            aria-label="Select all refundable leads"
+          />
+        </div>
+      )}
 
-                {/* Lead name */}
-                <td className="px-4 py-3.5 whitespace-nowrap">
-                  <p className="font-semibold text-slate-900">
-                    {d.lead.firstName} {d.lead.lastName}
-                  </p>
-                </td>
+      <PortalDataTable columns={headerColumns} sort={sort}>
+        {deliveries.map((d) => (
+          <tr
+            key={d.id}
+            className={`cursor-pointer ${portalTableRowClassName()}`}
+            onClick={() => router.push(`/partner/leads/${d.id}`)}
+          >
+            {headerColumns.map((col, i) =>
+              renderCell(
+                col.key,
+                d,
+                i === 0,
+                i === headerColumns.length - 1,
+              ),
+            )}
+          </tr>
+        ))}
+      </PortalDataTable>
 
-                {/* Contact (phone) */}
-                <td className="px-4 py-3.5 whitespace-nowrap text-sm text-slate-500">
-                  {d.lead.phone}
-                </td>
-
-                {/* Location */}
-                <td className="px-4 py-3.5">
-                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
-                    {d.lead.state}
-                  </span>
-                </td>
-
-                {/* Type */}
-                <td className="px-4 py-3.5">
-                  <Badge variant="purple">
-                    {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                  </Badge>
-                </td>
-
-                {/* Channel */}
-                <td className="px-4 py-3.5">
-                  <Badge variant={d.channel === "realtime" ? "green" : "purple"}>
-                    {d.channel === "realtime" ? "Real-time" : "Aged"}
-                  </Badge>
-                </td>
-
-                {/* Price */}
-                <td className="px-4 py-3.5 whitespace-nowrap font-semibold text-slate-900">
-                  ${d.price.toFixed(2)}
-                </td>
-
-                {/* Status */}
-                <td className="px-4 py-3.5">
-                  {d.refundedAt ? (
-                    <Badge variant="slate">Refunded</Badge>
-                  ) : d.refundStatus ? (
-                    <Badge variant="yellow">Refund {d.refundStatus}</Badge>
-                  ) : (
-                    <Badge variant="green">Active</Badge>
-                  )}
-                </td>
-
-                {/* Delivered */}
-                <td className="px-4 py-3.5 whitespace-nowrap text-sm text-slate-400" suppressHydrationWarning>
-                  {formatDateTime(d.deliveredAt)}
-                </td>
-
-                {/* Three-dots menu */}
-                <td className="rounded-r-xl px-3 py-3.5 text-right">
-                  <RowMenu
-                    delivery={d}
-                    onRefund={() => setRefundDialogId(d.id)}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Bulk refund dialog */}
       {bulkRefundOpen && (
         <BulkRefundDialog
           count={refundableSelected.length}
@@ -505,7 +478,6 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
         />
       )}
 
-      {/* Single refund dialog */}
       {refundDialogId && (
         <RefundDialog
           deliveryId={refundDialogId}

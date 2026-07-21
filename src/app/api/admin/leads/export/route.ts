@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { LeadListViewScope, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
+import { buildAdminLeadsWhere } from "@/lib/admin/admin-leads-query";
+import { buildAdminLeadOrderBy } from "@/lib/admin/admin-leads-sort";
+import { getLeadViewById } from "@/lib/leads/lead-list-view-service";
+import { leadViewSortSchema, parseAdminFilters } from "@/lib/leads/list-view-schema";
 
 const EXPORT_FIELDS = [
   "id",
@@ -52,6 +57,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const viewId = request.nextUrl.searchParams.get("viewId");
   const status = request.nextUrl.searchParams.get("status");
   const limit = Math.min(
     parseInt(request.nextUrl.searchParams.get("limit") ?? "500", 10),
@@ -65,9 +71,29 @@ export async function GET(request: NextRequest) {
       )
     : [...EXPORT_FIELDS];
 
+  let where: Prisma.LeadWhereInput | undefined = status
+    ? { status: status as Prisma.EnumLeadStatusFilter["equals"] }
+    : undefined;
+  let orderBy: Prisma.LeadOrderByWithRelationInput | Prisma.LeadOrderByWithRelationInput[] =
+    { receivedAt: "desc" };
+
+  if (viewId) {
+    const view = await getLeadViewById(viewId);
+    if (
+      !view ||
+      view.scope !== LeadListViewScope.admin ||
+      view.partnerId !== null
+    ) {
+      return NextResponse.json({ error: "Invalid view" }, { status: 400 });
+    }
+    const filters = parseAdminFilters(view.filters);
+    where = await buildAdminLeadsWhere(filters);
+    orderBy = buildAdminLeadOrderBy(leadViewSortSchema.parse(view.sort));
+  }
+
   const leads = await prisma.lead.findMany({
-    where: status ? { status: status as never } : undefined,
-    orderBy: { receivedAt: "desc" },
+    where,
+    orderBy,
     take: limit,
   });
 

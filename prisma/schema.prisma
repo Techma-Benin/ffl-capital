@@ -103,6 +103,11 @@ enum BillingInterval {
   weekly
 }
 
+enum LeadListViewScope {
+  admin
+  partner
+}
+
 /// Single source of truth for all lead classification.
 /// `type` is the immutable internal key (set at creation, never editable).
 /// `src` is the LeadConduit SRC field value that maps to this category.
@@ -150,10 +155,30 @@ model Partner {
   reviewedRefunds      RefundRequest[]     @relation("ReviewedBy")
   createdMigrationJobs MigrationJob[]
   filterSets           PartnerFilterSet[]
+  leadListViews        LeadListView[]
 
   @@index([status])
   @@index([priority])
   @@map("partners")
+}
+
+model LeadListView {
+  id                   String            @id @default(uuid()) @db.Uuid
+  scope                LeadListViewScope
+  partnerId            String?           @map("partner_id") @db.Uuid
+  name                 String
+  filters              Json
+  sort                 Json
+  columns              Json
+  isDefault            Boolean           @default(false) @map("is_default")
+  createdByClerkUserId String?           @map("created_by_clerk_user_id")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  partner Partner? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([scope, partnerId])
+  @@map("lead_list_views")
 }
 
 model PartnerFilterSet {

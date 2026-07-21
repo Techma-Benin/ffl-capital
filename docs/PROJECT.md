@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 13 juillet 2026 (v7 — implémentation V1 largement complète)
+> Dernière mise à jour : 21 juillet 2026 (v7 — implémentation V1 largement complète)
 
 ---
 
@@ -38,6 +38,8 @@
 | **Ping/Post** | Protocole API pour vendre un lead à un acheteur tiers (IntegrityCONNECT) |
 | **Storefront** | Mode revente différé avec réconciliation journalière |
 | **Wallet** | Solde prépayé Stripe débité à chaque livraison/achat de lead |
+| **Filter set** | Profil de **matching** partner : états, type IUL, priorité, limites H/J, prix — plusieurs par partner ; pilote la distribution temps réel, pas l’affichage de la liste leads |
+| **Vue leads (lead list view)** | Configuration **persistée** de liste : filtres d’affichage, tri, colonnes visibles ; scope **admin** (global) ou **partner** (par compte). URL portail : `?view=<uuid>`. Distinct d’un filter set |
 
 ---
 
@@ -307,8 +309,9 @@ resale_postings                   -- envois IntegrityCONNECT
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Admin : dashboard, leads (filtres, détail, event log), partners, refunds, settings, migration, filter list | ✅ |
-| Partner : dashboard, leads, wallet, aged, settings, contact, refunds | ✅ |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue), partners, refunds, settings, migration, filter list | ✅ |
+| Partner : dashboard, leads (vues sauvegardées), wallet, aged, settings, contact, refunds | ✅ |
+| Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
 | Tables `lead_events`, `partner_filter_sets`, champs Boberdoo étendus | ✅ |
 
@@ -342,7 +345,8 @@ resale_postings                   -- envois IntegrityCONNECT
 ### UI fonctionnelle (**terminé — polish partiel**)
 
 - [x] Dashboard admin : stats, leads récents, file unmatched
-- [x] Admin leads : onglets statut, filtres date/état, recherche, détail + event log
+- [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, colonnes configurables, détail + event log ; `?view=` (redirection legacy `?status=`)
+- [x] Partner leads : vues par partner (défaut « All deliveries »), mêmes primitives UI que l’admin côté liste
 - [x] Admin partners : liste, approbation, détail, filter sets ; filtre **Families** (`?family=`, affiliations = `Partner.affiliation`)
 - [x] Admin refunds : file pending + historique
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace

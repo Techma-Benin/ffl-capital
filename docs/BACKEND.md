@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 13 juillet 2026
+> Dernière mise à jour : 21 juillet 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -57,6 +57,7 @@
 | Matching v2 (filter sets + limites H/J) | ✅ |
 | APIs admin filter-list + filter-sets CRUD | ✅ |
 | APIs admin leads (search, edit, export, timeline, redeliver, delete) | ✅ |
+| Table `lead_list_views` + APIs lead-views (admin + partner CRUD, default) | ✅ migration `20260721120000` |
 | Remboursements bulk + admin-initiated | ✅ |
 | Driver Ringy + logging livraison | ✅ |
 | Integrity payload builders + mode storefront | ✅ mock |
@@ -107,13 +108,51 @@ POST /api/leads/intake
 
 ## Schéma base de données
 
-**Tables actuelles :** `partners`, `partner_filter_sets`, `leads`, `lead_events`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
+**Tables actuelles :** `partners`, `partner_filter_sets`, `lead_list_views`, `leads`, `lead_events`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
 
 **Migrations :**
 - `20250629190000_init` — schéma complet + index
 - `20250629190100_enable_rls` — GIN sur `filter_states` + RLS
 - `20250706190000_lead_boberdoo_fields` — champs lead étendus
 - `20250710140000_core_backend_schema` — `lead_events`, `partner_filter_sets`, credentials, TrustedForm
+- `20260721120000_lead_list_views` — vues liste leads (seed admin, défaut par partner), RLS
+
+---
+
+## APIs lead list views
+
+Auth : session **admin** ou **partner** (routes miroir sous `/api/admin/lead-views` et `/api/partner/lead-views`). Schéma Zod : `src/lib/leads/list-view-schema.ts`.
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `.../lead-views` | Liste des vues du scope (partner : partner courant uniquement) |
+| POST | `.../lead-views` | Création |
+| GET | `.../lead-views/[id]` | Détail |
+| PATCH | `.../lead-views/[id]` | Mise à jour partielle |
+| DELETE | `.../lead-views/[id]` | Suppression (interdit si seule vue ou vue par défaut) |
+| POST | `.../lead-views/[id]/default` | Définir comme vue par défaut |
+
+**Corps POST (création)** — champs requis sauf `isDefault` :
+
+```json
+{
+  "name": "My view",
+  "filters": {},
+  "sort": { "field": "receivedAt", "direction": "desc" },
+  "columns": [{ "key": "name", "visible": true }],
+  "isDefault": false
+}
+```
+
+**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `state` (2 lettres), `from`, `to`, `q`.
+
+**Filtres partner** (`filters`) : optionnel `filterSetId`, `locations[]`, `channels[]` (`realtime` \| `aged`), `types[]`, `statuses[]` (`active` \| `refund_pending` \| `refunded`).
+
+**Réponse** (GET liste / détail / mutations) : enregistrement Prisma `LeadListView` — `id`, `scope`, `partnerId`, `name`, `filters`, `sort`, `columns`, `isDefault`, `createdByClerkUserId`, `createdAt`, `updatedAt`.
+
+**Export CSV admin** : `GET /api/admin/leads/export?viewId=<uuid>` applique filtres + tri de la vue (colonnes export inchangées côté serveur).
+
+**Service** : `src/lib/leads/lead-list-view-service.ts` ; requêtes liste : `admin-leads-query.ts` / `partner-leads-query.ts`.
 
 ---
 
@@ -269,3 +308,4 @@ stripe:listen           # webhook Stripe local
 | 2026-07-10 | Pas de promotion partner → admin ; comptes séparés |
 | 2026-07-10 | Integrity live bloqué sur specs client ; mock en place |
 | 2026-07-10 | Core backend 9 phases implémentées — voir journal ci-dessus |
+| 2026-07-21 | Vues liste leads (`lead_list_views`) — remplace onglets statut admin ; CRUD admin/partner |

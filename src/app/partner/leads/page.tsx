@@ -1,68 +1,103 @@
 import { redirect } from "next/navigation";
+import { LeadListViewScope } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PartnerLeadsTable } from "@/components/partner/partner-leads-table";
-import { LeadsFilterBar } from "@/components/partner/leads-filter-bar";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { PortalDataTableCard } from "@/components/ui/portal-data-table";
 import { parsePageParams } from "@/lib/pagination";
 import { FileText } from "@/lib/icons/ssr";
+import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
+import { buildPartnerLeadsWhere } from "@/lib/partner/partner-leads-query";
+import {
+  PARTNER_LEAD_SORT_KEYS,
+  buildPartnerLeadOrderBy,
+  buildPartnerLeadSortHref,
+  parsePartnerLeadSort,
+} from "@/lib/partner/partner-leads-sort";
+import {
+  PARTNER_LEAD_COLUMNS,
+  mergeColumnsWithCatalog,
+  portalColumnsFromView,
+} from "@/lib/leads/list-view-columns";
+import {
+  ensurePartnerDefaultView,
+  getDefaultLeadView,
+  getLeadViewById,
+  listLeadViews,
+} from "@/lib/leads/lead-list-view-service";
+import {
+  leadViewSortSchema,
+  parsePartnerFilters,
+  type LeadViewColumn,
+} from "@/lib/leads/list-view-schema";
+
+const BASE_PATH = "/partner/leads";
+
+const PARTNER_SORT_OPTIONS = [
+  { value: "deliveredAt", label: "Delivered" },
+  { value: "name", label: "Name" },
+  { value: "state", label: "State" },
+  { value: "type", label: "Type" },
+  { value: "channel", label: "Channel" },
+  { value: "price", label: "Price" },
+  { value: "status", label: "Status" },
+];
 
 export default async function PartnerLeadsPage({
   searchParams,
 }: {
   searchParams: {
+    view?: string;
     page?: string;
-    filterSetId?: string;
-    loc?: string;
-    ch?: string;
-    type?: string;
-    status?: string;
+    pageSize?: string;
+    sort?: string;
+    dir?: string;
   };
 }) {
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
+  await ensurePartnerDefaultView(partnerId);
+
+  let viewId = searchParams.view;
+  if (!viewId) {
+    const defaultView = await getDefaultLeadView(
+      LeadListViewScope.partner,
+      partnerId,
+    );
+    if (defaultView) redirect(`${BASE_PATH}?view=${defaultView.id}`);
+  }
+
+  const view = viewId ? await getLeadViewById(viewId) : null;
+  if (
+    !view ||
+    view.scope !== LeadListViewScope.partner ||
+    view.partnerId !== partnerId
+  ) {
+    const defaultView = await getDefaultLeadView(
+      LeadListViewScope.partner,
+      partnerId,
+    );
+    if (defaultView) redirect(`${BASE_PATH}?view=${defaultView.id}`);
+    redirect(BASE_PATH);
+  }
+
+  const views = await listLeadViews(LeadListViewScope.partner, partnerId);
+  const filters = parsePartnerFilters(view.filters);
+  const sortJson = leadViewSortSchema.parse(view.sort);
+  const columns = mergeColumnsWithCatalog(
+    PARTNER_LEAD_COLUMNS,
+    view.columns as LeadViewColumn[],
+  );
+  const tableColumns = portalColumnsFromView(PARTNER_LEAD_COLUMNS, columns);
+
   const { page, pageSize, skip } = parsePageParams(searchParams);
-
-  // Parse multi-value filters (comma-separated)
-  const locations = searchParams.loc?.split(",").filter(Boolean) ?? [];
-  const channels = searchParams.ch?.split(",").filter(Boolean) ?? [];
-  const types = searchParams.type?.split(",").filter(Boolean) ?? [];
-  const statuses = searchParams.status?.split(",").filter(Boolean) ?? [];
-
-  // Validate filterSetId belongs to this partner
-  const filterSetId = searchParams.filterSetId ?? null;
-  const validatedFilterSetId = filterSetId
-    ? (await prisma.partnerFilterSet.findFirst({
-        where: { id: filterSetId, partnerId },
-        select: { id: true },
-      }))?.id ?? null
-    : null;
-
-  // Build lead sub-filter
-  const leadWhere: Record<string, unknown> = {};
-  if (locations.length) leadWhere.state = { in: locations };
-  if (types.length) leadWhere.leadType = { in: types };
-
-  // Build status OR conditions
-  const statusConditions: Record<string, unknown>[] = [];
-  if (!statuses.length || statuses.includes("active"))
-    statusConditions.push({ refundedAt: null, refundRequests: { none: {} } });
-  if (!statuses.length || statuses.includes("refund_pending"))
-    statusConditions.push({ refundedAt: null, refundRequests: { some: {} } });
-  if (!statuses.length || statuses.includes("refunded"))
-    statusConditions.push({ refundedAt: { not: null } });
-
-  const where: Record<string, unknown> = {
-    partnerId,
-    ...(validatedFilterSetId ? { filterSetId: validatedFilterSetId } : {}),
-    ...(Object.keys(leadWhere).length ? { lead: leadWhere } : {}),
-    ...(channels.length ? { channel: { in: channels } } : {}),
-    // Only add OR when not all statuses selected (avoids unnecessary clause)
-    ...(statuses.length && statuses.length < 3 ? { OR: statusConditions } : {}),
-  };
+  const sortState = parsePartnerLeadSort(sortJson, searchParams);
+  const orderBy = buildPartnerLeadOrderBy(sortJson, searchParams);
+  const where = await buildPartnerLeadsWhere(partnerId, filters);
 
   const [total, deliveries, filterSets, distinctStatesRaw] = await Promise.all([
     prisma.leadDelivery.count({ where }),
@@ -72,7 +107,7 @@ export default async function PartnerLeadsPage({
         lead: true,
         refundRequests: { orderBy: { createdAt: "desc" }, take: 1 },
       },
-      orderBy: { deliveredAt: "desc" },
+      orderBy,
       skip,
       take: pageSize,
     }),
@@ -90,6 +125,20 @@ export default async function PartnerLeadsPage({
   ]);
 
   const availableStates = distinctStatesRaw.map((l) => l.state);
+  const paginationParams: Record<string, string | undefined> = {
+    view: view.id,
+    sort: searchParams.sort,
+    dir: searchParams.dir,
+  };
+
+  const sortHrefMap = Object.fromEntries(
+    PARTNER_LEAD_SORT_KEYS.map((key) => [
+      key,
+      buildPartnerLeadSortHref(BASE_PATH, paginationParams, key, sortState),
+    ]),
+  );
+
+  const filterChips = buildPartnerFilterChips(filters, filterSets);
 
   return (
     <div>
@@ -103,29 +152,55 @@ export default async function PartnerLeadsPage({
         }
       />
 
-      <LeadsFilterBar
-        filterSets={filterSets}
-        availableStates={availableStates}
-        currentSelections={{
-          filterSetId: validatedFilterSetId,
-          locations,
-          channels,
-          types,
-          statuses,
-        }}
-      />
-
-      {deliveries.length === 0 ? (
-        <div className="card">
+      <PortalDataTableCard
+        tabsSlot={
+          <div className="px-1">
+            <LeadViewsToolbar
+              scope="partner"
+              apiBase="/api/partner/lead-views"
+              basePath={BASE_PATH}
+              views={views}
+              activeView={view}
+              catalog={PARTNER_LEAD_COLUMNS}
+              sortOptions={PARTNER_SORT_OPTIONS}
+              partnerMeta={{ filterSets, availableStates }}
+              filterSummary={
+                filterChips.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 px-1 text-xs text-slate-500">
+                    {filterChips.map((c) => (
+                      <span
+                        key={c}
+                        className="rounded-full bg-slate-100 px-2 py-0.5"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                ) : null
+              }
+            />
+          </div>
+        }
+        footer={
+          total > 0 ? (
+            <TablePagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              basePath={BASE_PATH}
+              searchParams={paginationParams}
+            />
+          ) : null
+        }
+      >
+        {deliveries.length === 0 ? (
           <EmptyState
             icon={FileText}
-            title="No leads match these filters"
-            description="Try adjusting or clearing your filters to see more results."
+            title="No leads match this view"
+            description="Try editing this view’s filters or create a new view."
             accent="orange"
           />
-        </div>
-      ) : (
-        <>
+        ) : (
           <PartnerLeadsTable
             deliveries={deliveries.map((d) => {
               const refundReq = d.refundRequests[0];
@@ -155,16 +230,31 @@ export default async function PartnerLeadsPage({
                 },
               };
             })}
+            columns={tableColumns}
+            sort={{
+              active: sortState.field,
+              dir: sortState.direction,
+              hrefBySortKey: sortHrefMap,
+            }}
           />
-          <TablePagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            basePath="/partner/leads"
-            searchParams={searchParams}
-          />
-        </>
-      )}
+        )}
+      </PortalDataTableCard>
     </div>
   );
+}
+
+function buildPartnerFilterChips(
+  filters: ReturnType<typeof parsePartnerFilters>,
+  filterSets: { id: string; name: string }[],
+) {
+  const chips: string[] = [];
+  if (filters.filterSetId) {
+    const fs = filterSets.find((f) => f.id === filters.filterSetId);
+    chips.push(`Filter set: ${fs?.name ?? filters.filterSetId}`);
+  }
+  if (filters.locations?.length) chips.push(`Locations: ${filters.locations.join(", ")}`);
+  if (filters.channels?.length) chips.push(`Channel: ${filters.channels.join(", ")}`);
+  if (filters.types?.length) chips.push(`Type: ${filters.types.join(", ")}`);
+  if (filters.statuses?.length) chips.push(`Status: ${filters.statuses.join(", ")}`);
+  return chips;
 }

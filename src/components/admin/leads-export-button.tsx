@@ -1,17 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DownloadSimple } from "@/lib/icons/client";
 
-export function LeadsExportButton({ status }: { status?: string }) {
+export function LeadsExportButton({ viewId }: { viewId: string }) {
   const [pending, setPending] = useState(false);
 
   async function handleExport() {
     setPending(true);
     try {
       const params = new URLSearchParams();
-      if (status && status !== "all") params.set("status", status);
+      params.set("viewId", viewId);
       const res = await fetch(`/api/admin/leads/export?${params.toString()}`);
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
