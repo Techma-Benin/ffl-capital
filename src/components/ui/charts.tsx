@@ -26,6 +26,7 @@ const ACCENT = "#00A651";
 
 const CHART_ENTRANCE_MS = 250;
 const CHART_ENTRANCE_EASING = "ease-out";
+const INTAKE_AREA_ENTRANCE_MS = 5000;
 const GAUGE_TRACK_MS = 180;
 const GAUGE_SEGMENT_MS = 250;
 const GAUGE_SEGMENT_STAGGER_MS = 45;
@@ -114,10 +115,31 @@ export function IntakeAreaChart({
   height?: number;
 }) {
   const reducedMotion = usePrefersReducedMotion();
+  const [animateIn, setAnimateIn] = useState(false);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setAnimateIn(true);
+      return;
+    }
+    setAnimateIn(false);
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setAnimateIn(true));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [reducedMotion]);
+
+  if (data.length === 0) return null;
+
+  const runEntrance = !reducedMotion && animateIn;
+  const chartData =
+    reducedMotion || animateIn
+      ? data
+      : data.map((point) => ({ ...point, leads: 0 }));
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+      <AreaChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="intakeFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor={BRAND} stopOpacity={0.8} />
@@ -150,8 +172,9 @@ export function IntakeAreaChart({
           strokeWidth={2}
           fillOpacity={1}
           fill="url(#intakeFill)"
-          isAnimationActive={!reducedMotion}
-          animationDuration={CHART_ENTRANCE_MS}
+          isAnimationActive={runEntrance}
+          animationBegin={0}
+          animationDuration={INTAKE_AREA_ENTRANCE_MS}
           animationEasing={CHART_ENTRANCE_EASING}
         />
       </AreaChart>
