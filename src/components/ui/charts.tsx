@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   Area,
   AreaChart,
@@ -15,6 +23,29 @@ import {
 
 const BRAND = "#0B3D91";
 const ACCENT = "#00A651";
+
+const CHART_ENTRANCE_MS = 250;
+const CHART_ENTRANCE_EASING = "ease-out";
+const GAUGE_TRACK_MS = 180;
+const GAUGE_SEGMENT_MS = 250;
+const GAUGE_SEGMENT_STAGGER_MS = 45;
+const GAUGE_TRACK_DELAY_MS = 0;
+const GAUGE_SEGMENT_BASE_DELAY_MS = 70;
+const GAUGE_CENTER_DELAY_MS = 320;
+
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  return reduced;
+}
 
 export function SparklineChart({
   data,
@@ -82,6 +113,8 @@ export function IntakeAreaChart({
   data: Array<{ label: string; leads: number }>;
   height?: number;
 }) {
+  const reducedMotion = usePrefersReducedMotion();
+
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
@@ -117,7 +150,9 @@ export function IntakeAreaChart({
           strokeWidth={2}
           fillOpacity={1}
           fill="url(#intakeFill)"
-          isAnimationActive={false}
+          isAnimationActive={!reducedMotion}
+          animationDuration={CHART_ENTRANCE_MS}
+          animationEasing={CHART_ENTRANCE_EASING}
         />
       </AreaChart>
     </ResponsiveContainer>
@@ -214,6 +249,8 @@ function DonutChartGauge({
   total,
   activeIndex,
   setActiveIndex,
+  reducedMotion,
+  onEntranceComplete,
 }: {
   width?: number;
   height?: number;
@@ -221,6 +258,8 @@ function DonutChartGauge({
   total: number;
   activeIndex: number | null;
   setActiveIndex: (index: number | null) => void;
+  reducedMotion: boolean;
+  onEntranceComplete?: () => void;
 }) {
   const [tooltip, setTooltip] = useState<{
     x: number;
@@ -229,13 +268,19 @@ function DonutChartGauge({
     value: number;
     fill: string;
   } | null>(null);
+  const [revealed, setRevealed] = useState(reducedMotion);
+  const [pathLengths, setPathLengths] = useState<{
+    track: number;
+    segments: Record<string, number>;
+  }>({ track: 0, segments: {} });
+  const trackRef = useRef<SVGPathElement>(null);
+  const guideRef = useRef<SVGPathElement>(null);
+  const entranceDoneRef = useRef(false);
 
-  if (!width || !height) return null;
-
-  const { cx, cy, innerRadius, outerRadius } = semiGaugeGeometry(
-    width,
-    height,
-  );
+  const ready = width > 0 && height > 0;
+  const { cx, cy, innerRadius, outerRadius } = ready
+    ? semiGaugeGeometry(width, height)
+    : { cx: 0, cy: 0, innerRadius: 0, outerRadius: 0 };
   const ringThickness = outerRadius - innerRadius;
   const cornerRadius = ringThickness / 2;
   const midRadius = innerRadius + cornerRadius;
@@ -249,6 +294,69 @@ function DonutChartGauge({
     cumulative += segDeg;
     return { entry, index, startAngle, endAngle };
   });
+
+  const dataKey = dataWithFill.map((d) => `${d.name}:${d.value}`).join("|");
+
+  useLayoutEffect(() => {
+    if (!ready) return;
+
+    entranceDoneRef.current = false;
+
+    const degs = segmentAngles(dataWithFill, total);
+    const segments: Record<string, number> = {};
+    let cumulativeDeg = 0;
+    for (let i = 0; i < dataWithFill.length; i++) {
+      const entry = dataWithFill[i];
+      const segDeg = degs[i] ?? 0;
+      const startAngle = GAUGE_START_ANGLE - cumulativeDeg;
+      const endAngle = GAUGE_START_ANGLE - cumulativeDeg - segDeg;
+      cumulativeDeg += segDeg;
+      const d = describeArcPath(cx, cy, midRadius, startAngle, endAngle);
+      if (!d) continue;
+      const probe = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path",
+      );
+      probe.setAttribute("d", d);
+      segments[entry.name] = probe.getTotalLength();
+    }
+
+    const trackLen = trackRef.current?.getTotalLength() ?? 0;
+    setPathLengths({ track: trackLen, segments });
+
+    if (reducedMotion) {
+      setRevealed(true);
+      if (!entranceDoneRef.current) {
+        entranceDoneRef.current = true;
+        onEntranceComplete?.();
+      }
+      return;
+    }
+
+    setRevealed(false);
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setRevealed(true));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [ready, width, height, dataKey, total, reducedMotion, onEntranceComplete, cx, cy, midRadius, dataWithFill]);
+
+  useEffect(() => {
+    if (reducedMotion || !revealed || entranceDoneRef.current) return;
+    const segmentCount = dataWithFill.length;
+    const lastDelay =
+      GAUGE_SEGMENT_BASE_DELAY_MS +
+      Math.max(0, segmentCount - 1) * GAUGE_SEGMENT_STAGGER_MS;
+    const totalMs = lastDelay + GAUGE_SEGMENT_MS + 40;
+    const timer = window.setTimeout(() => {
+      if (!entranceDoneRef.current) {
+        entranceDoneRef.current = true;
+        onEntranceComplete?.();
+      }
+    }, totalMs);
+    return () => window.clearTimeout(timer);
+  }, [revealed, reducedMotion, dataWithFill.length, onEntranceComplete]);
+
+  if (!ready) return null;
 
   const drawOrder =
     activeIndex === null
@@ -273,6 +381,26 @@ function DonutChartGauge({
     GAUGE_END_ANGLE,
   );
 
+  const trackLength = pathLengths.track;
+
+  const dashRevealStyle = (
+    length: number,
+    delayMs: number,
+    durationMs: number,
+  ): CSSProperties => {
+    if (length <= 0) return {};
+    if (reducedMotion) {
+      return { strokeDasharray: length, strokeDashoffset: 0 };
+    }
+    return {
+      strokeDasharray: length,
+      strokeDashoffset: revealed ? 0 : length,
+      transition: revealed
+        ? `stroke-dashoffset ${durationMs}ms ${CHART_ENTRANCE_EASING} ${delayMs}ms`
+        : "none",
+    };
+  };
+
   return (
     <>
     <svg
@@ -285,6 +413,7 @@ function DonutChartGauge({
     >
       {guidePath ? (
         <path
+          ref={guideRef}
           d={guidePath}
           fill="none"
           stroke="#CBD5E1"
@@ -292,10 +421,21 @@ function DonutChartGauge({
           strokeDasharray="4 6"
           strokeLinecap="round"
           pointerEvents="none"
+          opacity={reducedMotion || revealed ? 1 : 0}
+          style={
+            reducedMotion
+              ? undefined
+              : {
+                  transition: revealed
+                    ? `opacity ${GAUGE_TRACK_MS}ms ${CHART_ENTRANCE_EASING} ${GAUGE_TRACK_DELAY_MS}ms`
+                    : "opacity 0ms",
+                }
+          }
         />
       ) : null}
       {trackPath ? (
         <path
+          ref={trackRef}
           d={trackPath}
           fill="none"
           stroke={DONUT_TRACK}
@@ -303,6 +443,15 @@ function DonutChartGauge({
           strokeLinecap="round"
           strokeLinejoin="round"
           pointerEvents="none"
+          opacity={reducedMotion || revealed ? 1 : 0}
+          style={{
+            ...dashRevealStyle(trackLength, GAUGE_TRACK_DELAY_MS, GAUGE_TRACK_MS),
+            transition: reducedMotion
+              ? undefined
+              : revealed
+                ? `opacity ${GAUGE_TRACK_MS}ms ${CHART_ENTRANCE_EASING}, stroke-dashoffset ${GAUGE_TRACK_MS}ms ${CHART_ENTRANCE_EASING} ${GAUGE_TRACK_DELAY_MS}ms`
+                : `opacity 0ms`,
+          }}
         />
       ) : null}
       {total > 0 &&
@@ -311,6 +460,14 @@ function DonutChartGauge({
             activeIndex === null || activeIndex === index ? 1 : 0.35;
           const d = describeArcPath(cx, cy, midRadius, startAngle, endAngle);
           if (!d) return null;
+          const segLength = pathLengths.segments[entry.name] ?? 0;
+          const segmentDelay =
+            GAUGE_SEGMENT_BASE_DELAY_MS + index * GAUGE_SEGMENT_STAGGER_MS;
+          const dashStyle = dashRevealStyle(
+            segLength,
+            segmentDelay,
+            GAUGE_SEGMENT_MS,
+          );
           return (
             <path
               key={entry.name}
@@ -323,7 +480,15 @@ function DonutChartGauge({
               opacity={opacity}
               style={{
                 cursor: "pointer",
-                transition: "opacity 150ms ease-out",
+                ...dashStyle,
+                transition: reducedMotion
+                  ? "opacity 150ms ease-out"
+                  : [
+                      "opacity 150ms ease-out",
+                      dashStyle.transition,
+                    ]
+                      .filter(Boolean)
+                      .join(", "),
               }}
               onMouseEnter={(e) => {
                 setActiveIndex(index);
@@ -413,6 +578,17 @@ export function DonutChart({
   height?: number;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
+  const [centerVisible, setCenterVisible] = useState(reducedMotion);
+  const onEntranceComplete = useCallback(() => {
+    setCenterVisible(true);
+  }, []);
+
+  const donutDataKey = data.map((d) => `${d.name}:${d.value}`).join("|");
+  useEffect(() => {
+    setCenterVisible(reducedMotion);
+  }, [donutDataKey, reducedMotion]);
+
   const total = data.reduce((s, d) => s + d.value, 0);
   const activeItem = activeIndex !== null ? data[activeIndex] : null;
   const centerValue = activeItem?.value ?? total;
@@ -435,12 +611,27 @@ export function DonutChart({
               total={total}
               activeIndex={activeIndex}
               setActiveIndex={setActiveIndex}
+              reducedMotion={reducedMotion}
+              onEntranceComplete={onEntranceComplete}
             />
           )}
         </ChartSizeMeasure>
       </div>
       {total > 0 && (
-        <div className="pointer-events-none absolute left-1/2 top-[52%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center">
+        <div
+          className="pointer-events-none absolute left-1/2 top-[52%] flex flex-col items-center text-center"
+          style={{
+            transform: centerVisible
+              ? "translate(-50%, -50%)"
+              : "translate(-50%, calc(-50% + 4px))",
+            ...(reducedMotion
+              ? {}
+              : {
+                  opacity: centerVisible ? 1 : 0,
+                  transition: `opacity ${GAUGE_TRACK_MS}ms ${CHART_ENTRANCE_EASING} ${GAUGE_CENTER_DELAY_MS}ms, transform ${GAUGE_TRACK_MS}ms ${CHART_ENTRANCE_EASING} ${GAUGE_CENTER_DELAY_MS}ms`,
+                }),
+          }}
+        >
           <span className="text-3xl font-bold tabular-nums text-slate-900">
             {centerValue}
           </span>
