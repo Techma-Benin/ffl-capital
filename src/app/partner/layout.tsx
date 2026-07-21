@@ -8,7 +8,7 @@ import { PartnerProvider } from "@/components/partner/partner-provider";
 import { PortalShell } from "@/components/layout/portal-shell";
 import { MainContent } from "@/components/layout/main-content";
 import { ImpersonationBanner } from "@/components/partner/impersonation-banner";
-import { WarningCircle, ICON_WEIGHT } from "@/lib/icons/ssr";
+import { PendingApprovalBanner } from "@/components/partner/pending-approval-banner";
 import { currentUser } from "@clerk/nextjs/server";
 import { getRoleFromMetadata } from "@/lib/auth/roles";
 
@@ -40,15 +40,7 @@ export default async function PartnerLayout({
               <ImpersonationBanner partnerName={impersonatedName} />
             )}
 
-            {approvalRequired && isPending && (
-              <div className="flex items-center gap-3 border-b border-amber-200 bg-white px-6 py-3">
-                <WarningCircle size={15} className="flex-shrink-0 text-amber-700" weight={ICON_WEIGHT} />
-                <p className="text-sm text-slate-800">
-                  <span className="font-semibold">Account pending approval.</span>{" "}
-                  You won&apos;t receive leads until an admin activates your account. Please ensure you have at least 15 states selected.
-                </p>
-              </div>
-            )}
+            {approvalRequired && isPending && <PendingApprovalBanner />}
 
             <MainContent>{children}</MainContent>
           </div>
