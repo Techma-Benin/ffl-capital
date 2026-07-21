@@ -54,6 +54,9 @@ npm run verify
 
 # Simuler un lead (serveur dev requis)
 npm run seed:lead
+
+# Données demo remboursements admin (/admin/refunds)
+npm run seed:refunds-demo
 ```
 
 ## Endpoints API (principaux)
