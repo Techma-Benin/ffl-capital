@@ -5,6 +5,7 @@ import { getPartnerId } from "@/lib/partner/session";
 import { Badge } from "@/components/ui/badge";
 import { PartnerRefundButton } from "@/components/partner/partner-refund-button";
 import { ArrowLeft, ShieldCheck, ShieldWarning, ICON_WEIGHT_LINEAR } from "@/lib/icons/ssr";
+import { formatDateTimeLong } from "@/lib/format-datetime";
 
 function DetailRow({
   label,
@@ -76,11 +77,7 @@ export default async function PartnerLeadDetailPage({
   const typeLabel = lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
 
   function formatDate(d: Date | string | null | undefined) {
-    if (!d) return null;
-    return new Date(d).toLocaleString("en-US", {
-      month: "long", day: "numeric", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
+    return formatDateTimeLong(d);
   }
 
   function formatDob(d: string | null | undefined) {

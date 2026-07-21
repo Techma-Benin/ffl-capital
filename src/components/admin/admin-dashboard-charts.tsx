@@ -5,6 +5,7 @@ import { IntakeAreaChart, DonutChart } from "@/components/ui/charts";
 import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
 import { FileText, CalendarCheck, UsersThree, Warning } from "@/lib/icons/client";
+import { formatDateTime } from "@/lib/format-datetime";
 
 type RecentLead = {
   id: string;
@@ -118,8 +119,8 @@ export function AdminDashboardCharts({
                       <LeadStatusBadge status={lead.status} />
                     </td>
                     <td className="text-slate-500">{lead.partnerName ?? "—"}</td>
-                    <td className="text-xs text-slate-400">
-                      {formatRelativeTime(lead.receivedAt)}
+                    <td className="text-xs text-slate-400" suppressHydrationWarning>
+                      {formatDateTime(lead.receivedAt)}
                     </td>
                   </tr>
                 ))
@@ -144,12 +145,3 @@ function LeadStatusBadge({ status }: { status: string }) {
   return <Badge variant={c.variant}>{c.label}</Badge>;
 }
 
-function formatRelativeTime(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}

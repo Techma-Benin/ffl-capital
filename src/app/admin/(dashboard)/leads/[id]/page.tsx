@@ -10,6 +10,7 @@ import { AdminLeadEditModal } from "@/components/admin/admin-lead-edit-form";
 import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { getLeadEvents } from "@/lib/leads/lead-events";
 import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/ssr";
+import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
 
 function DetailRow({
   label,
@@ -195,7 +196,7 @@ export default async function AdminLeadDetailPage({
           <DetailRow label="Primary Goal" value={lead.primaryGoal} />
           <DetailRow label="State (live in)" value={lead.stateYouCurrentlyLiveIn} />
           <DetailRow label="Boberdoo Lead Type" value={lead.boberdooLeadType} />
-          <DetailRow label="Received" value={new Date(lead.receivedAt).toLocaleString()} />
+          <DetailRow label="Received" value={formatDateTimeLong(lead.receivedAt) ?? undefined} />
         </DetailSection>
 
         <DetailSection title="Compliance">
@@ -253,8 +254,8 @@ export default async function AdminLeadDetailPage({
                         </pre>
                       </details>
                     )}
-                    <p className="text-[10px] text-slate-400">
-                      {new Date(event.createdAt).toLocaleString()}
+                    <p className="text-[10px] text-slate-400" suppressHydrationWarning>
+                      {formatDateTimeLong(event.createdAt)}
                     </p>
                   </li>
                 );
@@ -270,8 +271,8 @@ export default async function AdminLeadDetailPage({
               <li key={i} className="border-l-2 border-orange-200 pl-3">
                 <p className="text-sm font-medium text-slate-900">{event.label}</p>
                 <p className="text-xs text-slate-500">{event.detail}</p>
-                <p className="text-[10px] text-slate-400">
-                  {new Date(event.at).toLocaleString()}
+                <p className="text-[10px] text-slate-400" suppressHydrationWarning>
+                  {formatDateTimeLong(event.at)}
                 </p>
               </li>
             ))}

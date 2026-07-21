@@ -8,6 +8,7 @@ import { PortalLink } from "@/components/ui/portal-link";
 import { usePartner } from "@/components/partner/partner-provider";
 import { isPartnerActive } from "@/lib/partner/active";
 import { Wallet, FileText, TrendUp, ShoppingBag, MapPin, WarningCircle } from "@/lib/icons/client";
+import { formatDateTime } from "@/lib/format-datetime";
 
 type RecentDelivery = {
   id: string;
@@ -126,12 +127,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                     </td>
                     <td className="font-semibold text-slate-900">${d.price.toFixed(2)}</td>
                     <td className="text-xs text-slate-400" suppressHydrationWarning>
-                      {new Date(d.deliveredAt).toLocaleString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatDateTime(d.deliveredAt)}
                     </td>
                   </tr>
                 ))}

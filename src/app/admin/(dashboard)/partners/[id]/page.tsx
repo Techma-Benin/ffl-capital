@@ -7,6 +7,7 @@ import { PartnerEditForm } from "@/components/admin/partner-edit-form";
 import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
 import { ViewAsPartnerButton } from "@/components/admin/view-as-partner-button";
 import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/ssr";
+import { formatDateTime } from "@/lib/format-datetime";
 
 export default async function AdminPartnerDetailPage({
   params,
@@ -119,8 +120,8 @@ export default async function AdminPartnerDetailPage({
                     </Badge>
                   </td>
                   <td>${Number(d.price).toFixed(2)}</td>
-                  <td className="text-xs text-slate-400">
-                    {new Date(d.deliveredAt).toLocaleDateString()}
+                  <td className="text-xs text-slate-400" suppressHydrationWarning>
+                    {formatDateTime(d.deliveredAt)}
                   </td>
                 </tr>
               ))}
@@ -151,8 +152,8 @@ export default async function AdminPartnerDetailPage({
                     {Number(t.amount) > 0 ? "+" : ""}${Math.abs(Number(t.amount)).toFixed(2)}
                   </td>
                   <td>${Number(t.balanceAfter).toFixed(2)}</td>
-                  <td className="text-xs text-slate-400">
-                    {new Date(t.createdAt).toLocaleDateString()}
+                  <td className="text-xs text-slate-400" suppressHydrationWarning>
+                    {formatDateTime(t.createdAt)}
                   </td>
                 </tr>
               ))}

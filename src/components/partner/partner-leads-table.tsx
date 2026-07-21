@@ -14,6 +14,7 @@ import {
   X,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
+import { formatDateTime } from "@/lib/format-datetime";
 
 type DeliveryRow = {
   id: string;
@@ -478,12 +479,7 @@ export function PartnerLeadsTable({ deliveries }: { deliveries: DeliveryRow[] })
 
                 {/* Delivered */}
                 <td className="px-4 py-3.5 whitespace-nowrap text-sm text-slate-400" suppressHydrationWarning>
-                  {new Date(d.deliveredAt).toLocaleString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {formatDateTime(d.deliveredAt)}
                 </td>
 
                 {/* Three-dots menu */}

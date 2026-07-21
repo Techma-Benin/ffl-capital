@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ChartBar, FileText, TrendUp, TrendDown, ArrowCounterClockwise } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
+import { formatDateTime } from "@/lib/format-datetime";
 
 export default async function PartnerReportsPage() {
   const partnerId = await getPartnerId();
@@ -101,10 +102,8 @@ export default async function PartnerReportsPage() {
                         </span>
                       </td>
                       <td className="font-medium">${Number(t.balanceAfter).toFixed(2)}</td>
-                      <td className="text-xs text-slate-400">
-                        {new Date(t.createdAt).toLocaleString("en-US", {
-                          month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
-                        })}
+                      <td className="text-xs text-slate-400" suppressHydrationWarning>
+                        {formatDateTime(t.createdAt)}
                       </td>
                     </tr>
                   );

@@ -7,6 +7,7 @@ import {
   matchesRefundTypeFilter,
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
+import { formatDateTime } from "@/lib/format-datetime";
 
 type HistoryRefund = {
   id: string;
@@ -86,13 +87,8 @@ export function AdminRefundsHistoryTable({
                     {r.status === "approved" ? "Approved" : "Rejected"}
                   </Badge>
                 </td>
-                <td className="text-xs text-slate-400">
-                  {r.reviewedAt
-                    ? new Date(r.reviewedAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })
-                    : "—"}
+                <td className="text-xs text-slate-400" suppressHydrationWarning>
+                  {formatDateTime(r.reviewedAt)}
                 </td>
               </tr>
             ))}

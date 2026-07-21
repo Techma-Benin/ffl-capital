@@ -13,6 +13,7 @@ import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
 import { LeadsExportButton } from "@/components/admin/leads-export-button";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
+import { formatDateTime } from "@/lib/format-datetime";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { ClickableRow } from "@/components/ui/clickable-row";
 
@@ -249,13 +250,8 @@ export default async function AdminLeadsPage({
                           ? `$${Number(delivery.price).toFixed(2)}`
                           : <span className="text-slate-300">—</span>}
                       </td>
-                      <td className="text-slate-400 text-xs">
-                        {new Date(lead.receivedAt).toLocaleString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <td className="text-slate-400 text-xs" suppressHydrationWarning>
+                        {formatDateTime(lead.receivedAt)}
                       </td>
                       <td>
                         {lead.trustedformCertUrl ? (

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { formatDateTime } from "@/lib/format-datetime";
 
 type ResaleStatus = "pending" | "sold" | "rejected";
 type ResaleMode = "realtime" | "storefront";
@@ -39,10 +40,8 @@ function PostingModal({
   onClose: () => void;
 }) {
   const lead = posting.lead;
-  const postedAt = posting.postedAt
-    ? new Date(posting.postedAt).toLocaleString()
-    : "—";
-  const createdAt = new Date(posting.createdAt).toLocaleString();
+  const postedAt = formatDateTime(posting.postedAt);
+  const createdAt = formatDateTime(posting.createdAt);
 
   return (
     <div
@@ -192,10 +191,8 @@ export function IntegrityPostingsTable({ postings }: { postings: PostingRow[] })
               <td className="capitalize">{p.mode}</td>
               <td>{statusBadge(p.status)}</td>
               <td className="text-xs text-slate-500">{p.externalRef ?? "—"}</td>
-              <td className="text-xs text-slate-400">
-                {p.postedAt
-                  ? new Date(p.postedAt).toLocaleDateString()
-                  : "—"}
+              <td className="text-xs text-slate-400" suppressHydrationWarning>
+                {formatDateTime(p.postedAt)}
               </td>
             </tr>
           ))}

@@ -9,6 +9,7 @@ import {
   matchesRefundTypeFilter,
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
+import { formatDateTime } from "@/lib/format-datetime";
 
 type PendingRefund = {
   id: string;
@@ -157,7 +158,7 @@ export function AdminRefundsPendingTable({
               <th>Reason</th>
               <th>Amount</th>
               <th>Requested</th>
-              <th className="text-right">Actions</th>
+              <th className="w-12 text-center" />
             </tr>
           </thead>
           <tbody>
@@ -191,11 +192,8 @@ export function AdminRefundsPendingTable({
                 <td className="font-semibold text-slate-900">
                   ${r.amount.toFixed(2)}
                 </td>
-                <td className="text-xs text-slate-400">
-                  {new Date(r.createdAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
+                <td className="text-xs text-slate-400" suppressHydrationWarning>
+                  {formatDateTime(r.createdAt)}
                 </td>
                 <td>
                   <RefundReviewActions refundId={r.id} />

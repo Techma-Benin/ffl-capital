@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDateTime } from "@/lib/format-datetime";
 
 type Flow = "realtime" | "storefront";
 
@@ -169,7 +170,7 @@ export function IntegrityTestPanel() {
             {leads.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.firstName} {l.lastName} — {l.leadType ?? "unknown"} · {l.state} ·{" "}
-                {new Date(l.receivedAt).toLocaleDateString()}
+                {formatDateTime(l.receivedAt)}
               </option>
             ))}
           </select>

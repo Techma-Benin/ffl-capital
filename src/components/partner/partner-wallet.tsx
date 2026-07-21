@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { usePartner } from "@/components/partner/partner-provider";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { Wallet, ArrowUpRight, ArrowsClockwise, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -255,12 +256,7 @@ export function PartnerWalletView({
                 </p>
                 {subscription.nextChargeAt && (
                   <p className="mt-0.5 text-xs text-emerald-700">
-                    Next charge:{" "}
-                    {new Date(subscription.nextChargeAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    Next charge: {formatDateTimeLong(subscription.nextChargeAt)}
                   </p>
                 )}
               </div>
@@ -371,12 +367,7 @@ export function PartnerWalletView({
                     {/* Bottom section */}
                     <div className="flex items-center justify-between px-5 pt-2.5 pb-3.5">
                       <p className="text-[11px] text-slate-400" suppressHydrationWarning>
-                        {new Date(t.createdAt).toLocaleString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatDateTime(t.createdAt)}
                       </p>
                       <p className="text-[11px] font-medium text-slate-400">
                         bal. ${t.balanceAfter.toFixed(2)}
