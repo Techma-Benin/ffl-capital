@@ -96,7 +96,13 @@ export function PartnerProfileCard({
             type="button"
             disabled={pending}
             onClick={handleApprove}
-            className="btn-primary w-full max-w-full justify-center py-2.5 text-center text-sm font-semibold"
+            className={clsx(
+              "btn w-full max-w-full justify-center py-2.5 text-center text-sm font-semibold",
+              "bg-rose-800 text-white shadow-sm",
+              "hover:enabled:bg-rose-900 active:enabled:bg-rose-950",
+              "focus-visible:ring-rose-500",
+              "motion-safe:transition-[background-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none",
+            )}
           >
             {pending ? "Approving…" : "Approve partner"}
           </button>
