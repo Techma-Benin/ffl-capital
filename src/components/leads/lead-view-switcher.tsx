@@ -3,7 +3,6 @@
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { clsx } from "clsx";
-import { Plus } from "@/lib/icons/client";
 import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -17,19 +16,6 @@ export type LeadViewSummary = {
   name: string;
   isDefault: boolean;
 };
-
-export function LeadViewNewViewButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-orange-400 hover:text-orange-700"
-    >
-      <Plus size={14} />
-      New view
-    </button>
-  );
-}
 
 export function LeadViewSwitcher({
   views,

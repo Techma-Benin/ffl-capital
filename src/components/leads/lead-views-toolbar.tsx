@@ -3,10 +3,8 @@
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { useCallback, useEffect, useState } from "react";
 import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
-import {
-  LeadViewNewViewButton,
-  LeadViewSwitcher,
-} from "@/components/leads/lead-view-switcher";
+import { LeadViewActionsMenu } from "@/components/leads/lead-view-actions-menu";
+import { LeadViewSwitcher } from "@/components/leads/lead-view-switcher";
 import {
   LeadViewEditorSheet,
   type LeadViewEditorState,
@@ -242,8 +240,16 @@ export function LeadViewsToolbar({
           {exportSlot ? (
             <div className="flex items-center gap-1">{exportSlot}</div>
           ) : null}
-          <LeadViewNewViewButton
-            onClick={() => {
+          <LeadViewActionsMenu
+            isDefault={activeView.isDefault}
+            onRename={() => {
+              setEditorMode("edit");
+              setEditorOpen(true);
+            }}
+            onDuplicate={duplicateView}
+            onSetDefault={setDefault}
+            onDelete={deleteView}
+            onNewView={() => {
               setEditorMode("create");
               setEditorOpen(true);
             }}

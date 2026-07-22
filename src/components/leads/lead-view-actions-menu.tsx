@@ -17,11 +17,13 @@ const panelClassName =
 export function LeadViewActionsMenuPanel({
   handlers,
   onClose,
+  onNewView,
   className,
   style,
 }: {
   handlers: LeadViewActionsHandlers;
   onClose: () => void;
+  onNewView?: () => void;
   className?: string;
   style?: React.CSSProperties;
 }) {
@@ -35,6 +37,22 @@ export function LeadViewActionsMenuPanel({
       role="menu"
       aria-label="View actions"
     >
+      {onNewView ? (
+        <>
+          <button
+            type="button"
+            role="menuitem"
+            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+            onClick={() => {
+              onClose();
+              onNewView();
+            }}
+          >
+            New view
+          </button>
+          <div className="my-1 border-t border-slate-100" role="separator" />
+        </>
+      ) : null}
       <button
         type="button"
         role="menuitem"
@@ -99,7 +117,10 @@ export function MenuBackdrop({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function LeadViewActionsMenu(handlers: LeadViewActionsHandlers) {
+export function LeadViewActionsMenu({
+  onNewView,
+  ...handlers
+}: LeadViewActionsHandlers & { onNewView?: () => void }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -121,6 +142,7 @@ export function LeadViewActionsMenu(handlers: LeadViewActionsHandlers) {
           <LeadViewActionsMenuPanel
             handlers={handlers}
             onClose={close}
+            onNewView={onNewView}
             className={`absolute right-0 top-full mt-1 ${panelClassName}`}
           />
         </>
