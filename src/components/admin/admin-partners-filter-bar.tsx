@@ -12,9 +12,9 @@ const BASE_PATH = "/admin/partners";
 const LEGACY_FAMILY_PARAM = "family";
 
 const filterPillActive =
-  "border-orange-300 bg-orange-50 text-orange-700";
+  "border-rose-300 bg-rose-50 text-rose-800";
 const filterPillWithSelection =
-  "border-orange-200 bg-orange-50/60 text-orange-600";
+  "border-rose-200 bg-rose-50/60 text-rose-700";
 const filterPillIdle =
   "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
 
@@ -84,6 +84,7 @@ export function AdminPartnersFilterBar({
             href={tab.href}
             active={tab.active}
             count={tab.count}
+            accent="rose"
           >
             {tab.label}
           </PortalDataTableTab>
@@ -107,7 +108,7 @@ export function AdminPartnersFilterBar({
         >
           Company
           {hasCompanySelection && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-orange-600 text-[10px] font-bold text-white">
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-bold text-white">
               {selectedCompanies.length}
             </span>
           )}
@@ -147,7 +148,7 @@ export function AdminPartnersFilterBar({
                       "rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
                       isSelected
                         ? filterPillActive
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700",
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-800",
                     )}
                   >
                     {name}
