@@ -1,48 +1,103 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { clsx } from "clsx";
-import { CaretDown, Check, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { CaretDown, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 const triggerIdle =
   "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
 const triggerActive = "border-orange-200 bg-orange-50 text-orange-900";
 
-export function FilterSelectDropdown<T extends string>({
-  id,
-  dimensionLabel,
-  value,
-  allValue,
-  options,
-  counts,
-  onChange,
-  disabled,
-  menuWidthClass = "w-56",
-}: {
+type FilterOption<T extends string> = { value: T; label: string };
+
+type SharedProps<T extends string> = {
   id: string;
   dimensionLabel: string;
-  value: T;
-  allValue: T;
-  options: { value: T; label: string }[];
+  options: FilterOption<T>[];
   counts?: Partial<Record<T, number>>;
-  onChange: (next: T) => void;
   disabled?: boolean;
   menuWidthClass?: string;
-}) {
+  searchable?: boolean;
+};
+
+type SingleSelectProps<T extends string> = SharedProps<T> & {
+  selectionMode?: "single";
+  value: T;
+  allValue: T;
+  onChange: (next: T) => void;
+};
+
+type MultiSelectProps<T extends string> = SharedProps<T> & {
+  selectionMode: "multi";
+  value: string[];
+  allValue: T;
+  onChange: (next: string[]) => void;
+};
+
+export function FilterSelectDropdown<T extends string>(
+  props: SingleSelectProps<T> | MultiSelectProps<T>,
+) {
+  const {
+    id,
+    dimensionLabel,
+    options,
+    counts,
+    disabled,
+    menuWidthClass = "w-56",
+    searchable = props.selectionMode === "multi",
+  } = props;
+
+  const selectionMode = props.selectionMode ?? "single";
+  const allValue = props.allValue;
+
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(
     null,
   );
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  const hasSelection = value !== allValue;
-  const selectedOption = options.find((o) => o.value === value);
-  const triggerText =
-    hasSelection && selectedOption
-      ? `${dimensionLabel}: ${selectedOption.label}`
-      : dimensionLabel;
+  const hasSelection =
+    selectionMode === "multi"
+      ? props.value.length > 0
+      : props.value !== allValue;
+
+  const singleValue = selectionMode === "single" ? props.value : undefined;
+  const multiValue = selectionMode === "multi" ? props.value : undefined;
+
+  const triggerText = useMemo(() => {
+    if (!hasSelection) return dimensionLabel;
+    if (selectionMode === "multi" && multiValue) {
+      if (multiValue.length === 1) {
+        const opt = options.find((o) => o.value === multiValue[0]);
+        return `${dimensionLabel}: ${opt?.label ?? multiValue[0]}`;
+      }
+      return `${dimensionLabel}: ${multiValue.length} selected`;
+    }
+    if (singleValue !== undefined) {
+      const selectedOption = options.find((o) => o.value === singleValue);
+      return selectedOption
+        ? `${dimensionLabel}: ${selectedOption.label}`
+        : dimensionLabel;
+    }
+    return dimensionLabel;
+  }, [
+    dimensionLabel,
+    hasSelection,
+    multiValue,
+    options,
+    selectionMode,
+    singleValue,
+  ]);
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const visibleOptions = useMemo(() => {
+    if (!searchable || !normalizedSearch) return options;
+    return options.filter((o) => o.label.toLowerCase().includes(normalizedSearch));
+  }, [normalizedSearch, options, searchable]);
 
   useLayoutEffect(() => {
     if (!open || !buttonRef.current) {
@@ -73,7 +128,18 @@ export function FilterSelectDropdown<T extends string>({
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
     };
-  }, [open, options.length]);
+  }, [open, options.length, searchable, visibleOptions.length, search]);
+
+  useEffect(() => {
+    if (!open) {
+      setSearch("");
+      return;
+    }
+    if (searchable) {
+      const t = window.setTimeout(() => searchRef.current?.focus(), 0);
+      return () => window.clearTimeout(t);
+    }
+  }, [open, searchable]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,9 +154,32 @@ export function FilterSelectDropdown<T extends string>({
     return () => document.removeEventListener("mousedown", handle);
   }, [open]);
 
-  function pick(next: T) {
-    onChange(next);
-    setOpen(false);
+  function isOptionChecked(optionValue: T): boolean {
+    if (selectionMode === "multi") {
+      if (optionValue === allValue) return props.value.length === 0;
+      return props.value.includes(optionValue);
+    }
+    return props.value === optionValue;
+  }
+
+  function toggleOption(optionValue: T) {
+    if (selectionMode === "multi") {
+      if (optionValue === allValue) {
+        props.onChange([]);
+        return;
+      }
+      const current = props.value;
+      if (current.includes(optionValue)) {
+        props.onChange(current.filter((v) => v !== optionValue));
+      } else {
+        props.onChange([...current, optionValue]);
+      }
+      return;
+    }
+    props.onChange(optionValue);
+    if (optionValue !== allValue) {
+      setOpen(false);
+    }
   }
 
   return (
@@ -100,7 +189,7 @@ export function FilterSelectDropdown<T extends string>({
         type="button"
         id={id}
         disabled={disabled}
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={`Filter by ${dimensionLabel.toLowerCase()}`}
         onClick={() => setOpen((o) => !o)}
@@ -128,10 +217,10 @@ export function FilterSelectDropdown<T extends string>({
         createPortal(
           <div
             ref={menuRef}
-            role="listbox"
+            role="dialog"
             aria-labelledby={id}
             className={clsx(
-              "fixed z-[100] max-h-72 overflow-y-auto rounded-xl border border-slate-200/80 bg-white p-1.5 shadow-xl shadow-slate-900/10",
+              "fixed z-[100] flex max-h-80 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10",
               menuWidthClass,
             )}
             style={
@@ -141,53 +230,69 @@ export function FilterSelectDropdown<T extends string>({
             }
             onClick={(e) => e.stopPropagation()}
           >
-            {options.map((option) => {
-              const selected = value === option.value;
-              const count = counts?.[option.value];
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  className={clsx(
-                    "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                    selected
-                      ? "bg-orange-50 font-medium text-orange-900"
-                      : "text-slate-700 hover:bg-slate-50",
-                  )}
-                  onClick={() => pick(option.value)}
-                >
-                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                  {counts && count !== undefined && (
-                    <span
+            {searchable && (
+              <div className="border-b border-slate-100 p-2">
+                <input
+                  ref={searchRef}
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search…"
+                  aria-label={`Search ${dimensionLabel.toLowerCase()} options`}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-300/60"
+                />
+              </div>
+            )}
+            <div className="max-h-64 overflow-y-auto p-1.5">
+              {visibleOptions.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-slate-500">No matches</p>
+              ) : (
+                visibleOptions.map((option) => {
+                  const checked = isOptionChecked(option.value);
+                  const count = counts?.[option.value];
+                  const inputId = `${id}-opt-${option.value}`;
+                  return (
+                    <label
+                      key={option.value}
+                      htmlFor={inputId}
                       className={clsx(
-                        "min-w-[1.25rem] shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
-                        selected
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-slate-100 text-slate-500",
+                        "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors",
+                        checked
+                          ? "bg-orange-50 text-orange-900"
+                          : "text-slate-700 hover:bg-slate-50",
                       )}
                     >
-                      {count}
-                    </span>
-                  )}
-                  {selected ? (
-                    <Check
-                      size={16}
-                      weight={ICON_WEIGHT_LINEAR}
-                      className="shrink-0 text-orange-700"
-                      aria-hidden
-                    />
-                  ) : (
-                    <span className="size-4 shrink-0" aria-hidden />
-                  )}
-                </button>
-              );
-            })}
+                      <input
+                        id={inputId}
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOption(option.value)}
+                        className="size-4 shrink-0 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                        aria-label={option.label}
+                      />
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {option.label}
+                      </span>
+                      {counts && count !== undefined && (
+                        <span
+                          className={clsx(
+                            "min-w-[1.25rem] shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                            checked
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-slate-100 text-slate-500",
+                          )}
+                        >
+                          {count}
+                        </span>
+                      )}
+                    </label>
+                  );
+                })
+              )}
+            </div>
           </div>,
           document.body,
         )}
     </>
   );
 }
-

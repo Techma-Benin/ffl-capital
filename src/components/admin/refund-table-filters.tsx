@@ -99,7 +99,7 @@ export function RefundTableFilters({
   showDecision?: boolean;
   stateValue?: RefundStateFilter;
   onStateChange?: (next: RefundStateFilter) => void;
-  stateOptions?: { value: RefundStateFilter; label: string }[];
+  stateOptions?: { value: "all" | string; label: string }[];
   stateCounts?: FilterCounts<string>;
 }) {
   const isHistoryMode = mode === "history" || (mode === undefined && showDecision);
@@ -112,7 +112,9 @@ export function RefundTableFilters({
     decisionValue !== undefined &&
     decisionValue !== "all";
   const stateActive =
-    isPendingMode && stateValue !== undefined && stateValue !== "all";
+    isPendingMode &&
+    stateValue !== undefined &&
+    stateValue.length > 0;
   const hasActiveFilters = typeActive || decisionActive || stateActive;
 
   function clearFilters() {
@@ -121,7 +123,7 @@ export function RefundTableFilters({
       onDecisionChange("all");
     }
     if (isPendingMode && onStateChange) {
-      onStateChange("all");
+      onStateChange([]);
     }
   }
 
@@ -149,6 +151,7 @@ export function RefundTableFilters({
         options={REFUND_TYPE_FILTER_OPTIONS}
         counts={typeCounts}
         onChange={onTypeChange}
+        searchable={false}
       />
       {isHistoryMode &&
         decisionValue !== undefined &&
@@ -161,6 +164,7 @@ export function RefundTableFilters({
             options={REFUND_DECISION_FILTER_OPTIONS}
             counts={decisionCounts}
             onChange={onDecisionChange}
+            searchable={false}
           />
         )}
       {isPendingMode &&
@@ -170,12 +174,14 @@ export function RefundTableFilters({
           <FilterSelectDropdown
             id="admin-refunds-filter-state"
             dimensionLabel="State"
+            selectionMode="multi"
             value={stateValue}
             allValue="all"
             options={stateOptions}
             counts={stateCounts}
             onChange={onStateChange}
             menuWidthClass="w-64"
+            searchable
           />
         )}
       {hasActiveFilters && (

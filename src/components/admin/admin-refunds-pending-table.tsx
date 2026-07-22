@@ -81,7 +81,7 @@ export function AdminRefundsPendingTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
   const [typeFilter, setTypeFilter] = useState<RefundTypeFilter>("all");
-  const [stateFilter, setStateFilter] = useState<RefundStateFilter>("all");
+  const [stateFilter, setStateFilter] = useState<RefundStateFilter>([]);
   const [page, setPage] = useState(1);
   const [partnerSheet, setPartnerSheet] = useState<RefundPartnerSnapshot | null>(
     null,
@@ -173,7 +173,7 @@ export function AdminRefundsPendingTable({
 
   function clearFilters() {
     setTypeFilter("all");
-    setStateFilter("all");
+    setStateFilter([]);
     setPage(1);
   }
 
@@ -323,7 +323,7 @@ export function AdminRefundsPendingTable({
                     }
                     className={clsx(
                       "rounded px-1.5 py-0.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
-                      stateFilter === r.lead.state
+                      stateFilter.includes(r.lead.state)
                         ? "bg-slate-900 text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200",
                     )}

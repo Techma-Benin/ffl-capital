@@ -61,21 +61,29 @@ export function toggleRefundDecisionFilter(
   return current === decision ? "all" : decision;
 }
 
-export type RefundStateFilter = "all" | (string & {});
+/** Empty array means no state filter (show all). */
+export type RefundStateFilter = string[];
+
+export function isRefundStateFilterActive(filter: RefundStateFilter): boolean {
+  return filter.length > 0;
+}
 
 export function matchesRefundStateFilter(
   state: string,
   filter: RefundStateFilter,
 ): boolean {
-  return filter === "all" || state === filter;
+  return filter.length === 0 || filter.includes(state);
 }
 
-/** Clicking a state chip again clears the filter. */
+/** Clicking a state chip toggles that state in the filter set. */
 export function toggleRefundStateFilter(
   current: RefundStateFilter,
   state: string,
 ): RefundStateFilter {
-  return current === state ? "all" : state;
+  if (current.includes(state)) {
+    return current.filter((s) => s !== state);
+  }
+  return [...current, state];
 }
 
 export function refundDecisionLabel(
