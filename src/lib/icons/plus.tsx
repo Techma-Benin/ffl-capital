@@ -2,8 +2,7 @@ import { forwardRef } from "react";
 import type { IconProps } from "./types";
 
 /** Plain + (no circle/square). Solar only ships AddCircle / AddSquare. */
-const PLUS_LINEAR =
-  "M15 12L12 12M12 12L9 12M12 12L12 9M12 12L12 15";
+const PLUS_LINEAR = "M12 5v14M5 12h14";
 
 export const Plus = forwardRef<SVGSVGElement, IconProps>(function Plus(
   {
