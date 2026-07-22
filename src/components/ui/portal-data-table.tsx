@@ -22,15 +22,38 @@ export type PortalDataTableSortState = {
   hrefBySortKey: Record<string, string>;
 };
 
+export type PortalDataTableLayout = "cards" | "table";
+
 export const portalTableCell = "px-4 py-3.5";
 export const portalTableCellFirst = "rounded-l-xl px-4 py-3.5";
 export const portalTableCellLast = "rounded-r-xl px-4 py-3.5";
 
-export function portalTableRowClassName(className?: string) {
+export function portalTableRowClassName(
+  className?: string,
+  layout: PortalDataTableLayout = "cards",
+) {
+  if (layout === "table") {
+    return clsx("group", className);
+  }
   return clsx(
     "bg-white shadow-sm hover:shadow-md transition-all group",
     className,
   );
+}
+
+export function portalTableDataCellClassName(
+  layout: PortalDataTableLayout,
+  options?: { first?: boolean; last?: boolean; className?: string },
+) {
+  if (layout === "table") {
+    return options?.className;
+  }
+  const base = options?.first
+    ? portalTableCellFirst
+    : options?.last
+      ? portalTableCellLast
+      : portalTableCell;
+  return clsx(base, options?.className);
 }
 
 export type PortalDataTableTabConfig = {
@@ -90,15 +113,30 @@ export function PortalDataTable({
   children,
   className,
   sort,
+  layout = "cards",
 }: {
   columns: PortalDataTableColumn[];
   children: React.ReactNode;
   className?: string;
   sort?: PortalDataTableSortState;
+  layout?: PortalDataTableLayout;
 }) {
   return (
-    <div className={clsx("min-h-0 flex-1 pb-2 pt-1", className)}>
-      <table className="w-full border-separate border-spacing-y-2">
+    <div
+      className={clsx(
+        "min-h-0 flex-1 pb-2 pt-1",
+        layout === "table" && "overflow-x-auto",
+        className,
+      )}
+    >
+      <table
+        className={clsx(
+          "w-full",
+          layout === "cards"
+            ? "border-separate border-spacing-y-2"
+            : "data-table",
+        )}
+      >
         <thead>
           <tr>
             {columns.map((col) => {

@@ -5,10 +5,10 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
-  portalTableCell,
-  portalTableCellFirst,
+  portalTableDataCellClassName,
   portalTableRowClassName,
   PortalTablePrimaryCell,
+  type PortalDataTableLayout,
 } from "@/components/ui/portal-data-table";
 import {
   defaultPartnersColumnVisibility,
@@ -245,9 +245,11 @@ function PartnerRowMenu({
 export function PartnerTableRow({
   partner,
   columnVisibility = defaultPartnersColumnVisibility(),
+  layout = "cards",
 }: {
   partner: Partner;
   columnVisibility?: PartnersColumnVisibilityState;
+  layout?: PortalDataTableLayout;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<ActionKey | null>(null);
@@ -298,11 +300,11 @@ export function PartnerTableRow({
 
   return (
     <tr
-      className={clsx("cursor-pointer", portalTableRowClassName())}
+      className={clsx("cursor-pointer", portalTableRowClassName(undefined, layout))}
       onClick={() => router.push(`/admin/partners/${partner.id}`)}
       onMouseLeave={() => setConfirmDelete(false)}
     >
-      <td className={portalTableCellFirst}>
+      <td className={portalTableDataCellClassName(layout, { first: true })}>
         <div className="flex items-center gap-3">
           <PartnerAvatar
             size="sm"
@@ -319,24 +321,40 @@ export function PartnerTableRow({
         </div>
       </td>
       {columnVisibility.affiliation && (
-        <td className={clsx(portalTableCell, "text-center text-sm text-slate-500")}>
+        <td
+          className={portalTableDataCellClassName(layout, {
+            className: "text-center text-sm text-slate-500",
+          })}
+        >
           {partner.affiliation ?? "—"}
         </td>
       )}
       {columnVisibility.status && (
-        <td className={clsx(portalTableCell, "text-center")}>
+        <td
+          className={portalTableDataCellClassName(layout, {
+            className: "text-center",
+          })}
+        >
           <Badge variant={badgeVariant}>{badgeLabel}</Badge>
         </td>
       )}
       {columnVisibility.priority && (
-        <td className={clsx(portalTableCell, "text-center")}>
+        <td
+          className={portalTableDataCellClassName(layout, {
+            className: "text-center",
+          })}
+        >
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-xs font-bold text-slate-600">
             {partner.priority}
           </span>
         </td>
       )}
       {columnVisibility.wallet && (
-        <td className={clsx(portalTableCell, "text-right")}>
+        <td
+          className={portalTableDataCellClassName(layout, {
+            className: "text-right",
+          })}
+        >
           <span
             className={clsx(
               "font-semibold tabular-nums",
@@ -348,18 +366,32 @@ export function PartnerTableRow({
         </td>
       )}
       {columnVisibility.leadBuying && (
-        <td className={clsx(portalTableCell, "text-center")}>
+        <td
+          className={portalTableDataCellClassName(layout, {
+            className: "text-center",
+          })}
+        >
           <Badge variant={partner.leadBuying ? "green" : "slate"}>
             {partner.leadBuying ? "Active" : "Inactive"}
           </Badge>
         </td>
       )}
       {columnVisibility.leads && (
-        <td className={clsx(portalTableCell, "text-center font-medium text-slate-700")}>
+        <td
+          className={portalTableDataCellClassName(layout, {
+            className: "text-center font-medium text-slate-700",
+          })}
+        >
           {partner.leadsCount}
         </td>
       )}
-      <td className="rounded-r-xl px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+      <td
+        className={portalTableDataCellClassName(layout, {
+          last: true,
+          className: layout === "cards" ? "px-3 text-center" : "text-center",
+        })}
+        onClick={(e) => e.stopPropagation()}
+      >
         {actions.length > 0 && (
           <PartnerRowMenu
             actions={actions}

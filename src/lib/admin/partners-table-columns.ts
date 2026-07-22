@@ -1,6 +1,13 @@
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 
 export const ADMIN_PARTNERS_VISIBLE_COLUMNS_KEY = "admin-partners-visible-columns";
+export const ADMIN_PARTNERS_TABLE_LAYOUT_KEY = "admin-partners-table-layout";
+
+export type PartnersTableLayout = "cards" | "table";
+
+export function parsePartnersTableLayout(value: unknown): PartnersTableLayout {
+  return value === "table" ? "table" : "cards";
+}
 
 export const PARTNER_HIDEABLE_COLUMN_KEYS = [
   "affiliation",

@@ -5,7 +5,9 @@ import { PortalDataTable } from "@/components/ui/portal-data-table";
 import type { PortalDataTableSortState } from "@/components/ui/portal-data-table";
 import { PartnerTableRow } from "@/components/admin/partner-table-row";
 import { PartnersColumnVisibilityMenu } from "@/components/admin/partners-column-visibility-menu";
+import { PartnersTableLayoutToggle } from "@/components/admin/partners-table-layout-toggle";
 import { usePartnersColumnVisibility } from "@/components/admin/use-partners-column-visibility";
+import { usePartnersTableLayout } from "@/components/admin/use-partners-table-layout";
 import {
   isPartnerHideableColumnKey,
   PARTNER_TABLE_COLUMNS,
@@ -34,6 +36,7 @@ export function AdminPartnersTable({
   sort: PortalDataTableSortState;
 }) {
   const { visibility, setColumnVisible } = usePartnersColumnVisibility();
+  const { layout, setLayout } = usePartnersTableLayout();
 
   const columns = useMemo(() => {
     const visible = PARTNER_TABLE_COLUMNS.filter((col) => {
@@ -47,23 +50,27 @@ export function AdminPartnersTable({
         ? {
             ...col,
             headerContent: (
-              <PartnersColumnVisibilityMenu
-                visibility={visibility}
-                onToggle={setColumnVisible}
-              />
+              <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:justify-center">
+                <PartnersTableLayoutToggle layout={layout} onLayoutChange={setLayout} />
+                <PartnersColumnVisibilityMenu
+                  visibility={visibility}
+                  onToggle={setColumnVisible}
+                />
+              </div>
             ),
           }
         : col,
     );
-  }, [visibility, setColumnVisible]);
+  }, [visibility, setColumnVisible, layout, setLayout]);
 
   return (
-    <PortalDataTable columns={columns} sort={sort}>
+    <PortalDataTable columns={columns} sort={sort} layout={layout}>
       {partners.map((partner) => (
         <PartnerTableRow
           key={partner.id}
           partner={partner}
           columnVisibility={visibility}
+          layout={layout}
         />
       ))}
     </PortalDataTable>
