@@ -24,3 +24,11 @@ export function matchesRefundTypeFilter(
 ): boolean {
   return filter === "all" || refundType === filter;
 }
+
+/** Clicking a type badge again clears the filter. */
+export function toggleRefundTypeFilter(
+  current: RefundTypeFilter,
+  type: RefundTypeValue,
+): RefundTypeFilter {
+  return current === type ? "all" : type;
+}

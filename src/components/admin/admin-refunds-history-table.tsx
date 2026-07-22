@@ -8,8 +8,10 @@ import {
   CLIENT_TABLE_PAGE_SIZE,
   paginateClientList,
 } from "@/lib/client-table-pagination";
+import { RefundTypeBadge } from "@/components/admin/refund-type-badge";
 import {
   matchesRefundTypeFilter,
+  toggleRefundTypeFilter,
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
@@ -140,7 +142,15 @@ export function AdminRefundsHistoryTable({
                   />
                 </td>
                 <td>
-                  <RefundTypeBadge type={r.refundType} />
+                  <RefundTypeBadge
+                    type={r.refundType}
+                    filterActive={typeFilter === r.refundType}
+                    onFilterClick={(type) =>
+                      handleTypeFilterChange(
+                        toggleRefundTypeFilter(typeFilter, type),
+                      )
+                    }
+                  />
                 </td>
                 <td className="font-semibold">${r.amount.toFixed(2)}</td>
                 <td>
@@ -177,9 +187,3 @@ export function AdminRefundsHistoryTable({
   );
 }
 
-function RefundTypeBadge({ type }: { type: string }) {
-  if (type === "wrong_filter") {
-    return <Badge variant="yellow">Wrong Filter</Badge>;
-  }
-  return <Badge variant="red">Invalid Phone</Badge>;
-}

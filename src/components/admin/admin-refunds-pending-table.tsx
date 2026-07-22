@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import { RefundReviewActions } from "@/components/admin/refund-review-actions";
 import { RefundTypeFilterChips } from "@/components/admin/refund-type-filter-chips";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
@@ -10,8 +9,10 @@ import {
   CLIENT_TABLE_PAGE_SIZE,
   paginateClientList,
 } from "@/lib/client-table-pagination";
+import { RefundTypeBadge } from "@/components/admin/refund-type-badge";
 import {
   matchesRefundTypeFilter,
+  toggleRefundTypeFilter,
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
@@ -251,7 +252,15 @@ export function AdminRefundsPendingTable({
                   </span>
                 </td>
                 <td>
-                  <RefundTypeBadge type={r.refundType} />
+                  <RefundTypeBadge
+                    type={r.refundType}
+                    filterActive={typeFilter === r.refundType}
+                    onFilterClick={(type) =>
+                      handleTypeFilterChange(
+                        toggleRefundTypeFilter(typeFilter, type),
+                      )
+                    }
+                  />
                 </td>
                 <RefundReasonCell reason={r.reason} />
                 <td className="font-semibold text-slate-900">
@@ -309,9 +318,3 @@ function RefundReasonCell({ reason }: { reason: string | null }) {
   );
 }
 
-function RefundTypeBadge({ type }: { type: string }) {
-  if (type === "wrong_filter") {
-    return <Badge variant="yellow">Wrong Filter</Badge>;
-  }
-  return <Badge variant="red">Invalid Phone</Badge>;
-}
