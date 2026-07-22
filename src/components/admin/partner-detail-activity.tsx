@@ -66,7 +66,9 @@ export function PartnerDetailActivity({
         positive: amt > 0,
       };
     }),
-  ].sort((a, b) => b.at.getTime() - a.at.getTime());
+  ]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, 10);
 
   return (
     <div className="card flex flex-col overflow-hidden rounded-xl">
