@@ -1,7 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import { SquaresFour, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { ArrowsDownUp, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 
 /** Opens lead view column settings (LeadColumnSettings sheet). */
@@ -26,7 +26,7 @@ export function LeadTableColumnPickerButton({
       aria-label="Choose columns to display"
       title="Choose columns to display"
     >
-      <SquaresFour size={18} weight={ICON_WEIGHT_LINEAR} />
+      <ArrowsDownUp size={18} weight={ICON_WEIGHT_LINEAR} aria-hidden />
     </button>
   );
 }
