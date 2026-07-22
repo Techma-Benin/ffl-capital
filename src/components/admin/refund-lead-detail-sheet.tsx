@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { PrimaryLinkArrow } from "@/components/ui/primary-link-arrow";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { formatDateTime } from "@/lib/format-datetime";
 import {
@@ -10,8 +11,6 @@ import {
   refundLeadStatusLabel,
   type RefundLeadSnapshot,
 } from "@/lib/admin/refund-lead-snapshot";
-import { ArrowRight, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
-
 type Props = {
   lead: RefundLeadSnapshot | null;
   open: boolean;
@@ -99,19 +98,9 @@ export function RefundLeadDetailSheet({ lead, open, onOpenChange }: Props) {
           ))}
         </dl>
 
-        <Link
-          href={`/admin/leads/${lead.id}`}
-          className="group btn-primary inline-flex w-full flex-row items-center justify-center gap-2 group-hover:flex-row-reverse"
-          onClick={() => onOpenChange(false)}
-        >
-          <ArrowRight
-            size={16}
-            weight={ICON_WEIGHT_LINEAR}
-            aria-hidden
-            className="shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
-          />
+        <PrimaryLinkArrow href={`/admin/leads/${lead.id}`} onClick={() => onOpenChange(false)}>
           View full lead
-        </Link>
+        </PrimaryLinkArrow>
       </SheetBody>
     </Sheet>
   );

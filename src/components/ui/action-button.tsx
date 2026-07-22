@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Check, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { Spinner } from "@/components/ui/spinner";
+import { slideIconLeading, slideIconTrailing } from "@/components/ui/slide-icon-on-hover";
 
 type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
@@ -16,12 +17,6 @@ type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   slideIconOnHover?: boolean;
   children: ReactNode;
 };
-
-const slideIconLeading =
-  "inline-flex w-4 shrink-0 justify-center overflow-hidden opacity-100 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out motion-reduce:transition-none group-hover:w-0 group-hover:opacity-0";
-
-const slideIconTrailing =
-  "inline-flex w-0 shrink-0 justify-center overflow-hidden opacity-0 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out motion-reduce:transition-none group-hover:w-4 group-hover:opacity-100";
 
 const variants = {
   primary: "btn-primary",

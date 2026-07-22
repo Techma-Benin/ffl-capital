@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { PrimaryLinkArrow } from "@/components/ui/primary-link-arrow";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import {
   formatRefundPartnerPricing,
@@ -9,8 +9,6 @@ import {
   refundPartnerStatusLabel,
   type RefundPartnerSnapshot,
 } from "@/lib/admin/refund-partner-snapshot";
-import { ArrowRight, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
-
 type Props = {
   partner: RefundPartnerSnapshot | null;
   open: boolean;
@@ -85,19 +83,12 @@ export function RefundPartnerDetailSheet({ partner, open, onOpenChange }: Props)
           </div>
         ) : null}
 
-        <Link
+        <PrimaryLinkArrow
           href={`/admin/partners/${partner.id}`}
-          className="group btn-primary inline-flex w-full flex-row items-center justify-center gap-2 group-hover:flex-row-reverse"
           onClick={() => onOpenChange(false)}
         >
-          <ArrowRight
-            size={16}
-            weight={ICON_WEIGHT_LINEAR}
-            aria-hidden
-            className="shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
-          />
           View full profile
-        </Link>
+        </PrimaryLinkArrow>
       </SheetBody>
     </Sheet>
   );
