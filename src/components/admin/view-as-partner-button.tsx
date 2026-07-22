@@ -36,9 +36,14 @@ export function ViewAsPartnerButton({
     <button
       onClick={handleClick}
       disabled={isPending}
-      className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+      className="group btn-secondary btn-sm inline-flex items-center gap-1.5"
     >
-      <Eye size={14} weight={ICON_WEIGHT} className="text-violet-600" aria-hidden />
+      <Eye
+        size={14}
+        weight={ICON_WEIGHT}
+        className="text-slate-500 transition-colors group-hover:text-violet-700"
+        aria-hidden
+      />
       {isPending ? "Loading…" : label}
     </button>
   );

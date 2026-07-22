@@ -34,12 +34,12 @@ export function PartnerDetailHeader({ title, partnerId }: PartnerDetailHeaderPro
         <button
           type="button"
           onClick={openPartnerEdit}
-          className="btn-secondary btn-sm inline-flex items-center gap-1"
+          className="group btn-secondary btn-sm inline-flex items-center gap-1"
         >
           <PencilSimple
             size={14}
             weight={ICON_WEIGHT}
-            className="text-brand-600"
+            className="text-slate-500 transition-colors group-hover:text-brand-600"
             aria-hidden
           />
           Edit account
