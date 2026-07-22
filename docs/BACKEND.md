@@ -168,10 +168,14 @@ Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange` (`
 
 ### Admin aged browse (`/admin/aged`)
 
-Pas d’API dédiée — page SSR : `buildAgedLeadWhere()` (`src/lib/aged/eligibility.ts`, seuil `aged_days_threshold`, exclut `status=dead`), prix affiché via `getDefaultAgedPrice()`.
+Pas d’API dédiée — page SSR : `buildAdminAgedLeadsWhere()` (`src/lib/admin/admin-aged-leads-filters.ts` → `buildAgedLeadWhereWithCutoff`, seuil `aged_days_threshold`, exclut `status=dead`), prix affiché via `getDefaultAgedPrice()`.
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|
+| `state` | codes US comma-séparés (ex. `TX,CA`) | Filtre `state IN (...)` |
+| `type` | `traditional_iul` \| `high_intent_iul` | Filtre `leadType` |
+| `status` | `unmatched` \| `delivered` \| `integrity_posted` \| `aged_listed` \| `review` | Filtre `status` (hors `dead` déjà exclu) |
+| `age` | `30` \| `60` \| `90` | Bucket jours sur `receivedAt` (même logique que `/partner/aged`) |
 | `page` | entier | Pagination (`parsePageParams`, 25/page) |
 | `sort` | `name` \| `state` \| `type` \| `status` \| `ageDays` \| `price` | Colonne de tri Prisma |
 | `dir` | `asc` \| `desc` | Sens ; défaut `desc` si `sort` absent, sinon `asc` si `dir` invalide |

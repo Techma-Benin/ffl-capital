@@ -1,35 +1,50 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Archive } from "@/lib/icons/ssr";
-import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
 import { formatUsd } from "@/lib/format-money";
 import { AdminAgedLeadsTable } from "@/components/admin/admin-aged-leads-table";
+import { AdminAgedLeadsFilters } from "@/components/admin/admin-aged-leads-filters";
+import {
+  buildAdminAgedLeadsWhere,
+  parseAdminAgedLeadFilters,
+} from "@/lib/admin/admin-aged-leads-filters";
 import {
   buildAdminAgedLeadOrderBy,
   parseAdminAgedLeadSort,
   sortHrefMap,
 } from "@/lib/admin/admin-aged-leads-sort";
 import { refundLeadSnapshotFromAgedListing } from "@/lib/admin/refund-lead-snapshot";
+import { US_STATE_CODES } from "@/lib/constants/us-states";
 
 const BASE_PATH = "/admin/aged";
 
 export default async function AdminAgedPage({
   searchParams,
 }: {
-  searchParams: { page?: string; sort?: string; dir?: string };
+  searchParams: {
+    page?: string;
+    sort?: string;
+    dir?: string;
+    state?: string;
+    type?: string;
+    status?: string;
+    age?: string;
+  };
 }) {
-  const agedWhere = await buildAgedLeadWhere();
+  const filters = parseAdminAgedLeadFilters(searchParams);
+  const agedWhere = await buildAdminAgedLeadsWhere(filters);
   const { page, pageSize, skip } = parsePageParams(searchParams);
   const { sort, dir } = parseAdminAgedLeadSort(searchParams);
   const orderBy = buildAdminAgedLeadOrderBy(sort, dir);
   const hrefBySortKey = sortHrefMap(BASE_PATH, searchParams);
 
-  const [leads, total, agedPrice, stateCounts, agedDays] = await Promise.all([
+  const [leads, total, agedPrice, agedDays] = await Promise.all([
     prisma.lead.findMany({
       where: agedWhere,
       orderBy,
@@ -45,15 +60,13 @@ export default async function AdminAgedPage({
     }),
     prisma.lead.count({ where: agedWhere }),
     getDefaultAgedPrice(),
-    prisma.lead.groupBy({
-      by: ["state"],
-      where: agedWhere,
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 10,
-    }),
     import("@/lib/settings/app-settings").then((m) => m.getAgedDaysThreshold()),
   ]);
+
+  const stateOptions = US_STATE_CODES.map((code) => ({
+    value: code,
+    label: code,
+  }));
 
   const rows = leads.map((lead) => ({
     id: lead.id,
@@ -86,16 +99,13 @@ export default async function AdminAgedPage({
           accent="blue"
           blobIndex={0}
         />
-        <div className="card p-4 sm:col-span-2">
-          <p className="text-xs font-semibold uppercase text-slate-500 mb-2">Top states</p>
-          <div className="flex flex-wrap gap-2">
-            {stateCounts.map((s) => (
-              <span key={s.state} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium">
-                {s.state}: {s._count.id}
-              </span>
-            ))}
-          </div>
-        </div>
+        <Suspense
+          fallback={
+            <div className="card p-4 sm:col-span-2 min-h-[52px] animate-pulse bg-slate-50" />
+          }
+        >
+          <AdminAgedLeadsFilters stateOptions={stateOptions} />
+        </Suspense>
       </div>
 
       <div className="card">
