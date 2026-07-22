@@ -1,7 +1,25 @@
 "use client";
 
 import { clsx } from "clsx";
+import {
+  SquaresFour,
+  List as ListBullets,
+  ICON_WEIGHT_LINEAR,
+} from "@/lib/icons/client";
 import type { PartnersTableLayout } from "@/lib/admin/partners-table-columns";
+
+const LAYOUT_OPTIONS = [
+  {
+    value: "cards" as const,
+    label: "Cards layout",
+    Icon: SquaresFour,
+  },
+  {
+    value: "table" as const,
+    label: "Table layout",
+    Icon: ListBullets,
+  },
+] as const;
 
 export function PartnersTableLayoutToggle({
   layout,
@@ -16,12 +34,7 @@ export function PartnersTableLayoutToggle({
       role="group"
       aria-label="Table layout"
     >
-      {(
-        [
-          { value: "cards" as const, label: "Cards" },
-          { value: "table" as const, label: "Table" },
-        ] as const
-      ).map(({ value, label }) => (
+      {LAYOUT_OPTIONS.map(({ value, label, Icon }) => (
         <button
           key={value}
           type="button"
@@ -30,14 +43,16 @@ export function PartnersTableLayoutToggle({
             onLayoutChange(value);
           }}
           className={clsx(
-            "rounded-md px-2 py-1 text-[11px] font-semibold transition-colors",
+            "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
             layout === value
               ? "bg-white text-slate-900 shadow-sm"
               : "text-slate-500 hover:text-slate-700",
           )}
           aria-pressed={layout === value}
+          aria-label={label}
+          title={label}
         >
-          {label}
+          <Icon size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
         </button>
       ))}
     </div>

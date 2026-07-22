@@ -76,7 +76,7 @@ export function PartnersColumnVisibilityMenu({
           setOpen((o) => !o);
         }}
         className={clsx(
-          "mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-orange-600 transition-colors",
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-orange-600",
           open && "bg-slate-100 text-orange-600",
         )}
         aria-label="Choose columns to display"

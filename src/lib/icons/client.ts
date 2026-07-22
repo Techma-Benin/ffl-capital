@@ -58,4 +58,5 @@ export {
   ArrowUp,
   ArrowDown,
   Phone,
+  List,
 } from "@solar-icons/react";

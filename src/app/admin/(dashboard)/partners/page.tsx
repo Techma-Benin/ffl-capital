@@ -1,14 +1,12 @@
 import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Users, CheckCircle, Clock } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { PortalDataTableCard } from "@/components/ui/portal-data-table";
 import { parsePageParams } from "@/lib/pagination";
 import { hasEligibleFilterSet } from "@/lib/partner/default-filter-set";
-import { AdminPartnersTableSection } from "@/components/admin/admin-partners-table";
+import { AdminPartnersListClient } from "@/components/admin/admin-partners-list-client";
 import {
   buildPartnerOrderBy,
   buildPartnerSortHref,
@@ -21,7 +19,6 @@ import {
   buildPartnerStatusTabHref,
   parsePartnerCompanies,
 } from "@/lib/admin/partner-list-filters";
-import { AdminPartnersFilterBar } from "@/components/admin/admin-partners-filter-bar";
 import { getClerkPartnerImageUrl } from "@/lib/auth/clerk-profile";
 
 const TABLE_AVATAR_DISPLAY_PX = 40;
@@ -185,26 +182,10 @@ export default async function AdminPartnersPage({
       </div>
 
       <Suspense fallback={null}>
-        <AdminPartnersFilterBar
+        <AdminPartnersListClient
           tabs={statusTabs}
           affiliationOptions={affiliationOptions}
           selectedCompanies={selectedCompanies}
-        />
-      </Suspense>
-
-      {partners.length === 0 ? (
-        <PortalDataTableCard>
-          <div className="card">
-            <EmptyState
-              icon={Users}
-              title="No partners yet"
-              description="Partners will appear here once they sign up and complete onboarding."
-              accent="rose"
-            />
-          </div>
-        </PortalDataTableCard>
-      ) : (
-        <AdminPartnersTableSection
           sort={tableSort}
           pagination={pagination}
           partners={partners.map((p, index) => {
@@ -229,7 +210,7 @@ export default async function AdminPartnersPage({
             };
           })}
         />
-      )}
+      </Suspense>
     </div>
   );
 }
