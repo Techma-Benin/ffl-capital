@@ -7,13 +7,14 @@ import {
   REFUND_DECISION_FILTER_OPTIONS,
   REFUND_TYPE_FILTER_OPTIONS,
   type RefundDecisionFilter,
+  type RefundStateFilter,
   type RefundTypeFilter,
   type RefundTypeValue,
 } from "@/lib/refunds/constants";
 
 type FilterCounts<T extends string> = Partial<Record<T, number>> & { all: number };
 
-type OpenCategory = "type" | "decision";
+type OpenCategory = "type" | "decision" | "state";
 
 /** Category triggers + active chips — neutral black/slate active state. */
 const filterTriggerActive =
@@ -130,8 +131,12 @@ export function RefundTableFilters({
   onDecisionChange,
   decisionCounts,
   showDecision = false,
+  stateValue,
+  onStateChange,
+  stateOptions,
+  stateCounts,
 }: {
-  /** `pending`: type chip row only. `history`: Type + Decision category bar. */
+  /** `pending`: Type + State category bar. `history`: Type + Decision category bar. */
   mode?: "pending" | "history";
   typeValue: RefundTypeFilter;
   onTypeChange: (next: RefundTypeFilter) => void;
@@ -140,26 +145,43 @@ export function RefundTableFilters({
   onDecisionChange?: (next: RefundDecisionFilter) => void;
   decisionCounts?: FilterCounts<RefundDecisionFilter>;
   showDecision?: boolean;
+  stateValue?: RefundStateFilter;
+  onStateChange?: (next: RefundStateFilter) => void;
+  stateOptions?: { value: RefundStateFilter; label: string }[];
+  stateCounts?: FilterCounts<string>;
 }) {
   const isHistoryMode = mode === "history" || (mode === undefined && showDecision);
+  const isPendingMode = mode === "pending";
+  const isCategoryBarMode = isHistoryMode || isPendingMode;
+
   const [openCategory, setOpenCategory] = useState<OpenCategory | null>("type");
 
-  const showTypeChipRow = !isHistoryMode || openCategory === "type";
+  const showTypeChipRow = !isCategoryBarMode || openCategory === "type";
   const showDecisionChipRow =
     isHistoryMode && openCategory === "decision";
+  const showStateChipRow =
+    isPendingMode &&
+    openCategory === "state" &&
+    stateValue !== undefined &&
+    onStateChange !== undefined &&
+    stateOptions !== undefined;
 
   const typeActive = typeValue !== "all";
   const decisionActive =
     isHistoryMode &&
     decisionValue !== undefined &&
     decisionValue !== "all";
-  const hasActiveFilters = typeActive || decisionActive;
+  const stateActive =
+    isPendingMode && stateValue !== undefined && stateValue !== "all";
+  const hasActiveFilters = typeActive || decisionActive || stateActive;
 
   const typeSelectionLabel = optionLabel(REFUND_TYPE_FILTER_OPTIONS, typeValue);
   const decisionSelectionLabel =
     decisionValue !== undefined
       ? optionLabel(REFUND_DECISION_FILTER_OPTIONS, decisionValue)
       : null;
+  const stateSelectionLabel =
+    stateValue !== undefined && stateValue !== "all" ? stateValue : null;
 
   const typeTriggerLabel = typeSelectionLabel
     ? `Type: ${typeSelectionLabel}`
@@ -167,16 +189,12 @@ export function RefundTableFilters({
   const decisionTriggerLabel = decisionSelectionLabel
     ? `Decision: ${decisionSelectionLabel}`
     : "Decision";
+  const stateTriggerLabel = stateSelectionLabel
+    ? `State: ${stateSelectionLabel}`
+    : "State";
 
   function toggleCategory(category: OpenCategory) {
-    setOpenCategory((current) => {
-      if (current === category) {
-        // Pending tables only filter by type — keep the chip row visible.
-        if (!isHistoryMode && category === "type") return "type";
-        return null;
-      }
-      return category;
-    });
+    setOpenCategory((current) => (current === category ? null : category));
   }
 
   function clearFilters() {
@@ -184,10 +202,13 @@ export function RefundTableFilters({
     if (isHistoryMode && onDecisionChange) {
       onDecisionChange("all");
     }
+    if (isPendingMode && onStateChange) {
+      onStateChange("all");
+    }
     setOpenCategory("type");
   }
 
-  if (!isHistoryMode) {
+  if (!isCategoryBarMode) {
     return (
       <div className="border-b border-slate-100 px-5 py-3">
         <RefundFilterChipRow
@@ -210,13 +231,24 @@ export function RefundTableFilters({
           hasSelection={typeActive}
           onClick={() => toggleCategory("type")}
         />
-        {decisionValue !== undefined &&
+        {isHistoryMode &&
+          decisionValue !== undefined &&
           onDecisionChange !== undefined && (
             <CategoryTrigger
               label={decisionTriggerLabel}
               isOpen={openCategory === "decision"}
               hasSelection={decisionActive}
               onClick={() => toggleCategory("decision")}
+            />
+          )}
+        {isPendingMode &&
+          stateValue !== undefined &&
+          onStateChange !== undefined && (
+            <CategoryTrigger
+              label={stateTriggerLabel}
+              isOpen={openCategory === "state"}
+              hasSelection={stateActive}
+              onClick={() => toggleCategory("state")}
             />
           )}
         {hasActiveFilters && (
@@ -256,6 +288,18 @@ export function RefundTableFilters({
             />
           </div>
         )}
+
+      {showStateChipRow && stateOptions !== undefined && (
+        <div className="border-b border-slate-100 px-5 py-3">
+          <RefundFilterChipRow
+            options={stateOptions}
+            value={stateValue!}
+            onChange={onStateChange!}
+            counts={stateCounts}
+            ariaLabel="Filter by lead state"
+          />
+        </div>
+      )}
     </div>
   );
 }

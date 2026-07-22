@@ -61,6 +61,23 @@ export function toggleRefundDecisionFilter(
   return current === decision ? "all" : decision;
 }
 
+export type RefundStateFilter = "all" | (string & {});
+
+export function matchesRefundStateFilter(
+  state: string,
+  filter: RefundStateFilter,
+): boolean {
+  return filter === "all" || state === filter;
+}
+
+/** Clicking a state chip again clears the filter. */
+export function toggleRefundStateFilter(
+  current: RefundStateFilter,
+  state: string,
+): RefundStateFilter {
+  return current === state ? "all" : state;
+}
+
 export function refundDecisionLabel(
   decision: RefundDecisionValue | string,
 ): string {

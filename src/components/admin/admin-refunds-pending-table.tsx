@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { RefundReviewActions } from "@/components/admin/refund-review-actions";
 import { RefundTableFilters } from "@/components/admin/refund-table-filters";
@@ -11,8 +12,11 @@ import {
 } from "@/lib/client-table-pagination";
 import { RefundTypeBadge } from "@/components/admin/refund-type-badge";
 import {
+  matchesRefundStateFilter,
   matchesRefundTypeFilter,
+  toggleRefundStateFilter,
   toggleRefundTypeFilter,
+  type RefundStateFilter,
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
@@ -39,6 +43,24 @@ type PendingRefund = {
   createdAt: string;
 };
 
+function refundStateCounts(refunds: PendingRefund[]) {
+  const counts: FilterCounts<string> = { all: refunds.length };
+  for (const r of refunds) {
+    const state = r.lead.state;
+    counts[state] = (counts[state] ?? 0) + 1;
+  }
+  return counts;
+}
+
+type FilterCounts<T extends string> = Partial<Record<T, number>> & { all: number };
+
+function refundStateFilterOptions(states: string[]) {
+  return [
+    { value: "all" as const, label: "All" },
+    ...states.map((state) => ({ value: state, label: state })),
+  ];
+}
+
 function refundTypeCounts(refunds: PendingRefund[]) {
   const wrong_filter = refunds.filter((r) => r.refundType === "wrong_filter").length;
   const invalid_phone = refunds.filter((r) => r.refundType === "invalid_phone").length;
@@ -58,6 +80,7 @@ export function AdminRefundsPendingTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
   const [typeFilter, setTypeFilter] = useState<RefundTypeFilter>("all");
+  const [stateFilter, setStateFilter] = useState<RefundStateFilter>("all");
   const [page, setPage] = useState(1);
   const [partnerSheet, setPartnerSheet] = useState<RefundPartnerSnapshot | null>(
     null,
@@ -77,10 +100,24 @@ export function AdminRefundsPendingTable({
   }
 
   const counts = useMemo(() => refundTypeCounts(refunds), [refunds]);
+  const stateCounts = useMemo(() => refundStateCounts(refunds), [refunds]);
+  const availableStates = useMemo(
+    () => [...new Set(refunds.map((r) => r.lead.state))].sort(),
+    [refunds],
+  );
+  const stateOptions = useMemo(
+    () => refundStateFilterOptions(availableStates),
+    [availableStates],
+  );
 
   const filteredRefunds = useMemo(
-    () => refunds.filter((r) => matchesRefundTypeFilter(r.refundType, typeFilter)),
-    [refunds, typeFilter],
+    () =>
+      refunds.filter(
+        (r) =>
+          matchesRefundTypeFilter(r.refundType, typeFilter) &&
+          matchesRefundStateFilter(r.lead.state, stateFilter),
+      ),
+    [refunds, typeFilter, stateFilter],
   );
 
   const { pageItems: pageRefunds, page: currentPage } = useMemo(
@@ -98,21 +135,45 @@ export function AdminRefundsPendingTable({
     });
   }, [filteredRefunds.length]);
 
-  function handleTypeFilterChange(next: RefundTypeFilter) {
-    setTypeFilter(next);
-    setPage(1);
+  function pruneSelectionToVisible(visibleRefunds: PendingRefund[]) {
     setSelected((prev) => {
       if (prev.size === 0) return prev;
-      const visible = new Set(
-        refunds
-          .filter((r) => matchesRefundTypeFilter(r.refundType, next))
-          .map((r) => r.id),
-      );
+      const visible = new Set(visibleRefunds.map((r) => r.id));
       const nextSelected = new Set(
         Array.from(prev).filter((id) => visible.has(id)),
       );
       return nextSelected.size === prev.size ? prev : nextSelected;
     });
+  }
+
+  function handleTypeFilterChange(next: RefundTypeFilter) {
+    setTypeFilter(next);
+    setPage(1);
+    pruneSelectionToVisible(
+      refunds.filter(
+        (r) =>
+          matchesRefundTypeFilter(r.refundType, next) &&
+          matchesRefundStateFilter(r.lead.state, stateFilter),
+      ),
+    );
+  }
+
+  function handleStateFilterChange(next: RefundStateFilter) {
+    setStateFilter(next);
+    setPage(1);
+    pruneSelectionToVisible(
+      refunds.filter(
+        (r) =>
+          matchesRefundTypeFilter(r.refundType, typeFilter) &&
+          matchesRefundStateFilter(r.lead.state, next),
+      ),
+    );
+  }
+
+  function clearFilters() {
+    setTypeFilter("all");
+    setStateFilter("all");
+    setPage(1);
   }
 
   function toggleAll() {
@@ -176,6 +237,10 @@ export function AdminRefundsPendingTable({
         typeValue={typeFilter}
         onTypeChange={handleTypeFilterChange}
         typeCounts={counts}
+        stateValue={stateFilter}
+        onStateChange={handleStateFilterChange}
+        stateOptions={stateOptions}
+        stateCounts={stateCounts}
       />
       {selected.size > 0 && (
         <div className="flex items-center justify-end gap-2 border-b border-slate-100 px-5 py-2">
@@ -191,13 +256,13 @@ export function AdminRefundsPendingTable({
       )}
       {filteredRefunds.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm text-slate-500">
-          No pending requests match this type. Choose another filter or{" "}
+          No pending requests match these filters.{" "}
           <button
             type="button"
-            onClick={() => handleTypeFilterChange("all")}
+            onClick={clearFilters}
             className="font-semibold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-sm"
           >
-            show all
+            Clear filters
           </button>
           .
         </p>
@@ -248,9 +313,22 @@ export function AdminRefundsPendingTable({
                   <RefundLeadCell lead={r.lead} onSelect={openLeadSheet} />
                 </td>
                 <td>
-                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleStateFilterChange(
+                        toggleRefundStateFilter(stateFilter, r.lead.state),
+                      )
+                    }
+                    className={clsx(
+                      "rounded px-1.5 py-0.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
+                      stateFilter === r.lead.state
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                    )}
+                  >
                     {r.lead.state}
-                  </span>
+                  </button>
                 </td>
                 <td>
                   <RefundTypeBadge
