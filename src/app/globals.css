@@ -9,7 +9,7 @@
     --color-accent: #00a651;
     --color-page: #f4f7fb;
     --app-pattern-spacing: 20px;
-    --app-pattern-line: rgb(100 116 139 / 0.06);
+    --app-pattern-line: rgb(100 116 139 / 0.05);
     --app-pattern-line-bright: rgb(100 116 139 / 0.26);
     /* legacy aliases */
     --app-dot-size: var(--app-pattern-spacing);
