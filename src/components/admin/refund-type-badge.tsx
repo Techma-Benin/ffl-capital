@@ -43,9 +43,10 @@ export function RefundTypeBadge({
         onFilterClick(refundType);
       }}
       className={clsx(
-        "inline-flex rounded-md transition-[box-shadow,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
+        "inline-flex rounded-md transition-opacity focus-visible:outline-none",
+        "focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
+        "aria-pressed:true:focus-visible:ring-0 aria-pressed:true:focus-visible:ring-offset-0",
         "cursor-pointer hover:opacity-90",
-        filterActive && "ring-2 ring-slate-800/30 ring-offset-1",
       )}
     >
       <Badge variant={variant} className="pointer-events-none">
