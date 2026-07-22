@@ -72,7 +72,7 @@ export default async function AdminAgedPage({
           value={total}
           icon={Archive}
           accent="blue"
-          cornerShape="quarter-circle"
+          blobIndex={0}
         />
         <div className="card p-4 sm:col-span-2">
           <p className="text-xs font-semibold uppercase text-slate-500 mb-2">Top states</p>
