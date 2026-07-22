@@ -135,15 +135,6 @@ export function LeadViewEditorSheet({
                   </select>
                 </div>
                 <div>
-                  <label className="form-label text-[10px]">Search (optional)</label>
-                  <input
-                    className="form-input w-full text-sm"
-                    placeholder="ID, email, phone…"
-                    value={adminFilters.q ?? ""}
-                    onChange={(e) => setFilters({ q: e.target.value || undefined })}
-                  />
-                </div>
-                <div>
                   <label className="form-label text-[10px]">States</label>
                   <TargetStatesGrid
                     selected={adminFilters.states ?? []}
