@@ -7,7 +7,7 @@ import {
   PartnerEditModal,
 } from "@/components/admin/partner-edit-modal";
 import type { PartnerEditFormInitial } from "@/components/admin/partner-edit-form";
-import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { ArrowLeft, PencilSimple, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 type PartnerDetailHeaderProps = {
   title: string;
@@ -41,8 +41,9 @@ export function PartnerDetailHeader({
           <button
             type="button"
             onClick={() => setEditOpen(true)}
-            className="btn-secondary btn-sm"
+            className="btn-secondary btn-sm inline-flex items-center gap-1"
           >
+            <PencilSimple size={14} weight={ICON_WEIGHT_LINEAR} aria-hidden />
             Edit account
           </button>
           <ViewAsPartnerButton partnerId={partnerId} label="View as partner" />
