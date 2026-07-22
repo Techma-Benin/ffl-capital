@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { Eye } from "@/lib/icons/client";
+import { Eye, ICON_WEIGHT } from "@/lib/icons/client";
 
 interface Props {
   partnerId: string;
@@ -38,7 +38,7 @@ export function ViewAsPartnerButton({
       disabled={isPending}
       className="btn-secondary btn-sm inline-flex items-center gap-1.5"
     >
-      <Eye size={14} />
+      <Eye size={14} weight={ICON_WEIGHT} className="text-violet-600" aria-hidden />
       {isPending ? "Loading…" : label}
     </button>
   );

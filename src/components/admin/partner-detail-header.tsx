@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { ViewAsPartnerButton } from "@/components/admin/view-as-partner-button";
 import { usePartnerDetailEdit } from "@/components/admin/partner-detail-edit-provider";
-import { ArrowLeft, PencilSimple, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import {
+  ArrowLeft,
+  PencilSimple,
+  ICON_WEIGHT,
+  ICON_WEIGHT_LINEAR,
+} from "@/lib/icons/client";
 
 type PartnerDetailHeaderProps = {
   title: string;
@@ -31,7 +36,12 @@ export function PartnerDetailHeader({ title, partnerId }: PartnerDetailHeaderPro
           onClick={openPartnerEdit}
           className="btn-secondary btn-sm inline-flex items-center gap-1"
         >
-          <PencilSimple size={14} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+          <PencilSimple
+            size={14}
+            weight={ICON_WEIGHT}
+            className="text-brand-600"
+            aria-hidden
+          />
           Edit account
         </button>
         <ViewAsPartnerButton partnerId={partnerId} label="View as partner" />
