@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   portalTableCell,
@@ -299,14 +298,12 @@ export function PartnerTableRow({
 
   return (
     <tr
-      className={portalTableRowClassName()}
+      className={clsx("cursor-pointer", portalTableRowClassName())}
+      onClick={() => router.push(`/admin/partners/${partner.id}`)}
       onMouseLeave={() => setConfirmDelete(false)}
     >
       <td className={portalTableCellFirst}>
-        <Link
-          href={`/admin/partners/${partner.id}`}
-          className="flex items-center gap-3 hover:text-brand-600"
-        >
+        <div className="flex items-center gap-3">
           <PartnerAvatar
             size="sm"
             avatarUrl={partner.avatarUrl}
@@ -319,7 +316,7 @@ export function PartnerTableRow({
               secondary={partner.email}
             />
           </div>
-        </Link>
+        </div>
       </td>
       {columnVisibility.affiliation && (
         <td className={clsx(portalTableCell, "text-center text-sm text-slate-500")}>
