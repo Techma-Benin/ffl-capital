@@ -30,7 +30,7 @@ export function PartnersTableLayoutToggle({
 }) {
   return (
     <div
-      className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+      className="inline-flex rounded-lg border border-slate-200 bg-transparent p-0.5"
       role="group"
       aria-label="Table layout"
     >
@@ -46,7 +46,7 @@ export function PartnersTableLayoutToggle({
             "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
             layout === value
               ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-700",
+              : "bg-transparent text-slate-500 hover:bg-white/60 hover:text-slate-700",
           )}
           aria-pressed={layout === value}
           aria-label={label}
