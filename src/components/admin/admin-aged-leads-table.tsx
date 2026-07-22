@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   PortalSortableHeaderCell,
@@ -9,7 +9,9 @@ import {
 } from "@/components/ui/portal-sortable-table-header";
 import { formatUsd } from "@/lib/format-money";
 import type { AdminAgedLeadSortKey } from "@/lib/admin/admin-aged-leads-sort";
+import type { RefundLeadSnapshot } from "@/lib/admin/refund-lead-snapshot";
 import { AdminAgedLeadRowActions } from "@/components/admin/admin-aged-lead-row-actions";
+import { RefundLeadDetailSheet } from "@/components/admin/refund-lead-detail-sheet";
 
 export type AdminAgedLeadRow = {
   id: string;
@@ -19,6 +21,7 @@ export type AdminAgedLeadRow = {
   leadType: string;
   status: string;
   ageDays: number;
+  sheetLead: RefundLeadSnapshot;
 };
 
 const COLUMNS: {
@@ -48,59 +51,76 @@ export function AdminAgedLeadsTable({
   dir: SortDirection;
   hrefBySortKey: Record<AdminAgedLeadSortKey, string>;
 }) {
+  const [leadSheet, setLeadSheet] = useState<RefundLeadSnapshot | null>(null);
+  const [leadSheetOpen, setLeadSheetOpen] = useState(false);
+
+  function openLeadSheet(lead: RefundLeadSnapshot) {
+    setLeadSheet(lead);
+    setLeadSheetOpen(true);
+  }
+
   return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          {COLUMNS.map((col) => {
-            if (col.sortKey) {
+    <>
+      <table className="data-table">
+        <thead>
+          <tr>
+            {COLUMNS.map((col) => {
+              if (col.sortKey) {
+                return (
+                  <PortalSortableHeaderCell
+                    key={col.key}
+                    label={col.label}
+                    href={hrefBySortKey[col.sortKey]}
+                    active={sort === col.sortKey}
+                    dir={sort === col.sortKey ? dir : "asc"}
+                    headerClassName="!px-3 !py-2"
+                  />
+                );
+              }
               return (
-                <PortalSortableHeaderCell
+                <PortalTableHeaderCell
                   key={col.key}
                   label={col.label}
-                  href={hrefBySortKey[col.sortKey]}
-                  active={sort === col.sortKey}
-                  dir={sort === col.sortKey ? dir : "asc"}
-                  headerClassName="!px-3 !py-2"
+                  headerClassName="!px-3 !py-2 w-px"
                 />
               );
-            }
-            return (
-              <PortalTableHeaderCell
-                key={col.key}
-                label={col.label}
-                headerClassName="!px-3 !py-2 w-px"
-              />
-            );
-          })}
-        </tr>
-      </thead>
-      <tbody>
-        {leads.map((lead) => (
-          <tr key={lead.id} className="group">
-            <td>
-              <Link
-                href={`/admin/leads/${lead.id}`}
-                className="font-medium hover:text-brand-600"
-              >
-                {lead.firstName} {lead.lastName}
-              </Link>
-            </td>
-            <td>{lead.state}</td>
-            <td>
-              <Badge variant="blue">
-                {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-              </Badge>
-            </td>
-            <td className="capitalize">{lead.status.replace("_", " ")}</td>
-            <td>{lead.ageDays}d</td>
-            <td className="font-semibold">{formatUsd(agedPrice)}</td>
-            <td className="text-right">
-              <AdminAgedLeadRowActions leadId={lead.id} />
-            </td>
+            })}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {leads.map((lead) => (
+            <tr
+              key={lead.id}
+              className="group cursor-pointer"
+              onClick={() => openLeadSheet(lead.sheetLead)}
+            >
+              <td>
+                <span className="font-medium text-slate-900">
+                  {lead.firstName} {lead.lastName}
+                </span>
+              </td>
+              <td>{lead.state}</td>
+              <td>
+                <Badge variant="blue">
+                  {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                </Badge>
+              </td>
+              <td className="capitalize">{lead.status.replace("_", " ")}</td>
+              <td>{lead.ageDays}d</td>
+              <td className="font-semibold">{formatUsd(agedPrice)}</td>
+              <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                <AdminAgedLeadRowActions leadId={lead.id} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <RefundLeadDetailSheet
+        lead={leadSheet}
+        open={leadSheetOpen}
+        onOpenChange={setLeadSheetOpen}
+      />
+    </>
   );
 }

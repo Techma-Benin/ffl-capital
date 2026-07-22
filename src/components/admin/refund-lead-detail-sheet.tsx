@@ -74,13 +74,17 @@ export function RefundLeadDetailSheet({ lead, open, onOpenChange }: Props) {
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Partner
           </p>
-          <Link
-            href={`/admin/partners/${lead.partner.id}`}
-            className="mt-1 inline-flex text-sm font-medium text-brand-700 hover:underline"
-            onClick={() => onOpenChange(false)}
-          >
-            {lead.partner.name}
-          </Link>
+          {lead.partner.id ? (
+            <Link
+              href={`/admin/partners/${lead.partner.id}`}
+              className="mt-1 inline-flex text-sm font-medium text-brand-700 hover:underline"
+              onClick={() => onOpenChange(false)}
+            >
+              {lead.partner.name}
+            </Link>
+          ) : (
+            <p className="mt-1 text-sm font-medium text-slate-900">{lead.partner.name}</p>
+          )}
         </div>
 
         <dl className="space-y-3 rounded-xl border border-slate-100 p-4">

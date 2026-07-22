@@ -14,6 +14,7 @@ import {
   parseAdminAgedLeadSort,
   sortHrefMap,
 } from "@/lib/admin/admin-aged-leads-sort";
+import { refundLeadSnapshotFromAgedListing } from "@/lib/admin/refund-lead-snapshot";
 
 const BASE_PATH = "/admin/aged";
 
@@ -34,6 +35,13 @@ export default async function AdminAgedPage({
       orderBy,
       skip,
       take: pageSize,
+      include: {
+        leadDeliveries: {
+          include: { partner: true },
+          orderBy: { deliveredAt: "desc" },
+          take: 1,
+        },
+      },
     }),
     prisma.lead.count({ where: agedWhere }),
     getDefaultAgedPrice(),
@@ -57,6 +65,10 @@ export default async function AdminAgedPage({
     ageDays: Math.floor(
       (Date.now() - lead.receivedAt.getTime()) / (1000 * 60 * 60 * 24),
     ),
+    sheetLead: refundLeadSnapshotFromAgedListing(lead, {
+      agedPrice,
+      latestDelivery: lead.leadDeliveries[0] ?? null,
+    }),
   }));
 
   return (

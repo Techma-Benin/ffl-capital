@@ -89,3 +89,47 @@ export function refundLeadSnapshotFromDelivery(
     },
   };
 }
+
+type AgedListingDeliverySource = {
+  deliveredAt: Date;
+  price: { toString(): string } | number;
+  channel: string;
+  partner: PartnerNameSource;
+};
+
+/** Snapshot for admin aged marketplace rows (latest delivery when present). */
+export function refundLeadSnapshotFromAgedListing(
+  lead: LeadRowSource,
+  options: {
+    agedPrice: number;
+    latestDelivery?: AgedListingDeliverySource | null;
+  },
+): RefundLeadSnapshot {
+  const latest = options.latestDelivery;
+  if (latest) {
+    return refundLeadSnapshotFromDelivery(
+      {
+        deliveredAt: latest.deliveredAt,
+        price: latest.price,
+        channel: latest.channel,
+        lead,
+      },
+      latest.partner,
+    );
+  }
+
+  return {
+    id: lead.id,
+    name: `${lead.firstName} ${lead.lastName}`,
+    state: lead.state,
+    leadType: lead.leadType,
+    status: lead.status,
+    receivedAt: lead.receivedAt.toISOString(),
+    partner: { id: "", name: "—" },
+    delivery: {
+      deliveredAt: "",
+      price: options.agedPrice,
+      channel: "aged",
+    },
+  };
+}
