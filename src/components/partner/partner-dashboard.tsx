@@ -116,7 +116,10 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
               <tbody>
                 {stats.recentDeliveries.map((d) => (
                   <tr key={d.id} className="cursor-pointer hover:bg-brand-50 transition-colors" onClick={() => { window.location.href = `/partner/leads/${d.id}`; }}>
-                    <td className="font-medium text-slate-900">
+                    <td
+                      className="font-medium text-slate-900"
+                      title={`${d.lead.firstName} ${d.lead.lastName}`}
+                    >
                       {d.lead.firstName} {d.lead.lastName}
                     </td>
                     <td>
