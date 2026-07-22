@@ -25,12 +25,12 @@ export function RefundPartnerCell({
       aria-label={`View partner profile for ${partner.name}`}
     >
       {variant === "compact" ? (
-        <span className="font-medium text-orange-600">
+        <span className="font-medium text-slate-900">
           {partner.name}
         </span>
       ) : (
         <>
-          <p className="font-medium text-orange-600">{partner.name}</p>
+          <p className="font-medium text-slate-900">{partner.name}</p>
           {showEmail ? (
             <p className="text-xs text-slate-400">{partner.email}</p>
           ) : null}

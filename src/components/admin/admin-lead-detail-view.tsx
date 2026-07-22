@@ -280,7 +280,7 @@ export function AdminLeadDetailView({
                               e.stopPropagation();
                               openPartnerSheet(d.partner);
                             }}
-                            className="block w-full cursor-pointer px-3 py-2 text-left font-medium text-orange-600 transition-colors hover:bg-orange-50/50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+                            className="block w-full cursor-pointer px-3 py-2 text-left font-medium text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
                             aria-label={`View partner profile for ${d.partnerName}`}
                           >
                             {d.partnerName}
