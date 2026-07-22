@@ -8,7 +8,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { PortalDataTableCard } from "@/components/ui/portal-data-table";
 import { parsePageParams } from "@/lib/pagination";
 import { hasEligibleFilterSet } from "@/lib/partner/default-filter-set";
-import { AdminPartnersTable } from "@/components/admin/admin-partners-table";
+import { AdminPartnersTableSection } from "@/components/admin/admin-partners-table";
 import {
   buildPartnerOrderBy,
   buildPartnerSortHref,
@@ -126,6 +126,24 @@ export default async function AdminPartnersPage({
     hrefBySortKey: sortHrefMap(searchParams),
   };
 
+  const paginationParams: Record<string, string | undefined> = {
+    status: searchParams.status,
+    company: searchParams.company,
+    family: searchParams.family,
+    sort: searchParams.sort,
+    dir: searchParams.dir,
+  };
+
+  const pagination = (
+    <TablePagination
+      page={page}
+      pageSize={pageSize}
+      total={total}
+      basePath={BASE_PATH}
+      searchParams={paginationParams}
+    />
+  );
+
   const statusTabs = [
     {
       label: "All Partners",
@@ -174,8 +192,8 @@ export default async function AdminPartnersPage({
         />
       </Suspense>
 
-      <PortalDataTableCard>
-        {partners.length === 0 ? (
+      {partners.length === 0 ? (
+        <PortalDataTableCard>
           <div className="card">
             <EmptyState
               icon={Users}
@@ -184,42 +202,34 @@ export default async function AdminPartnersPage({
               accent="rose"
             />
           </div>
-        ) : (
-          <>
-            <AdminPartnersTable
-              sort={tableSort}
-              partners={partners.map((p, index) => {
-                const isActive = p.status === "active";
-                const walletOk = Number(p.walletBalance) >= 25;
-                const statesOk = hasEligibleFilterSet(p.filterSets);
-                const leadBuying = isActive && walletOk && statesOk;
+        </PortalDataTableCard>
+      ) : (
+        <AdminPartnersTableSection
+          sort={tableSort}
+          pagination={pagination}
+          partners={partners.map((p, index) => {
+            const isActive = p.status === "active";
+            const walletOk = Number(p.walletBalance) >= 25;
+            const statesOk = hasEligibleFilterSet(p.filterSets);
+            const leadBuying = isActive && walletOk && statesOk;
 
-                return {
-                  id: p.id,
-                  firstName: p.firstName,
-                  lastName: p.lastName,
-                  email: p.email,
-                  affiliation: p.affiliation,
-                  status: p.status,
-                  priority: p.priority,
-                  walletBalance: Number(p.walletBalance),
-                  leadBuying,
-                  walletOk,
-                  leadsCount: p._count.leadDeliveries,
-                  avatarUrl: avatarUrls[index] ?? null,
-                };
-              })}
-            />
-            <TablePagination
-              page={page}
-              pageSize={pageSize}
-              total={total}
-              basePath="/admin/partners"
-              searchParams={searchParams}
-            />
-          </>
-        )}
-      </PortalDataTableCard>
+            return {
+              id: p.id,
+              firstName: p.firstName,
+              lastName: p.lastName,
+              email: p.email,
+              affiliation: p.affiliation,
+              status: p.status,
+              priority: p.priority,
+              walletBalance: Number(p.walletBalance),
+              leadBuying,
+              walletOk,
+              leadsCount: p._count.leadDeliveries,
+              avatarUrl: avatarUrls[index] ?? null,
+            };
+          })}
+        />
+      )}
     </div>
   );
 }

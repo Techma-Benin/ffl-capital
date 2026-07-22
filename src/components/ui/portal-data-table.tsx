@@ -114,12 +114,15 @@ export function PortalDataTable({
   className,
   sort,
   layout = "cards",
+  footer,
 }: {
   columns: PortalDataTableColumn[];
   children: React.ReactNode;
   className?: string;
   sort?: PortalDataTableSortState;
   layout?: PortalDataTableLayout;
+  /** Rendered below the table; for `layout="table"` sits inside the white card (e.g. pagination). */
+  footer?: React.ReactNode;
 }) {
   const table = (
     <table
@@ -165,6 +168,7 @@ export function PortalDataTable({
     return (
       <div className={clsx("card shrink-0 overflow-hidden", className)}>
         <div className="overflow-x-auto">{table}</div>
+        {footer}
       </div>
     );
   }

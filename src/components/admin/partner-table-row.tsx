@@ -117,6 +117,14 @@ const statusLabel: Record<string, string> = {
   disabled: "Disabled",
 };
 
+function partnerCellAlign(
+  layout: PortalDataTableLayout,
+  tableClass: string,
+  cardsClass: string,
+) {
+  return layout === "table" ? tableClass : cardsClass;
+}
+
 function PartnerRowMenu({
   actions,
   pending,
@@ -324,7 +332,11 @@ export function PartnerTableRow({
       {columnVisibility.affiliation && (
         <td
           className={portalTableDataCellClassName(layout, {
-            className: "text-center text-sm text-slate-500",
+            className: partnerCellAlign(
+              layout,
+              "text-left text-sm text-slate-500",
+              "text-center text-sm text-slate-500",
+            ),
           })}
         >
           {partner.affiliation ?? "—"}
@@ -380,7 +392,11 @@ export function PartnerTableRow({
       {columnVisibility.leads && (
         <td
           className={portalTableDataCellClassName(layout, {
-            className: "text-center font-medium text-slate-700",
+            className: partnerCellAlign(
+              layout,
+              "text-right tabular-nums font-medium text-slate-700",
+              "text-center font-medium text-slate-700",
+            ),
           })}
         >
           {partner.leadsCount}

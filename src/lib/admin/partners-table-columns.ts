@@ -105,6 +105,19 @@ export const PARTNER_TABLE_COLUMNS: PortalDataTableColumn[] = [
   { key: "actions", label: "", headerClassName: "w-12 text-center" },
 ];
 
+/** Header alignment when partners table uses layout="table" (cards use column defaults). */
+export const PARTNER_TABLE_HEADER_ALIGN_TABLE: Partial<
+  Record<string, string>
+> = {
+  affiliation: "text-left",
+  status: "text-center",
+  priority: "text-center",
+  wallet: "text-right",
+  leadBuying: "text-center",
+  leads: "text-right",
+  actions: "w-12 text-center",
+};
+
 export function isPartnerHideableColumnKey(
   key: string,
 ): key is PartnerHideableColumnKey {

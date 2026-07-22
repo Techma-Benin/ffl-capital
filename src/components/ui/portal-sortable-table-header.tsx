@@ -27,7 +27,13 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDirection }) {
 }
 
 const headerBase =
-  "whitespace-nowrap px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500";
+  "whitespace-nowrap px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500";
+
+function headerAlignClass(headerClassName?: string) {
+  if (headerClassName?.includes("text-right")) return "text-right";
+  if (headerClassName?.includes("text-center")) return "text-center";
+  return "text-left";
+}
 
 export function PortalTableHeaderCell({
   label,
@@ -39,7 +45,7 @@ export function PortalTableHeaderCell({
   children?: React.ReactNode;
 }) {
   return (
-    <th className={clsx(headerBase, headerClassName)}>
+    <th className={clsx(headerBase, headerAlignClass(headerClassName), headerClassName)}>
       {children ?? label}
     </th>
   );
@@ -62,7 +68,14 @@ export function PortalSortableHeaderCell({
   const pending = pendingPath === href;
 
   return (
-    <th className={clsx(headerBase, "select-none", headerClassName)}>
+    <th
+      className={clsx(
+        headerBase,
+        "select-none",
+        headerAlignClass(headerClassName),
+        headerClassName,
+      )}
+    >
       <Link
         href={href}
         onClick={() => startNavigation(href)}
@@ -71,8 +84,11 @@ export function PortalSortableHeaderCell({
           "inline-flex cursor-pointer items-center gap-1 text-slate-500 hover:text-slate-700",
           active && "text-orange-600 hover:text-orange-700",
           pending && "pointer-events-none opacity-70",
+          (headerClassName?.includes("text-center") ||
+            headerClassName?.includes("text-right")) &&
+            "w-full",
           headerClassName?.includes("text-center") && "justify-center",
-          headerClassName?.includes("text-right") && "w-full justify-end",
+          headerClassName?.includes("text-right") && "justify-end",
         )}
       >
         {pending && <Spinner size="xs" />}

@@ -23,7 +23,7 @@ export function TablePagination({
   function hrefFor(p: number) {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(searchParams ?? {})) {
-      if (v) params.set(k, v);
+      if (v && k !== "page") params.set(k, v);
     }
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
