@@ -1,5 +1,6 @@
 "use client";
 
+import { clsx } from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PortalDataTableTab } from "@/components/ui/portal-data-table-tab";
 import type { PortalDataTableTabConfig } from "@/components/ui/portal-data-table";
@@ -54,7 +55,12 @@ export function AdminPartnersFilterBar({
         </label>
         <select
           id="admin-partners-company"
-          className="form-select min-w-[160px] py-1.5 text-sm"
+          className={clsx(
+            "form-select inline-block w-auto max-w-[240px] shrink-0 min-w-[160px] py-1.5 pl-3 pr-8 text-sm font-medium shadow-none",
+            selectValue
+              ? "border-rose-300 bg-rose-50 text-rose-800 focus:border-rose-400 focus:ring-rose-500/20"
+              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+          )}
           value={selectValue}
           onChange={(e) => navigateCompany(e.target.value)}
           disabled={affiliationOptions.length === 0}
