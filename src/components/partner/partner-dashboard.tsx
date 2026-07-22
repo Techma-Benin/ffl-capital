@@ -94,40 +94,48 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
               accent="brand"
             />
           ) : (
-            <table className="data-table data-table-fixed-fit">
+            <table className="data-table data-table-recent-leads">
+              <colgroup>
+                <col />
+                <col className="w-[3rem]" />
+                <col className="w-[6rem]" />
+                <col className="w-[5rem]" />
+                <col className="w-[4rem]" />
+                <col className="w-[9rem]" />
+              </colgroup>
               <thead>
                 <tr>
-                  <th className="data-table-col-grow">Name</th>
-                  <th className="data-table-col-fit">State</th>
-                  <th className="data-table-col-fit">Type</th>
-                  <th className="data-table-col-fit">Channel</th>
-                  <th className="data-table-col-fit">Price</th>
-                  <th className="data-table-col-fit">Delivered</th>
+                  <th>Name</th>
+                  <th>State</th>
+                  <th>Type</th>
+                  <th>Channel</th>
+                  <th>Price</th>
+                  <th>Delivered</th>
                 </tr>
               </thead>
               <tbody>
                 {stats.recentDeliveries.map((d) => (
                   <tr key={d.id} className="cursor-pointer hover:bg-brand-50 transition-colors" onClick={() => { window.location.href = `/partner/leads/${d.id}`; }}>
-                    <td className="data-table-col-grow truncate font-medium text-slate-900">
+                    <td className="truncate font-medium text-slate-900">
                       {d.lead.firstName} {d.lead.lastName}
                     </td>
-                    <td className="data-table-col-fit">
+                    <td>
                       <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
                         {d.lead.state}
                       </span>
                     </td>
-                    <td className="data-table-col-fit">
+                    <td>
                       <Badge variant="blue">
                         {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
                       </Badge>
                     </td>
-                    <td className="data-table-col-fit">
+                    <td>
                       <Badge variant={d.channel === "realtime" ? "green" : "slate"}>
                         {d.channel === "realtime" ? "Real-time" : "Aged"}
                       </Badge>
                     </td>
-                    <td className="data-table-col-fit font-semibold text-slate-900">{formatUsd(d.price)}</td>
-                    <td className="data-table-col-fit text-xs text-slate-400" suppressHydrationWarning>
+                    <td className="font-semibold text-slate-900">{formatUsd(d.price)}</td>
+                    <td className="text-xs text-slate-400" suppressHydrationWarning>
                       {formatDateTime(d.deliveredAt)}
                     </td>
                   </tr>
