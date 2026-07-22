@@ -1,5 +1,15 @@
 import { clerkClient } from "@clerk/nextjs/server";
 
+/** Clerk CDN URL sized for admin profile avatar (display ~96px, 2× for retina). */
+export function clerkProfileImageUrlForDisplay(
+  imageUrl: string,
+  displayPx = 96,
+): string {
+  const size = displayPx * 2;
+  const sep = imageUrl.includes("?") ? "&" : "?";
+  return `${imageUrl}${sep}width=${size}&height=${size}&fit=crop`;
+}
+
 /** Clerk profile image for a linked partner user (admin/server only). */
 export async function getClerkPartnerImageUrl(
   clerkUserId: string | null | undefined,
@@ -8,7 +18,8 @@ export async function getClerkPartnerImageUrl(
   try {
     const client = await clerkClient();
     const user = await client.users.getUser(clerkUserId);
-    return user.imageUrl || null;
+    if (!user.imageUrl) return null;
+    return clerkProfileImageUrlForDisplay(user.imageUrl);
   } catch {
     return null;
   }
