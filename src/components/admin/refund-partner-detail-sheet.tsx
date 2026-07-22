@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { PrimaryLinkArrow } from "@/components/ui/primary-link-arrow";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import {
-  formatRefundPartnerPricing,
   refundPartnerStatusBadge,
   refundPartnerStatusLabel,
   type RefundPartnerSnapshot,
@@ -64,15 +63,6 @@ export function RefundPartnerDetailSheet({ partner, open, onOpenChange }: Props)
             </div>
           ))}
         </dl>
-
-        <div className="rounded-xl border border-slate-100 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Pricing
-          </p>
-          <p className="mt-1 text-sm font-medium text-slate-900">
-            {formatRefundPartnerPricing(partner)}
-          </p>
-        </div>
 
         {partner.filterStates.length > 0 ? (
           <div className="rounded-xl border border-slate-100 p-4">
