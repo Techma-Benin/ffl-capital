@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { clsx } from "clsx";
-import { SquaresFour, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { ArrowsDownUp, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import {
   PARTNER_COLUMN_TOGGLE_LABELS,
   PARTNER_HIDEABLE_COLUMN_KEYS,
@@ -79,10 +79,11 @@ export function PartnersColumnVisibilityMenu({
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-orange-600",
           open && "bg-slate-100 text-orange-600",
         )}
-        aria-label="Choose columns to display"
+        aria-label="Choose columns"
+        title="Choose columns"
         aria-expanded={open}
       >
-        <SquaresFour size={18} weight={ICON_WEIGHT_LINEAR} />
+        <ArrowsDownUp size={18} weight={ICON_WEIGHT_LINEAR} aria-hidden />
       </button>
 
       {open &&
