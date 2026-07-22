@@ -226,7 +226,7 @@
 
   .data-table-recent-leads th:nth-child(5),
   .data-table-recent-leads td:nth-child(5) {
-    @apply pr-3 text-right tabular-nums;
+    @apply tabular-nums;
   }
 
   .data-table-recent-leads th:last-child,
