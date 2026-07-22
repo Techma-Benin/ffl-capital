@@ -151,7 +151,7 @@ export function PartnerProfileCard({
             value: `$${walletBalance.toFixed(2)}`,
             valueClassName: walletLow ? "text-red-600 font-semibold" : "font-medium text-slate-900",
           },
-          { label: "Priority", value: `Priority ${priority}` },
+          { label: "Priority", value: priority },
         ].map((row) => (
           <div key={row.label} className="flex items-center justify-between gap-3">
             <dt className="text-slate-500">{row.label}</dt>
