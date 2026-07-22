@@ -26,6 +26,25 @@ export async function getClerkPartnerImageUrl(
   }
 }
 
+/** Deduped Clerk avatar URLs for many partners (one API call per unique user). */
+export async function getClerkPartnerImageUrlMap(
+  clerkUserIds: Iterable<string | null | undefined>,
+  displayPx = 96,
+): Promise<Map<string, string | null>> {
+  const unique = [
+    ...new Set(
+      [...clerkUserIds].filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const entries = await Promise.all(
+    unique.map(async (id) => [
+      id,
+      await getClerkPartnerImageUrl(id, displayPx).catch(() => null),
+    ] as const),
+  );
+  return new Map(entries);
+}
+
 /** Keep Clerk profile and metadata aligned with the partner record (best-effort). */
 export async function syncPartnerToClerk(
   user: { id: string; firstName: string | null; lastName: string | null; publicMetadata?: Record<string, unknown> },

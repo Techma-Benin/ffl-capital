@@ -13,6 +13,11 @@ const sizeClasses = {
     text: "text-sm",
     px: 40,
   },
+  md: {
+    box: "h-12 w-12",
+    text: "text-base",
+    px: 48,
+  },
   lg: {
     box: "h-24 w-24",
     text: "text-2xl",

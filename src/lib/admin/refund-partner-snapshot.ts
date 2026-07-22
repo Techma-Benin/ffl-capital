@@ -1,8 +1,11 @@
 /** Partner fields loaded on the server for refund table side sheets. */
 export type RefundPartnerSnapshot = {
   id: string;
+  firstName: string;
+  lastName: string;
   name: string;
   email: string;
+  avatarUrl: string | null;
   status: string;
   filterStates: string[];
   walletBalance: number;
@@ -45,11 +48,16 @@ type PartnerRowSource = {
 
 export function refundPartnerSnapshotFromRow(
   partner: PartnerRowSource,
+  options?: { avatarUrl?: string | null },
 ): RefundPartnerSnapshot {
+  const avatarUrl = options?.avatarUrl ?? null;
   return {
     id: partner.id,
+    firstName: partner.firstName,
+    lastName: partner.lastName,
     name: `${partner.firstName} ${partner.lastName}`,
     email: partner.email,
+    avatarUrl,
     status: partner.status,
     filterStates: partner.filterStates,
     walletBalance: Number(partner.walletBalance),

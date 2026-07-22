@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getLeadEvents } from "@/lib/leads/lead-events";
 import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
+import { getClerkPartnerImageUrlMap } from "@/lib/auth/clerk-profile";
+
+const PARTNER_SHEET_AVATAR_PX = 48;
 import {
   AdminLeadDetailView,
   type AdminLeadDetailDelivery,
@@ -66,8 +69,16 @@ export default async function AdminLeadDetailPage({
   const canRedeliver = lead.leadDeliveries.length > 0;
   const refundableDelivery = lead.leadDeliveries.find((d) => !d.refundedAt);
 
+  const avatarByClerkId = await getClerkPartnerImageUrlMap(
+    lead.leadDeliveries.map((d) => d.partner.clerkUserId),
+    PARTNER_SHEET_AVATAR_PX,
+  );
+
   const deliveries: AdminLeadDetailDelivery[] = lead.leadDeliveries.map((d) => {
-    const partner = refundPartnerSnapshotFromRow(d.partner);
+    const avatarUrl = d.partner.clerkUserId
+      ? (avatarByClerkId.get(d.partner.clerkUserId) ?? null)
+      : null;
+    const partner = refundPartnerSnapshotFromRow(d.partner, { avatarUrl });
     return {
       id: d.id,
       channel: d.channel,

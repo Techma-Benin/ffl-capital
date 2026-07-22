@@ -1,5 +1,6 @@
 "use client";
 
+import { PartnerAvatar } from "@/components/admin/partner-avatar";
 import { Badge } from "@/components/ui/badge";
 import { PrimaryLinkArrow } from "@/components/ui/primary-link-arrow";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
@@ -35,13 +36,21 @@ export function RefundPartnerDetailSheet({ partner, open, onOpenChange }: Props)
       description={`Profile summary for ${partner.name}`}
     >
       <SheetBody className="space-y-6">
-        <div>
-          <p className="text-lg font-semibold tracking-tight text-slate-900">
-            {partner.name}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">{partner.email}</p>
-          <div className="mt-3">
-            <Badge variant={statusVariant}>{statusLabel}</Badge>
+        <div className="flex items-start gap-4">
+          <PartnerAvatar
+            size="md"
+            avatarUrl={partner.avatarUrl}
+            firstName={partner.firstName}
+            lastName={partner.lastName}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-semibold tracking-tight text-slate-900">
+              {partner.name}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">{partner.email}</p>
+            <div className="mt-3">
+              <Badge variant={statusVariant}>{statusLabel}</Badge>
+            </div>
           </div>
         </div>
 

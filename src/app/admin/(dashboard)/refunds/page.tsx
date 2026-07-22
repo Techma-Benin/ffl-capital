@@ -7,6 +7,9 @@ import { ArrowCounterClockwise, Clock, Funnel, Phone } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
 import { refundLeadSnapshotFromDelivery } from "@/lib/admin/refund-lead-snapshot";
 import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
+import { getClerkPartnerImageUrlMap } from "@/lib/auth/clerk-profile";
+
+const PARTNER_SHEET_AVATAR_PX = 48;
 
 const refundPartnerInclude = {
   include: {
@@ -38,6 +41,20 @@ export default async function AdminRefundsPage() {
   const typeACount = pending.filter((r) => r.refundType === "wrong_filter").length;
   const typeBCount = pending.filter((r) => r.refundType === "invalid_phone").length;
 
+  const avatarByClerkId = await getClerkPartnerImageUrlMap(
+    [...pending, ...history].map((r) => r.partner.clerkUserId),
+    PARTNER_SHEET_AVATAR_PX,
+  );
+
+  function partnerSnapshot(
+    partner: (typeof pending)[number]["partner"],
+  ) {
+    const avatarUrl = partner.clerkUserId
+      ? (avatarByClerkId.get(partner.clerkUserId) ?? null)
+      : null;
+    return refundPartnerSnapshotFromRow(partner, { avatarUrl });
+  }
+
   return (
     <div>
       <PageHeader
@@ -68,7 +85,7 @@ export default async function AdminRefundsPage() {
             <AdminRefundsPendingTable
               refunds={pending.map((r) => ({
                 id: r.id,
-                partner: refundPartnerSnapshotFromRow(r.partner),
+                partner: partnerSnapshot(r.partner),
                 lead: refundLeadSnapshotFromDelivery(r.leadDelivery, r.partner),
                 refundType: r.refundType,
                 reason: r.reason,
@@ -89,7 +106,7 @@ export default async function AdminRefundsPage() {
             <AdminRefundsHistoryTable
               refunds={history.map((r) => ({
                 id: r.id,
-                partner: refundPartnerSnapshotFromRow(r.partner),
+                partner: partnerSnapshot(r.partner),
                 lead: refundLeadSnapshotFromDelivery(r.leadDelivery, r.partner),
                 refundType: r.refundType,
                 amount: Number(r.leadDelivery.price),
