@@ -1,28 +1,37 @@
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Archive } from "@/lib/icons/ssr";
-import Link from "next/link";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
 import { formatUsd } from "@/lib/format-money";
+import { AdminAgedLeadsTable } from "@/components/admin/admin-aged-leads-table";
+import {
+  buildAdminAgedLeadOrderBy,
+  parseAdminAgedLeadSort,
+  sortHrefMap,
+} from "@/lib/admin/admin-aged-leads-sort";
+
+const BASE_PATH = "/admin/aged";
 
 export default async function AdminAgedPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: { page?: string; sort?: string; dir?: string };
 }) {
   const agedWhere = await buildAgedLeadWhere();
   const { page, pageSize, skip } = parsePageParams(searchParams);
+  const { sort, dir } = parseAdminAgedLeadSort(searchParams);
+  const orderBy = buildAdminAgedLeadOrderBy(sort, dir);
+  const hrefBySortKey = sortHrefMap(BASE_PATH, searchParams);
 
   const [leads, total, agedPrice, stateCounts, agedDays] = await Promise.all([
     prisma.lead.findMany({
       where: agedWhere,
-      orderBy: { receivedAt: "asc" },
+      orderBy,
       skip,
       take: pageSize,
     }),
@@ -37,6 +46,18 @@ export default async function AdminAgedPage({
     }),
     import("@/lib/settings/app-settings").then((m) => m.getAgedDaysThreshold()),
   ]);
+
+  const rows = leads.map((lead) => ({
+    id: lead.id,
+    firstName: lead.firstName,
+    lastName: lead.lastName,
+    state: lead.state,
+    leadType: lead.leadType,
+    status: lead.status,
+    ageDays: Math.floor(
+      (Date.now() - lead.receivedAt.getTime()) / (1000 * 60 * 60 * 24),
+    ),
+  }));
 
   return (
     <div>
@@ -69,50 +90,20 @@ export default async function AdminAgedPage({
               accent="teal"
             />
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>State</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Age (days)</th>
-                  <th>Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leads.map((lead) => {
-                  const ageDays = Math.floor(
-                    (Date.now() - lead.receivedAt.getTime()) / (1000 * 60 * 60 * 24),
-                  );
-                  return (
-                    <tr key={lead.id}>
-                      <td>
-                        <Link href={`/admin/leads/${lead.id}`} className="font-medium hover:text-brand-600">
-                          {lead.firstName} {lead.lastName}
-                        </Link>
-                      </td>
-                      <td>{lead.state}</td>
-                      <td>
-                        <Badge variant="blue">
-                          {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                        </Badge>
-                      </td>
-                      <td className="capitalize">{lead.status.replace("_", " ")}</td>
-                      <td>{ageDays}d</td>
-                      <td className="font-semibold">{formatUsd(agedPrice)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <AdminAgedLeadsTable
+              leads={rows}
+              agedPrice={agedPrice}
+              sort={sort}
+              dir={dir}
+              hrefBySortKey={hrefBySortKey}
+            />
           )}
         </div>
         <TablePagination
           page={page}
           pageSize={pageSize}
           total={total}
-          basePath="/admin/aged"
+          basePath={BASE_PATH}
           searchParams={searchParams}
         />
       </div>

@@ -166,6 +166,20 @@ Pas d’API dédiée — la page SSR lit les query params et filtre en base.
 
 Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange` (`src/lib/admin/admin-date-period.ts`). Agrégats graphiques : `getAdminDashboardChartData` (`src/lib/admin/dashboard-stats.ts`). UI filtre : `AdminDashboardPeriodFilter`.
 
+### Admin aged browse (`/admin/aged`)
+
+Pas d’API dédiée — page SSR : `buildAgedLeadWhere()` (`src/lib/aged/eligibility.ts`, seuil `aged_days_threshold`, exclut `status=dead`), prix affiché via `getDefaultAgedPrice()`.
+
+| Param | Valeurs | Effet |
+|-------|---------|--------|
+| `page` | entier | Pagination (`parsePageParams`, 25/page) |
+| `sort` | `name` \| `state` \| `type` \| `status` \| `ageDays` \| `price` | Colonne de tri Prisma |
+| `dir` | `asc` \| `desc` | Sens ; défaut `desc` si `sort` absent, sinon `asc` si `dir` invalide |
+
+Tri : `src/lib/admin/admin-aged-leads-sort.ts` (`buildAdminAgedLeadOrderBy` — `ageDays` ↔ `receivedAt` inversé ; `price` ↔ `id` proxy). UI : `AdminAgedLeadsTable` + en-têtes `PortalSortableHeaderCell`.
+
+**Mark dead (ligne)** : `DELETE /api/admin/leads/:id` (existant) → `status=dead`, `available=false` ; retire le lead de la liste aged.
+
 ---
 
 ## Mapping intake Boberdoo
@@ -322,3 +336,4 @@ stripe:listen           # webhook Stripe local
 | 2026-07-10 | Core backend 9 phases implémentées — voir journal ci-dessus |
 | 2026-07-21 | Vues liste leads (`lead_list_views`) — remplace onglets statut admin ; CRUD admin/partner |
 | 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |
+| 2026-07-22 | Admin aged — tableau tri URL + pagination + mark dead (UI) |

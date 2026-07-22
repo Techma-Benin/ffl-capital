@@ -309,7 +309,7 @@ resale_postings                   -- envois IntegrityCONNECT
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue), partners, refunds, settings, migration, filter list | ✅ |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue), partners, refunds, **aged browse** (tri URL + pagination), settings, migration, filter list | ✅ |
 | Partner : dashboard, leads (vues sauvegardées), wallet, aged, settings, contact, refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
@@ -349,6 +349,7 @@ resale_postings                   -- envois IntegrityCONNECT
 - [x] Partner leads : vues par partner (défaut « All deliveries »), mêmes primitives UI que l’admin côté liste
 - [x] Admin partners : liste, approbation, détail **P5** (profil + conformité CRM : colonne résumé, stats, checklist, filter sets en lignes, activité unifiée ; édition compte (modal « Edit account » depuis l’en-tête ou Account & CRM ; avatar 96px sur la carte profil — photo Clerk si `Partner.clerkUserId` renseigné, sinon initiales du nom ; partenaires seed type « Dashboard Demo » sans compte Clerk lié)), filter sets ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; toggle cartes/tableau + colonnes masquables (`localStorage` `admin-partners-table-layout`, `admin-partners-visible-columns`)
 - [x] Admin refunds : file pending + historique
+- [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`), KPI + top états, tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id`
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
 - [x] Partner settings (états, CRM webhook)
 
