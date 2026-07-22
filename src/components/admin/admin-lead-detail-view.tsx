@@ -307,6 +307,17 @@ export function AdminLeadDetailView({
               </table>
             </div>
           </div>
+
+          {lead.rawPayload != null && (
+            <details className="card p-4 sm:p-6">
+              <summary className="cursor-pointer text-sm font-semibold text-slate-900">
+                Raw Payload (audit trail)
+              </summary>
+              <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-50 p-4 text-xs text-slate-700">
+                {JSON.stringify(lead.rawPayload, null, 2)}
+              </pre>
+            </details>
+          )}
         </div>
 
         <SectionCard title="Timeline" className="lg:self-start">
@@ -332,17 +343,6 @@ export function AdminLeadDetailView({
         open={partnerSheetOpen}
         onOpenChange={setPartnerSheetOpen}
       />
-
-      {lead.rawPayload != null && (
-        <details className="card p-4 sm:p-6">
-          <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-            Raw Payload (audit trail)
-          </summary>
-          <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-50 p-4 text-xs text-slate-700">
-            {JSON.stringify(lead.rawPayload, null, 2)}
-          </pre>
-        </details>
-      )}
     </div>
   );
 }
