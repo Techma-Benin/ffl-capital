@@ -140,7 +140,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
 
       {!active && (
         <div
-          className="fixed bottom-4 left-4 right-4 z-40 max-w-md rounded-xl border border-slate-200/80 bg-white/95 p-3.5 shadow-lg backdrop-blur-sm sm:bottom-6 sm:left-auto sm:right-6 sm:p-4"
+          className="fixed bottom-4 left-4 right-4 z-40 max-w-md rounded-xl border border-amber-200/70 bg-amber-50/40 p-3.5 shadow-lg backdrop-blur-sm sm:bottom-6 sm:left-auto sm:right-6 sm:p-4"
           role="status"
           aria-live="polite"
         >
