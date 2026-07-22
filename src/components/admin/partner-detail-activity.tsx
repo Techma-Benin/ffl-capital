@@ -63,7 +63,7 @@ export function PartnerDetailActivity({
         at: t.createdAt,
         title: formatTypeLabel(t.type),
         subtitle: `Balance after $${Number(t.balanceAfter).toFixed(2)}`,
-        amount: `${amt > 0 ? "+" : ""}$${Math.abs(amt).toFixed(2)}`,
+        amount: `$${Math.abs(amt).toFixed(2)}`,
         positive: amt > 0,
       };
     }),
