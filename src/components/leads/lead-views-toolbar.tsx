@@ -45,6 +45,7 @@ export function LeadViewsToolbar({
   partnerMeta,
   filterSummary,
   exportSlot,
+  displayControls,
 }: {
   scope: "admin" | "partner";
   apiBase: string;
@@ -58,6 +59,8 @@ export function LeadViewsToolbar({
   };
   filterSummary?: React.ReactNode;
   exportSlot?: React.ReactNode;
+  /** Cards/table layout and column visibility (admin leads parity with partners list). */
+  displayControls?: React.ReactNode;
 }) {
   const { push, router } = useNavigateWithPending();
   const columnSettingsBridge = useLeadColumnSettingsBridge();
@@ -240,6 +243,7 @@ export function LeadViewsToolbar({
           {exportSlot ? (
             <div className="flex items-center gap-1">{exportSlot}</div>
           ) : null}
+          {displayControls}
           <LeadViewActionsMenu
             isDefault={activeView.isDefault}
             onRename={() => {

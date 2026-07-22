@@ -10,10 +10,16 @@ import {
   portalTableCell,
   portalTableCellFirst,
   portalTableCellLast,
+  portalTableDataCellClassName,
   portalTableRowClassName,
+  type PortalDataTableLayout,
 } from "@/components/ui/portal-data-table";
 import { formatDateTime } from "@/lib/format-datetime";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
+import {
+  isAdminLeadHideableColumnKey,
+  type AdminLeadsColumnVisibilityState,
+} from "@/lib/admin/admin-leads-table-display";
 import {
   ArrowsClockwise,
   ArrowUpRight,
@@ -134,6 +140,9 @@ export function AdminLeadsTable({
   leads,
   columns,
   sort,
+  layout = "cards",
+  visibility,
+  tableFooter,
 }: {
   leads: LeadRow[];
   columns: PortalDataTableColumn[];
@@ -142,37 +151,64 @@ export function AdminLeadsTable({
     dir: "asc" | "desc";
     hrefBySortKey: Record<string, string>;
   };
+  layout?: PortalDataTableLayout;
+  visibility?: AdminLeadsColumnVisibilityState;
+  tableFooter?: React.ReactNode;
 }) {
   const columnSettingsBridge = useLeadColumnSettingsBridge();
   const displayColumns = useMemo(() => {
-    if (!columnSettingsBridge) return columns;
-    return columns.map((col) => {
+    const filtered = columns.filter((col) => {
+      if (col.key === "name" || col.key === "actions") return true;
+      if (visibility && isAdminLeadHideableColumnKey(col.key)) {
+        return visibility[col.key];
+      }
+      return true;
+    });
+
+    return filtered.map((col) => {
       if (col.key !== "actions") return col;
       return {
         ...col,
         headerClassName: col.headerClassName ?? "w-12 text-center",
-        headerContent: (
+        headerContent: columnSettingsBridge ? (
           <LeadTableColumnPickerButton
             onClick={columnSettingsBridge.openColumnSettings}
           />
-        ),
+        ) : undefined,
       };
     });
-  }, [columns, columnSettingsBridge]);
+  }, [columns, columnSettingsBridge, visibility]);
 
-  const visibleKeys = new Set(displayColumns.map((c) => c.key));
+  function cellClass(
+    options: { first?: boolean; last?: boolean; className?: string } = {},
+  ) {
+    return (
+      portalTableDataCellClassName(layout, options) ??
+      options.className ??
+      portalTableCell
+    );
+  }
 
-  function cell(key: string, lead: LeadRow) {
+  function cell(key: string, lead: LeadRow, index: number, total: number) {
+    const first = index === 0;
+    const last = index === total - 1;
     switch (key) {
       case "id":
         return (
-          <td key={key} className={`font-mono text-xs text-slate-400 ${portalTableCellFirst}`}>
+          <td
+            key={key}
+            className={cellClass({
+              first,
+              last,
+              className: "font-mono text-xs text-slate-400",
+            })}
+          >
             {lead.id.slice(0, 8)}…
           </td>
         );
       case "name":
         return (
-          <td key={key} className={portalTableCell}>
+          <td key={key} className={cellClass({ first, last })}>
             <p className="font-medium text-slate-900">
               {lead.firstName} {lead.lastName}
             </p>
@@ -181,13 +217,16 @@ export function AdminLeadsTable({
         );
       case "phone":
         return (
-          <td key={key} className={`text-slate-500 ${portalTableCell}`}>
+          <td
+            key={key}
+            className={cellClass({ first, last, className: "text-slate-500" })}
+          >
             {lead.phone}
           </td>
         );
       case "state":
         return (
-          <td key={key} className={portalTableCell}>
+          <td key={key} className={cellClass({ first, last })}>
             <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
               {lead.state}
             </span>
@@ -195,7 +234,7 @@ export function AdminLeadsTable({
         );
       case "type":
         return (
-          <td key={key} className={portalTableCell}>
+          <td key={key} className={cellClass({ first, last })}>
             <Badge variant="purple">
               {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
             </Badge>
@@ -203,19 +242,29 @@ export function AdminLeadsTable({
         );
       case "status":
         return (
-          <td key={key} className={portalTableCell}>
+          <td key={key} className={cellClass({ first, last })}>
             <LeadStatusBadge status={lead.status} />
           </td>
         );
       case "partner":
         return (
-          <td key={key} className={`text-slate-600 ${portalTableCell}`}>
+          <td
+            key={key}
+            className={cellClass({ first, last, className: "text-slate-600" })}
+          >
             {lead.partnerName ?? <span className="text-slate-300">—</span>}
           </td>
         );
       case "price":
         return (
-          <td key={key} className={`font-semibold text-slate-700 ${portalTableCell}`}>
+          <td
+            key={key}
+            className={cellClass({
+              first,
+              last,
+              className: "font-semibold text-slate-700",
+            })}
+          >
             {lead.price ?? <span className="text-slate-300">—</span>}
           </td>
         );
@@ -223,7 +272,11 @@ export function AdminLeadsTable({
         return (
           <td
             key={key}
-            className={`text-slate-400 text-xs ${portalTableCell}`}
+            className={cellClass({
+              first,
+              last,
+              className: "text-slate-400 text-xs",
+            })}
             suppressHydrationWarning
           >
             {formatDateTime(lead.receivedAt)}
@@ -231,7 +284,7 @@ export function AdminLeadsTable({
         );
       case "trustedform":
         return (
-          <td key={key} className={portalTableCell}>
+          <td key={key} className={cellClass({ first, last })}>
             {lead.trustedformCertUrl ? (
               <a
                 href={lead.trustedformCertUrl}
@@ -249,7 +302,7 @@ export function AdminLeadsTable({
         );
       case "actions":
         return (
-          <td key={key} className={portalTableCellLast}>
+          <td key={key} className={cellClass({ first, last })}>
             <AdminLeadRowMenu lead={lead} />
           </td>
         );
@@ -259,18 +312,23 @@ export function AdminLeadsTable({
   }
 
   return (
-    <PortalDataTable columns={displayColumns} sort={sort}>
+    <PortalDataTable
+      columns={displayColumns}
+      sort={sort}
+      layout={layout}
+      footer={tableFooter}
+    >
       {leads.map((lead) => (
         <tr
           key={lead.id}
-          className={`cursor-pointer ${portalTableRowClassName()}`}
+          className={`cursor-pointer ${portalTableRowClassName(undefined, layout)}`}
           onClick={() => {
             window.location.href = `/admin/leads/${lead.id}`;
           }}
         >
-          {displayColumns
-            .filter((c) => visibleKeys.has(c.key))
-            .map((c) => cell(c.key, lead))}
+          {displayColumns.map((c, i) =>
+            cell(c.key, lead, i, displayColumns.length),
+          )}
         </tr>
       ))}
     </PortalDataTable>

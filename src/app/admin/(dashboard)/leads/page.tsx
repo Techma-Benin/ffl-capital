@@ -2,16 +2,11 @@ import { redirect } from "next/navigation";
 import { LeadListViewScope } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
-import { FileText } from "@/lib/icons/ssr";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
-import { PortalDataTableCard } from "@/components/ui/portal-data-table";
 import { formatUsd } from "@/lib/format-money";
 import { LeadsExportButton } from "@/components/admin/leads-export-button";
-import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
-import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
-import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
+import { AdminLeadsListClient } from "@/components/admin/admin-leads-list-client";
 import { adminDatePeriodLabel } from "@/lib/admin/admin-date-period";
 import {
   buildAdminLeadsWhere,
@@ -141,35 +136,52 @@ export default async function AdminLeadsPage({
         action={<LeadsExportButton viewId={view.id} />}
       />
 
-      <LeadColumnSettingsBridge>
-        <PortalDataTableCard
-        tabsSlot={
-          <div className="px-1">
-            <LeadViewsToolbar
-              scope="admin"
-              apiBase="/api/admin/lead-views"
-              basePath={BASE_PATH}
-              views={views}
-              activeView={view}
-              catalog={ADMIN_LEAD_COLUMNS}
-              filterSummary={
-                filterChips.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 px-1 text-xs text-slate-500">
-                    {filterChips.map((c) => (
-                      <span
-                        key={c}
-                        className="rounded-full bg-slate-100 px-2 py-0.5"
-                      >
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                ) : null
-              }
-            />
-          </div>
+      <AdminLeadsListClient
+        basePath={BASE_PATH}
+        views={views}
+        activeView={view}
+        catalog={ADMIN_LEAD_COLUMNS}
+        filterSummary={
+          filterChips.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 px-1 text-xs text-slate-500">
+              {filterChips.map((c) => (
+                <span
+                  key={c}
+                  className="rounded-full bg-slate-100 px-2 py-0.5"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          ) : null
         }
-        footer={
+        leads={leads.map((lead) => {
+          const delivery = lead.leadDeliveries[0];
+          return {
+            id: lead.id,
+            firstName: lead.firstName,
+            lastName: lead.lastName,
+            email: lead.email,
+            phone: lead.phone,
+            state: lead.state,
+            leadType: lead.leadType,
+            status: lead.status,
+            available: lead.available,
+            receivedAt: lead.receivedAt,
+            trustedformCertUrl: lead.trustedformCertUrl,
+            partnerName: delivery
+              ? `${delivery.partner.firstName} ${delivery.partner.lastName}`
+              : null,
+            price: delivery ? formatUsd(delivery.price) : null,
+          };
+        })}
+        columns={tableColumns}
+        sort={{
+          active: sortState.field,
+          dir: sortState.direction,
+          hrefBySortKey: sortHrefMap,
+        }}
+        pagination={
           <TablePagination
             page={page}
             pageSize={pageSize}
@@ -178,48 +190,7 @@ export default async function AdminLeadsPage({
             searchParams={paginationParams}
           />
         }
-      >
-        {leads.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="No leads found"
-            description="Try editing this view’s filters or create a new view."
-            accent="orange"
-          />
-        ) : (
-          <AdminLeadsTable
-            leads={leads.map((lead) => {
-              const delivery = lead.leadDeliveries[0];
-              return {
-                id: lead.id,
-                firstName: lead.firstName,
-                lastName: lead.lastName,
-                email: lead.email,
-                phone: lead.phone,
-                state: lead.state,
-                leadType: lead.leadType,
-                status: lead.status,
-                available: lead.available,
-                receivedAt: lead.receivedAt,
-                trustedformCertUrl: lead.trustedformCertUrl,
-                partnerName: delivery
-                  ? `${delivery.partner.firstName} ${delivery.partner.lastName}`
-                  : null,
-                price: delivery
-                  ? formatUsd(delivery.price)
-                  : null,
-              };
-            })}
-            columns={tableColumns}
-            sort={{
-              active: sortState.field,
-              dir: sortState.direction,
-              hrefBySortKey: sortHrefMap,
-            }}
-          />
-        )}
-        </PortalDataTableCard>
-      </LeadColumnSettingsBridge>
+      />
     </div>
   );
 }

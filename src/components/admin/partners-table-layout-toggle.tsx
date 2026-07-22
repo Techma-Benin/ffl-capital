@@ -6,7 +6,7 @@ import {
   List as ListBullets,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
-import type { PartnersTableLayout } from "@/lib/admin/partners-table-columns";
+import type { PortalDataTableLayout } from "@/components/ui/portal-data-table";
 
 const LAYOUT_OPTIONS = [
   {
@@ -25,8 +25,8 @@ export function PartnersTableLayoutToggle({
   layout,
   onLayoutChange,
 }: {
-  layout: PartnersTableLayout;
-  onLayoutChange: (layout: PartnersTableLayout) => void;
+  layout: PortalDataTableLayout;
+  onLayoutChange: (layout: PortalDataTableLayout) => void;
 }) {
   return (
     <div
