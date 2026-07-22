@@ -10,6 +10,14 @@ import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-butt
 import { AdminLeadEditModal } from "@/components/admin/admin-lead-edit-form";
 import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
+import {
+  PortalDataTable,
+  portalTableCell,
+  portalTableCellFirst,
+  portalTableCellLast,
+  portalTableRowClassName,
+  type PortalDataTableColumn,
+} from "@/components/ui/portal-data-table";
 
 const TABS = [
   { id: "contact", label: "Contact" },
@@ -18,6 +26,13 @@ const TABS = [
   { id: "tracking", label: "Tracking" },
   { id: "events", label: "Events" },
 ] as const;
+
+const PARTNER_DELIVERY_COLUMNS: PortalDataTableColumn[] = [
+  { key: "partner", label: "Partner" },
+  { key: "channel", label: "Channel" },
+  { key: "price", label: "Price" },
+  { key: "delivered", label: "Delivered" },
+];
 
 type TabId = (typeof TABS)[number]["id"];
 
@@ -228,45 +243,44 @@ export function AdminLeadDetailView({
             {tab === "events" && <EventsPanel events={events} />}
           </SectionCard>
 
-          <SectionCard title="Partner deliveries">
+          <SectionCard
+            title="Partner deliveries"
+            bodyClassName={deliveries.length > 0 ? "p-0" : undefined}
+          >
             {deliveries.length === 0 ? (
               <p className="text-sm text-slate-400">No deliveries yet.</p>
             ) : (
-              <div className="-mx-[18px] overflow-x-auto sm:mx-0">
-                <table className="data-table min-w-[480px]">
-                  <thead>
-                    <tr>
-                      <th>Partner</th>
-                      <th>Channel</th>
-                      <th>Price</th>
-                      <th>Delivered</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {deliveries.map((d) => (
-                      <tr
-                        key={d.id}
-                        className={clsx(!d.refundedAt && "bg-emerald-50/60")}
-                      >
-                        <td className="font-medium">{d.partnerName}</td>
-                        <td>
-                          <Badge
-                            variant={d.channel === "realtime" ? "green" : "purple"}
-                          >
-                            {d.channel}
-                          </Badge>
-                        </td>
-                        <td>${d.price.toFixed(2)}</td>
-                        <td
-                          className="text-xs text-slate-500"
-                          suppressHydrationWarning
+              <div className="overflow-x-auto">
+                <PortalDataTable
+                  columns={PARTNER_DELIVERY_COLUMNS}
+                  className="min-w-[480px] pb-4 pt-2"
+                >
+                  {deliveries.map((d) => (
+                    <tr key={d.id} className={portalTableRowClassName()}>
+                      <td className={portalTableCellFirst}>
+                        <span className="font-semibold text-slate-900">
+                          {d.partnerName}
+                        </span>
+                      </td>
+                      <td className={portalTableCell}>
+                        <Badge
+                          variant={d.channel === "realtime" ? "green" : "purple"}
                         >
-                          {formatDateTime(d.deliveredAt)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          {d.channel}
+                        </Badge>
+                      </td>
+                      <td className={`font-semibold text-slate-700 ${portalTableCell}`}>
+                        ${d.price.toFixed(2)}
+                      </td>
+                      <td
+                        className={`text-sm text-slate-500 ${portalTableCellLast}`}
+                        suppressHydrationWarning
+                      >
+                        {formatDateTime(d.deliveredAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </PortalDataTable>
               </div>
             )}
           </SectionCard>
@@ -332,17 +346,19 @@ function SectionCard({
   title,
   children,
   className,
+  bodyClassName,
 }: {
   title: string;
   children: ReactNode;
   className?: string;
+  bodyClassName?: string;
 }) {
   return (
     <section className={clsx("card overflow-hidden", className)}>
       <div className="border-b border-slate-100 px-4 py-3.5 sm:px-[18px]">
         <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
       </div>
-      <div className="p-4 sm:p-[18px]">{children}</div>
+      <div className={bodyClassName ?? "p-4 sm:p-[18px]"}>{children}</div>
     </section>
   );
 }
