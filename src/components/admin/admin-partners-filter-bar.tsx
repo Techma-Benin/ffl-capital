@@ -1,12 +1,18 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { clsx } from "clsx";
 import { PortalDataTableTab } from "@/components/ui/portal-data-table-tab";
 import type { PortalDataTableTabConfig } from "@/components/ui/portal-data-table";
+import { CaretDown } from "@/lib/icons/client";
 import { PARTNER_COMPANY_PARAM } from "@/lib/admin/partner-list-filters";
 
 const BASE_PATH = "/admin/partners";
 const LEGACY_FAMILY_PARAM = "family";
+
+const companyFilterIdle =
+  "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
+const companyFilterActive = "border-orange-300 bg-orange-50 text-orange-700";
 
 export function AdminPartnersFilterBar({
   tabs,
@@ -22,6 +28,7 @@ export function AdminPartnersFilterBar({
 
   const selectValue =
     selectedCompanies.length === 1 ? selectedCompanies[0]! : "";
+  const companyDisabled = affiliationOptions.length === 0;
 
   function navigateCompany(company: string) {
     const next = new URLSearchParams(searchParams.toString());
@@ -49,23 +56,38 @@ export function AdminPartnersFilterBar({
           </PortalDataTableTab>
         ))}
 
-        <label className="sr-only" htmlFor="admin-partners-company">
-          Company
-        </label>
-        <select
-          id="admin-partners-company"
-          className="form-select inline-block w-auto max-w-[240px] shrink-0 min-w-[160px] py-1.5 pl-3 pr-8 text-sm font-medium shadow-none"
-          value={selectValue}
-          onChange={(e) => navigateCompany(e.target.value)}
-          disabled={affiliationOptions.length === 0}
-        >
-          <option value="">All companies</option>
-          {affiliationOptions.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
+        <div className="relative inline-flex shrink-0">
+          <label className="sr-only" htmlFor="admin-partners-company">
+            Company
+          </label>
+          <span
+            aria-hidden
+            className={clsx(
+              "pointer-events-none inline-flex max-w-[240px] min-w-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
+              selectValue ? companyFilterActive : companyFilterIdle,
+              companyDisabled && "opacity-50",
+            )}
+          >
+            <span className="min-w-0 truncate">
+              {selectValue || "Company"}
+            </span>
+            <CaretDown className="size-4 shrink-0 opacity-70" aria-hidden />
+          </span>
+          <select
+            id="admin-partners-company"
+            className="absolute inset-0 w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+            value={selectValue}
+            onChange={(e) => navigateCompany(e.target.value)}
+            disabled={companyDisabled}
+          >
+            <option value="">All companies</option>
+            {affiliationOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   );
