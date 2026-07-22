@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format-datetime";
+import { deliveryChannelLabel, formatTypeLabel } from "@/lib/format-type-label";
 
 type DeliveryRow = {
   id: string;
@@ -50,7 +51,7 @@ export function PartnerDetailActivity({
       kind: "delivery" as const,
       at: d.deliveredAt,
       title: `Lead · ${d.lead.firstName} ${d.lead.lastName}`,
-      subtitle: `${d.lead.state} · ${d.channel}`,
+      subtitle: `${d.lead.state} · ${deliveryChannelLabel(d.channel)}`,
       amount: `$${Number(d.price).toFixed(2)}`,
       channel: d.channel,
     })),
@@ -60,7 +61,7 @@ export function PartnerDetailActivity({
         id: t.id,
         kind: "transaction" as const,
         at: t.createdAt,
-        title: t.type.replace(/_/g, " "),
+        title: formatTypeLabel(t.type),
         subtitle: `Balance after $${Number(t.balanceAfter).toFixed(2)}`,
         amount: `${amt > 0 ? "+" : ""}$${Math.abs(amt).toFixed(2)}`,
         positive: amt > 0,
@@ -99,7 +100,7 @@ export function PartnerDetailActivity({
                         variant={item.channel === "realtime" ? "green" : "purple"}
                         className="shrink-0"
                       >
-                        {item.channel}
+                        {deliveryChannelLabel(item.channel)}
                       </Badge>
                     )}
                     {item.kind === "transaction" && (
