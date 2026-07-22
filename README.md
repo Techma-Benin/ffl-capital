@@ -57,6 +57,9 @@ npm run seed:lead
 
 # Données demo remboursements admin (/admin/refunds)
 npm run seed:refunds-demo
+
+# Leads vieillis pour /admin/aged et /partner/aged
+npm run seed:aged-leads
 ```
 
 ## Endpoints API (principaux)

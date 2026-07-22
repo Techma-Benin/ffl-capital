@@ -15,6 +15,7 @@
     "create-admin": "node scripts/create-admin.mjs",
     "seed:lead": "node scripts/seed-lead.mjs",
     "seed:refunds-demo": "node scripts/seed-refunds-demo.mjs",
+    "seed:aged-leads": "node scripts/seed-aged-leads.mjs",
     "test:matching": "node scripts/test-matching.mjs",
     "verify": "node scripts/verify-backend.mjs",
     "verify:cron": "node scripts/verify-cron.mjs",
