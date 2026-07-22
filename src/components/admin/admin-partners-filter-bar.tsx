@@ -1,22 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CaretDown, CaretUp, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
-import { clsx } from "clsx";
 import { PortalDataTableTab } from "@/components/ui/portal-data-table-tab";
 import type { PortalDataTableTabConfig } from "@/components/ui/portal-data-table";
 import { PARTNER_COMPANY_PARAM } from "@/lib/admin/partner-list-filters";
 
 const BASE_PATH = "/admin/partners";
 const LEGACY_FAMILY_PARAM = "family";
-
-const filterPillActive =
-  "border-rose-300 bg-rose-50 text-rose-800";
-const filterPillWithSelection =
-  "border-rose-200 bg-rose-50/60 text-rose-700";
-const filterPillIdle =
-  "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
 
 export function AdminPartnersFilterBar({
   tabs,
@@ -29,54 +19,23 @@ export function AdminPartnersFilterBar({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [companyOpen, setCompanyOpen] = useState(false);
-  const barRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!companyOpen) return;
-    let removeListener: (() => void) | undefined;
-    // Defer so the opening click/mousedown is not treated as an outside dismiss.
-    const deferId = window.setTimeout(() => {
-      function handle(e: MouseEvent) {
-        if (barRef.current && !barRef.current.contains(e.target as Node)) {
-          setCompanyOpen(false);
-        }
-      }
-      document.addEventListener("mousedown", handle);
-      removeListener = () => document.removeEventListener("mousedown", handle);
-    }, 0);
-    return () => {
-      window.clearTimeout(deferId);
-      removeListener?.();
-    };
-  }, [companyOpen]);
+  const selectValue =
+    selectedCompanies.length === 1 ? selectedCompanies[0]! : "";
 
-  function navigateCompany(nextCompanies: string[]) {
+  function navigateCompany(company: string) {
     const next = new URLSearchParams(searchParams.toString());
     next.delete("page");
     next.delete(LEGACY_FAMILY_PARAM);
-    if (nextCompanies.length === 0) next.delete(PARTNER_COMPANY_PARAM);
-    else next.set(PARTNER_COMPANY_PARAM, nextCompanies.join(","));
+    const trimmed = company.trim();
+    if (!trimmed) next.delete(PARTNER_COMPANY_PARAM);
+    else next.set(PARTNER_COMPANY_PARAM, trimmed);
     const qs = next.toString();
     router.push(qs ? `${BASE_PATH}?${qs}` : BASE_PATH);
   }
 
-  function toggleCompany(value: string) {
-    const next = selectedCompanies.includes(value)
-      ? selectedCompanies.filter((v) => v !== value)
-      : [...selectedCompanies, value];
-    navigateCompany(next);
-  }
-
-  function clearCompany() {
-    navigateCompany([]);
-    setCompanyOpen(false);
-  }
-
-  const hasCompanySelection = selectedCompanies.length > 0;
-
   return (
-    <div ref={barRef} className="relative z-10 mb-4 shrink-0">
+    <div className="relative z-10 mb-4 shrink-0">
       <div className="flex flex-wrap items-center gap-2 px-1 py-2">
         {tabs.map((tab) => (
           <PortalDataTableTab
@@ -90,75 +49,24 @@ export function AdminPartnersFilterBar({
           </PortalDataTableTab>
         ))}
 
-        <button
-          type="button"
-          aria-expanded={companyOpen}
-          onClick={(e) => {
-            e.stopPropagation();
-            setCompanyOpen((open) => !open);
-          }}
-          className={clsx(
-            "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
-            companyOpen
-              ? filterPillActive
-              : hasCompanySelection
-                ? filterPillWithSelection
-                : filterPillIdle,
-          )}
-        >
+        <label className="sr-only" htmlFor="admin-partners-company">
           Company
-          {hasCompanySelection && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-bold text-white">
-              {selectedCompanies.length}
-            </span>
-          )}
-          {companyOpen ? (
-            <CaretUp size={12} weight={ICON_WEIGHT_LINEAR} />
-          ) : (
-            <CaretDown size={12} weight={ICON_WEIGHT_LINEAR} />
-          )}
-        </button>
-
-        {hasCompanySelection && (
-          <button
-            type="button"
-            onClick={clearCompany}
-            className="ml-auto inline-flex items-center gap-1 text-xs text-slate-400 transition-colors hover:text-red-500"
-          >
-            <X size={12} weight={ICON_WEIGHT_LINEAR} />
-            Clear company
-          </button>
-        )}
+        </label>
+        <select
+          id="admin-partners-company"
+          className="form-select min-w-[160px] py-1.5 text-sm"
+          value={selectValue}
+          onChange={(e) => navigateCompany(e.target.value)}
+          disabled={affiliationOptions.length === 0}
+        >
+          <option value="">All companies</option>
+          {affiliationOptions.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
       </div>
-
-      {companyOpen && (
-        <div className="mt-1 px-1 py-2">
-          {affiliationOptions.length === 0 ? (
-            <p className="text-xs text-slate-400">No companies recorded yet</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {affiliationOptions.map((name) => {
-                const isSelected = selectedCompanies.includes(name);
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => toggleCompany(name)}
-                    className={clsx(
-                      "rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
-                      isSelected
-                        ? filterPillActive
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-800",
-                    )}
-                  >
-                    {name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

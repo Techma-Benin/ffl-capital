@@ -1,6 +1,6 @@
 import type { PartnerStatus, Prisma } from "@prisma/client";
 
-/** URL param for multi-select company (affiliation) filter on admin partners list. */
+/** URL param for company (affiliation) filter on admin partners list (comma-separated for legacy bookmarks). */
 export const PARTNER_COMPANY_PARAM = "company";
 
 /** Legacy param — still read for backward-compatible bookmarks. */
