@@ -96,7 +96,6 @@ export default async function AdminPartnerDetailPage({
             <div className="space-y-3 px-4 py-3">
               {[
                 { label: "Email", value: partner.email },
-                { label: "Phone", value: "Not on file", muted: true },
                 {
                   label: "Affiliation",
                   value: partner.affiliation ?? "—",
@@ -106,13 +105,7 @@ export default async function AdminPartnerDetailPage({
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                     {field.label}
                   </p>
-                  <p
-                    className={
-                      field.muted
-                        ? "text-sm italic text-slate-400"
-                        : "text-sm text-slate-900"
-                    }
-                  >
+                  <p className="text-sm font-semibold text-slate-900">
                     {field.value}
                   </p>
                 </div>
