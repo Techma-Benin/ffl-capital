@@ -9,7 +9,6 @@ import {
   DotsThree,
   Eye,
   ArrowCounterClockwise,
-  X,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
@@ -21,6 +20,7 @@ import {
   portalTableRowClassName,
   type PortalDataTableColumn,
 } from "@/components/ui/portal-data-table";
+import { RefundRequestModal } from "@/components/refunds/refund-request-modal";
 
 type DeliveryRow = {
   id: string;
@@ -46,72 +46,7 @@ type DeliveryRow = {
   };
 };
 
-function BulkRefundDialog({
-  count,
-  pending,
-  onSubmit,
-  onClose,
-}: {
-  count: number;
-  pending: boolean;
-  onSubmit: (refundType: "wrong_filter" | "invalid_phone", reason: string) => void;
-  onClose: () => void;
-}) {
-  const [refundType, setRefundType] = useState<"wrong_filter" | "invalid_phone">("wrong_filter");
-  const [reason, setReason] = useState("");
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">
-            Request Refund <span className="text-amber-600">({count})</span>
-          </h3>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <X size={18} weight={ICON_WEIGHT_LINEAR} />
-          </button>
-        </div>
-        <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Refund Type</label>
-            <select
-              value={refundType}
-              onChange={(e) => setRefundType(e.target.value as "wrong_filter" | "invalid_phone")}
-              className="form-select w-full text-sm"
-            >
-              <option value="wrong_filter">Wrong Filter</option>
-              <option value="invalid_phone">Invalid Phone</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Reason (optional)</label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Describe the issue…"
-              rows={3}
-              className="form-input w-full text-sm resize-none"
-            />
-          </div>
-        </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="btn-secondary btn-sm">Cancel</button>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => onSubmit(refundType, reason)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
-          >
-            <ArrowCounterClockwise size={14} />
-            {pending ? "Submitting…" : `Submit (${count})`}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RefundDialog({
+function PartnerLeadRefundDialog({
   deliveryId,
   onClose,
 }: {
@@ -119,76 +54,28 @@ function RefundDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [refundType, setRefundType] = useState<"wrong_filter" | "invalid_phone">("wrong_filter");
-  const [reason, setReason] = useState("");
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit() {
-    setPending(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/refunds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadDeliveryId: deliveryId, refundType, reason: reason || undefined }),
-      });
-      if (!res.ok) throw new Error("Request failed");
-      onClose();
-      router.refresh();
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setPending(false);
-    }
-  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Request Refund</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <X size={18} weight={ICON_WEIGHT_LINEAR} />
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Refund Type</label>
-            <select
-              value={refundType}
-              onChange={(e) => setRefundType(e.target.value as "wrong_filter" | "invalid_phone")}
-              className="form-select w-full text-sm"
-            >
-              <option value="wrong_filter">Wrong Filter</option>
-              <option value="invalid_phone">Invalid Phone</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Reason (optional)</label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Describe the issue…"
-              rows={3}
-              className="form-input w-full text-sm resize-none"
-            />
-          </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
-        </div>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="btn-secondary btn-sm">Cancel</button>
-          <button type="button" onClick={submit} disabled={pending} className="btn-primary btn-sm">
-            {pending ? "Submitting…" : "Submit"}
-          </button>
-        </div>
-      </div>
-    </div>
+    <RefundRequestModal
+      open
+      onClose={onClose}
+      title="Request Refund"
+      submitLabel="Submit"
+      onSubmit={async ({ refundType, reason }) => {
+        const res = await fetch("/api/refunds", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leadDeliveryId: deliveryId,
+            refundType,
+            reason: reason || undefined,
+          }),
+        });
+        if (!res.ok) throw new Error("Request failed");
+        onClose();
+        router.refresh();
+      }}
+    />
   );
 }
 
@@ -484,16 +371,25 @@ export function PartnerLeadsTable({
       </PortalDataTable>
 
       {bulkRefundOpen && (
-        <BulkRefundDialog
-          count={refundableSelected.length}
-          pending={pending}
-          onSubmit={bulkRefund}
+        <RefundRequestModal
+          open
           onClose={() => setBulkRefundOpen(false)}
+          title="Request Refund"
+          titleHighlight={
+            <span className="text-amber-600">({refundableSelected.length})</span>
+          }
+          submitLabel={`Submit (${refundableSelected.length})`}
+          submitIcon={<ArrowCounterClockwise size={14} />}
+          submitClassName="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+          isSubmitting={pending}
+          onSubmit={({ refundType, reason }) => {
+            void bulkRefund(refundType, reason);
+          }}
         />
       )}
 
       {refundDialogId && (
-        <RefundDialog
+        <PartnerLeadRefundDialog
           deliveryId={refundDialogId}
           onClose={() => setRefundDialogId(null)}
         />

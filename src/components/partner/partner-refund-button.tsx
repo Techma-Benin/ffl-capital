@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowCounterClockwise } from "@/lib/icons/client";
+import { RefundRequestModal } from "@/components/refunds/refund-request-modal";
 
 export function PartnerRefundButton({
   leadDeliveryId,
@@ -11,36 +12,9 @@ export function PartnerRefundButton({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [refundType, setRefundType] = useState<"wrong_filter" | "invalid_phone">(
-    "wrong_filter",
-  );
-  const [reason, setReason] = useState("");
-  const [pending, setPending] = useState(false);
 
-  async function submit() {
-    setPending(true);
-    try {
-      const res = await fetch("/api/refunds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadDeliveryId,
-          refundType,
-          reason: reason || undefined,
-        }),
-      });
-      if (!res.ok) throw new Error("Request failed");
-      setOpen(false);
-      router.refresh();
-    } catch {
-      // allow retry
-    } finally {
-      setPending(false);
-    }
-  }
-
-  if (!open) {
-    return (
+  return (
+    <>
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -49,45 +23,27 @@ export function PartnerRefundButton({
         <ArrowCounterClockwise size={11} />
         Refund
       </button>
-    );
-  }
 
-  return (
-    <div className="flex flex-col items-end gap-2 min-w-[200px]">
-      <select
-        value={refundType}
-        onChange={(e) =>
-          setRefundType(e.target.value as "wrong_filter" | "invalid_phone")
-        }
-        className="form-select py-1 text-xs w-full"
-      >
-        <option value="wrong_filter">Wrong Filter</option>
-        <option value="invalid_phone">Invalid Phone</option>
-      </select>
-      <input
-        type="text"
-        placeholder="Reason (optional)"
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        className="form-input py-1 text-xs w-full"
+      <RefundRequestModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Request Refund"
+        submitLabel="Submit"
+        onSubmit={async ({ refundType, reason }) => {
+          const res = await fetch("/api/refunds", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              leadDeliveryId,
+              refundType,
+              reason: reason || undefined,
+            }),
+          });
+          if (!res.ok) throw new Error("Request failed");
+          setOpen(false);
+          router.refresh();
+        }}
       />
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="btn-secondary btn-sm"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={submit}
-          disabled={pending}
-          className="btn-primary btn-sm"
-        >
-          {pending ? "Submitting…" : "Submit"}
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
