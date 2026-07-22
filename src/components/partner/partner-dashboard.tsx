@@ -158,10 +158,16 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                   label={
                     partner.hasStatesInAnyFilterSet && !statesOk
                       ? "Target filter set must be active (contact admin if this persists)"
-                      : `At least 15 target states selected (${partner.maxFilterSetStates} selected)`
+                      : statesOk
+                        ? `At least 15 target states selected (${partner.maxFilterSetStates} selected)`
+                        : `At least 15 target states selected (${partner.maxFilterSetStates} selected) — edit states`
                   }
-                  actionHref="/partner/settings"
-                  actionLabel="Edit states"
+                  actionHref={
+                    partner.hasStatesInAnyFilterSet && !statesOk
+                      ? undefined
+                      : "/partner/settings"
+                  }
+                  labelAsLinkWhenPending
                 />
                 <ChecklistItem
                   done={walletOk}
@@ -185,12 +191,14 @@ function ChecklistItem({
   actionHref,
   actionLabel,
   linkOnlyWhenPending,
+  labelAsLinkWhenPending,
 }: {
   done: boolean;
   label: string;
   actionHref?: string;
   actionLabel?: string;
   linkOnlyWhenPending?: boolean;
+  labelAsLinkWhenPending?: boolean;
 }) {
   const linkClass = "text-xs font-medium text-brand-600 hover:underline";
 
@@ -202,6 +210,7 @@ function ChecklistItem({
             ? "bg-emerald-500 text-white"
             : "border-2 border-amber-300 text-amber-600"
         }`}
+        aria-hidden
       >
         {done ? "✓" : "!"}
       </span>
@@ -210,6 +219,10 @@ function ChecklistItem({
       ) : linkOnlyWhenPending && actionHref && actionLabel ? (
         <PortalLink href={actionHref} className={linkClass}>
           {actionLabel}
+        </PortalLink>
+      ) : labelAsLinkWhenPending && actionHref ? (
+        <PortalLink href={actionHref} className={linkClass}>
+          {label}
         </PortalLink>
       ) : (
         <>
