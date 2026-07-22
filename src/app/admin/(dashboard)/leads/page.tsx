@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileText } from "@/lib/icons/ssr";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { parsePageParams } from "@/lib/pagination";
 import { PortalDataTableCard } from "@/components/ui/portal-data-table";
 import { formatUsd } from "@/lib/format-money";
 import { LeadsExportButton } from "@/components/admin/leads-export-button";
