@@ -121,52 +121,56 @@ export function PortalDataTable({
   sort?: PortalDataTableSortState;
   layout?: PortalDataTableLayout;
 }) {
-  return (
-    <div
+  const table = (
+    <table
       className={clsx(
-        "min-h-0 flex-1 pb-2 pt-1",
-        layout === "table" && "overflow-x-auto",
-        className,
+        "w-full",
+        layout === "cards"
+          ? "border-separate border-spacing-y-2"
+          : "data-table data-table-grid",
       )}
     >
-      <table
-        className={clsx(
-          "w-full",
-          layout === "cards"
-            ? "border-separate border-spacing-y-2"
-            : "data-table",
-        )}
-      >
-        <thead>
-          <tr>
-            {columns.map((col) => {
-              if (col.sortKey && sort?.hrefBySortKey[col.sortKey]) {
-                return (
-                  <PortalSortableHeaderCell
-                    key={col.key}
-                    label={col.label}
-                    href={sort.hrefBySortKey[col.sortKey]}
-                    active={sort.active === col.sortKey}
-                    dir={sort.dir}
-                    headerClassName={col.headerClassName}
-                  />
-                );
-              }
+      <thead>
+        <tr>
+          {columns.map((col) => {
+            if (col.sortKey && sort?.hrefBySortKey[col.sortKey]) {
               return (
-                <PortalTableHeaderCell
+                <PortalSortableHeaderCell
                   key={col.key}
                   label={col.label}
+                  href={sort.hrefBySortKey[col.sortKey]}
+                  active={sort.active === col.sortKey}
+                  dir={sort.dir}
                   headerClassName={col.headerClassName}
-                >
-                  {col.headerContent}
-                </PortalTableHeaderCell>
+                />
               );
-            })}
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
-    </div>
+            }
+            return (
+              <PortalTableHeaderCell
+                key={col.key}
+                label={col.label}
+                headerClassName={col.headerClassName}
+              >
+                {col.headerContent}
+              </PortalTableHeaderCell>
+            );
+          })}
+        </tr>
+      </thead>
+      <tbody>{children}</tbody>
+    </table>
+  );
+
+  if (layout === "table") {
+    return (
+      <div className={clsx("card min-h-0 flex-1 overflow-hidden", className)}>
+        <div className="overflow-x-auto">{table}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={clsx("min-h-0 flex-1 pb-2 pt-1", className)}>{table}</div>
   );
 }
 
