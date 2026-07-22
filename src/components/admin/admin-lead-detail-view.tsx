@@ -125,13 +125,15 @@ export function AdminLeadDetailView({
   return (
     <div className="space-y-2.5">
       <header className="space-y-1">
-        <Link
-          href="/admin/leads"
-          className="text-sm font-medium text-orange-600 hover:text-orange-700 hover:underline"
-        >
-          ← Back to leads
-        </Link>
-        <h1 className="page-title">Lead detail</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="page-title">Lead detail</h1>
+          <Link
+            href="/admin/leads"
+            className="shrink-0 text-sm font-medium text-orange-600 hover:text-orange-700 hover:underline"
+          >
+            ← Back to leads
+          </Link>
+        </div>
         <p className="page-subtitle">
           {lead.firstName} {lead.lastName} · {lead.id}
         </p>
