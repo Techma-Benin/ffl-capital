@@ -226,7 +226,7 @@ export function AdminRefundsPendingTable({
           </thead>
           <tbody>
             {pageRefunds.map((r) => (
-              <tr key={r.id}>
+              <tr key={r.id} className="group">
                 <td>
                   <input
                     type="checkbox"

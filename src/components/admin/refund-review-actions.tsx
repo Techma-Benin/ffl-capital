@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useLayoutEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { clsx } from "clsx";
 import {
   CheckCircle,
   XCircle,
@@ -102,7 +103,12 @@ function RefundReviewMenu({
           setOpen((o) => !o);
         }}
         disabled={pending !== null}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:opacity-60"
+        className={clsx(
+          "flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-opacity disabled:opacity-60",
+          open || pending !== null
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100",
+        )}
         aria-label="Refund actions"
         aria-expanded={open}
       >
