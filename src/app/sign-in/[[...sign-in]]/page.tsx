@@ -40,7 +40,7 @@ export default async function SignInPage() {
         </div>
       </AuthLeftPanel>
 
-      <div className="flex flex-1 items-center justify-center bg-page px-6 py-12">
+      <div className="flex flex-1 items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center lg:hidden">
             <Link href="/" className="inline-block transition-opacity hover:opacity-80">

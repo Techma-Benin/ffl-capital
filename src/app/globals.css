@@ -8,6 +8,11 @@
     --color-brand: #0b3d91;
     --color-accent: #00a651;
     --color-page: #f4f7fb;
+    --app-dot-size: 28px;
+    --app-dot-color: rgb(100 116 139 / 0.13);
+    --app-dot-color-bright: rgb(100 116 139 / 0.26);
+    --app-spotlight-x: 50%;
+    --app-spotlight-y: 50%;
   }
 
   * {
@@ -20,7 +25,7 @@
   }
 
   body {
-    @apply bg-page text-slate-900;
+    @apply bg-app-dotted text-slate-900;
   }
 
   /* Scrollbar styling */
@@ -42,7 +47,57 @@
   }
 }
 
+@layer utilities {
+  .bg-app-dotted {
+    background-color: var(--color-page);
+    background-image: radial-gradient(
+      circle at center,
+      var(--app-dot-color) 1px,
+      transparent 1px
+    );
+    background-size: var(--app-dot-size) var(--app-dot-size);
+  }
+}
+
 @layer components {
+  .app-dot-spotlight {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-color: transparent;
+    background-image: radial-gradient(
+      circle at center,
+      var(--app-dot-color-bright) 1px,
+      transparent 1px
+    );
+    background-size: var(--app-dot-size) var(--app-dot-size);
+    -webkit-mask-image: radial-gradient(
+      circle 150px at var(--app-spotlight-x) var(--app-spotlight-y),
+      rgb(0 0 0 / 0.9),
+      transparent 72%
+    );
+    mask-image: radial-gradient(
+      circle 150px at var(--app-spotlight-x) var(--app-spotlight-y),
+      rgb(0 0 0 / 0.9),
+      transparent 72%
+    );
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .app-dot-spotlight.is-visible {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-dot-spotlight {
+      display: none;
+    }
+  }
+
   /* ── Page heading ── */
   .page-title {
     @apply text-2xl font-bold tracking-tight text-slate-900;

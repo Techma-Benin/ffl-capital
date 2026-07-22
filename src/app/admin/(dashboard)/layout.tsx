@@ -17,7 +17,7 @@ export default async function AdminLayout({
 
   return (
     <PortalShell>
-      <div className="flex h-screen overflow-hidden bg-page">
+      <div className="flex h-screen overflow-hidden bg-transparent">
         <AdminSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <MainContent>{children}</MainContent>

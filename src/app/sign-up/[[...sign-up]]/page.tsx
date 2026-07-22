@@ -43,7 +43,7 @@ export default async function SignUpPage() {
         </div>
       </AuthLeftPanel>
 
-      <div className="flex flex-1 items-center justify-center bg-page px-6 py-12">
+      <div className="flex flex-1 items-center justify-center px-6 py-12">
         <div className="w-full max-w-lg">
           <Link
             href="/sign-in"

@@ -43,7 +43,7 @@ export default async function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-page">
+    <div className="min-h-screen">
       {/* Top bar */}
       <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-8">
         <div className="flex items-center gap-2">

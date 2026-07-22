@@ -12,7 +12,7 @@ export function AuthContinueRedirect({ to }: { to: string }) {
   }, [to, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-page">
+    <div className="flex min-h-screen items-center justify-center">
       <div className="flex flex-col items-center gap-3 text-center">
         <Spinner size="lg" variant="brand" />
         <p className="text-sm text-slate-500">Redirecting…</p>

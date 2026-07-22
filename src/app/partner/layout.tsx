@@ -32,7 +32,7 @@ export default async function PartnerLayout({
   return (
     <PortalShell>
       <PartnerProvider initialPartner={partner}>
-        <div className="flex h-screen overflow-hidden bg-page">
+        <div className="flex h-screen overflow-hidden bg-transparent">
           <PartnerSidebar />
 
           <div className="flex flex-1 flex-col overflow-hidden">
