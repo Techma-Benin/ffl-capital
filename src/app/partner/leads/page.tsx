@@ -10,7 +10,6 @@ import { PortalDataTableCard } from "@/components/ui/portal-data-table";
 import { parsePageParams } from "@/lib/pagination";
 import { FileText } from "@/lib/icons/ssr";
 import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
-import { PartnerLeadsToolbarDisplayControls } from "@/components/leads/leads-toolbar-display-controls";
 import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import { buildPartnerLeadsWhere } from "@/lib/partner/partner-leads-query";
 import {
@@ -170,7 +169,6 @@ export default async function PartnerLeadsPage({
                   </div>
                 ) : null
               }
-              displayControls={<PartnerLeadsToolbarDisplayControls />}
             />
           </div>
         }
