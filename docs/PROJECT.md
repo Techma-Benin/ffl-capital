@@ -345,7 +345,7 @@ resale_postings                   -- envois IntegrityCONNECT
 ### UI fonctionnelle (**terminé — polish partiel**)
 
 - [x] Dashboard admin : stats, leads récents, file unmatched
-- [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, colonnes configurables, détail + event log ; `?view=` (redirection legacy `?status=`)
+- [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, colonnes configurables, détail lead **B3** (hero compact, onglets Contact/IUL/Compliance/Tracking/Events, livraisons partenaires + timeline) ; `?view=` (redirection legacy `?status=`)
 - [x] Partner leads : vues par partner (défaut « All deliveries »), mêmes primitives UI que l’admin côté liste
 - [x] Admin partners : liste, approbation, détail, filter sets ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; colonnes masquables (préférence `localStorage` `admin-partners-visible-columns`)
 - [x] Admin refunds : file pending + historique

@@ -1,57 +1,12 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
-import { LeadRedeliverButton } from "@/components/admin/lead-redeliver-button";
-import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-button";
-import { AdminLeadEditModal } from "@/components/admin/admin-lead-edit-form";
-import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { getLeadEvents } from "@/lib/leads/lead-events";
-import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/ssr";
-import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
-
-function DetailRow({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: string | null | undefined;
-  href?: string;
-}) {
-  if (!value) return null;
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="shrink-0 text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-900">
-        {href ? (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">
-            {value}
-          </a>
-        ) : (
-          value
-        )}
-      </dd>
-    </div>
-  );
-}
-
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="card p-6">
-      <h2 className="mb-4 text-sm font-semibold text-slate-900">{title}</h2>
-      <dl className="space-y-2 text-sm">{children}</dl>
-    </div>
-  );
-}
+import {
+  AdminLeadDetailView,
+  type AdminLeadDetailDelivery,
+  type AdminLeadDetailEvent,
+  type AdminLeadDetailTimelineItem,
+} from "@/components/admin/admin-lead-detail-view";
 
 export default async function AdminLeadDetailPage({
   params,
@@ -65,8 +20,7 @@ export default async function AdminLeadDetailPage({
         include: { partner: true, refundRequests: true },
         orderBy: { deliveredAt: "desc" },
       },
-      resalePostings: { orderBy: { createdAt: "desc" },
-      },
+      resalePostings: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -74,26 +28,26 @@ export default async function AdminLeadDetailPage({
 
   const leadEvents = await getLeadEvents(params.id);
 
-  const timeline = [
+  const timeline: AdminLeadDetailTimelineItem[] = [
     {
-      at: lead.receivedAt,
+      at: lead.receivedAt.toISOString(),
       label: "Lead received",
       detail: `Source: ${lead.source}`,
     },
     ...lead.leadDeliveries.map((d) => ({
-      at: d.deliveredAt,
+      at: d.deliveredAt.toISOString(),
       label: `Delivered (${d.channel})`,
       detail: `${d.partner.firstName} ${d.partner.lastName} — $${Number(d.price).toFixed(2)}`,
     })),
     ...lead.leadDeliveries.flatMap((d) =>
       d.refundRequests.map((r) => ({
-        at: r.createdAt,
+        at: r.createdAt.toISOString(),
         label: `Refund ${r.status}`,
         detail: `${r.refundType}${r.reason ? ` — ${r.reason}` : ""}`,
       })),
     ),
     ...lead.resalePostings.map((p) => ({
-      at: p.postedAt ?? p.createdAt,
+      at: (p.postedAt ?? p.createdAt).toISOString(),
       label: `Integrity ${p.status}`,
       detail: p.externalRef ?? p.mode,
     })),
@@ -106,214 +60,90 @@ export default async function AdminLeadDetailPage({
   const canRedeliver = lead.leadDeliveries.length > 0;
   const refundableDelivery = lead.leadDeliveries.find((d) => !d.refundedAt);
 
+  const deliveries: AdminLeadDetailDelivery[] = lead.leadDeliveries.map((d) => ({
+    id: d.id,
+    channel: d.channel,
+    price: Number(d.price),
+    deliveredAt: d.deliveredAt.toISOString(),
+    refundedAt: d.refundedAt?.toISOString() ?? null,
+    partnerId: d.partnerId,
+    partnerName: `${d.partner.firstName} ${d.partner.lastName}`,
+  }));
+
+  const grossSold = deliveries.reduce((sum, d) => sum + d.price, 0);
+
+  const events: AdminLeadDetailEvent[] = leadEvents.map((event) => ({
+    id: event.id,
+    type: event.type,
+    payload:
+      event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)
+        ? (event.payload as Record<string, unknown>)
+        : null,
+    createdAt: event.createdAt.toISOString(),
+  }));
+
   return (
-    <div>
-      <PageHeader
-        title={`${lead.firstName} ${lead.lastName}`}
-        subtitle={`${lead.state} · ${lead.email}`}
-        action={
-          <div className="flex items-center gap-2">
-            {lead.status === "unmatched" && lead.available && (
-              <LeadReprocessButton leadId={lead.id} />
-            )}
-            {canRedeliver && (
-              <LeadRedeliverButton
-                leadId={lead.id}
-                excludePartnerId={latestDelivery?.partnerId}
-              />
-            )}
-            {refundableDelivery && (
-              <AdminLeadRefundButton
-                leadId={lead.id}
-                leadDeliveryId={refundableDelivery.id}
-              />
-            )}
-            {lead.status !== "dead" && (
-              <AdminLeadDeadButton leadId={lead.id} />
-            )}
-            <AdminLeadEditModal
-              leadId={lead.id}
-              initial={{
-                firstName: lead.firstName,
-                lastName: lead.lastName,
-                email: lead.email,
-                phone: lead.phone,
-                address: lead.address,
-                city: lead.city,
-                state: lead.state,
-                zip: lead.zip,
-                intent: lead.intent,
-                haveIul: lead.haveIul,
-                primaryGoal: lead.primaryGoal,
-              }}
-            />
-            <Link href="/admin/leads" className="btn-secondary btn-sm inline-flex items-center gap-1">
-              <ArrowLeft size={14} weight={ICON_WEIGHT_LINEAR} />
-              Back
-            </Link>
-          </div>
-        }
-      />
-
-      <div className="mb-6 grid gap-3 sm:grid-cols-4">
-        <div className="card p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500">Status</p>
-          <p className="mt-1 font-bold capitalize">{lead.status.replace("_", " ")}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500">Phone</p>
-          <p className="mt-1 font-bold">{lead.phone}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500">Available</p>
-          <p className="mt-1 font-bold">{lead.available ? "Yes" : "No"}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500">Refundable</p>
-          <p className="mt-1 font-bold">{lead.refundable ? "Yes" : "No"}</p>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DetailSection title="Contact">
-          <DetailRow label="Email" value={lead.email} />
-          <DetailRow label="Phone" value={lead.phone} />
-          <DetailRow label="Address" value={lead.address} />
-          <DetailRow label="City" value={lead.city} />
-          <DetailRow label="State" value={lead.state} />
-          <DetailRow label="Zip" value={lead.zip} />
-          <DetailRow label="DOB" value={lead.dob} />
-          <DetailRow label="Age" value={lead.age} />
-        </DetailSection>
-
-        <DetailSection title="IUL & Classification">
-          <div className="flex justify-between">
-            <dt className="text-slate-500">Lead Type</dt>
-            <dd><Badge variant="purple">{leadTypeLabel}</Badge></dd>
-          </div>
-          <DetailRow label="Intent" value={lead.intent} />
-          <DetailRow label="Have IUL" value={lead.haveIul} />
-          <DetailRow label="Primary Goal" value={lead.primaryGoal} />
-          <DetailRow label="State (live in)" value={lead.stateYouCurrentlyLiveIn} />
-          <DetailRow label="Boberdoo Lead Type" value={lead.boberdooLeadType} />
-          <DetailRow label="Received" value={formatDateTimeLong(lead.receivedAt) ?? undefined} />
-        </DetailSection>
-
-        <DetailSection title="Compliance">
-          <DetailRow label="TrustedForm" value={lead.trustedformCertUrl ? "View certificate" : null} href={lead.trustedformCertUrl ?? undefined} />
-          <DetailRow label="TCPA Consent" value={lead.tcpaConsent} />
-          <DetailRow label="TCPA Language" value={lead.tcpaLanguage} />
-          <DetailRow label="LeadiD Token" value={lead.leadidToken} />
-        </DetailSection>
-
-        <DetailSection title="Tracking & Attribution">
-          <DetailRow label="Source" value={lead.source} />
-          <DetailRow label="Landing Page" value={lead.landingPage} href={lead.landingPage ?? undefined} />
-          <DetailRow label="Sub ID" value={lead.subId} />
-          <DetailRow label="Pub ID" value={lead.pubId} />
-          <DetailRow label="External ID" value={lead.externalId} />
-          <DetailRow label="IP Address" value={lead.ipAddress} />
-          <DetailRow label="User Agent" value={lead.userAgent} />
-        </DetailSection>
-
-        <div className="card p-6 lg:col-span-2">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Event Log</h2>
-          {leadEvents.length === 0 ? (
-            <p className="text-sm text-slate-400">No events recorded yet.</p>
-          ) : (
-            <ol className="space-y-3">
-              {leadEvents.map((event) => {
-                const isDeliveryEvent =
-                  event.type === "delivered" || event.type === "delivery_failed";
-                const borderColor =
-                  event.type === "delivery_failed"
-                    ? "border-red-300"
-                    : event.type === "delivered"
-                      ? "border-green-300"
-                      : "border-orange-200";
-                return (
-                  <li key={event.id} className={`border-l-2 ${borderColor} pl-3`}>
-                    <p className={`text-sm font-medium ${event.type === "delivery_failed" ? "text-red-700" : "text-slate-900"}`}>
-                      {formatEventType(event.type)}
-                      {event.payload && (event.payload as Record<string, unknown>).step
-                        ? ` · ${(event.payload as Record<string, unknown>).step}`
-                        : ""}
-                    </p>
-                    {event.payload && !isDeliveryEvent && (
-                      <p className="text-xs text-slate-500">
-                        {formatEventPayload(event.payload as Record<string, unknown>)}
-                      </p>
-                    )}
-                    {event.payload && isDeliveryEvent && (
-                      <details className="mt-1">
-                        <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
-                          {formatEventPayload(event.payload as Record<string, unknown>)}
-                        </summary>
-                        <pre className="mt-2 overflow-x-auto rounded bg-slate-50 p-2 text-[11px] text-slate-700">
-                          {JSON.stringify(event.payload, null, 2)}
-                        </pre>
-                      </details>
-                    )}
-                    <p className="text-[10px] text-slate-400" suppressHydrationWarning>
-                      {formatDateTimeLong(event.createdAt)}
-                    </p>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </div>
-
-        <div className="card p-6 lg:col-span-2">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Delivery Timeline</h2>
-          <ol className="space-y-3">
-            {timeline.map((event, i) => (
-              <li key={i} className="border-l-2 border-orange-200 pl-3">
-                <p className="text-sm font-medium text-slate-900">{event.label}</p>
-                <p className="text-xs text-slate-500">{event.detail}</p>
-                <p className="text-[10px] text-slate-400" suppressHydrationWarning>
-                  {formatDateTimeLong(event.at)}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-
-      {lead.rawPayload && (
-        <details className="mt-6 card p-6">
-          <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-            Raw Payload (audit trail)
-          </summary>
-          <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-50 p-4 text-xs text-slate-700">
-            {JSON.stringify(lead.rawPayload, null, 2)}
-          </pre>
-        </details>
-      )}
-    </div>
+    <AdminLeadDetailView
+      lead={{
+        id: lead.id,
+        firstName: lead.firstName,
+        lastName: lead.lastName,
+        email: lead.email,
+        phone: lead.phone,
+        address: lead.address,
+        city: lead.city,
+        state: lead.state,
+        zip: lead.zip,
+        dob: lead.dob,
+        age: lead.age,
+        status: lead.status,
+        available: lead.available,
+        refundable: lead.refundable,
+        leadType: lead.leadType,
+        leadTypeLabel,
+        intent: lead.intent,
+        haveIul: lead.haveIul,
+        primaryGoal: lead.primaryGoal,
+        stateYouCurrentlyLiveIn: lead.stateYouCurrentlyLiveIn,
+        boberdooLeadType: lead.boberdooLeadType,
+        receivedAt: lead.receivedAt.toISOString(),
+        trustedformCertUrl: lead.trustedformCertUrl,
+        tcpaConsent: lead.tcpaConsent,
+        tcpaLanguage: lead.tcpaLanguage,
+        leadidToken: lead.leadidToken,
+        source: lead.source,
+        landingPage: lead.landingPage,
+        subId: lead.subId,
+        pubId: lead.pubId,
+        externalId: lead.externalId,
+        ipAddress: lead.ipAddress,
+        userAgent: lead.userAgent,
+        rawPayload: lead.rawPayload,
+      }}
+      deliveries={deliveries}
+      timeline={timeline}
+      events={events}
+      grossSold={grossSold}
+      actions={{
+        showReprocess: lead.status === "unmatched" && lead.available,
+        showRedeliver: canRedeliver,
+        excludePartnerId: latestDelivery?.partnerId,
+        refundableDeliveryId: refundableDelivery?.id,
+        showDead: lead.status !== "dead",
+        editInitial: {
+          firstName: lead.firstName,
+          lastName: lead.lastName,
+          email: lead.email,
+          phone: lead.phone,
+          address: lead.address,
+          city: lead.city,
+          state: lead.state,
+          zip: lead.zip,
+          intent: lead.intent,
+          haveIul: lead.haveIul,
+          primaryGoal: lead.primaryGoal,
+        },
+      }}
+    />
   );
-}
-
-function formatEventType(type: string): string {
-  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function formatEventPayload(payload: Record<string, unknown>): string {
-  const parts: string[] = [];
-  if (payload.partnerId) parts.push(`Partner: ${payload.partnerId}`);
-  if (payload.reason) parts.push(String(payload.reason));
-  if (payload.channel) parts.push(`Channel: ${payload.channel}`);
-  if (payload.price != null) parts.push(`${Number(payload.price).toFixed(2)}`);
-  // Delivery-specific fields
-  if (payload.from) parts.push(`From: ${payload.from}`);
-  if (payload.to) parts.push(`To: ${payload.to}`);
-  if (payload.toEmail && !payload.to) parts.push(`To: ${payload.toEmail}`);
-  if (payload.resendMock != null) parts.push(`Mock: ${payload.resendMock}`);
-  if (payload.resendMessageId) parts.push(`Resend ID: ${payload.resendMessageId}`);
-  if (payload.error) parts.push(`Error: ${payload.error}`);
-  if (payload.statusCode != null) parts.push(`Status: ${payload.statusCode}`);
-  if (payload.emailSent != null) parts.push(`Email: ${payload.emailSent ? "sent" : "not sent"}`);
-  if (payload.mode) parts.push(`Mode: ${payload.mode}`);
-  if (parts.length > 0) return parts.join(" · ");
-  return JSON.stringify(payload);
 }
