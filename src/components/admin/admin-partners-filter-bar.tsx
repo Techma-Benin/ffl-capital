@@ -11,17 +11,19 @@ const BASE_PATH = "/admin/partners";
 const LEGACY_FAMILY_PARAM = "family";
 
 const companyFilterIdle =
-  "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
-const companyFilterActive = "border-rose-300 bg-white text-rose-800";
+  "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-white";
+const companyFilterActive = "border-rose-300 bg-white text-rose-800 hover:bg-white";
 
 export function AdminPartnersFilterBar({
   tabs,
   affiliationOptions,
   selectedCompanies,
+  trailing,
 }: {
   tabs: PortalDataTableTabConfig[];
   affiliationOptions: string[];
   selectedCompanies: string[];
+  trailing?: React.ReactNode;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,7 +67,7 @@ export function AdminPartnersFilterBar({
             className={clsx(
               "pointer-events-none inline-flex max-w-[240px] min-w-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
               selectValue ? companyFilterActive : companyFilterIdle,
-              companyDisabled && "opacity-50",
+              companyDisabled && "bg-white opacity-50",
             )}
           >
             <span className="min-w-0 truncate">
@@ -88,6 +90,10 @@ export function AdminPartnersFilterBar({
             ))}
           </select>
         </div>
+
+        {trailing ? (
+          <div className="ml-auto flex items-center gap-2">{trailing}</div>
+        ) : null}
       </div>
     </div>
   );
