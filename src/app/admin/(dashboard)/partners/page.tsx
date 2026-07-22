@@ -154,7 +154,7 @@ export default async function AdminPartnersPage({
   ];
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
+    <div className="flex flex-col">
       <PageHeader
         title="Partners"
         subtitle="Manage lead buyers and their accounts"
@@ -174,7 +174,7 @@ export default async function AdminPartnersPage({
         />
       </Suspense>
 
-      <PortalDataTableCard className="flex-1">
+      <PortalDataTableCard>
         {partners.length === 0 ? (
           <div className="card">
             <EmptyState
@@ -185,7 +185,7 @@ export default async function AdminPartnersPage({
             />
           </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col">
+          <>
             <AdminPartnersTable
               sort={tableSort}
               partners={partners.map((p, index) => {
@@ -217,7 +217,7 @@ export default async function AdminPartnersPage({
               basePath="/admin/partners"
               searchParams={searchParams}
             />
-          </div>
+          </>
         )}
       </PortalDataTableCard>
     </div>

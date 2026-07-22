@@ -163,7 +163,7 @@ export function PortalDataTable({
 
   if (layout === "table") {
     return (
-      <div className={clsx("card min-h-0 flex-1 overflow-hidden", className)}>
+      <div className={clsx("card shrink-0 overflow-hidden", className)}>
         <div className="overflow-x-auto">{table}</div>
       </div>
     );
