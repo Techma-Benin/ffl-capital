@@ -180,13 +180,13 @@
     @apply w-px whitespace-nowrap;
   }
 
-  /* Partner dashboard Recent Leads: fixed layout; name truncates; compact date/price */
+  /* Partner dashboard Recent Leads: tight fixed columns; table only as wide as needed */
   .data-table-recent-leads {
-    @apply w-full min-w-[40rem] table-fixed;
+    @apply w-max max-w-full min-w-[40rem] table-fixed;
   }
 
   .data-table-recent-leads col:nth-child(1) {
-    width: 22%;
+    width: 10.5rem;
   }
 
   .data-table-recent-leads col:nth-child(2) {
@@ -194,24 +194,24 @@
   }
 
   .data-table-recent-leads col:nth-child(3) {
-    width: 7.25rem;
+    width: 8.5rem;
   }
 
   .data-table-recent-leads col:nth-child(4) {
-    width: 6.75rem;
+    width: 7.5rem;
   }
 
   .data-table-recent-leads col:nth-child(5) {
-    width: 5rem;
+    width: 5.25rem;
   }
 
   .data-table-recent-leads col:nth-child(6) {
-    width: 10.25rem;
+    width: 10.5rem;
   }
 
   .data-table-recent-leads th:first-child,
   .data-table-recent-leads td:first-child {
-    @apply min-w-0 max-w-[14rem] truncate pl-5;
+    @apply min-w-0 max-w-[10.5rem] truncate pl-5;
   }
 
   .data-table-recent-leads th:not(:first-child),
@@ -226,12 +226,12 @@
 
   .data-table-recent-leads th:nth-child(3),
   .data-table-recent-leads td:nth-child(3) {
-    @apply min-w-[7rem];
+    @apply w-[8.5rem] max-w-[8.5rem];
   }
 
   .data-table-recent-leads th:nth-child(4),
   .data-table-recent-leads td:nth-child(4) {
-    @apply min-w-[6.5rem];
+    @apply w-[7.5rem] max-w-[7.5rem];
   }
 
   .data-table-recent-leads th:nth-child(5),
@@ -241,7 +241,7 @@
 
   .data-table-recent-leads th:last-child,
   .data-table-recent-leads td:last-child {
-    @apply w-[10.25rem] max-w-[10.25rem] pr-5;
+    @apply w-[10.5rem] max-w-[10.5rem] pr-5;
   }
 
   .data-table thead {
