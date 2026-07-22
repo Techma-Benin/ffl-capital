@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getClerkPartnerImageUrl } from "@/lib/auth/clerk-profile";
 import { prisma } from "@/lib/db";
 import { StatCard } from "@/components/ui/stat-card";
+import { PartnerDetailEditProvider } from "@/components/admin/partner-detail-edit-provider";
 import { PartnerDetailHeader } from "@/components/admin/partner-detail-header";
 import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
 import { PartnerProfileCard } from "@/components/admin/partner-profile-card";
@@ -54,22 +55,24 @@ export default async function AdminPartnerDetailPage({
     deliveryChannel: fs.deliveryChannel,
   }));
 
+  const editInitial = {
+    priority: partner.priority,
+    priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
+    status: partner.status,
+    crmProvider: partner.crmProvider,
+    crmWebhookUrl: partner.crmWebhookUrl,
+    ringySid: partner.ringySid,
+    ringyAuthToken: partner.ringyAuthToken,
+  };
+
   return (
-    <div className="pb-10">
-      <PartnerDetailHeader
-        title="Partner profile"
-        partnerId={partner.id}
-        displayName={displayName}
-        editInitial={{
-          priority: partner.priority,
-          priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
-          status: partner.status,
-          crmProvider: partner.crmProvider,
-          crmWebhookUrl: partner.crmWebhookUrl,
-          ringySid: partner.ringySid,
-          ringyAuthToken: partner.ringyAuthToken,
-        }}
-      />
+    <PartnerDetailEditProvider
+      partnerId={partner.id}
+      displayName={displayName}
+      editInitial={editInitial}
+    >
+      <div className="pb-10">
+        <PartnerDetailHeader title="Partner profile" partnerId={partner.id} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
         <aside className="space-y-3">
@@ -181,6 +184,7 @@ export default async function AdminPartnerDetailPage({
           />
         </div>
       </div>
-    </div>
+      </div>
+    </PartnerDetailEditProvider>
   );
 }
