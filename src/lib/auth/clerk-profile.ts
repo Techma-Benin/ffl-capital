@@ -1,3 +1,19 @@
+import { clerkClient } from "@clerk/nextjs/server";
+
+/** Clerk profile image for a linked partner user (admin/server only). */
+export async function getClerkPartnerImageUrl(
+  clerkUserId: string | null | undefined,
+): Promise<string | null> {
+  if (!clerkUserId) return null;
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(clerkUserId);
+    return user.imageUrl || null;
+  } catch {
+    return null;
+  }
+}
+
 /** Keep Clerk profile and metadata aligned with the partner record (best-effort). */
 export async function syncPartnerToClerk(
   user: { id: string; firstName: string | null; lastName: string | null; publicMetadata?: Record<string, unknown> },
@@ -11,7 +27,6 @@ export async function syncPartnerToClerk(
 
   if (!needsId && !needsNames) return;
 
-  const { clerkClient } = await import("@clerk/nextjs/server");
   const client = await clerkClient();
 
   try {

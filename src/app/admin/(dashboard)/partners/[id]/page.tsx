@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getClerkPartnerImageUrl } from "@/lib/auth/clerk-profile";
 import { prisma } from "@/lib/db";
 import { StatCard } from "@/components/ui/stat-card";
 import { PartnerDetailHeader } from "@/components/admin/partner-detail-header";
@@ -33,6 +34,8 @@ export default async function AdminPartnerDetailPage({
   });
 
   if (!partner) notFound();
+
+  const avatarUrl = await getClerkPartnerImageUrl(partner.clerkUserId);
 
   const walletBalance = Number(partner.walletBalance);
   const walletLow = walletBalance < 25;
@@ -80,6 +83,7 @@ export default async function AdminPartnerDetailPage({
             createdAt={partner.createdAt}
             walletBalance={walletBalance}
             priority={partner.priority}
+            avatarUrl={avatarUrl}
           />
 
           <div className="card overflow-hidden rounded-xl">

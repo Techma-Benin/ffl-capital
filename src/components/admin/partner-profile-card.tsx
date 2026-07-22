@@ -23,6 +23,43 @@ function partnerInitials(firstName: string, lastName: string) {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 }
 
+function PartnerAvatar({
+  avatarUrl,
+  firstName,
+  lastName,
+}: {
+  avatarUrl?: string | null;
+  firstName: string;
+  lastName: string;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const initials = partnerInitials(firstName, lastName);
+  const showImage = Boolean(avatarUrl) && !imageFailed;
+
+  if (showImage) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- Clerk CDN URL; no next/image domain config
+      <img
+        src={avatarUrl!}
+        alt=""
+        width={72}
+        height={72}
+        className="h-[72px] w-[72px] rounded-full object-cover"
+        onError={() => setImageFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-slate-100 text-xl font-semibold text-slate-700"
+      aria-hidden
+    >
+      {initials}
+    </div>
+  );
+}
+
 function formatMemberSince(date: Date) {
   return date.toLocaleDateString("en-US", {
     month: "short",
@@ -41,6 +78,7 @@ type PartnerProfileCardProps = {
   createdAt: Date;
   walletBalance: number;
   priority: number;
+  avatarUrl?: string | null;
 };
 
 export function PartnerProfileCard({
@@ -53,6 +91,7 @@ export function PartnerProfileCard({
   createdAt,
   walletBalance,
   priority,
+  avatarUrl,
 }: PartnerProfileCardProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -80,12 +119,11 @@ export function PartnerProfileCard({
   return (
     <div className="card overflow-hidden rounded-xl">
       <div className="flex flex-col items-center gap-3 border-b border-slate-100 px-5 py-6 text-center">
-        <div
-          className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-slate-100 text-xl font-semibold text-slate-700"
-          aria-hidden
-        >
-          {partnerInitials(firstName, lastName)}
-        </div>
+        <PartnerAvatar
+          avatarUrl={avatarUrl}
+          firstName={firstName}
+          lastName={lastName}
+        />
         <div>
           <p className="text-lg font-semibold text-slate-900">
             {firstName} {lastName}
