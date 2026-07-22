@@ -101,11 +101,16 @@ export function RefundLeadDetailSheet({ lead, open, onOpenChange }: Props) {
 
         <Link
           href={`/admin/leads/${lead.id}`}
-          className="btn-primary inline-flex w-full items-center justify-center gap-2"
+          className="group btn-primary inline-flex w-full flex-row items-center justify-center gap-2 group-hover:flex-row-reverse"
           onClick={() => onOpenChange(false)}
         >
+          <ArrowRight
+            size={16}
+            weight={ICON_WEIGHT_LINEAR}
+            aria-hidden
+            className="shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+          />
           View full lead
-          <ArrowRight size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
         </Link>
       </SheetBody>
     </Sheet>
