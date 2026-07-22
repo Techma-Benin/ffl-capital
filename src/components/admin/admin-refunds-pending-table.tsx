@@ -228,7 +228,7 @@ export function AdminRefundsPendingTable({
                     aria-label={`Select refund for ${r.lead.name}`}
                   />
                 </td>
-                <td>
+                <td className="p-0">
                   <RefundPartnerCell
                     partner={r.partner}
                     showEmail

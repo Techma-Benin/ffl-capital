@@ -21,22 +21,18 @@ export function RefundPartnerCell({
     <button
       type="button"
       onClick={() => onSelect(partner)}
-      className="group -mx-2 max-w-full rounded-lg px-2 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+      className="block w-full cursor-pointer px-3 py-2 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
       aria-label={`View partner profile for ${partner.name}`}
     >
       {variant === "compact" ? (
-        <span className="font-medium text-slate-900 group-hover:underline">
+        <span className="font-medium text-orange-600">
           {partner.name}
         </span>
       ) : (
         <>
-          <p className="font-medium text-slate-900 group-hover:underline">
-            {partner.name}
-          </p>
+          <p className="font-medium text-orange-600">{partner.name}</p>
           {showEmail ? (
-            <p className="text-xs text-slate-400">
-              {partner.email}
-            </p>
+            <p className="text-xs text-slate-400">{partner.email}</p>
           ) : null}
         </>
       )}

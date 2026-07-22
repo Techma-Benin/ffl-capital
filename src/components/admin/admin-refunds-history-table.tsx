@@ -125,7 +125,7 @@ export function AdminRefundsHistoryTable({
           <tbody>
             {pageRefunds.map((r) => (
               <tr key={r.id}>
-                <td>
+                <td className="p-0">
                   <RefundPartnerCell
                     partner={r.partner}
                     variant="compact"

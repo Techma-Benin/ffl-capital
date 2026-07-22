@@ -273,14 +273,14 @@ export function AdminLeadDetailView({
                   ) : (
                     deliveries.map((d) => (
                       <tr key={d.id}>
-                        <td>
+                        <td className="p-0">
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               openPartnerSheet(d.partner);
                             }}
-                            className="font-medium text-orange-600 hover:text-orange-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded"
+                            className="block w-full cursor-pointer px-3 py-2 text-left font-medium text-orange-600 transition-colors hover:bg-orange-50/50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
                             aria-label={`View partner profile for ${d.partnerName}`}
                           >
                             {d.partnerName}
