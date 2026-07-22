@@ -7,7 +7,7 @@ import { CaretDown, Check, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 const triggerIdle =
   "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
-const triggerActive = "border-rose-300 bg-rose-50 text-rose-800";
+const triggerActive = "border-orange-200 bg-orange-50 text-orange-900";
 
 export function FilterSelectDropdown<T extends string>({
   id,
@@ -153,7 +153,7 @@ export function FilterSelectDropdown<T extends string>({
                   className={clsx(
                     "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors",
                     selected
-                      ? "bg-rose-50 font-medium text-rose-800"
+                      ? "bg-orange-50 font-medium text-orange-900"
                       : "text-slate-700 hover:bg-slate-50",
                   )}
                   onClick={() => pick(option.value)}
@@ -164,7 +164,7 @@ export function FilterSelectDropdown<T extends string>({
                       className={clsx(
                         "min-w-[1.25rem] shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
                         selected
-                          ? "bg-rose-100 text-rose-700"
+                          ? "bg-orange-100 text-orange-700"
                           : "bg-slate-100 text-slate-500",
                       )}
                     >
@@ -175,7 +175,7 @@ export function FilterSelectDropdown<T extends string>({
                     <Check
                       size={16}
                       weight={ICON_WEIGHT_LINEAR}
-                      className="shrink-0 text-rose-600"
+                      className="shrink-0 text-orange-700"
                       aria-hidden
                     />
                   ) : (
