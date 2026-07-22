@@ -33,10 +33,13 @@ export function PartnerFilterSetsPanel({
   partnerId,
   filterSets,
   defaultStates,
+  layout = "table",
 }: {
   partnerId: string;
   filterSets: FilterSetRow[];
   defaultStates: string[];
+  /** `document` — bordered rows (P4/P5); `table` — legacy data table */
+  layout?: "table" | "document";
 }) {
   const router = useRouter();
   const [modalMode, setModalMode] = useState<"none" | "create" | "edit">("none");
@@ -87,7 +90,7 @@ export function PartnerFilterSetsPanel({
     : null;
 
   return (
-    <div className="card">
+    <div className="card overflow-hidden rounded-xl">
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
         <h2 className="text-sm font-semibold text-slate-900">Filter Sets</h2>
         {modalMode === "none" && (
@@ -102,11 +105,69 @@ export function PartnerFilterSetsPanel({
         )}
       </div>
 
-      <div className="overflow-x-auto">
+      <div className={layout === "document" ? "px-5 pb-5" : "overflow-x-auto"}>
         {filterSets.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-slate-400">
+          <p className={layout === "document" ? "py-6 text-sm text-slate-400" : "px-5 py-8 text-sm text-slate-400"}>
             No filter sets configured.
           </p>
+        ) : layout === "document" ? (
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              Active sets
+            </p>
+            {filterSets.map((fs) => (
+              <div
+                key={fs.id}
+                className="flex flex-col gap-3 rounded-lg border border-slate-100 p-3.5 transition-colors hover:border-slate-200 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-slate-900">{fs.name}</p>
+                    <Badge variant={fs.active ? "green" : "slate"}>
+                      {fs.active ? "Active" : "Inactive"}
+                    </Badge>
+                    <Badge variant="blue">
+                      {categories.find((c) => c.type === fs.leadType)?.label ??
+                        fs.leadType}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {fs.filterStates.length} state
+                    {fs.filterStates.length === 1 ? "" : "s"} · Priority {fs.priority} ·{" "}
+                    {fs.deliveryChannel ?? "email"}
+                    {fs.priceOverride != null
+                      ? ` · $${fs.priceOverride.toFixed(2)} override`
+                      : ""}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <InlineActionButton
+                    tone="slate"
+                    icon={<PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} />}
+                    disabled={modalMode !== "none"}
+                    onClick={() => {
+                      setEditingId(fs.id);
+                      setModalMode("edit");
+                    }}
+                  >
+                    Edit
+                  </InlineActionButton>
+                  {filterSets.length > 1 && (
+                    <InlineActionButton
+                      tone="red"
+                      icon={<Trash size={12} weight={ICON_WEIGHT_LINEAR} />}
+                      loading={deletingId === fs.id}
+                      loadingText="Deleting…"
+                      disabled={modalMode !== "none"}
+                      onClick={() => handleDelete(fs.id)}
+                    >
+                      Delete
+                    </InlineActionButton>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <table className="data-table">
             <thead>

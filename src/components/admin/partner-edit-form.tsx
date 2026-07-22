@@ -52,7 +52,10 @@ export function PartnerEditForm({ partnerId, initial }: PartnerEditFormProps) {
   }
 
   return (
-    <form onSubmit={handleSave} className="card p-6 space-y-5">
+    <form
+      onSubmit={handleSave}
+      className="card scroll-mt-24 space-y-5 rounded-xl p-6"
+    >
       <h2 className="text-sm font-semibold text-slate-900">Edit Partner</h2>
 
       <div className="grid gap-4 sm:grid-cols-3">

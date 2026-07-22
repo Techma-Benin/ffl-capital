@@ -6,9 +6,13 @@ import { Eye } from "@/lib/icons/client";
 
 interface Props {
   partnerId: string;
+  label?: string;
 }
 
-export function ViewAsPartnerButton({ partnerId }: Props) {
+export function ViewAsPartnerButton({
+  partnerId,
+  label = "View Partner Portal",
+}: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -35,7 +39,7 @@ export function ViewAsPartnerButton({ partnerId }: Props) {
       className="btn-secondary btn-sm inline-flex items-center gap-1.5"
     >
       <Eye size={14} />
-      {isPending ? "Loading…" : "View Partner Portal"}
+      {isPending ? "Loading…" : label}
     </button>
   );
 }

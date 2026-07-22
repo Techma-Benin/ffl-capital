@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
+import { StatCard } from "@/components/ui/stat-card";
 import { PartnerEditForm } from "@/components/admin/partner-edit-form";
 import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
-import { ViewAsPartnerButton } from "@/components/admin/view-as-partner-button";
-import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/ssr";
-import { formatDateTime } from "@/lib/format-datetime";
+import { PartnerDetailHeader } from "@/components/admin/partner-detail-header";
+import { PartnerProfileCard } from "@/components/admin/partner-profile-card";
+import { PartnerAccountCrmCard } from "@/components/admin/partner-account-crm-card";
+import { PartnerDetailActivity } from "@/components/admin/partner-detail-activity";
+import { Funnel, Wallet, UsersThree } from "@/lib/icons/ssr";
 
 export default async function AdminPartnerDetailPage({
   params,
@@ -18,149 +18,171 @@ export default async function AdminPartnerDetailPage({
     where: { id: params.id },
     include: {
       filterSets: { orderBy: { createdAt: "asc" } },
-      transactions: { orderBy: { createdAt: "desc" }, take: 15 },
+      transactions: { orderBy: { createdAt: "desc" }, take: 10 },
       leadDeliveries: {
         orderBy: { deliveredAt: "desc" },
         take: 10,
         include: { lead: true },
+      },
+      _count: {
+        select: {
+          leadDeliveries: true,
+          filterSets: { where: { active: true } },
+        },
       },
     },
   });
 
   if (!partner) notFound();
 
+  const walletBalance = Number(partner.walletBalance);
+  const walletLow = walletBalance < 25;
+  const displayName = `${partner.firstName} ${partner.lastName}`;
+  const filterSetRows = partner.filterSets.map((fs) => ({
+    id: fs.id,
+    name: fs.name,
+    leadType: fs.leadType,
+    filterStates: fs.filterStates,
+    priority: fs.priority,
+    priceOverride: fs.priceOverride ? Number(fs.priceOverride) : null,
+    active: fs.active,
+    weeklyLimit: fs.weeklyLimit,
+    monthlyLimit: fs.monthlyLimit,
+    filterCriteria: (fs.filterCriteria ?? {}) as import("@/lib/matching/types").FilterCriteria,
+    deliveryChannel: fs.deliveryChannel,
+  }));
+
   return (
-    <div>
-      <PageHeader
-        title={`${partner.firstName} ${partner.lastName}`}
-        subtitle={partner.email}
-        action={
-          <div className="flex items-center gap-2">
-            <ViewAsPartnerButton partnerId={partner.id} />
-            <Link href="/admin/partners" className="btn-secondary btn-sm inline-flex items-center gap-1">
-              <ArrowLeft size={14} weight={ICON_WEIGHT_LINEAR} />
-              Back
-            </Link>
-          </div>
-        }
-      />
+    <div className="pb-10">
+      <PartnerDetailHeader title="Partner profile" partnerId={partner.id} />
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-4">
-        {[
-          { label: "Status", value: partner.status },
-          { label: "Wallet", value: `$${Number(partner.walletBalance).toFixed(2)}` },
-          { label: "States", value: partner.filterStates.length },
-          { label: "Priority", value: partner.priority },
-        ].map((c) => (
-          <div key={c.label} className="card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{c.label}</p>
-            <p className="mt-1 text-lg font-bold text-slate-900">{c.value}</p>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
+        <aside className="space-y-3">
+          <PartnerProfileCard
+            partnerId={partner.id}
+            firstName={partner.firstName}
+            lastName={partner.lastName}
+            email={partner.email}
+            status={partner.status}
+            affiliation={partner.affiliation}
+            createdAt={partner.createdAt}
+            walletBalance={walletBalance}
+            priority={partner.priority}
+          />
+
+          <div className="card overflow-hidden rounded-xl">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h2 className="text-sm font-semibold text-slate-900">Contact details</h2>
+            </div>
+            <div className="space-y-3 px-4 py-3">
+              {[
+                { label: "Email", value: partner.email },
+                { label: "Phone", value: "Not on file", muted: true },
+                {
+                  label: "Affiliation",
+                  value: partner.affiliation ?? "—",
+                },
+              ].map((field) => (
+                <div key={field.label}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    {field.label}
+                  </p>
+                  <p
+                    className={
+                      field.muted
+                        ? "text-sm italic text-slate-400"
+                        : "text-sm text-slate-900"
+                    }
+                  >
+                    {field.value}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
+        </aside>
+
+        <div className="min-w-0 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <StatCard
+              label="Wallet balance"
+              value={`$${walletBalance.toFixed(2)}`}
+              icon={Wallet}
+              accent={walletLow ? "red" : "emerald"}
+              valueClassName={walletLow ? "text-red-600" : undefined}
+              blobIndex={0}
+            />
+            <StatCard
+              label="Leads purchased"
+              value={partner._count.leadDeliveries.toLocaleString()}
+              icon={UsersThree}
+              accent="blue"
+              blobIndex={1}
+            />
+            <StatCard
+              label="Filter sets active"
+              value={partner._count.filterSets}
+              icon={Funnel}
+              accent="purple"
+              blobIndex={2}
+            />
+          </div>
+
+          <PartnerAccountCrmCard
+            crmProvider={partner.crmProvider}
+            crmWebhookUrl={partner.crmWebhookUrl}
+            ringySid={partner.ringySid}
+            ringyAuthToken={partner.ringyAuthToken}
+            walletBalance={walletBalance}
+          />
+
+          <PartnerFilterSetsPanel
+            partnerId={partner.id}
+            defaultStates={partner.filterStates}
+            filterSets={filterSetRows}
+            layout="document"
+          />
+
+          <PartnerDetailActivity
+            deliveries={partner.leadDeliveries.map((d) => ({
+              id: d.id,
+              deliveredAt: d.deliveredAt,
+              price: d.price,
+              channel: d.channel,
+              lead: {
+                firstName: d.lead.firstName,
+                lastName: d.lead.lastName,
+                state: d.lead.state,
+              },
+            }))}
+            transactions={partner.transactions.map((t) => ({
+              id: t.id,
+              createdAt: t.createdAt,
+              type: t.type,
+              amount: t.amount,
+              balanceAfter: t.balanceAfter,
+            }))}
+          />
+        </div>
       </div>
 
-      <PartnerEditForm
-        partnerId={partner.id}
-        initial={{
-          priority: partner.priority,
-          priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
-          status: partner.status,
-          crmProvider: partner.crmProvider,
-          crmWebhookUrl: partner.crmWebhookUrl,
-          ringySid: partner.ringySid,
-          ringyAuthToken: partner.ringyAuthToken,
-        }}
-      />
-
-      <div className="mt-6">
-        <PartnerFilterSetsPanel
+      <section id="partner-account-edit" className="mt-10 scroll-mt-24">
+        <p className="mb-3 text-xs font-medium text-slate-500">
+          Account settings for {displayName}
+        </p>
+        <PartnerEditForm
           partnerId={partner.id}
-          defaultStates={partner.filterStates}
-          filterSets={partner.filterSets.map((fs) => ({
-            id: fs.id,
-            name: fs.name,
-            leadType: fs.leadType,
-            filterStates: fs.filterStates,
-            priority: fs.priority,
-            priceOverride: fs.priceOverride ? Number(fs.priceOverride) : null,
-            active: fs.active,
-            weeklyLimit: fs.weeklyLimit,
-            monthlyLimit: fs.monthlyLimit,
-            filterCriteria: (fs.filterCriteria ?? {}) as import("@/lib/matching/types").FilterCriteria,
-            deliveryChannel: fs.deliveryChannel,
-          }))}
+          initial={{
+            priority: partner.priority,
+            priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
+            status: partner.status,
+            crmProvider: partner.crmProvider,
+            crmWebhookUrl: partner.crmWebhookUrl,
+            ringySid: partner.ringySid,
+            ringyAuthToken: partner.ringyAuthToken,
+          }}
         />
-      </div>
-
-      <div className="mt-6 card">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Recent Deliveries</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Lead</th>
-                <th>State</th>
-                <th>Channel</th>
-                <th>Price</th>
-                <th>Delivered</th>
-              </tr>
-            </thead>
-            <tbody>
-              {partner.leadDeliveries.map((d) => (
-                <tr key={d.id}>
-                  <td className="font-medium">
-                    {d.lead.firstName} {d.lead.lastName}
-                  </td>
-                  <td>{d.lead.state}</td>
-                  <td>
-                    <Badge variant={d.channel === "realtime" ? "green" : "purple"}>
-                      {d.channel}
-                    </Badge>
-                  </td>
-                  <td>${Number(d.price).toFixed(2)}</td>
-                  <td className="text-xs text-slate-400" suppressHydrationWarning>
-                    {formatDateTime(d.deliveredAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="mt-6 card">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Transaction History</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Balance After</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {partner.transactions.map((t) => (
-                <tr key={t.id}>
-                  <td>{t.type}</td>
-                  <td className={Number(t.amount) > 0 ? "text-emerald-600" : ""}>
-                    {Number(t.amount) > 0 ? "+" : ""}${Math.abs(Number(t.amount)).toFixed(2)}
-                  </td>
-                  <td>${Number(t.balanceAfter).toFixed(2)}</td>
-                  <td className="text-xs text-slate-400" suppressHydrationWarning>
-                    {formatDateTime(t.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
