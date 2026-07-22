@@ -29,13 +29,6 @@ export const refundPartnerStatusLabel: Record<string, string> = {
   disabled: "Disabled",
 };
 
-export function formatRefundPartnerPricing(partner: RefundPartnerSnapshot): string {
-  if (partner.priceOverride != null) {
-    return `$${partner.priceOverride.toFixed(2)} / lead (override)`;
-  }
-  return "Default platform pricing";
-}
-
 type PartnerRowSource = {
   id: string;
   firstName: string;
