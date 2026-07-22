@@ -7,10 +7,9 @@ import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
 import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
-import { AdminLeadsColumnVisibilityMenu } from "@/components/admin/admin-leads-column-visibility-menu";
 import { PartnersTableLayoutToggle } from "@/components/admin/partners-table-layout-toggle";
-import { useAdminLeadsColumnVisibility } from "@/components/admin/use-admin-leads-column-visibility";
 import { useAdminLeadsTableLayout } from "@/components/admin/use-admin-leads-table-layout";
+import { LeadToolbarColumnSettingsButton } from "@/components/leads/lead-table-column-picker-button";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 
 type ViewRecord = {
@@ -66,15 +65,11 @@ export function AdminLeadsListClient({
   pagination?: React.ReactNode;
 }) {
   const { layout, setLayout } = useAdminLeadsTableLayout();
-  const { visibility, setColumnVisible } = useAdminLeadsColumnVisibility();
 
   const viewControls = (
     <>
       <PartnersTableLayoutToggle layout={layout} onLayoutChange={setLayout} />
-      <AdminLeadsColumnVisibilityMenu
-        visibility={visibility}
-        onToggle={setColumnVisible}
-      />
+      <LeadToolbarColumnSettingsButton />
     </>
   );
 
@@ -111,7 +106,6 @@ export function AdminLeadsListClient({
             columns={columns}
             sort={sort}
             layout={layout}
-            visibility={visibility}
             tableFooter={layout === "table" ? pagination : undefined}
           />
         )}

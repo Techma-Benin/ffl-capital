@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
-import { LeadTableColumnPickerButton } from "@/components/leads/lead-table-column-picker-button";
+import { useEffect, useRef, useState } from "react";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,10 +14,6 @@ import {
 } from "@/components/ui/portal-data-table";
 import { formatDateTime } from "@/lib/format-datetime";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
-import {
-  isAdminLeadHideableColumnKey,
-  type AdminLeadsColumnVisibilityState,
-} from "@/lib/admin/admin-leads-table-display";
 import {
   ArrowsClockwise,
   ArrowUpRight,
@@ -152,32 +146,9 @@ export function AdminLeadsTable({
     hrefBySortKey: Record<string, string>;
   };
   layout?: PortalDataTableLayout;
-  visibility?: AdminLeadsColumnVisibilityState;
   tableFooter?: React.ReactNode;
 }) {
-  const columnSettingsBridge = useLeadColumnSettingsBridge();
-  const displayColumns = useMemo(() => {
-    const filtered = columns.filter((col) => {
-      if (col.key === "name" || col.key === "actions") return true;
-      if (visibility && isAdminLeadHideableColumnKey(col.key)) {
-        return visibility[col.key];
-      }
-      return true;
-    });
-
-    return filtered.map((col) => {
-      if (col.key !== "actions") return col;
-      return {
-        ...col,
-        headerClassName: col.headerClassName ?? "w-12 text-center",
-        headerContent: columnSettingsBridge ? (
-          <LeadTableColumnPickerButton
-            onClick={columnSettingsBridge.openColumnSettings}
-          />
-        ) : undefined,
-      };
-    });
-  }, [columns, columnSettingsBridge, visibility]);
+  const displayColumns = columns;
 
   function cellClass(
     options: { first?: boolean; last?: boolean; className?: string } = {},
