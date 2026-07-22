@@ -180,38 +180,38 @@
     @apply w-px whitespace-nowrap;
   }
 
-  /* Partner dashboard Recent Leads: tight fixed columns; table only as wide as needed */
+  /* Partner dashboard Recent Leads: full card width with balanced % columns */
   .data-table-recent-leads {
-    @apply w-max max-w-full min-w-[40rem] table-fixed;
+    @apply w-full min-w-[40rem] table-fixed;
   }
 
   .data-table-recent-leads col:nth-child(1) {
-    width: 10.5rem;
+    width: 22%;
   }
 
   .data-table-recent-leads col:nth-child(2) {
-    width: 3.75rem;
+    width: 8%;
   }
 
   .data-table-recent-leads col:nth-child(3) {
-    width: 8.5rem;
+    width: 18%;
   }
 
   .data-table-recent-leads col:nth-child(4) {
-    width: 7.5rem;
+    width: 16%;
   }
 
   .data-table-recent-leads col:nth-child(5) {
-    width: 5.25rem;
+    width: 12%;
   }
 
   .data-table-recent-leads col:nth-child(6) {
-    width: 10.5rem;
+    width: 24%;
   }
 
   .data-table-recent-leads th:first-child,
   .data-table-recent-leads td:first-child {
-    @apply min-w-0 max-w-[10.5rem] truncate pl-5;
+    @apply min-w-0 truncate pl-5;
   }
 
   .data-table-recent-leads th:not(:first-child),
@@ -221,27 +221,17 @@
 
   .data-table-recent-leads th:nth-child(2),
   .data-table-recent-leads td:nth-child(2) {
-    @apply w-[3.75rem] px-2 text-center;
-  }
-
-  .data-table-recent-leads th:nth-child(3),
-  .data-table-recent-leads td:nth-child(3) {
-    @apply w-[8.5rem] max-w-[8.5rem];
-  }
-
-  .data-table-recent-leads th:nth-child(4),
-  .data-table-recent-leads td:nth-child(4) {
-    @apply w-[7.5rem] max-w-[7.5rem];
+    @apply px-2 text-center;
   }
 
   .data-table-recent-leads th:nth-child(5),
   .data-table-recent-leads td:nth-child(5) {
-    @apply w-[5rem] min-w-[4.5rem] pr-3 text-right tabular-nums;
+    @apply pr-3 text-right tabular-nums;
   }
 
   .data-table-recent-leads th:last-child,
   .data-table-recent-leads td:last-child {
-    @apply w-[10.5rem] max-w-[10.5rem] pr-5;
+    @apply pr-5;
   }
 
   .data-table thead {
