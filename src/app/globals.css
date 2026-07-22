@@ -209,11 +209,6 @@
     width: 24%;
   }
 
-  .data-table-recent-leads th,
-  .data-table-recent-leads td {
-    @apply text-center;
-  }
-
   .data-table-recent-leads th:first-child,
   .data-table-recent-leads td:first-child {
     @apply min-w-0 truncate px-5;
@@ -244,6 +239,16 @@
 
   .data-table td {
     @apply px-3 py-2 text-slate-700;
+  }
+
+  /* After base th text-left so these win; Price header stays left */
+  .data-table-recent-leads th:not(:nth-child(5)),
+  .data-table-recent-leads td {
+    @apply text-center;
+  }
+
+  .data-table-recent-leads th:nth-child(5) {
+    @apply text-left;
   }
 
   .data-table tbody tr {
