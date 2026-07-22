@@ -25,6 +25,19 @@ type TransactionRow = {
 
 type ActivityItem = DeliveryRow | TransactionRow;
 
+const amountBaseClass =
+  "shrink-0 text-sm font-semibold tabular-nums";
+
+function activityAmountClassName(item: ActivityItem): string {
+  if (item.kind === "delivery") {
+    return `${amountBaseClass} text-red-600`;
+  }
+  if (item.positive) {
+    return `${amountBaseClass} text-emerald-600`;
+  }
+  return `${amountBaseClass} text-red-600`;
+}
+
 type PartnerDetailActivityProps = {
   deliveries: {
     id: string;
@@ -115,13 +128,7 @@ export function PartnerDetailActivity({
                     {formatDateTime(item.at)}
                   </p>
                 </div>
-                <span
-                  className={
-                    item.kind === "transaction" && item.positive
-                      ? "shrink-0 text-sm font-semibold tabular-nums text-emerald-600"
-                      : "shrink-0 text-sm font-semibold tabular-nums text-slate-900"
-                  }
-                >
+                <span className={activityAmountClassName(item)}>
                   {item.amount}
                 </span>
               </li>
