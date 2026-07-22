@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { clsx } from "clsx";
-import { CaretDown, CaretUp, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { FilterSelectDropdown } from "@/components/admin/filter-select-dropdown";
 import {
   REFUND_DECISION_FILTER_OPTIONS,
   REFUND_TYPE_FILTER_OPTIONS,
@@ -14,28 +14,12 @@ import {
 
 type FilterCounts<T extends string> = Partial<Record<T, number>> & { all: number };
 
-type OpenCategory = "type" | "decision" | "state";
-
-/** Category triggers + active chips — neutral black/slate active state. */
-const filterTriggerActive =
-  "border-slate-900 bg-slate-900 text-white";
-const filterTriggerIdle =
-  "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
-
 const filterChipPressed =
   "border-slate-900 bg-slate-900 text-white";
 const filterChipIdle =
   "border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900";
 const filterCountPressed = "bg-white/20 text-white";
 const filterCountIdle = "bg-slate-100 text-slate-500";
-
-function optionLabel<T extends string>(
-  options: { value: T; label: string }[],
-  value: T,
-): string | null {
-  if (value === "all") return null;
-  return options.find((o) => o.value === value)?.label ?? null;
-}
 
 function RefundFilterChipRow<T extends string>({
   options,
@@ -90,38 +74,6 @@ function RefundFilterChipRow<T extends string>({
   );
 }
 
-function CategoryTrigger({
-  label,
-  isOpen,
-  hasSelection,
-  onClick,
-}: {
-  label: string;
-  isOpen: boolean;
-  hasSelection: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-expanded={isOpen}
-      onClick={onClick}
-      className={clsx(
-        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
-        isOpen || hasSelection ? filterTriggerActive : filterTriggerIdle,
-      )}
-    >
-      {label}
-      {isOpen ? (
-        <CaretUp size={12} weight={ICON_WEIGHT_LINEAR} aria-hidden />
-      ) : (
-        <CaretDown size={12} weight={ICON_WEIGHT_LINEAR} aria-hidden />
-      )}
-    </button>
-  );
-}
-
 export function RefundTableFilters({
   mode,
   typeValue,
@@ -154,18 +106,6 @@ export function RefundTableFilters({
   const isPendingMode = mode === "pending";
   const isCategoryBarMode = isHistoryMode || isPendingMode;
 
-  const [openCategory, setOpenCategory] = useState<OpenCategory | null>("type");
-
-  const showTypeChipRow = !isCategoryBarMode || openCategory === "type";
-  const showDecisionChipRow =
-    isHistoryMode && openCategory === "decision";
-  const showStateChipRow =
-    isPendingMode &&
-    openCategory === "state" &&
-    stateValue !== undefined &&
-    onStateChange !== undefined &&
-    stateOptions !== undefined;
-
   const typeActive = typeValue !== "all";
   const decisionActive =
     isHistoryMode &&
@@ -175,28 +115,6 @@ export function RefundTableFilters({
     isPendingMode && stateValue !== undefined && stateValue !== "all";
   const hasActiveFilters = typeActive || decisionActive || stateActive;
 
-  const typeSelectionLabel = optionLabel(REFUND_TYPE_FILTER_OPTIONS, typeValue);
-  const decisionSelectionLabel =
-    decisionValue !== undefined
-      ? optionLabel(REFUND_DECISION_FILTER_OPTIONS, decisionValue)
-      : null;
-  const stateSelectionLabel =
-    stateValue !== undefined && stateValue !== "all" ? stateValue : null;
-
-  const typeTriggerLabel = typeSelectionLabel
-    ? `Type: ${typeSelectionLabel}`
-    : "Type";
-  const decisionTriggerLabel = decisionSelectionLabel
-    ? `Decision: ${decisionSelectionLabel}`
-    : "Decision";
-  const stateTriggerLabel = stateSelectionLabel
-    ? `State: ${stateSelectionLabel}`
-    : "State";
-
-  function toggleCategory(category: OpenCategory) {
-    setOpenCategory((current) => (current === category ? null : category));
-  }
-
   function clearFilters() {
     onTypeChange("all");
     if (isHistoryMode && onDecisionChange) {
@@ -205,7 +123,6 @@ export function RefundTableFilters({
     if (isPendingMode && onStateChange) {
       onStateChange("all");
     }
-    setOpenCategory("type");
   }
 
   if (!isCategoryBarMode) {
@@ -223,82 +140,53 @@ export function RefundTableFilters({
   }
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-3">
-        <CategoryTrigger
-          label={typeTriggerLabel}
-          isOpen={openCategory === "type"}
-          hasSelection={typeActive}
-          onClick={() => toggleCategory("type")}
-        />
-        {isHistoryMode &&
-          decisionValue !== undefined &&
-          onDecisionChange !== undefined && (
-            <CategoryTrigger
-              label={decisionTriggerLabel}
-              isOpen={openCategory === "decision"}
-              hasSelection={decisionActive}
-              onClick={() => toggleCategory("decision")}
-            />
-          )}
-        {isPendingMode &&
-          stateValue !== undefined &&
-          onStateChange !== undefined && (
-            <CategoryTrigger
-              label={stateTriggerLabel}
-              isOpen={openCategory === "state"}
-              hasSelection={stateActive}
-              onClick={() => toggleCategory("state")}
-            />
-          )}
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="ml-auto inline-flex items-center gap-1 text-xs text-slate-400 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-sm"
-          >
-            <X size={12} weight={ICON_WEIGHT_LINEAR} aria-hidden />
-            Clear
-          </button>
-        )}
-      </div>
-
-      {showTypeChipRow && (
-        <div className="border-b border-slate-100 px-5 py-3">
-          <RefundFilterChipRow
-            options={REFUND_TYPE_FILTER_OPTIONS}
-            value={typeValue}
-            onChange={onTypeChange}
-            counts={typeCounts}
-            ariaLabel="Filter by refund type"
-          />
-        </div>
-      )}
-
-      {showDecisionChipRow &&
+    <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-3">
+      <FilterSelectDropdown
+        id="admin-refunds-filter-type"
+        dimensionLabel="Type"
+        value={typeValue}
+        allValue="all"
+        options={REFUND_TYPE_FILTER_OPTIONS}
+        counts={typeCounts}
+        onChange={onTypeChange}
+      />
+      {isHistoryMode &&
         decisionValue !== undefined &&
         onDecisionChange !== undefined && (
-          <div className="border-b border-slate-100 px-5 py-3">
-            <RefundFilterChipRow
-              options={REFUND_DECISION_FILTER_OPTIONS}
-              value={decisionValue}
-              onChange={onDecisionChange}
-              counts={decisionCounts}
-              ariaLabel="Filter by refund decision"
-            />
-          </div>
-        )}
-
-      {showStateChipRow && stateOptions !== undefined && (
-        <div className="border-b border-slate-100 px-5 py-3">
-          <RefundFilterChipRow
-            options={stateOptions}
-            value={stateValue!}
-            onChange={onStateChange!}
-            counts={stateCounts}
-            ariaLabel="Filter by lead state"
+          <FilterSelectDropdown
+            id="admin-refunds-filter-decision"
+            dimensionLabel="Decision"
+            value={decisionValue}
+            allValue="all"
+            options={REFUND_DECISION_FILTER_OPTIONS}
+            counts={decisionCounts}
+            onChange={onDecisionChange}
           />
-        </div>
+        )}
+      {isPendingMode &&
+        stateValue !== undefined &&
+        onStateChange !== undefined &&
+        stateOptions !== undefined && (
+          <FilterSelectDropdown
+            id="admin-refunds-filter-state"
+            dimensionLabel="State"
+            value={stateValue}
+            allValue="all"
+            options={stateOptions}
+            counts={stateCounts}
+            onChange={onStateChange}
+            menuWidthClass="w-64"
+          />
+        )}
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="ml-auto inline-flex items-center gap-1 rounded-sm text-xs text-slate-400 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        >
+          <X size={12} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+          Clear
+        </button>
       )}
     </div>
   );
