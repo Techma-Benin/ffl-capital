@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getLeadEvents } from "@/lib/leads/lead-events";
+import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
 import {
   AdminLeadDetailView,
   type AdminLeadDetailDelivery,
@@ -17,7 +18,12 @@ export default async function AdminLeadDetailPage({
     where: { id: params.id },
     include: {
       leadDeliveries: {
-        include: { partner: true, refundRequests: true },
+        include: {
+          partner: {
+            include: { _count: { select: { leadDeliveries: true } } },
+          },
+          refundRequests: true,
+        },
         orderBy: { deliveredAt: "desc" },
       },
       resalePostings: { orderBy: { createdAt: "desc" } },
@@ -60,15 +66,19 @@ export default async function AdminLeadDetailPage({
   const canRedeliver = lead.leadDeliveries.length > 0;
   const refundableDelivery = lead.leadDeliveries.find((d) => !d.refundedAt);
 
-  const deliveries: AdminLeadDetailDelivery[] = lead.leadDeliveries.map((d) => ({
-    id: d.id,
-    channel: d.channel,
-    price: Number(d.price),
-    deliveredAt: d.deliveredAt.toISOString(),
-    refundedAt: d.refundedAt?.toISOString() ?? null,
-    partnerId: d.partnerId,
-    partnerName: `${d.partner.firstName} ${d.partner.lastName}`,
-  }));
+  const deliveries: AdminLeadDetailDelivery[] = lead.leadDeliveries.map((d) => {
+    const partner = refundPartnerSnapshotFromRow(d.partner);
+    return {
+      id: d.id,
+      channel: d.channel,
+      price: Number(d.price),
+      deliveredAt: d.deliveredAt.toISOString(),
+      refundedAt: d.refundedAt?.toISOString() ?? null,
+      partnerId: d.partnerId,
+      partnerName: partner.name,
+      partner,
+    };
+  });
 
   const grossSold = deliveries.reduce((sum, d) => sum + d.price, 0);
 

@@ -9,6 +9,8 @@ import { LeadRedeliverButton } from "@/components/admin/lead-redeliver-button";
 import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-button";
 import { AdminLeadEditModal } from "@/components/admin/admin-lead-edit-form";
 import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
+import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
+import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
 import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
@@ -30,6 +32,7 @@ export type AdminLeadDetailDelivery = {
   refundedAt: string | null;
   partnerId: string;
   partnerName: string;
+  partner: RefundPartnerSnapshot;
 };
 
 export type AdminLeadDetailTimelineItem = {
@@ -119,6 +122,15 @@ export function AdminLeadDetailView({
   actions: AdminLeadDetailActions;
 }) {
   const [tab, setTab] = useState<TabId>("contact");
+  const [partnerSheet, setPartnerSheet] = useState<RefundPartnerSnapshot | null>(
+    null,
+  );
+  const [partnerSheetOpen, setPartnerSheetOpen] = useState(false);
+
+  function openPartnerSheet(partner: RefundPartnerSnapshot) {
+    setPartnerSheet(partner);
+    setPartnerSheetOpen(true);
+  }
 
   const receivedLabel = formatDateTimeLong(lead.receivedAt);
   const trustedFormLabel = lead.trustedformCertUrl ? "Certified" : "Missing";
@@ -256,8 +268,18 @@ export function AdminLeadDetailView({
                   ) : (
                     deliveries.map((d) => (
                       <tr key={d.id}>
-                        <td className="font-medium text-slate-900">
-                          {d.partnerName}
+                        <td>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPartnerSheet(d.partner);
+                            }}
+                            className="font-medium text-orange-600 hover:text-orange-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded"
+                            aria-label={`View partner profile for ${d.partnerName}`}
+                          >
+                            {d.partnerName}
+                          </button>
                         </td>
                         <td>
                           <Badge
@@ -301,6 +323,12 @@ export function AdminLeadDetailView({
           </ol>
         </SectionCard>
       </div>
+
+      <RefundPartnerDetailSheet
+        partner={partnerSheet}
+        open={partnerSheetOpen}
+        onOpenChange={setPartnerSheetOpen}
+      />
 
       {lead.rawPayload != null && (
         <details className="card p-4 sm:p-6">
