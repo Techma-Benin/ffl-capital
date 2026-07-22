@@ -15,12 +15,18 @@ type FilterCounts<T extends string> = Partial<Record<T, number>> & { all: number
 
 type OpenCategory = "type" | "decision";
 
-const triggerActive =
+/** Category triggers + active chips (f69cede two-row filter bar). */
+const filterTriggerActive =
   "border-brand-300 bg-brand-50 text-brand-700";
-const triggerWithSelection =
-  "border-brand-200 bg-brand-50/60 text-brand-600";
-const triggerIdle =
+const filterTriggerIdle =
   "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
+
+const filterChipPressed =
+  "border-brand-400 bg-brand-50 text-brand-700";
+const filterChipIdle =
+  "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700";
+const filterCountPressed = "bg-brand-100 text-brand-700";
+const filterCountIdle = "bg-slate-100 text-slate-500";
 
 function optionLabel<T extends string>(
   options: { value: T; label: string }[],
@@ -62,9 +68,7 @@ function RefundFilterChipRow<T extends string>({
             className={clsx(
               "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
-              pressed
-                ? "border-brand-400 bg-brand-50 text-brand-700"
-                : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700",
+              pressed ? filterChipPressed : filterChipIdle,
             )}
           >
             {option.label}
@@ -72,9 +76,7 @@ function RefundFilterChipRow<T extends string>({
               <span
                 className={clsx(
                   "min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
-                  pressed
-                    ? "bg-brand-100 text-brand-700"
-                    : "bg-slate-100 text-slate-500",
+                  pressed ? filterCountPressed : filterCountIdle,
                 )}
               >
                 {count}
@@ -106,11 +108,7 @@ function CategoryTrigger({
       className={clsx(
         "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
-        isOpen
-          ? triggerActive
-          : hasSelection
-            ? triggerWithSelection
-            : triggerIdle,
+        isOpen || hasSelection ? filterTriggerActive : filterTriggerIdle,
       )}
     >
       {label}
@@ -124,6 +122,7 @@ function CategoryTrigger({
 }
 
 export function RefundTableFilters({
+  mode,
   typeValue,
   onTypeChange,
   typeCounts,
@@ -132,6 +131,8 @@ export function RefundTableFilters({
   decisionCounts,
   showDecision = false,
 }: {
+  /** `pending`: type chip row only. `history`: Type + Decision category bar. */
+  mode?: "pending" | "history";
   typeValue: RefundTypeFilter;
   onTypeChange: (next: RefundTypeFilter) => void;
   typeCounts?: FilterCounts<RefundTypeFilter | RefundTypeValue>;
@@ -140,15 +141,18 @@ export function RefundTableFilters({
   decisionCounts?: FilterCounts<RefundDecisionFilter>;
   showDecision?: boolean;
 }) {
+  const isHistoryMode = mode === "history" || (mode === undefined && showDecision);
   const [openCategory, setOpenCategory] = useState<OpenCategory | null>("type");
 
-  const showTypeChipRow = !showDecision || openCategory === "type";
+  const showTypeChipRow = !isHistoryMode || openCategory === "type";
   const showDecisionChipRow =
-    showDecision && openCategory === "decision";
+    isHistoryMode && openCategory === "decision";
 
   const typeActive = typeValue !== "all";
   const decisionActive =
-    showDecision && decisionValue !== undefined && decisionValue !== "all";
+    isHistoryMode &&
+    decisionValue !== undefined &&
+    decisionValue !== "all";
   const hasActiveFilters = typeActive || decisionActive;
 
   const typeSelectionLabel = optionLabel(REFUND_TYPE_FILTER_OPTIONS, typeValue);
@@ -168,7 +172,7 @@ export function RefundTableFilters({
     setOpenCategory((current) => {
       if (current === category) {
         // Pending tables only filter by type — keep the chip row visible.
-        if (!showDecision && category === "type") return "type";
+        if (!isHistoryMode && category === "type") return "type";
         return null;
       }
       return category;
@@ -177,10 +181,24 @@ export function RefundTableFilters({
 
   function clearFilters() {
     onTypeChange("all");
-    if (showDecision && onDecisionChange) {
+    if (isHistoryMode && onDecisionChange) {
       onDecisionChange("all");
     }
     setOpenCategory("type");
+  }
+
+  if (!isHistoryMode) {
+    return (
+      <div className="border-b border-slate-100 px-5 py-3">
+        <RefundFilterChipRow
+          options={REFUND_TYPE_FILTER_OPTIONS}
+          value={typeValue}
+          onChange={onTypeChange}
+          counts={typeCounts}
+          ariaLabel="Filter by refund type"
+        />
+      </div>
+    );
   }
 
   return (
@@ -192,8 +210,7 @@ export function RefundTableFilters({
           hasSelection={typeActive}
           onClick={() => toggleCategory("type")}
         />
-        {showDecision &&
-          decisionValue !== undefined &&
+        {decisionValue !== undefined &&
           onDecisionChange !== undefined && (
             <CategoryTrigger
               label={decisionTriggerLabel}

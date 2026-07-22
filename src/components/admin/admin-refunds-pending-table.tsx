@@ -172,6 +172,7 @@ export function AdminRefundsPendingTable({
     <TooltipProvider delayDuration={300}>
       <>
       <RefundTableFilters
+        mode="pending"
         typeValue={typeFilter}
         onTypeChange={handleTypeFilterChange}
         typeCounts={counts}

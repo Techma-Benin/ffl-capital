@@ -130,6 +130,7 @@ export function AdminRefundsHistoryTable({
   return (
     <>
       <RefundTableFilters
+        mode="history"
         typeValue={typeFilter}
         onTypeChange={handleTypeFilterChange}
         typeCounts={typeCounts}
