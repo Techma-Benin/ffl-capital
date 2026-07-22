@@ -8,9 +8,13 @@
     --color-brand: #0b3d91;
     --color-accent: #00a651;
     --color-page: #f4f7fb;
-    --app-dot-size: 18px;
-    --app-dot-color: rgb(100 116 139 / 0.13);
-    --app-dot-color-bright: rgb(100 116 139 / 0.26);
+    --app-pattern-spacing: 20px;
+    --app-pattern-line: rgb(100 116 139 / 0.12);
+    --app-pattern-line-bright: rgb(100 116 139 / 0.24);
+    /* legacy aliases */
+    --app-dot-size: var(--app-pattern-spacing);
+    --app-dot-color: var(--app-pattern-line);
+    --app-dot-color-bright: var(--app-pattern-line-bright);
     --app-spotlight-x: 50%;
     --app-spotlight-y: 50%;
   }
@@ -25,7 +29,7 @@
   }
 
   body {
-    @apply bg-app-dotted text-slate-900;
+    @apply bg-app-pattern text-slate-900;
   }
 
   /* Scrollbar styling */
@@ -48,30 +52,52 @@
 }
 
 @layer utilities {
+  .bg-app-pattern,
   .bg-app-dotted {
+    --_app-line: var(--app-pattern-line);
+    --_app-space: var(--app-pattern-spacing);
     background-color: var(--color-page);
-    background-image: radial-gradient(
-      circle at center,
-      var(--app-dot-color) 1px,
-      transparent 1px
-    );
-    background-size: var(--app-dot-size) var(--app-dot-size);
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent calc(var(--_app-space) - 1px),
+        var(--_app-line) calc(var(--_app-space) - 1px),
+        var(--_app-line) var(--_app-space)
+      ),
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent calc(var(--_app-space) - 1px),
+        var(--_app-line) calc(var(--_app-space) - 1px),
+        var(--_app-line) var(--_app-space)
+      );
   }
 }
 
 @layer components {
+  .app-pattern-spotlight,
   .app-dot-spotlight {
+    --_app-line: var(--app-pattern-line-bright);
+    --_app-space: var(--app-pattern-spacing);
     position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
     background-color: transparent;
-    background-image: radial-gradient(
-      circle at center,
-      var(--app-dot-color-bright) 1px,
-      transparent 1px
-    );
-    background-size: var(--app-dot-size) var(--app-dot-size);
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent calc(var(--_app-space) - 1px),
+        var(--_app-line) calc(var(--_app-space) - 1px),
+        var(--_app-line) var(--_app-space)
+      ),
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent calc(var(--_app-space) - 1px),
+        var(--_app-line) calc(var(--_app-space) - 1px),
+        var(--_app-line) var(--_app-space)
+      );
     -webkit-mask-image: radial-gradient(
       circle 150px at var(--app-spotlight-x) var(--app-spotlight-y),
       rgb(0 0 0 / 0.9),
@@ -87,12 +113,14 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
+    .app-pattern-spotlight.is-visible,
     .app-dot-spotlight.is-visible {
       opacity: 1;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .app-pattern-spotlight,
     .app-dot-spotlight {
       display: none;
     }

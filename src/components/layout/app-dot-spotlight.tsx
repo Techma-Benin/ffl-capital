@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Soft cursor-adjacent brightening of the page dot grid.
+ * Soft cursor-adjacent brightening of the page line grid.
  * Decorative only; disabled when prefers-reduced-motion is set.
  */
 export function AppDotSpotlight() {
@@ -42,5 +42,7 @@ export function AppDotSpotlight() {
     };
   }, []);
 
-  return <div ref={layerRef} aria-hidden className="app-dot-spotlight" />;
+  return (
+    <div ref={layerRef} aria-hidden className="app-pattern-spotlight" />
+  );
 }
