@@ -140,7 +140,11 @@ export function RefundTableFilters({
   decisionCounts?: FilterCounts<RefundDecisionFilter>;
   showDecision?: boolean;
 }) {
-  const [openCategory, setOpenCategory] = useState<OpenCategory | null>(null);
+  const [openCategory, setOpenCategory] = useState<OpenCategory | null>("type");
+
+  const showTypeChipRow = !showDecision || openCategory === "type";
+  const showDecisionChipRow =
+    showDecision && openCategory === "decision";
 
   const typeActive = typeValue !== "all";
   const decisionActive =
@@ -161,7 +165,14 @@ export function RefundTableFilters({
     : "Decision";
 
   function toggleCategory(category: OpenCategory) {
-    setOpenCategory((current) => (current === category ? null : category));
+    setOpenCategory((current) => {
+      if (current === category) {
+        // Pending tables only filter by type — keep the chip row visible.
+        if (!showDecision && category === "type") return "type";
+        return null;
+      }
+      return category;
+    });
   }
 
   function clearFilters() {
@@ -169,7 +180,7 @@ export function RefundTableFilters({
     if (showDecision && onDecisionChange) {
       onDecisionChange("all");
     }
-    setOpenCategory(null);
+    setOpenCategory("type");
   }
 
   return (
@@ -203,7 +214,7 @@ export function RefundTableFilters({
         )}
       </div>
 
-      {openCategory === "type" && (
+      {showTypeChipRow && (
         <div className="border-b border-slate-100 px-5 py-3">
           <RefundFilterChipRow
             options={REFUND_TYPE_FILTER_OPTIONS}
@@ -215,8 +226,7 @@ export function RefundTableFilters({
         </div>
       )}
 
-      {openCategory === "decision" &&
-        showDecision &&
+      {showDecisionChipRow &&
         decisionValue !== undefined &&
         onDecisionChange !== undefined && (
           <div className="border-b border-slate-100 px-5 py-3">
