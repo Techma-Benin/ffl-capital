@@ -8,11 +8,12 @@ import {
 export function TargetStatesGrid({
   selected,
   onChange,
-  maxHeightClass = "max-h-44",
+  scrollable = false,
 }: {
   selected: string[];
   onChange: (states: string[]) => void;
-  maxHeightClass?: string;
+  /** Compact capped height with vertical scroll (e.g. dense filter-set forms). */
+  scrollable?: boolean;
 }) {
   const selectedSet = new Set(selected);
 
@@ -80,7 +81,7 @@ export function TargetStatesGrid({
         </div>
       </div>
       <div
-        className={`grid grid-cols-5 gap-1.5 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 sm:grid-cols-10 ${maxHeightClass}`}
+        className={`grid grid-cols-5 gap-1.5 rounded-lg border border-slate-200 bg-white p-2 sm:grid-cols-10 ${scrollable ? "max-h-44 overflow-y-auto" : ""}`}
       >
         {US_STATE_CODES.map((code) => {
           const isSelected = selectedSet.has(code);
