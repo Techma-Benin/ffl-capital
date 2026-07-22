@@ -154,9 +154,6 @@ export function AdminLeadDetailView({
             Back to leads
           </Link>
         </div>
-        <p className="page-subtitle">
-          {lead.firstName} {lead.lastName} · {lead.id}
-        </p>
       </header>
 
       <div className="card space-y-2.5 p-3.5 sm:p-4">
