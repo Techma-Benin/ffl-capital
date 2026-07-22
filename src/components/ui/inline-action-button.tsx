@@ -8,15 +8,27 @@ type InlineActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
   loadingText?: string;
   icon?: ReactNode;
-  tone?: "emerald" | "red" | "slate";
+  tone?: "emerald" | "orange" | "red" | "slate";
   children: ReactNode;
 };
 
 const tones = {
   emerald:
     "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:hover:bg-emerald-50",
+  orange:
+    "bg-orange-50 text-orange-700 hover:bg-orange-100 disabled:hover:bg-orange-50",
   red: "bg-red-50 text-red-700 hover:bg-red-100 disabled:hover:bg-red-50",
   slate: "bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:hover:bg-slate-100",
+};
+
+const spinnerVariants: Record<
+  NonNullable<InlineActionButtonProps["tone"]>,
+  "emerald" | "red" | "slate" | "brand"
+> = {
+  emerald: "emerald",
+  orange: "brand",
+  red: "red",
+  slate: "slate",
 };
 
 export function InlineActionButton({
@@ -43,7 +55,7 @@ export function InlineActionButton({
     >
       {loading ? (
         <>
-          <Spinner size="xs" variant={tone === "red" ? "red" : tone === "emerald" ? "emerald" : "slate"} />
+          <Spinner size="xs" variant={spinnerVariants[tone]} />
           {loadingText ?? children}
         </>
       ) : (

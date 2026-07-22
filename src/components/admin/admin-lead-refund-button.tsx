@@ -46,7 +46,7 @@ export function AdminLeadRefundButton({
   if (!open) {
     return (
       <InlineActionButton
-        tone="red"
+        tone="orange"
         icon={<Wallet size={12} weight={ICON_WEIGHT_LINEAR} />}
         onClick={() => setOpen(true)}
       >
