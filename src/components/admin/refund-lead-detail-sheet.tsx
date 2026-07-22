@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { PrimaryLinkArrow } from "@/components/ui/primary-link-arrow";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { formatDateTime } from "@/lib/format-datetime";
+import { formatUsd } from "@/lib/format-money";
 import {
   formatRefundLeadChannel,
   refundLeadStatusBadge,
@@ -50,7 +51,7 @@ export function RefundLeadDetailSheet({ lead, open, onOpenChange }: Props) {
             { label: "Lead type", value: lead.leadType },
             {
               label: "Delivery price",
-              value: `$${lead.delivery.price.toFixed(2)}`,
+              value: formatUsd(lead.delivery.price),
             },
             {
               label: "Delivery channel",

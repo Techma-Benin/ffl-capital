@@ -9,6 +9,7 @@ import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
+import { formatUsd } from "@/lib/format-money";
 
 export default async function AdminAgedPage({
   searchParams,
@@ -41,7 +42,7 @@ export default async function AdminAgedPage({
     <div>
       <PageHeader
         title="Aged Leads"
-        subtitle={`Leads ${agedDays}+ days old — default price $${agedPrice}`}
+        subtitle={`Leads ${agedDays}+ days old — default price ${formatUsd(agedPrice)}`}
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
@@ -99,7 +100,7 @@ export default async function AdminAgedPage({
                       </td>
                       <td className="capitalize">{lead.status.replace("_", " ")}</td>
                       <td>{ageDays}d</td>
-                      <td className="font-semibold">${agedPrice.toFixed(2)}</td>
+                      <td className="font-semibold">{formatUsd(agedPrice)}</td>
                     </tr>
                   );
                 })}

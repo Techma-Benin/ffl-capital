@@ -9,6 +9,7 @@ import { usePartner } from "@/components/partner/partner-provider";
 import { isPartnerActive } from "@/lib/partner/active";
 import { Wallet, FileText, TrendUp, ShoppingBag, MapPin, WarningCircle } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
+import { formatUsd } from "@/lib/format-money";
 
 type RecentDelivery = {
   id: string;
@@ -48,7 +49,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Wallet Balance"
-          value={`$ ${balance.toFixed(2)}`}
+          value={formatUsd(balance)}
           icon={Wallet}
           accent={walletOk ? "emerald" : "red"}
           blobIndex={0}
@@ -69,7 +70,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
         />
         <StatCard
           label="Total Spent"
-          value={`$ ${stats.spentThisMonth.toFixed(2)}`}
+          value={formatUsd(stats.spentThisMonth)}
           icon={ShoppingBag}
           accent="cyan"
           blobIndex={3}
@@ -125,7 +126,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                         {d.channel === "realtime" ? "Real-time" : "Aged"}
                       </Badge>
                     </td>
-                    <td className="font-semibold text-slate-900">${d.price.toFixed(2)}</td>
+                    <td className="font-semibold text-slate-900">{formatUsd(d.price)}</td>
                     <td className="text-xs text-slate-400" suppressHydrationWarning>
                       {formatDateTime(d.deliveredAt)}
                     </td>

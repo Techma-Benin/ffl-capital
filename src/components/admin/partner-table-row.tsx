@@ -15,6 +15,7 @@ import {
   type PartnersColumnVisibilityState,
 } from "@/lib/admin/partners-table-columns";
 import { clsx } from "clsx";
+import { formatUsd } from "@/lib/format-money";
 import {
   CheckCircle,
   Prohibit,
@@ -361,7 +362,7 @@ export function PartnerTableRow({
               partner.walletOk ? "text-slate-900" : "text-red-500",
             )}
           >
-            ${Number(partner.walletBalance).toFixed(2)}
+            {formatUsd(partner.walletBalance)}
           </span>
         </td>
       )}

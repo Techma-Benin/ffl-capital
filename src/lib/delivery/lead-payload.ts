@@ -1,4 +1,5 @@
 import type { Lead, LeadDelivery, Partner } from "@prisma/client";
+import { formatUsd } from "@/lib/format-money";
 
 export function buildLeadDeliveryPayload(
   delivery: LeadDelivery,
@@ -90,7 +91,7 @@ export function buildLeadDeliveryEmailHtml(
     fieldRow("IP Address", lead.ipAddress),
     fieldRow("User Agent", lead.userAgent),
     fieldRow("Channel", delivery.channel),
-    fieldRow("Price", `$${Number(delivery.price).toFixed(2)}`),
+    fieldRow("Price", formatUsd(delivery.price)),
     fieldRow("Received", new Date(lead.receivedAt).toLocaleString()),
   ].join("");
 

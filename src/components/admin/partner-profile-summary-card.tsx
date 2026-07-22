@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { clsx } from "clsx";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
-import type { ReactNode } from "react";
+import { formatUsd } from "@/lib/format-money";
 
 const statusBadgeVariant: Record<string, "green" | "yellow" | "red" | "slate"> = {
   active: "green",
@@ -81,7 +81,7 @@ export function PartnerProfileSummaryCard({
           { label: "Member since", value: formatMemberSince(memberSince) },
           {
             label: "Wallet",
-            value: `$${walletBalance.toFixed(2)}`,
+            value: formatUsd(walletBalance),
             valueClassName: walletLow ? "text-red-600" : undefined,
           },
           { label: "Priority", value: priority },

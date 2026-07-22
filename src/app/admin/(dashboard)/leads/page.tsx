@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FileText } from "@/lib/icons/ssr";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { PortalDataTableCard } from "@/components/ui/portal-data-table";
-import { parsePageParams } from "@/lib/pagination";
+import { formatUsd } from "@/lib/format-money";
 import { LeadsExportButton } from "@/components/admin/leads-export-button";
 import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
 import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
@@ -205,7 +205,7 @@ export default async function AdminLeadsPage({
                   ? `${delivery.partner.firstName} ${delivery.partner.lastName}`
                   : null,
                 price: delivery
-                  ? `$${Number(delivery.price).toFixed(2)}`
+                  ? formatUsd(delivery.price)
                   : null,
               };
             })}

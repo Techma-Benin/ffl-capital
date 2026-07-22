@@ -12,6 +12,7 @@ import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
 import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
+import { formatUsd, formatUsdPlain } from "@/lib/format-money";
 import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 const TABS = [
@@ -198,7 +199,7 @@ export function AdminLeadDetailView({
           <KpiTile label="Deliveries" value={String(deliveries.length)} />
           <KpiTile
             label="Gross sold"
-            value={`$${grossSold.toFixed(2)}`}
+            value={formatUsd(grossSold)}
             valueClassName="text-emerald-600"
           />
           <KpiTile label="Refundable" value={lead.refundable ? "Yes" : "No"} />
@@ -294,7 +295,7 @@ export function AdminLeadDetailView({
                           </Badge>
                         </td>
                         <td className="font-medium text-slate-700">
-                          ${d.price.toFixed(2)}
+                          {formatUsd(d.price)}
                         </td>
                         <td
                           className="text-xs text-slate-400"
@@ -571,7 +572,7 @@ function formatEventPayload(payload: Record<string, unknown>): string {
   if (payload.partnerId) parts.push(`Partner: ${payload.partnerId}`);
   if (payload.reason) parts.push(String(payload.reason));
   if (payload.channel) parts.push(`Channel: ${payload.channel}`);
-  if (payload.price != null) parts.push(`${Number(payload.price).toFixed(2)}`);
+  if (payload.price != null) parts.push(formatUsdPlain(payload.price));
   if (payload.from) parts.push(`From: ${payload.from}`);
   if (payload.to) parts.push(`To: ${payload.to}`);
   if (payload.toEmail && !payload.to) parts.push(`To: ${payload.toEmail}`);

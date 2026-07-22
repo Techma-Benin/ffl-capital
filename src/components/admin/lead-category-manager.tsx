@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatUsdPlain } from "@/lib/format-money";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -393,7 +394,7 @@ export function LeadCategoryManager() {
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-600">
                       {cat.defaultPrice != null
-                        ? `${Number(cat.defaultPrice).toFixed(2)}`
+                        ? formatUsdPlain(cat.defaultPrice)
                         : <span className="text-slate-400">global</span>}
                     </td>
                     <td className="px-4 py-3">

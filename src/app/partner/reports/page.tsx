@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ChartBar, FileText, TrendUp, TrendDown, ArrowCounterClockwise } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDateTime } from "@/lib/format-datetime";
+import { formatUsd } from "@/lib/format-money";
 
 export default async function PartnerReportsPage() {
   const partnerId = await getPartnerId();
@@ -39,11 +40,11 @@ export default async function PartnerReportsPage() {
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Funded" value={`$ ${totalTopUp.toFixed(2)}`} icon={TrendUp} accent="emerald" />
-        <StatCard label="Total on Leads" value={`$ ${totalLeads.toFixed(2)}`} icon={TrendDown} accent="brand" />
+        <StatCard label="Total Funded" value={formatUsd(totalTopUp)} icon={TrendUp} accent="emerald" />
+        <StatCard label="Total on Leads" value={formatUsd(totalLeads)} icon={TrendDown} accent="brand" />
         <StatCard
           label="Total Refunded"
-          value={`$ ${totalRefunds.toFixed(2)}`}
+          value={formatUsd(totalRefunds)}
           icon={ArrowCounterClockwise}
           accent="amber"
         />
@@ -98,10 +99,11 @@ export default async function PartnerReportsPage() {
                       <td className="text-slate-500">{t.description ?? "—"}</td>
                       <td>
                         <span className={`font-semibold ${isCredit ? "text-emerald-600" : "text-slate-900"}`}>
-                          {isCredit ? "+" : ""}${Math.abs(amount).toFixed(2)}
+                          {isCredit ? "+" : ""}
+                          {formatUsd(Math.abs(amount))}
                         </span>
                       </td>
-                      <td className="font-medium">${Number(t.balanceAfter).toFixed(2)}</td>
+                      <td className="font-medium">{formatUsd(t.balanceAfter)}</td>
                       <td className="text-xs text-slate-400" suppressHydrationWarning>
                         {formatDateTime(t.createdAt)}
                       </td>

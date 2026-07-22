@@ -8,6 +8,7 @@ import Link from "next/link";
 import { X, Funnel, CopySimple, CaretDown, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 import type { FilterCriteria } from "@/lib/matching/types";
+import { formatUsd } from "@/lib/format-money";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -916,7 +917,7 @@ export function FilterListTable({ initialRows, sources = [] }: { initialRows: Fi
                       </td>
                       <td>{fs.filterStates.length}</td>
                       <td>{fs.priority}</td>
-                      <td className="font-semibold">${price.toFixed(2)}</td>
+                      <td className="font-semibold">{formatUsd(price)}</td>
                     </tr>
                   );
                 })

@@ -8,6 +8,7 @@ import { usePartner } from "@/components/partner/partner-provider";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { Wallet, ArrowUpRight, ArrowsClockwise, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
+import { formatUsd } from "@/lib/format-money";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -140,7 +141,7 @@ export function PartnerWalletView({
               Current Balance
             </p>
             <p className="mt-3 text-5xl font-bold tracking-tight tabular-nums text-white">
-              ${balance.toFixed(2)}
+              {formatUsd(balance)}
             </p>
             <p
               className={clsx(
@@ -252,7 +253,7 @@ export function PartnerWalletView({
             {subscription?.active ? (
               <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
                 <p className="text-sm font-semibold text-emerald-800">
-                  Active — ${subscription.amount.toFixed(2)}/week
+                  Active — {formatUsd(subscription.amount)}/week
                 </p>
                 {subscription.nextChargeAt && (
                   <p className="mt-0.5 text-xs text-emerald-700">
@@ -353,7 +354,8 @@ export function PartnerWalletView({
                         )}
                       </div>
                       <p className={clsx("shrink-0 text-base font-bold tabular-nums", isCredit ? "text-emerald-600" : "text-slate-900")}>
-                        {isCredit ? "+" : "−"}${Math.abs(t.amount).toFixed(2)}
+                        {isCredit ? "+" : "−"}
+                        {formatUsd(Math.abs(t.amount))}
                       </p>
                     </div>
 
@@ -370,7 +372,7 @@ export function PartnerWalletView({
                         {formatDateTime(t.createdAt)}
                       </p>
                       <p className="text-[11px] font-medium text-slate-400">
-                        bal. ${t.balanceAfter.toFixed(2)}
+                        bal. {formatUsd(t.balanceAfter)}
                       </p>
                     </div>
                   </div>

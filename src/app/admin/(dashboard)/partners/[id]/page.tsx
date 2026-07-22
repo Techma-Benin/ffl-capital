@@ -9,6 +9,7 @@ import { PartnerProfileCard } from "@/components/admin/partner-profile-card";
 import { PartnerAccountCrmCard } from "@/components/admin/partner-account-crm-card";
 import { PartnerDetailActivity } from "@/components/admin/partner-detail-activity";
 import { Funnel, Wallet, UsersThree } from "@/lib/icons/ssr";
+import { formatUsd } from "@/lib/format-money";
 
 export default async function AdminPartnerDetailPage({
   params,
@@ -118,7 +119,7 @@ export default async function AdminPartnerDetailPage({
           <div className="grid gap-3 sm:grid-cols-3">
             <StatCard
               label="Wallet balance"
-              value={`$${walletBalance.toFixed(2)}`}
+              value={formatUsd(walletBalance)}
               icon={Wallet}
               accent={walletLow ? "red" : "emerald"}
               valueClassName={walletLow ? "text-red-600" : undefined}

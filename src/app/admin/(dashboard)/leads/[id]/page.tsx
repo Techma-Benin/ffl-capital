@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getLeadEvents } from "@/lib/leads/lead-events";
 import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
 import { getClerkPartnerImageUrlMap } from "@/lib/auth/clerk-profile";
+import { formatUsd } from "@/lib/format-money";
 
 const PARTNER_SHEET_AVATAR_PX = 48;
 import {
@@ -46,7 +47,7 @@ export default async function AdminLeadDetailPage({
     ...lead.leadDeliveries.map((d) => ({
       at: d.deliveredAt.toISOString(),
       label: `Delivered (${d.channel})`,
-      detail: `${d.partner.firstName} ${d.partner.lastName} — $${Number(d.price).toFixed(2)}`,
+      detail: `${d.partner.firstName} ${d.partner.lastName} — ${formatUsd(d.price)}`,
     })),
     ...lead.leadDeliveries.flatMap((d) =>
       d.refundRequests.map((r) => ({

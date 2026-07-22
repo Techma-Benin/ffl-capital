@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
 import { ShoppingBag, Funnel, Clock, ShieldCheck } from "@/lib/icons/client";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { formatUsd } from "@/lib/format-money";
 
 type AgedLead = {
   id: string;
@@ -102,7 +103,7 @@ export function PartnerAgedView({
     <div>
       <PageHeader
         title="Aged Lead Marketplace"
-        subtitle={`Browse leads 30+ days old — only $${agedPrice} each`}
+        subtitle={`Browse leads 30+ days old — only ${formatUsd(agedPrice)} each`}
       />
 
 
@@ -164,7 +165,7 @@ export function PartnerAgedView({
             >
               {pending
                 ? "Purchasing…"
-                : `Buy Selected (${selected.size}) — $${(selected.size * agedPrice).toFixed(2)}`}
+                : `Buy Selected (${selected.size}) — ${formatUsd(selected.size * agedPrice)}`}
             </button>
           )}
         </div>
@@ -271,7 +272,7 @@ export function PartnerAgedView({
                           <span className="text-xs text-slate-300">—</span>
                         )}
                       </td>
-                      <td className="font-bold text-slate-900">${agedPrice.toFixed(2)}</td>
+                      <td className="font-bold text-slate-900">{formatUsd(agedPrice)}</td>
                       <td>
                         <div className="flex justify-end">
                           <button
@@ -284,7 +285,7 @@ export function PartnerAgedView({
                                 : "bg-slate-100 text-slate-400 cursor-not-allowed"
                             }`}
                           >
-                            Buy — ${agedPrice}
+                            Buy — {formatUsd(agedPrice)}
                           </button>
                         </div>
                       </td>

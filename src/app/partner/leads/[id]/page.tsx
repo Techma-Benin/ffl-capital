@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { PartnerRefundButton } from "@/components/partner/partner-refund-button";
 import { ArrowLeft, ShieldCheck, ShieldWarning, ICON_WEIGHT_LINEAR } from "@/lib/icons/ssr";
 import { formatDateTimeLong } from "@/lib/format-datetime";
+import { formatUsd } from "@/lib/format-money";
 
 function DetailRow({
   label,
@@ -147,7 +148,7 @@ export default async function PartnerLeadDetailPage({
         {/* Purchase details */}
         <Section title="Purchase Details">
           <DetailRow label="Channel" value={channelLabel} />
-          <DetailRow label="Price" value={`$${Number(delivery.price).toFixed(2)}`} />
+          <DetailRow label="Price" value={formatUsd(delivery.price)} />
           <DetailRow label="Filter Set" value={delivery.filterSet?.name ?? null} />
           <DetailRow label="Delivered" value={formatDate(delivery.deliveredAt)} />
           {isRefunded && <DetailRow label="Refunded" value={formatDate(delivery.refundedAt)} />}

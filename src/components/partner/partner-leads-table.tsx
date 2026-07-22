@@ -12,6 +12,7 @@ import {
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
+import { formatUsd } from "@/lib/format-money";
 import {
   PortalDataTable,
   portalTableCell,
@@ -287,7 +288,7 @@ export function PartnerLeadsTable({
       case "price":
         return (
           <td key={key} className={`whitespace-nowrap font-semibold text-slate-900 ${cellClass}`}>
-            ${d.price.toFixed(2)}
+            {formatUsd(d.price)}
           </td>
         );
       case "status":

@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format-datetime";
+import { formatUsd } from "@/lib/format-money";
 import { deliveryChannelLabel, formatTypeLabel } from "@/lib/format-type-label";
 
 type DeliveryRow = {
@@ -52,7 +53,7 @@ export function PartnerDetailActivity({
       at: d.deliveredAt,
       title: `Lead · ${d.lead.firstName} ${d.lead.lastName}`,
       subtitle: `${d.lead.state} · ${deliveryChannelLabel(d.channel)}`,
-      amount: `$${Number(d.price).toFixed(2)}`,
+      amount: formatUsd(d.price),
       channel: d.channel,
     })),
     ...transactions.map((t) => {
@@ -62,8 +63,8 @@ export function PartnerDetailActivity({
         kind: "transaction" as const,
         at: t.createdAt,
         title: formatTypeLabel(t.type),
-        subtitle: `Balance after $${Number(t.balanceAfter).toFixed(2)}`,
-        amount: `$${Math.abs(amt).toFixed(2)}`,
+        subtitle: `Balance after ${formatUsd(t.balanceAfter)}`,
+        amount: formatUsd(Math.abs(amt)),
         positive: amt > 0,
       };
     }),

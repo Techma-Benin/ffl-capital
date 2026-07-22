@@ -11,6 +11,8 @@ import {
   toFormData,
 } from "@/components/filter-sets/filter-set-form";
 
+import { formatUsd } from "@/lib/format-money";
+
 // Re-export shared types so existing importers keep working
 export type {
   CategoryOption,
@@ -157,7 +159,7 @@ export function PartnerFilterSetsPanel({
                     {fs.filterStates.length === 1 ? "" : "s"} · Priority {fs.priority} ·{" "}
                     {fs.deliveryChannel ?? "email"}
                     {fs.priceOverride != null
-                      ? ` · $${fs.priceOverride.toFixed(2)} override`
+                      ? ` · ${formatUsd(fs.priceOverride)} override`
                       : ""}
                   </p>
                 </div>
@@ -222,7 +224,7 @@ export function PartnerFilterSetsPanel({
                   <td>{fs.priority}</td>
                   <td>
                     {fs.priceOverride != null
-                      ? `$${fs.priceOverride.toFixed(2)}`
+                      ? formatUsd(fs.priceOverride)
                       : "—"}
                   </td>
                   <td className="text-xs text-slate-500">
