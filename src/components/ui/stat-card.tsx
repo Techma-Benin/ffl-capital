@@ -1,8 +1,11 @@
 import { clsx } from "clsx";
 import type { Icon } from "@/lib/icons/client";
-import type { ReactNode } from "react";
 import { ICON_WEIGHT } from "@/lib/icons/client";
 import { KPI_BLOB_PATHS, resolveKpiBlobIndex } from "@/components/ui/kpi-blob-shapes";
+import {
+  STAT_CARD_GEOMETRIC_CORNER_PATHS,
+  type StatCardCornerShape,
+} from "@/components/ui/stat-card-corner-shapes";
 
 /** @deprecated Use `accent` instead — legacy colored card skins are mapped to accent tints. */
 export type StatCardVariant =
@@ -62,18 +65,26 @@ const variantToAccent: Record<StatCardVariant, StatCardAccent> = {
   modern: "blue",
 };
 
+const cornerHoverMotion =
+  "transition-transform duration-300 ease-out motion-reduce:transition-none";
+
 function CornerIconBadge({
   IconComponent,
   blobFillClassName,
   iconClassName,
   blobIndex,
+  cornerShape,
 }: {
   IconComponent: Icon;
   blobFillClassName: string;
   iconClassName: string;
   blobIndex: number;
+  cornerShape: StatCardCornerShape;
 }) {
-  const pathD = KPI_BLOB_PATHS[blobIndex];
+  const isBlob = cornerShape === "blob";
+  const pathD = isBlob
+    ? KPI_BLOB_PATHS[blobIndex]
+    : STAT_CARD_GEOMETRIC_CORNER_PATHS[cornerShape];
 
   return (
     <div
@@ -88,13 +99,29 @@ function CornerIconBadge({
         )}
         aria-hidden
       >
-        <g transform="translate(128 72) rotate(18) scale(1.5)">
+        {isBlob ? (
+          <g transform="translate(128 72) rotate(18) scale(1.5)">
+            <g
+              className={clsx(
+                "origin-top-right",
+                cornerHoverMotion,
+                "group-hover:scale-110 group-hover:rotate-6 motion-reduce:group-hover:scale-100 motion-reduce:group-hover:rotate-0",
+              )}
+            >
+              <path d={pathD} className="fill-current" />
+            </g>
+          </g>
+        ) : (
           <g
-            className="origin-top-right transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-6 motion-reduce:transition-none motion-reduce:group-hover:scale-100 motion-reduce:group-hover:rotate-0"
+            className={clsx(
+              "origin-[100%_0%]",
+              cornerHoverMotion,
+              "group-hover:scale-105 motion-reduce:group-hover:scale-100",
+            )}
           >
             <path d={pathD} className="fill-current" />
           </g>
-        </g>
+        )}
       </svg>
       <div className="relative flex h-full w-full translate-x-[-0.75rem] translate-y-3 items-start justify-end p-3 pr-4 pt-6">
         <IconComponent size={30} weight={ICON_WEIGHT} className={iconClassName} />
@@ -114,6 +141,8 @@ interface StatCardProps {
   iconBgClassName?: string;
   /** Pick one of eight organic blob shapes (0–7). Defaults to a stable hash of accent + label. */
   blobIndex?: number;
+  /** Corner decoration when `cornerShape` is `blob`; geometric shapes ignore blob rotation. */
+  cornerShape?: StatCardCornerShape;
   accent?: StatCardAccent;
   valueClassName?: string;
   subtitleClassName?: string;
@@ -132,6 +161,7 @@ export function StatCard(props: StatCardProps) {
     iconColor,
     iconBgClassName,
     blobIndex: blobIndexProp,
+    cornerShape = "blob",
     accent: accentProp,
     valueClassName,
     subtitleClassName,
@@ -163,6 +193,7 @@ export function StatCard(props: StatCardProps) {
           blobFillClassName={blobFill}
           iconClassName={iconClass}
           blobIndex={blobIndex}
+          cornerShape={cornerShape}
         />
       )}
       <div className={clsx("min-w-0 p-6", IconComponent && "pr-24")}>

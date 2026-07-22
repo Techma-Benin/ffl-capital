@@ -67,7 +67,13 @@ export default async function AdminAgedPage({
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Available" value={total} icon={Archive} accent="blue" />
+        <StatCard
+          label="Available"
+          value={total}
+          icon={Archive}
+          accent="blue"
+          cornerShape="quarter-circle"
+        />
         <div className="card p-4 sm:col-span-2">
           <p className="text-xs font-semibold uppercase text-slate-500 mb-2">Top states</p>
           <div className="flex flex-wrap gap-2">
