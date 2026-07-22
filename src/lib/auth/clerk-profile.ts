@@ -31,11 +31,9 @@ export async function getClerkPartnerImageUrlMap(
   clerkUserIds: Iterable<string | null | undefined>,
   displayPx = 96,
 ): Promise<Map<string, string | null>> {
-  const unique = [
-    ...new Set(
-      [...clerkUserIds].filter((id): id is string => Boolean(id)),
-    ),
-  ];
+  const unique = Array.from(
+    new Set(Array.from(clerkUserIds).filter((id): id is string => Boolean(id))),
+  );
   const entries = await Promise.all(
     unique.map(async (id) => [
       id,
