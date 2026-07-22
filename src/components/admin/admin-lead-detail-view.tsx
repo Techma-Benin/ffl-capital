@@ -142,9 +142,14 @@ export function AdminLeadDetailView({
           <h1 className="page-title">Lead detail</h1>
           <Link
             href="/admin/leads"
-            className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700 hover:underline"
+            className="group inline-flex shrink-0 items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700"
           >
-            <ArrowLeft size={14} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+            <ArrowLeft
+              size={14}
+              weight={ICON_WEIGHT_LINEAR}
+              aria-hidden
+              className="transition-transform group-hover:-translate-x-0.5 motion-reduce:transition-none"
+            />
             Back to leads
           </Link>
         </div>
