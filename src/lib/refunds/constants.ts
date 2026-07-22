@@ -32,3 +32,23 @@ export function toggleRefundTypeFilter(
 ): RefundTypeFilter {
   return current === type ? "all" : type;
 }
+
+export const REFUND_DECISION_VALUES = ["approved", "rejected"] as const;
+export type RefundDecisionValue = (typeof REFUND_DECISION_VALUES)[number];
+export type RefundDecisionFilter = "all" | RefundDecisionValue;
+
+export const REFUND_DECISION_FILTER_OPTIONS: {
+  value: RefundDecisionFilter;
+  label: string;
+}[] = [
+  { value: "all", label: "All" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+];
+
+export function matchesRefundDecisionFilter(
+  status: string,
+  filter: RefundDecisionFilter,
+): boolean {
+  return filter === "all" || status === filter;
+}

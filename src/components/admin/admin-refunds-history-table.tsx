@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { RefundTypeFilterChips } from "@/components/admin/refund-type-filter-chips";
+import { RefundTableFilters } from "@/components/admin/refund-table-filters";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
 import {
   CLIENT_TABLE_PAGE_SIZE,
@@ -10,8 +10,10 @@ import {
 } from "@/lib/client-table-pagination";
 import { RefundTypeBadge } from "@/components/admin/refund-type-badge";
 import {
+  matchesRefundDecisionFilter,
   matchesRefundTypeFilter,
   toggleRefundTypeFilter,
+  type RefundDecisionFilter,
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
@@ -42,12 +44,24 @@ function refundTypeCounts(refunds: HistoryRefund[]) {
   };
 }
 
+function refundDecisionCounts(refunds: HistoryRefund[]) {
+  const approved = refunds.filter((r) => r.status === "approved").length;
+  const rejected = refunds.filter((r) => r.status === "rejected").length;
+  return {
+    all: refunds.length,
+    approved,
+    rejected,
+  };
+}
+
 export function AdminRefundsHistoryTable({
   refunds,
 }: {
   refunds: HistoryRefund[];
 }) {
   const [typeFilter, setTypeFilter] = useState<RefundTypeFilter>("all");
+  const [decisionFilter, setDecisionFilter] =
+    useState<RefundDecisionFilter>("all");
   const [page, setPage] = useState(1);
   const [partnerSheet, setPartnerSheet] = useState<RefundPartnerSnapshot | null>(
     null,
@@ -65,10 +79,19 @@ export function AdminRefundsHistoryTable({
     setLeadSheet(lead);
     setLeadSheetOpen(true);
   }
-  const counts = useMemo(() => refundTypeCounts(refunds), [refunds]);
+  const typeCounts = useMemo(() => refundTypeCounts(refunds), [refunds]);
+  const decisionCounts = useMemo(
+    () => refundDecisionCounts(refunds),
+    [refunds],
+  );
   const filteredRefunds = useMemo(
-    () => refunds.filter((r) => matchesRefundTypeFilter(r.refundType, typeFilter)),
-    [refunds, typeFilter],
+    () =>
+      refunds.filter(
+        (r) =>
+          matchesRefundTypeFilter(r.refundType, typeFilter) &&
+          matchesRefundDecisionFilter(r.status, decisionFilter),
+      ),
+    [refunds, typeFilter, decisionFilter],
   );
 
   const { pageItems: pageRefunds, page: currentPage } = useMemo(
@@ -91,21 +114,36 @@ export function AdminRefundsHistoryTable({
     setPage(1);
   }
 
+  function handleDecisionFilterChange(next: RefundDecisionFilter) {
+    setDecisionFilter(next);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setTypeFilter("all");
+    setDecisionFilter("all");
+    setPage(1);
+  }
+
   if (refunds.length === 0) return null;
 
   return (
     <>
-      <RefundTypeFilterChips
-        value={typeFilter}
-        onChange={handleTypeFilterChange}
-        counts={counts}
+      <RefundTableFilters
+        typeValue={typeFilter}
+        onTypeChange={handleTypeFilterChange}
+        typeCounts={typeCounts}
+        showDecision
+        decisionValue={decisionFilter}
+        onDecisionChange={handleDecisionFilterChange}
+        decisionCounts={decisionCounts}
       />
       {filteredRefunds.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm text-slate-500">
-          No history entries match this type.{" "}
+          No history entries match these filters.{" "}
           <button
             type="button"
-            onClick={() => handleTypeFilterChange("all")}
+            onClick={clearFilters}
             className="font-semibold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-sm"
           >
             Show all

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RefundReviewActions } from "@/components/admin/refund-review-actions";
-import { RefundTypeFilterChips } from "@/components/admin/refund-type-filter-chips";
+import { RefundTableFilters } from "@/components/admin/refund-table-filters";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
 import {
   CLIENT_TABLE_PAGE_SIZE,
@@ -171,10 +171,10 @@ export function AdminRefundsPendingTable({
   return (
     <TooltipProvider delayDuration={300}>
       <>
-      <RefundTypeFilterChips
-        value={typeFilter}
-        onChange={handleTypeFilterChange}
-        counts={counts}
+      <RefundTableFilters
+        typeValue={typeFilter}
+        onTypeChange={handleTypeFilterChange}
+        typeCounts={counts}
       />
       {selected.size > 0 && (
         <div className="flex items-center justify-end gap-2 border-b border-slate-100 px-5 py-2">
