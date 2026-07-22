@@ -1,15 +1,16 @@
 import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { Users, CheckCircle, Clock } from "@/lib/icons/ssr";
+import { Users, Lightning, Clock } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
-import { hasEligibleFilterSet } from "@/lib/partner/default-filter-set";
 import { AdminPartnersListClient } from "@/components/admin/admin-partners-list-client";
 import {
   buildPartnerOrderBy,
   buildPartnerSortHref,
+  computeLeadBuying,
+  countPartnersLeadBuying,
   parsePartnerSort,
   sortPartnersByLeadBuying,
   PARTNER_SORT_KEYS,
@@ -77,6 +78,14 @@ export default async function AdminPartnersPage({
       where: { affiliation: { not: null } },
       orderBy: { affiliation: "asc" },
     }),
+    prisma.partner.findMany({
+      where: buildPartnerListWhere("active", selectedCompanies),
+      select: {
+        status: true,
+        walletBalance: true,
+        filterSets: { select: { active: true, filterStates: true } },
+      },
+    }),
   ]);
 
   let partners: Awaited<
@@ -102,8 +111,16 @@ export default async function AdminPartnersPage({
     });
   }
 
-  const [total, pendingCount, activeCount, blockedCount, affiliationGroups] =
-    await countsPromise;
+  const [
+    total,
+    pendingCount,
+    activeCount,
+    blockedCount,
+    affiliationGroups,
+    activePartnersForLeadBuying,
+  ] = await countsPromise;
+
+  const leadBuyingCount = countPartnersLeadBuying(activePartnersForLeadBuying);
 
   const avatarUrls = await Promise.all(
     partners.map((p) =>
@@ -177,7 +194,13 @@ export default async function AdminPartnersPage({
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <StatCard label="Total Partners" value={total} icon={Users} accent="blue" blobIndex={0} />
-        <StatCard label="Active" value={activeCount} icon={CheckCircle} accent="mint" blobIndex={1} />
+        <StatCard
+          label="Lead Buying"
+          value={leadBuyingCount}
+          icon={Lightning}
+          accent="emerald"
+          blobIndex={1}
+        />
         <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" blobIndex={2} />
       </div>
 
@@ -189,10 +212,8 @@ export default async function AdminPartnersPage({
           sort={tableSort}
           pagination={pagination}
           partners={partners.map((p, index) => {
-            const isActive = p.status === "active";
+            const leadBuying = computeLeadBuying(p);
             const walletOk = Number(p.walletBalance) >= 25;
-            const statesOk = hasEligibleFilterSet(p.filterSets);
-            const leadBuying = isActive && walletOk && statesOk;
 
             return {
               id: p.id,

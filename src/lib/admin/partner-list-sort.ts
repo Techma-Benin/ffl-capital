@@ -96,6 +96,12 @@ export function computeLeadBuying(partner: PartnerForLeadBuyingSort): boolean {
   return isActive && walletOk && statesOk;
 }
 
+export function countPartnersLeadBuying(
+  partners: PartnerForLeadBuyingSort[],
+): number {
+  return partners.reduce((n, p) => n + (computeLeadBuying(p) ? 1 : 0), 0);
+}
+
 export function sortPartnersByLeadBuying<T extends PartnerForLeadBuyingSort>(
   partners: T[],
   dir: SortDirection,
