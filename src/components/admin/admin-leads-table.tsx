@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
-import { LeadTableColumnPickerButton } from "@/components/leads/lead-table-column-picker-button";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -155,29 +153,15 @@ export function AdminLeadsTable({
   visibility?: AdminLeadsColumnVisibilityState;
   tableFooter?: React.ReactNode;
 }) {
-  const columnSettingsBridge = useLeadColumnSettingsBridge();
   const displayColumns = useMemo(() => {
-    const filtered = columns.filter((col) => {
+    return columns.filter((col) => {
       if (col.key === "name" || col.key === "actions") return true;
       if (visibility && isAdminLeadHideableColumnKey(col.key)) {
         return visibility[col.key];
       }
       return true;
     });
-
-    return filtered.map((col) => {
-      if (col.key !== "actions") return col;
-      return {
-        ...col,
-        headerClassName: col.headerClassName ?? "w-12 text-center",
-        headerContent: columnSettingsBridge ? (
-          <LeadTableColumnPickerButton
-            onClick={columnSettingsBridge.openColumnSettings}
-          />
-        ) : undefined,
-      };
-    });
-  }, [columns, columnSettingsBridge, visibility]);
+  }, [columns, visibility]);
 
   function cellClass(
     options: { first?: boolean; last?: boolean; className?: string } = {},

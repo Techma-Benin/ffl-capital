@@ -7,8 +7,7 @@ import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
 import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
-import { AdminLeadsColumnVisibilityMenu } from "@/components/admin/admin-leads-column-visibility-menu";
-import { PartnersTableLayoutToggle } from "@/components/admin/partners-table-layout-toggle";
+import { AdminLeadsToolbarDisplayControls } from "@/components/leads/leads-toolbar-display-controls";
 import { useAdminLeadsColumnVisibility } from "@/components/admin/use-admin-leads-column-visibility";
 import { useAdminLeadsTableLayout } from "@/components/admin/use-admin-leads-table-layout";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
@@ -68,16 +67,6 @@ export function AdminLeadsListClient({
   const { layout, setLayout } = useAdminLeadsTableLayout();
   const { visibility, setColumnVisible } = useAdminLeadsColumnVisibility();
 
-  const viewControls = (
-    <>
-      <PartnersTableLayoutToggle layout={layout} onLayoutChange={setLayout} />
-      <AdminLeadsColumnVisibilityMenu
-        visibility={visibility}
-        onToggle={setColumnVisible}
-      />
-    </>
-  );
-
   return (
     <LeadColumnSettingsBridge>
       <PortalDataTableCard
@@ -92,7 +81,12 @@ export function AdminLeadsListClient({
               catalog={catalog}
               filterSummary={filterSummary}
               exportSlot={exportSlot}
-              displayControls={viewControls}
+              displayControls={
+                <AdminLeadsToolbarDisplayControls
+                  visibility={visibility}
+                  onToggle={setColumnVisible}
+                />
+              }
             />
           </div>
         }
