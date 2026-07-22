@@ -140,14 +140,14 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
 
       {!active && (
         <div
-          className="fixed bottom-4 left-4 right-4 z-40 max-w-md rounded-xl border border-amber-200 bg-amber-50 p-3.5 shadow-lg sm:bottom-6 sm:left-auto sm:right-6 sm:p-4"
+          className="fixed bottom-4 left-4 right-4 z-40 max-w-md rounded-xl border border-slate-200/80 bg-white/95 p-3.5 shadow-lg backdrop-blur-sm sm:bottom-6 sm:left-auto sm:right-6 sm:p-4"
           role="status"
           aria-live="polite"
         >
           <div className="flex items-start gap-2.5 sm:gap-3">
-            <WarningCircle size={18} className="mt-0.5 flex-shrink-0 text-amber-600" />
+            <WarningCircle size={18} className="mt-0.5 flex-shrink-0 text-amber-500" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-amber-900">Complete your setup to start receiving leads</p>
+              <p className="text-sm font-semibold text-slate-900">Complete your setup to start receiving leads</p>
               <div className="mt-2 space-y-1.5">
                 <ChecklistItem
                   done={partner.status !== "pending_approval"}
@@ -200,7 +200,7 @@ function ChecklistItem({
         className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
           done
             ? "bg-emerald-500 text-white"
-            : "border-2 border-amber-400 text-amber-600"
+            : "border-2 border-amber-300 text-amber-600"
         }`}
       >
         {done ? "✓" : "!"}
@@ -213,7 +213,7 @@ function ChecklistItem({
         </PortalLink>
       ) : (
         <>
-          <span className="text-xs text-amber-900">{label}</span>
+          <span className="text-xs text-slate-700">{label}</span>
           {actionHref && actionLabel && (
             <PortalLink href={actionHref} className={linkClass}>
               {actionLabel} →
