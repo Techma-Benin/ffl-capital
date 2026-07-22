@@ -153,13 +153,13 @@ export function PartnerProfileCard({
           {
             label: "Wallet",
             value: `$${walletBalance.toFixed(2)}`,
-            valueClassName: walletLow ? "text-red-600 font-semibold" : "font-medium text-slate-900",
+            valueClassName: walletLow ? "text-red-600" : undefined,
           },
           { label: "Priority", value: priority },
         ].map((row) => (
           <div key={row.label} className="flex items-center justify-between gap-3">
             <dt className="text-slate-500">{row.label}</dt>
-            <dd className={clsx("tabular-nums text-slate-900", row.valueClassName)}>
+            <dd className={clsx("tabular-nums font-semibold text-slate-900", row.valueClassName)}>
               {row.value}
             </dd>
           </div>
