@@ -21,6 +21,12 @@ import { RefundLeadCell } from "@/components/admin/refund-lead-cell";
 import { RefundLeadDetailSheet } from "@/components/admin/refund-lead-detail-sheet";
 import { RefundPartnerCell } from "@/components/admin/refund-partner-cell";
 import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type PendingRefund = {
   id: string;
@@ -162,7 +168,8 @@ export function AdminRefundsPendingTable({
   if (refunds.length === 0) return null;
 
   return (
-    <>
+    <TooltipProvider delayDuration={300}>
+      <>
       <RefundTypeFilterChips
         value={typeFilter}
         onChange={handleTypeFilterChange}
@@ -246,9 +253,7 @@ export function AdminRefundsPendingTable({
                 <td>
                   <RefundTypeBadge type={r.refundType} />
                 </td>
-                <td className="max-w-[180px] truncate text-slate-500">
-                  {r.reason ?? "—"}
-                </td>
+                <RefundReasonCell reason={r.reason} />
                 <td className="font-semibold text-slate-900">
                   ${r.amount.toFixed(2)}
                 </td>
@@ -280,7 +285,27 @@ export function AdminRefundsPendingTable({
         open={leadSheetOpen}
         onOpenChange={setLeadSheetOpen}
       />
-    </>
+      </>
+    </TooltipProvider>
+  );
+}
+
+function RefundReasonCell({ reason }: { reason: string | null }) {
+  if (!reason) {
+    return (
+      <td className="max-w-[180px] text-slate-500">—</td>
+    );
+  }
+
+  return (
+    <td className="max-w-[180px] text-slate-500">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="block cursor-default truncate">{reason}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top">{reason}</TooltipContent>
+      </Tooltip>
+    </td>
   );
 }
 
