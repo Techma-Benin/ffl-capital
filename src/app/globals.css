@@ -184,6 +184,25 @@
     @apply w-px whitespace-nowrap;
   }
 
+  /* Full-width card tables: fixed layout so col-fit stays tight; one column grows */
+  .data-table-fixed-fit {
+    @apply w-full table-fixed;
+  }
+
+  .data-table-fixed-fit th.data-table-col-fit,
+  .data-table-fixed-fit td.data-table-col-fit {
+    @apply px-2;
+  }
+
+  .data-table-fixed-fit th.data-table-col-grow,
+  .data-table-fixed-fit td.data-table-col-grow {
+    @apply pl-5;
+  }
+
+  .data-table-col-grow {
+    @apply min-w-0 max-w-0 w-auto;
+  }
+
   .data-table thead {
     @apply bg-slate-50;
   }
