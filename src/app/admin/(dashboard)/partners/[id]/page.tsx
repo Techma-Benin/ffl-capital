@@ -75,7 +75,7 @@ export default async function AdminPartnerDetailPage({
         <PartnerDetailHeader title="Partner profile" partnerId={partner.id} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
-        <aside className="space-y-3">
+        <aside className="sticky top-6 max-h-[calc(100dvh-3rem)] self-start space-y-3 overflow-y-auto">
           <PartnerProfileCard
             partnerId={partner.id}
             firstName={partner.firstName}
