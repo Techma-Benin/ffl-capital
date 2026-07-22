@@ -180,14 +180,38 @@
     @apply w-px whitespace-nowrap;
   }
 
-  /* Partner dashboard Recent Leads: fixed layout with explicit column widths */
+  /* Partner dashboard Recent Leads: balanced columns on wide cards; scroll on narrow */
   .data-table-recent-leads {
-    @apply w-full table-fixed;
+    @apply w-full min-w-[44rem] table-fixed;
+  }
+
+  .data-table-recent-leads col:nth-child(1) {
+    width: 28%;
+  }
+
+  .data-table-recent-leads col:nth-child(2) {
+    width: 8%;
+  }
+
+  .data-table-recent-leads col:nth-child(3) {
+    width: 14%;
+  }
+
+  .data-table-recent-leads col:nth-child(4) {
+    width: 12%;
+  }
+
+  .data-table-recent-leads col:nth-child(5) {
+    width: 10%;
+  }
+
+  .data-table-recent-leads col:nth-child(6) {
+    width: 28%;
   }
 
   .data-table-recent-leads th:first-child,
   .data-table-recent-leads td:first-child {
-    @apply min-w-0 pl-5;
+    @apply min-w-0 max-w-[35%] truncate pl-5;
   }
 
   .data-table-recent-leads th:not(:first-child),
@@ -195,9 +219,29 @@
     @apply whitespace-nowrap px-2;
   }
 
+  .data-table-recent-leads th:nth-child(2),
+  .data-table-recent-leads td:nth-child(2) {
+    @apply min-w-[3rem];
+  }
+
+  .data-table-recent-leads th:nth-child(3),
+  .data-table-recent-leads td:nth-child(3) {
+    @apply min-w-[6.75rem];
+  }
+
+  .data-table-recent-leads th:nth-child(4),
+  .data-table-recent-leads td:nth-child(4) {
+    @apply min-w-[5.75rem];
+  }
+
+  .data-table-recent-leads th:nth-child(5),
+  .data-table-recent-leads td:nth-child(5) {
+    @apply min-w-[4.5rem];
+  }
+
   .data-table-recent-leads th:last-child,
   .data-table-recent-leads td:last-child {
-    @apply w-[9rem] min-w-[8rem];
+    @apply min-w-[10.75rem] pr-5;
   }
 
   .data-table thead {

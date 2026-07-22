@@ -97,11 +97,11 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
             <table className="data-table data-table-recent-leads">
               <colgroup>
                 <col />
-                <col className="w-[3rem]" />
-                <col className="w-[6rem]" />
-                <col className="w-[5rem]" />
-                <col className="w-[4rem]" />
-                <col className="w-[9rem]" />
+                <col />
+                <col />
+                <col />
+                <col />
+                <col />
               </colgroup>
               <thead>
                 <tr>
@@ -116,7 +116,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
               <tbody>
                 {stats.recentDeliveries.map((d) => (
                   <tr key={d.id} className="cursor-pointer hover:bg-brand-50 transition-colors" onClick={() => { window.location.href = `/partner/leads/${d.id}`; }}>
-                    <td className="truncate font-medium text-slate-900">
+                    <td className="font-medium text-slate-900">
                       {d.lead.firstName} {d.lead.lastName}
                     </td>
                     <td>
