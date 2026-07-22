@@ -219,11 +219,6 @@
     @apply whitespace-nowrap px-2;
   }
 
-  .data-table-recent-leads th:nth-child(5),
-  .data-table-recent-leads td:nth-child(5) {
-    @apply tabular-nums;
-  }
-
   .data-table-recent-leads th:last-child,
   .data-table-recent-leads td:last-child {
     @apply px-5;
@@ -241,14 +236,15 @@
     @apply px-3 py-2 text-slate-700;
   }
 
-  /* After base th text-left so these win; Price header stays left */
+  /* After base th text-left so these win; Price column stays right-aligned */
   .data-table-recent-leads th:not(:nth-child(5)),
-  .data-table-recent-leads td {
+  .data-table-recent-leads td:not(:nth-child(5)) {
     @apply text-center;
   }
 
-  .data-table-recent-leads th:nth-child(5) {
-    @apply text-left;
+  .data-table-recent-leads th:nth-child(5),
+  .data-table-recent-leads td:nth-child(5) {
+    @apply text-right tabular-nums;
   }
 
   .data-table tbody tr {
