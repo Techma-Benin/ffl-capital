@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { StatCard } from "@/components/ui/stat-card";
-import { PartnerEditForm } from "@/components/admin/partner-edit-form";
-import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
 import { PartnerDetailHeader } from "@/components/admin/partner-detail-header";
+import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
 import { PartnerProfileCard } from "@/components/admin/partner-profile-card";
 import { PartnerAccountCrmCard } from "@/components/admin/partner-account-crm-card";
 import { PartnerDetailActivity } from "@/components/admin/partner-detail-activity";
@@ -54,7 +53,20 @@ export default async function AdminPartnerDetailPage({
 
   return (
     <div className="pb-10">
-      <PartnerDetailHeader title="Partner profile" partnerId={partner.id} />
+      <PartnerDetailHeader
+        title="Partner profile"
+        partnerId={partner.id}
+        displayName={displayName}
+        editInitial={{
+          priority: partner.priority,
+          priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
+          status: partner.status,
+          crmProvider: partner.crmProvider,
+          crmWebhookUrl: partner.crmWebhookUrl,
+          ringySid: partner.ringySid,
+          ringyAuthToken: partner.ringyAuthToken,
+        }}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
         <aside className="space-y-3">
@@ -165,24 +177,6 @@ export default async function AdminPartnerDetailPage({
           />
         </div>
       </div>
-
-      <section id="partner-account-edit" className="mt-10 scroll-mt-24">
-        <p className="mb-3 text-xs font-medium text-slate-500">
-          Account settings for {displayName}
-        </p>
-        <PartnerEditForm
-          partnerId={partner.id}
-          initial={{
-            priority: partner.priority,
-            priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
-            status: partner.status,
-            crmProvider: partner.crmProvider,
-            crmWebhookUrl: partner.crmWebhookUrl,
-            ringySid: partner.ringySid,
-            ringyAuthToken: partner.ringyAuthToken,
-          }}
-        />
-      </section>
     </div>
   );
 }
