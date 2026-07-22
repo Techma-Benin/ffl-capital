@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { RefundTableFilters } from "@/components/admin/refund-table-filters";
+import { RefundDecisionBadge } from "@/components/admin/refund-decision-badge";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
 import {
   CLIENT_TABLE_PAGE_SIZE,
@@ -12,6 +12,7 @@ import { RefundTypeBadge } from "@/components/admin/refund-type-badge";
 import {
   matchesRefundDecisionFilter,
   matchesRefundTypeFilter,
+  toggleRefundDecisionFilter,
   toggleRefundTypeFilter,
   type RefundDecisionFilter,
   type RefundTypeFilter,
@@ -193,9 +194,15 @@ export function AdminRefundsHistoryTable({
                 </td>
                 <td className="font-semibold">${r.amount.toFixed(2)}</td>
                 <td>
-                  <Badge variant={r.status === "approved" ? "green" : "red"}>
-                    {r.status === "approved" ? "Approved" : "Rejected"}
-                  </Badge>
+                  <RefundDecisionBadge
+                    decision={r.status}
+                    filterActive={decisionFilter === r.status}
+                    onFilterClick={(decision) =>
+                      handleDecisionFilterChange(
+                        toggleRefundDecisionFilter(decisionFilter, decision),
+                      )
+                    }
+                  />
                 </td>
                 <td className="text-xs text-slate-400" suppressHydrationWarning>
                   {formatDateTime(r.reviewedAt)}

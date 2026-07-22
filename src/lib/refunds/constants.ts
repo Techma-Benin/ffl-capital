@@ -52,3 +52,19 @@ export function matchesRefundDecisionFilter(
 ): boolean {
   return filter === "all" || status === filter;
 }
+
+/** Clicking a decision badge again clears the filter. */
+export function toggleRefundDecisionFilter(
+  current: RefundDecisionFilter,
+  decision: RefundDecisionValue,
+): RefundDecisionFilter {
+  return current === decision ? "all" : decision;
+}
+
+export function refundDecisionLabel(
+  decision: RefundDecisionValue | string,
+): string {
+  if (decision === "approved") return "Approved";
+  if (decision === "rejected") return "Rejected";
+  return decision;
+}
