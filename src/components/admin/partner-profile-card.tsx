@@ -140,7 +140,7 @@ export function PartnerProfileCard({
             type="button"
             disabled={pending}
             onClick={handleApprove}
-            className="btn-primary w-full max-w-full py-2.5 text-sm font-semibold"
+            className="btn-primary w-full max-w-full justify-center py-2.5 text-center text-sm font-semibold"
           >
             {pending ? "Approving…" : "Approve partner"}
           </button>
