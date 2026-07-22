@@ -25,7 +25,7 @@ export function TargetStatesGrid({
     const next = new Set(selectedSet);
     if (next.has(code)) next.delete(code);
     else next.add(code);
-    onChange([...next].sort());
+    onChange(Array.from(next).sort());
   }
 
   return (

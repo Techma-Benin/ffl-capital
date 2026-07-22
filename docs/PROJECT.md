@@ -347,7 +347,7 @@ resale_postings                   -- envois IntegrityCONNECT
 - [x] Dashboard admin : stats, leads récents, file unmatched
 - [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, colonnes configurables, détail lead **B3** (hero compact, onglets Contact/IUL/Compliance/Tracking/Events, livraisons partenaires + timeline) ; `?view=` (redirection legacy `?status=`)
 - [x] Partner leads : vues par partner (défaut « All deliveries »), mêmes primitives UI que l’admin côté liste
-- [x] Admin partners : liste, approbation, détail **P5** (profil + conformité CRM : colonne résumé, stats, checklist, filter sets en lignes, activité unifiée ; formulaire « Edit account » en bas), filter sets ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; colonnes masquables (préférence `localStorage` `admin-partners-visible-columns`)
+- [x] Admin partners : liste, approbation, détail **P5** (profil + conformité CRM : colonne résumé, stats, checklist, filter sets en lignes, activité unifiée ; édition compte (modal « Edit account » depuis l’en-tête ou Account & CRM ; photo Clerk sur la carte profil)), filter sets ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; colonnes masquables (préférence `localStorage` `admin-partners-visible-columns`)
 - [x] Admin refunds : file pending + historique
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
 - [x] Partner settings (états, CRM webhook)

@@ -166,7 +166,7 @@ export default async function AdminPartnerDetailPage({
             deliveries={partner.leadDeliveries.map((d) => ({
               id: d.id,
               deliveredAt: d.deliveredAt,
-              price: d.price,
+              price: Number(d.price),
               channel: d.channel,
               lead: {
                 firstName: d.lead.firstName,
@@ -178,8 +178,8 @@ export default async function AdminPartnerDetailPage({
               id: t.id,
               createdAt: t.createdAt,
               type: t.type,
-              amount: t.amount,
-              balanceAfter: t.balanceAfter,
+              amount: Number(t.amount),
+              balanceAfter: Number(t.balanceAfter),
             }))}
           />
         </div>
