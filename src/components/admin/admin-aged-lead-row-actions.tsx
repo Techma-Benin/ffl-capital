@@ -3,11 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { clsx } from "clsx";
+import { Spinner } from "@/components/ui/spinner";
 import { Skull, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 export function AdminAgedLeadRowActions({ leadId }: { leadId: string }) {
   const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const [isPending, setIsPending] = useState(false);
 
   async function markDead() {
     if (
@@ -17,7 +18,7 @@ export function AdminAgedLeadRowActions({ leadId }: { leadId: string }) {
     ) {
       return;
     }
-    setPending(true);
+    setIsPending(true);
     try {
       const res = await fetch(`/api/admin/leads/${leadId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed");
@@ -25,7 +26,7 @@ export function AdminAgedLeadRowActions({ leadId }: { leadId: string }) {
     } catch {
       // allow retry
     } finally {
-      setPending(false);
+      setIsPending(false);
     }
   }
 
@@ -36,16 +37,23 @@ export function AdminAgedLeadRowActions({ leadId }: { leadId: string }) {
         e.stopPropagation();
         void markDead();
       }}
-      disabled={pending}
-      title="Mark dead"
-      aria-label="Mark lead as dead"
+      disabled={isPending}
+      aria-busy={isPending}
+      title={isPending ? "Marking as dead…" : "Mark dead"}
+      aria-label={isPending ? "Marking lead as dead" : "Mark lead as dead"}
       className={clsx(
         "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-opacity",
-        "hover:bg-red-50 hover:text-red-600 disabled:opacity-60",
-        "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+        "hover:bg-red-50 hover:text-red-600 disabled:cursor-wait disabled:opacity-100",
+        isPending
+          ? "opacity-100 text-red-600"
+          : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
       )}
     >
-      <Skull size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+      {isPending ? (
+        <Spinner size="xs" variant="red" label="Marking lead as dead" />
+      ) : (
+        <Skull size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+      )}
     </button>
   );
 }
