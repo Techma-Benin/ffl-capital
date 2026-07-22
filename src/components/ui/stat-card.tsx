@@ -88,7 +88,10 @@ function CornerIconBadge({
 
   return (
     <div
-      className="pointer-events-none absolute -right-6 -top-6 h-28 w-28"
+      className={clsx(
+        "pointer-events-none absolute h-28 w-28",
+        isBlob ? "-right-6 -top-6" : "right-0 top-0",
+      )}
       aria-hidden
     >
       <svg
