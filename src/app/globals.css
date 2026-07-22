@@ -260,18 +260,13 @@
     @apply border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/80;
   }
 
-  /* Full grid (row + column lines) for portal table layout mode */
+  /* Row separators for portal table layout mode (no column dividers) */
   .data-table-grid {
     @apply border-collapse;
   }
 
   .data-table-grid thead tr {
     @apply border-b border-slate-200;
-  }
-
-  .data-table-grid th:not(:last-child),
-  .data-table-grid td:not(:last-child) {
-    @apply border-r border-slate-200;
   }
 
   .data-table-grid tbody tr {
