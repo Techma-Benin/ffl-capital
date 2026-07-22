@@ -3,7 +3,6 @@
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { clsx } from "clsx";
-import { clsx } from "clsx";
 import { Plus } from "@/lib/icons/client";
 import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
