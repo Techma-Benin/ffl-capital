@@ -101,7 +101,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                   <th>State</th>
                   <th>Type</th>
                   <th>Channel</th>
-                  <th>Price</th>
+                  <th className="data-table-col-fit">Price</th>
                   <th>Delivered</th>
                 </tr>
               </thead>
@@ -126,7 +126,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                         {d.channel === "realtime" ? "Real-time" : "Aged"}
                       </Badge>
                     </td>
-                    <td className="font-semibold text-slate-900">{formatUsd(d.price)}</td>
+                    <td className="data-table-col-fit font-semibold text-slate-900">{formatUsd(d.price)}</td>
                     <td className="text-xs text-slate-400" suppressHydrationWarning>
                       {formatDateTime(d.deliveredAt)}
                     </td>
@@ -159,8 +159,8 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                     partner.hasStatesInAnyFilterSet && !statesOk
                       ? "Target filter set must be active (contact admin if this persists)"
                       : statesOk
-                        ? `At least 15 target states selected (${partner.maxFilterSetStates} selected)`
-                        : `At least 15 target states selected (${partner.maxFilterSetStates} selected) — edit states`
+                        ? `15+ states (${partner.maxFilterSetStates}/15)`
+                        : `15+ states (${partner.maxFilterSetStates}/15) — edit`
                   }
                   actionHref={
                     partner.hasStatesInAnyFilterSet && !statesOk

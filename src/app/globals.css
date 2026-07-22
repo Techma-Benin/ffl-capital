@@ -171,7 +171,17 @@
 
   /* ── Data table (dense) ── */
   .data-table {
-    @apply min-w-full divide-y divide-slate-100 text-sm;
+    @apply min-w-full table-auto divide-y divide-slate-100 text-sm;
+  }
+
+  /* Shrink date/action/price trailing columns instead of absorbing table slack */
+  .data-table th:last-child,
+  .data-table td:last-child {
+    @apply w-px whitespace-nowrap;
+  }
+
+  .data-table-col-fit {
+    @apply w-px whitespace-nowrap;
   }
 
   .data-table thead {
