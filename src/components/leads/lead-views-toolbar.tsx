@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { useCallback, useEffect, useState } from "react";
 import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import {
@@ -61,7 +61,7 @@ export function LeadViewsToolbar({
   filterSummary?: React.ReactNode;
   exportSlot?: React.ReactNode;
 }) {
-  const router = useRouter();
+  const { push, router } = useNavigateWithPending();
   const columnSettingsBridge = useLeadColumnSettingsBridge();
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("edit");
@@ -141,7 +141,7 @@ export function LeadViewsToolbar({
         });
         if (!res.ok) throw new Error();
         const created = await res.json();
-        router.push(`${basePath}?view=${created.id}`);
+        push(`${basePath}?view=${created.id}`);
       } else {
         await apiPatch(activeView.id, {
           name: state.name,
@@ -184,7 +184,7 @@ export function LeadViewsToolbar({
       });
       if (!res.ok) throw new Error();
       const created = await res.json();
-      router.push(`${basePath}?view=${created.id}`);
+      push(`${basePath}?view=${created.id}`);
     } finally {
       setPending(false);
     }
@@ -213,7 +213,7 @@ export function LeadViewsToolbar({
         return;
       }
       const fallback = views.find((v) => v.isDefault && v.id !== activeView.id);
-      router.push(`${basePath}?view=${fallback?.id ?? views[0]?.id}`);
+      push(`${basePath}?view=${fallback?.id ?? views[0]?.id}`);
       refresh();
     } finally {
       setPending(false);

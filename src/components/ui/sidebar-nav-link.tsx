@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import type { Icon } from "@/lib/icons/client";
 import { ICON_WEIGHT } from "@/lib/icons/client";
-import { usePortal } from "@/components/layout/portal-provider";
+import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
 import {
   sidebarNavAccentStyles,
@@ -29,7 +29,7 @@ export function SidebarNavLink({
   const { sidebarCollapsed, pendingPath, startNavigation } = usePortal();
 
   const active = exact ? pathname === href : pathname.startsWith(href);
-  const pending = pendingPath === href;
+  const pending = isNavigationPending(pendingPath, href);
   const styles = sidebarNavAccentStyles[accent];
 
   return (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { Badge } from "@/components/ui/badge";
 import {
   portalTableDataCellClassName,
@@ -260,7 +260,7 @@ export function PartnerTableRow({
   columnVisibility?: PartnersColumnVisibilityState;
   layout?: PortalDataTableLayout;
 }) {
-  const router = useRouter();
+  const { push, router } = useNavigateWithPending();
   const [pending, setPending] = useState<ActionKey | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -310,7 +310,7 @@ export function PartnerTableRow({
   return (
     <tr
       className={clsx("cursor-pointer", portalTableRowClassName(undefined, layout))}
-      onClick={() => router.push(`/admin/partners/${partner.id}`)}
+      onClick={() => push(`/admin/partners/${partner.id}`)}
       onMouseLeave={() => setConfirmDelete(false)}
     >
       <td className={portalTableDataCellClassName(layout, { first: true })}>

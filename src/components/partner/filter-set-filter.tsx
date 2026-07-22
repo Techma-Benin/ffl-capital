@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 
 type FilterSetOption = {
   id: string;
@@ -16,7 +17,7 @@ export function FilterSetFilter({
   filterSets: FilterSetOption[];
   currentFilterSetId: string | null;
 }) {
-  const router = useRouter();
+  const { push } = useNavigateWithPending();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -29,7 +30,7 @@ export function FilterSetFilter({
       params.delete("filterSetId");
     }
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    push(qs ? `${pathname}?${qs}` : pathname);
   }
 
   return (

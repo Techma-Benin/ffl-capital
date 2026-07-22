@@ -5,9 +5,17 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
+  type MutableRefObject,
 } from "react";
-import { usePathname } from "next/navigation";
+import { Suspense } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import {
+  buildFullPath,
+  normalizeNavigationHref,
+} from "@/lib/navigation/normalize-href";
 
 type PortalContextValue = {
   sidebarCollapsed: boolean;
@@ -21,8 +29,34 @@ const PortalContext = createContext<PortalContextValue | null>(null);
 
 const STORAGE_KEY = "ffl-sidebar-collapsed";
 
+type NavigationLocationRef = MutableRefObject<{ fullPath: string }>;
+
+function PortalNavigationSync({
+  locationRef,
+  onLocationChange,
+}: {
+  locationRef: NavigationLocationRef;
+  onLocationChange: (fullPath: string) => void;
+}) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const fullPath = useMemo(
+    () => buildFullPath(pathname, searchParams.toString()),
+    [pathname, searchParams],
+  );
+
+  useEffect(() => {
+    locationRef.current.fullPath = fullPath;
+    onLocationChange(fullPath);
+  }, [fullPath, locationRef, onLocationChange]);
+
+  return null;
+}
+
 export function PortalProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const locationRef = useRef({ fullPath: pathname });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
@@ -33,12 +67,30 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     if (saved === "true") setSidebarCollapsed(true);
   }, []);
 
-  // Reset navigation indicator whenever the pathname changes.
-  // We intentionally omit searchParams here to avoid requiring a Suspense
-  // boundary (useSearchParams triggers streaming Suspense in App Router).
   useEffect(() => {
-    setPendingPath(null);
+    locationRef.current.fullPath = pathname;
   }, [pathname]);
+
+  const onLocationChange = useCallback((fullPath: string) => {
+    setPendingPath((pending) => {
+      if (!pending) return pending;
+      return normalizeNavigationHref(pending) === normalizeNavigationHref(fullPath)
+        ? null
+        : pending;
+    });
+  }, []);
+
+  const startNavigation = useCallback(
+    (href: string) => {
+      const current =
+        locationRef.current.fullPath ||
+        buildFullPath(pathname, "");
+      if (normalizeNavigationHref(href) !== normalizeNavigationHref(current)) {
+        setPendingPath(href);
+      }
+    },
+    [pathname],
+  );
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
@@ -48,26 +100,22 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const startNavigation = useCallback(
-    (href: string) => {
-      // Compare against pathname only (ignoring search params) to keep this
-      // hook free from useSearchParams and its Suspense requirement.
-      const hrefPath = href.split("?")[0];
-      if (hrefPath !== pathname) setPendingPath(href);
-    },
-    [pathname],
-  );
+  const value: PortalContextValue = {
+    sidebarCollapsed: hydrated ? sidebarCollapsed : false,
+    toggleSidebar,
+    pendingPath,
+    startNavigation,
+    isNavigating: pendingPath !== null,
+  };
 
   return (
-    <PortalContext.Provider
-      value={{
-        sidebarCollapsed: hydrated ? sidebarCollapsed : false,
-        toggleSidebar,
-        pendingPath,
-        startNavigation,
-        isNavigating: pendingPath !== null,
-      }}
-    >
+    <PortalContext.Provider value={value}>
+      <Suspense fallback={null}>
+        <PortalNavigationSync
+          locationRef={locationRef}
+          onLocationChange={onLocationChange}
+        />
+      </Suspense>
       {children}
     </PortalContext.Provider>
   );
@@ -79,4 +127,15 @@ export function usePortal() {
     throw new Error("usePortal must be used within PortalProvider");
   }
   return ctx;
+}
+
+/** Match pending navigation to a link href (order-insensitive query). */
+export function isNavigationPending(
+  pendingPath: string | null,
+  href: string,
+): boolean {
+  if (!pendingPath || !href) return false;
+  return (
+    normalizeNavigationHref(pendingPath) === normalizeNavigationHref(href)
+  );
 }

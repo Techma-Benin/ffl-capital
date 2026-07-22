@@ -3,7 +3,10 @@
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { clsx } from "clsx";
+import { clsx } from "clsx";
 import { Plus } from "@/lib/icons/client";
+import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
+import { Spinner } from "@/components/ui/spinner";
 import {
   LeadViewActionsMenuPanel,
   MenuBackdrop,
@@ -40,6 +43,7 @@ export function LeadViewSwitcher({
   basePath: string;
   activeViewActions?: LeadViewActionsHandlers;
 }) {
+  const { pendingPath, startNavigation } = usePortal();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -64,14 +68,17 @@ export function LeadViewSwitcher({
         {views.map((view) => {
           const active = view.id === activeViewId;
           const href = `${basePath}?view=${view.id}`;
+          const pending = isNavigationPending(pendingPath, href);
           return (
             <Link
               key={view.id}
               href={href}
               role="tab"
               aria-selected={active}
+              aria-busy={pending}
               data-active={active ? "true" : undefined}
               tabIndex={active ? 0 : -1}
+              onClick={() => startNavigation(href)}
               onContextMenu={
                 active && activeViewActions
                   ? (e) => {
@@ -81,12 +88,14 @@ export function LeadViewSwitcher({
                   : undefined
               }
               className={clsx(
-                "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
                 active
                   ? "bg-orange-600 text-white shadow-sm"
                   : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50",
+                pending && "pointer-events-none opacity-70",
               )}
             >
+              {pending && <Spinner size="xs" />}
               {view.name}
               {view.isDefault && !active && (
                 <span className="ml-1 text-[10px] text-slate-400">

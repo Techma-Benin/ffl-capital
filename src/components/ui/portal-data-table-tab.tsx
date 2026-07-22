@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { clsx } from "clsx";
-import { usePortal } from "@/components/layout/portal-provider";
+import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
 
 const tabAccentStyles = {
@@ -31,7 +31,7 @@ export function PortalDataTableTab({
   children: React.ReactNode;
 }) {
   const { pendingPath, startNavigation } = usePortal();
-  const pending = pendingPath === href;
+  const pending = isNavigationPending(pendingPath, href);
 
   return (
     <Link

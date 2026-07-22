@@ -1,11 +1,12 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 
 export function AdminLeadsFilters() {
-  const router = useRouter();
+  const { push } = useNavigateWithPending();
   const searchParams = useSearchParams();
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [state, setState] = useState(searchParams.get("state") ?? "");
@@ -21,7 +22,7 @@ export function AdminLeadsFilters() {
     if (values.from) params.set("from", values.from); else params.delete("from");
     if (values.to) params.set("to", values.to); else params.delete("to");
     params.delete("page");
-    router.push(`/admin/leads?${params.toString()}`);
+    push(`/admin/leads?${params.toString()}`);
   }
 
   // Debounce the text search input

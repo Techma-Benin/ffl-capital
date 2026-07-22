@@ -5,25 +5,23 @@ import { clsx } from "clsx";
 import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
 
-const activeAccentClasses = {
-  brand: "bg-brand-50 text-brand-700",
-  violet: "bg-violet-50 text-violet-700",
-  orange: "bg-orange-50 text-orange-700",
-} as const;
-
-export function FilterTabLink({
+export function PortalPaginationLink({
   href,
-  active,
-  accent = "brand",
-  children,
+  disabled,
+  label,
 }: {
   href: string;
-  active: boolean;
-  accent?: keyof typeof activeAccentClasses;
-  children: React.ReactNode;
+  disabled: boolean;
+  label: string;
 }) {
   const { pendingPath, startNavigation } = usePortal();
   const pending = isNavigationPending(pendingPath, href);
+
+  if (disabled) {
+    return (
+      <span className="rounded-md px-2.5 py-1 text-xs text-slate-300">{label}</span>
+    );
+  }
 
   return (
     <Link
@@ -31,13 +29,13 @@ export function FilterTabLink({
       onClick={() => startNavigation(href)}
       aria-busy={pending}
       className={clsx(
-        "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-        active ? activeAccentClasses[accent] : "text-slate-500 hover:text-slate-700",
+        "inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700",
+        "hover:bg-slate-50",
         pending && "pointer-events-none opacity-70",
       )}
     >
       {pending && <Spinner size="xs" />}
-      {children}
+      {label}
     </Link>
   );
 }

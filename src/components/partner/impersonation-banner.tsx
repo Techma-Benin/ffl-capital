@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { useTransition } from "react";
 import { Warning, ICON_WEIGHT } from "@/lib/icons/client";
 
@@ -9,13 +9,13 @@ interface Props {
 }
 
 export function ImpersonationBanner({ partnerName }: Props) {
-  const router = useRouter();
+  const { push } = useNavigateWithPending();
   const [isPending, startTransition] = useTransition();
 
   function handleExit() {
     startTransition(async () => {
       await fetch("/api/admin/impersonate", { method: "DELETE" });
-      router.push("/admin");
+      push("/admin");
     });
   }
 

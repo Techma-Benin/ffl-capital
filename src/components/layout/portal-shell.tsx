@@ -7,11 +7,8 @@ import { PortalProvider } from "@/components/layout/portal-provider";
  * Visual shell (sidebar + header + page bg) lives in the route layouts;
  * shared tokens: Integrity primary, accent green, page bg `#F4F7FB`.
  *
- * Note: PortalProvider previously used useSearchParams, which required a
- * Suspense wrapper here. That hook was removed (usePathname is used instead),
- * so the Suspense is no longer needed and has been removed to prevent
- * SSR/hydration mismatches that caused "Invalid hook call" crashes on the
- * partner and admin dashboard pages.
+ * Navigation pending uses useSearchParams inside PortalProvider (Suspense
+ * boundary there) so query-only navigations show loading feedback.
  */
 export function PortalShell({ children }: { children: React.ReactNode }) {
   return <PortalProvider>{children}</PortalProvider>;

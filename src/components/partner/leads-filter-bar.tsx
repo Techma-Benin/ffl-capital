@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { CaretDown, CaretUp, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { clsx } from "clsx";
 
@@ -29,7 +30,7 @@ export function LeadsFilterBar({
     statuses: string[];
   };
 }) {
-  const router = useRouter();
+  const { push } = useNavigateWithPending();
   const searchParams = useSearchParams();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -119,7 +120,7 @@ export function LeadsFilterBar({
       if (v === null || v === "") next.delete(k);
       else next.set(k, v);
     }
-    router.push(`/partner/leads?${next.toString()}`);
+    push(`/partner/leads?${next.toString()}`);
   }
 
   function toggleOption(cat: FilterCategory, value: string) {

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { clsx } from "clsx";
+import { PortalPaginationLink } from "@/components/ui/portal-pagination-link";
 
 export function TablePagination({
   page,
@@ -36,40 +36,13 @@ export function TablePagination({
         Showing {from}–{to} of {total}
       </p>
       <div className="flex items-center gap-1">
-        <PaginationLink href={hrefFor(page - 1)} disabled={page <= 1} label="Previous" />
+        <PortalPaginationLink href={hrefFor(page - 1)} disabled={page <= 1} label="Previous" />
         <span className="px-2 text-xs font-medium text-slate-600">
           Page {page} of {totalPages}
         </span>
-        <PaginationLink href={hrefFor(page + 1)} disabled={page >= totalPages} label="Next" />
+        <PortalPaginationLink href={hrefFor(page + 1)} disabled={page >= totalPages} label="Next" />
       </div>
     </div>
-  );
-}
-
-function PaginationLink({
-  href,
-  disabled,
-  label,
-}: {
-  href: string;
-  disabled: boolean;
-  label: string;
-}) {
-  if (disabled) {
-    return (
-      <span className="rounded-md px-2.5 py-1 text-xs text-slate-300">{label}</span>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      className={clsx(
-        "rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700",
-        "hover:bg-slate-50",
-      )}
-    >
-      {label}
-    </Link>
   );
 }
 

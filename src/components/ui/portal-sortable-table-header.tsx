@@ -8,7 +8,7 @@ import {
   ArrowsDownUp,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
-import { usePortal } from "@/components/layout/portal-provider";
+import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
 
 export type SortDirection = "asc" | "desc";
@@ -65,7 +65,7 @@ export function PortalSortableHeaderCell({
   headerClassName?: string;
 }) {
   const { pendingPath, startNavigation } = usePortal();
-  const pending = pendingPath === href;
+  const pending = isNavigationPending(pendingPath, href);
 
   return (
     <th

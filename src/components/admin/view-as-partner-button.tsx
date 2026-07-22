@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { useTransition } from "react";
 import { Eye, ICON_WEIGHT } from "@/lib/icons/client";
 
@@ -13,7 +13,7 @@ export function ViewAsPartnerButton({
   partnerId,
   label = "View Partner Portal",
 }: Props) {
-  const router = useRouter();
+  const { push } = useNavigateWithPending();
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
@@ -24,7 +24,7 @@ export function ViewAsPartnerButton({
         body: JSON.stringify({ partnerId }),
       });
       if (res.ok) {
-        router.push("/partner");
+        push("/partner");
       } else {
         const data = await res.json().catch(() => ({}));
         alert(`Could not impersonate partner: ${data?.error ?? res.statusText}`);

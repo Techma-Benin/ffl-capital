@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,7 @@ export function PartnerAgedView({
   paginationParams: Record<string, string | undefined>;
 }) {
   const { partner } = usePartner();
-  const router = useRouter();
+  const { push, router } = useNavigateWithPending();
   const urlSearchParams = useSearchParams();
   const canBuy = partner.status === "active" && partner.walletBalance >= agedPrice;
 
@@ -60,7 +61,7 @@ export function PartnerAgedView({
     if (stateFilter) params.set("state", stateFilter);
     if (typeFilter) params.set("type", typeFilter);
     if (ageFilter) params.set("age", ageFilter);
-    router.push(`/partner/aged?${params.toString()}`);
+    push(`/partner/aged?${params.toString()}`);
   }
 
   function toggleLead(id: string) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import { LeadTableColumnPickerButton } from "@/components/leads/lead-table-column-picker-button";
 import { Badge } from "@/components/ui/badge";
@@ -87,7 +88,7 @@ function RowMenu({
   delivery: DeliveryRow;
   onRefund: () => void;
 }) {
-  const router = useRouter();
+  const { push } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -117,7 +118,7 @@ function RowMenu({
             className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
             onClick={() => {
               setOpen(false);
-              router.push(`/partner/leads/${delivery.id}`);
+              push(`/partner/leads/${delivery.id}`);
             }}
           >
             <Eye size={14} className="text-slate-400" />
@@ -156,7 +157,7 @@ export function PartnerLeadsTable({
     hrefBySortKey: Record<string, string>;
   };
 }) {
-  const router = useRouter();
+  const { push, router } = useNavigateWithPending();
   const columnSettingsBridge = useLeadColumnSettingsBridge();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
@@ -357,7 +358,7 @@ export function PartnerLeadsTable({
           <tr
             key={d.id}
             className={`cursor-pointer ${portalTableRowClassName()}`}
-            onClick={() => router.push(`/partner/leads/${d.id}`)}
+            onClick={() => push(`/partner/leads/${d.id}`)}
           >
             {headerColumns.map((col, i) =>
               renderCell(

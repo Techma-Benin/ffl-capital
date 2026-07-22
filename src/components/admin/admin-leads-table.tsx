@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import { LeadTableColumnPickerButton } from "@/components/leads/lead-table-column-picker-button";
-import { useRouter } from "next/navigation";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { Badge } from "@/components/ui/badge";
 import {
   PortalDataTable,
@@ -39,7 +39,7 @@ type LeadRow = {
 };
 
 function AdminLeadRowMenu({ lead }: { lead: LeadRow }) {
-  const router = useRouter();
+  const { push, router } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
   const [reprocessPending, setReprocessPending] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -90,7 +90,7 @@ function AdminLeadRowMenu({ lead }: { lead: LeadRow }) {
             className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
             onClick={() => {
               setOpen(false);
-              router.push(`/admin/leads/${lead.id}`);
+              push(`/admin/leads/${lead.id}`);
             }}
           >
             <Eye size={14} className="text-slate-400" />

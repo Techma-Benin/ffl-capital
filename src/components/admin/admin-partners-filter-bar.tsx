@@ -1,11 +1,12 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
 import { PortalDataTableTab } from "@/components/ui/portal-data-table-tab";
 import type { PortalDataTableTabConfig } from "@/components/ui/portal-data-table";
 import { CaretDown } from "@/lib/icons/client";
 import { PARTNER_COMPANY_PARAM } from "@/lib/admin/partner-list-filters";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 
 const BASE_PATH = "/admin/partners";
 const LEGACY_FAMILY_PARAM = "family";
@@ -25,7 +26,7 @@ export function AdminPartnersFilterBar({
   selectedCompanies: string[];
   trailing?: React.ReactNode;
 }) {
-  const router = useRouter();
+  const { push } = useNavigateWithPending();
   const searchParams = useSearchParams();
 
   const selectValue =
@@ -40,7 +41,7 @@ export function AdminPartnersFilterBar({
     if (!trimmed) next.delete(PARTNER_COMPANY_PARAM);
     else next.set(PARTNER_COMPANY_PARAM, trimmed);
     const qs = next.toString();
-    router.push(qs ? `${BASE_PATH}?${qs}` : BASE_PATH);
+    push(qs ? `${BASE_PATH}?${qs}` : BASE_PATH);
   }
 
   return (
