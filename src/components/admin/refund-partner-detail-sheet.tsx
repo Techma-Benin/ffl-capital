@@ -1,14 +1,10 @@
 "use client";
 
-import { PartnerAvatar } from "@/components/admin/partner-avatar";
-import { Badge } from "@/components/ui/badge";
+import { PartnerProfileSummaryCard } from "@/components/admin/partner-profile-summary-card";
 import { PrimaryLinkArrow } from "@/components/ui/primary-link-arrow";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
-import {
-  refundPartnerStatusBadge,
-  refundPartnerStatusLabel,
-  type RefundPartnerSnapshot,
-} from "@/lib/admin/refund-partner-snapshot";
+import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
+
 type Props = {
   partner: RefundPartnerSnapshot | null;
   open: boolean;
@@ -17,11 +13,6 @@ type Props = {
 
 export function RefundPartnerDetailSheet({ partner, open, onOpenChange }: Props) {
   if (!partner) return null;
-
-  const statusVariant =
-    refundPartnerStatusBadge[partner.status] ?? "slate";
-  const statusLabel =
-    refundPartnerStatusLabel[partner.status] ?? partner.status;
 
   const statesPreview =
     partner.filterStates.length <= 6
@@ -35,52 +26,38 @@ export function RefundPartnerDetailSheet({ partner, open, onOpenChange }: Props)
       title="Partner"
       description={`Profile summary for ${partner.name}`}
     >
-      <SheetBody className="space-y-6">
-        <div className="flex items-start gap-4">
-          <PartnerAvatar
-            size="md"
-            avatarUrl={partner.avatarUrl}
-            firstName={partner.firstName}
-            lastName={partner.lastName}
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-lg font-semibold tracking-tight text-slate-900">
-              {partner.name}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">{partner.email}</p>
-            <div className="mt-3">
-              <Badge variant={statusVariant}>{statusLabel}</Badge>
-            </div>
+      <SheetBody className="space-y-4">
+        <PartnerProfileSummaryCard
+          firstName={partner.firstName}
+          lastName={partner.lastName}
+          email={partner.email}
+          status={partner.status}
+          affiliation={partner.affiliation}
+          memberSince={partner.memberSince}
+          walletBalance={partner.walletBalance}
+          priority={partner.priority}
+          avatarUrl={partner.avatarUrl}
+        />
+
+        <div className="card overflow-hidden rounded-xl">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <h2 className="text-sm font-semibold text-slate-900">Delivery & filters</h2>
           </div>
+          <dl className="space-y-2.5 px-5 py-4 text-sm">
+            {[
+              { label: "Deliveries", value: partner.deliveryCount.toLocaleString() },
+              { label: "Lead type", value: partner.leadType },
+              ...(partner.filterStates.length > 0
+                ? [{ label: "Filter states", value: statesPreview }]
+                : []),
+            ].map((row) => (
+              <div key={row.label} className="flex items-start justify-between gap-3">
+                <dt className="shrink-0 text-slate-500">{row.label}</dt>
+                <dd className="text-right font-semibold text-slate-900">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
-
-        <dl className="grid gap-3 sm:grid-cols-2">
-          {[
-            { label: "Deliveries", value: partner.deliveryCount.toLocaleString() },
-            {
-              label: "Wallet balance",
-              value: `$${partner.walletBalance.toFixed(2)}`,
-            },
-            { label: "Priority", value: String(partner.priority) },
-            { label: "Lead type", value: partner.leadType },
-          ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                {item.label}
-              </dt>
-              <dd className="mt-1 text-base font-bold text-slate-900">{item.value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        {partner.filterStates.length > 0 ? (
-          <div className="rounded-xl border border-slate-100 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Filter states
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-700">{statesPreview}</p>
-          </div>
-        ) : null}
 
         <PrimaryLinkArrow
           href={`/admin/partners/${partner.id}`}

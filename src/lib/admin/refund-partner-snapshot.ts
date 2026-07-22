@@ -7,6 +7,8 @@ export type RefundPartnerSnapshot = {
   email: string;
   avatarUrl: string | null;
   status: string;
+  affiliation: string | null;
+  memberSince: string;
   filterStates: string[];
   walletBalance: number;
   priceOverride: number | null;
@@ -38,6 +40,8 @@ type PartnerRowSource = {
   lastName: string;
   email: string;
   status: string;
+  affiliation: string | null;
+  createdAt: Date;
   filterStates: string[];
   walletBalance: { toString(): string } | number;
   priceOverride: { toString(): string } | number | null;
@@ -59,6 +63,8 @@ export function refundPartnerSnapshotFromRow(
     email: partner.email,
     avatarUrl,
     status: partner.status,
+    affiliation: partner.affiliation,
+    memberSince: partner.createdAt.toISOString(),
     filterStates: partner.filterStates,
     walletBalance: Number(partner.walletBalance),
     priceOverride:
