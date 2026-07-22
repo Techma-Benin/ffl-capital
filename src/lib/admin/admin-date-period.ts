@@ -24,6 +24,59 @@ export const ADMIN_DATE_PERIOD_OPTIONS: {
   { value: "custom", label: "Custom period" },
 ];
 
+/** Preset periods for the admin operations dashboard header filter. */
+export const ADMIN_DASHBOARD_PERIOD_OPTIONS: {
+  value: AdminDatePeriod;
+  label: string;
+}[] = [
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "last_7_days", label: "Last 7 days" },
+  { value: "custom", label: "Custom period" },
+];
+
+const DASHBOARD_PERIODS = new Set<AdminDatePeriod>(
+  ADMIN_DASHBOARD_PERIOD_OPTIONS.map((o) => o.value),
+);
+
+export function parseAdminDashboardPeriod(searchParams: {
+  period?: string;
+  from?: string;
+  to?: string;
+}): {
+  datePeriod: AdminDatePeriod;
+  from?: string;
+  to?: string;
+} {
+  const period = searchParams.period;
+  if (period && DASHBOARD_PERIODS.has(period as AdminDatePeriod)) {
+    return {
+      datePeriod: period as AdminDatePeriod,
+      from: searchParams.from,
+      to: searchParams.to,
+    };
+  }
+  if (searchParams.from || searchParams.to) {
+    return {
+      datePeriod: "custom",
+      from: searchParams.from,
+      to: searchParams.to,
+    };
+  }
+  return { datePeriod: "last_7_days" };
+}
+
+export function resolveAdminDashboardReceivedAtRange(
+  searchParams: { period?: string; from?: string; to?: string },
+  now: Date = new Date(),
+): { gte: Date; lte: Date } {
+  const filters = parseAdminDashboardPeriod(searchParams);
+  const range =
+    resolveAdminReceivedAtRange(filters, now) ??
+    resolveAdminReceivedAtRange({ datePeriod: "last_7_days" }, now)!;
+  return { gte: range.gte!, lte: range.lte! };
+}
+
 export function adminDatePeriodLabel(
   period: AdminDatePeriod | undefined,
 ): string | null {

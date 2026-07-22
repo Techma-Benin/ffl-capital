@@ -154,6 +154,18 @@ Auth : session **admin** ou **partner** (routes miroir sous `/api/admin/lead-vie
 
 **Service** : `src/lib/leads/lead-list-view-service.ts` ; requêtes liste : `admin-leads-query.ts` / `partner-leads-query.ts`.
 
+### Dashboard admin (`/admin`)
+
+Pas d’API dédiée — la page SSR lit les query params et filtre en base.
+
+| Param | Valeurs | Effet |
+|-------|---------|--------|
+| `period` | `today` \| `yesterday` \| `last_7_days` \| `custom` | Preset calendaire local sur `receivedAt` / `deliveredAt` |
+| `from`, `to` | `YYYY-MM-DD` | Requis pour bornes en mode `custom` (ou seuls → `custom` implicite) |
+| *(absent)* | — | Défaut `last_7_days` |
+
+Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange` (`src/lib/admin/admin-date-period.ts`). Agrégats graphiques : `getAdminDashboardChartData` (`src/lib/admin/dashboard-stats.ts`). UI filtre : `AdminDashboardPeriodFilter`.
+
 ---
 
 ## Mapping intake Boberdoo
@@ -309,3 +321,4 @@ stripe:listen           # webhook Stripe local
 | 2026-07-10 | Integrity live bloqué sur specs client ; mock en place |
 | 2026-07-10 | Core backend 9 phases implémentées — voir journal ci-dessus |
 | 2026-07-21 | Vues liste leads (`lead_list_views`) — remplace onglets statut admin ; CRUD admin/partner |
+| 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |

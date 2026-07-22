@@ -22,17 +22,21 @@ export function AdminDashboardCharts({
   intakeByDay,
   sparkByDay,
   deliveringDonut,
+  intakeChartTitle = "Lead Intake (7 days)",
   kpis,
   recentLeads,
 }: {
   intakeByDay: Array<{ label: string; leads: number }>;
   sparkByDay: Array<{ value: number }>;
   deliveringDonut: Array<{ name: string; value: number }>;
+  intakeChartTitle?: string;
   kpis: {
-    totalLeads: number;
-    leadsToday: number;
+    leadsInPeriod: number;
+    deliveriesInPeriod: number;
     activePartners: number;
     unmatchedLeads: number;
+    leadsLabel: string;
+    deliveriesLabel: string;
   };
   recentLeads: RecentLead[];
 }) {
@@ -41,8 +45,8 @@ export function AdminDashboardCharts({
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Leads" value={kpis.totalLeads.toLocaleString()} icon={FileText} accent="blue" blobIndex={0} />
-        <StatCard label="Leads Today" value={kpis.leadsToday} icon={CalendarCheck} accent="purple" blobIndex={1} />
+        <StatCard label={kpis.leadsLabel} value={kpis.leadsInPeriod.toLocaleString()} icon={FileText} accent="blue" blobIndex={0} />
+        <StatCard label={kpis.deliveriesLabel} value={kpis.deliveriesInPeriod.toLocaleString()} icon={CalendarCheck} accent="purple" blobIndex={1} />
         <StatCard label="Active Partners" value={kpis.activePartners} icon={UsersThree} accent="rose" blobIndex={2} />
         <StatCard label="Unmatched" value={kpis.unmatchedLeads} icon={Warning} accent="orange" blobIndex={3} />
       </div>
@@ -50,7 +54,7 @@ export function AdminDashboardCharts({
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="card p-5 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-900">Lead Intake (7 days)</h2>
+            <h2 className="text-sm font-semibold text-slate-900">{intakeChartTitle}</h2>
             <span className="text-xs text-slate-400">Daily volume</span>
           </div>
           <IntakeAreaChart data={intakeByDay} height={300} />

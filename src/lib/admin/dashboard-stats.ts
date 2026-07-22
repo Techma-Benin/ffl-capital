@@ -1,18 +1,34 @@
 import { prisma } from "@/lib/db";
 
-export async function getAdminDashboardChartData() {
-  const now = new Date();
-  const start = new Date(now);
-  start.setDate(start.getDate() - 6);
-  start.setHours(0, 0, 0, 0);
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function dayBuckets(gte: Date, lte: Date): Date[] {
+  const start = startOfDay(gte);
+  const end = startOfDay(lte);
+  const days: Date[] = [];
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    days.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+}
+
+export async function getAdminDashboardChartData(range: { gte: Date; lte: Date }) {
+  const buckets = dayBuckets(range.gte, range.lte);
+  const queryStart = buckets[0] ?? startOfDay(range.gte);
 
   const [leads, deliveries] = await Promise.all([
     prisma.lead.findMany({
-      where: { receivedAt: { gte: start } },
+      where: { receivedAt: { gte: queryStart, lte: range.lte } },
       select: { receivedAt: true },
     }),
     prisma.leadDelivery.findMany({
-      where: { deliveredAt: { gte: start } },
+      where: { deliveredAt: { gte: queryStart, lte: range.lte } },
       select: { deliveredAt: true, channel: true },
     }),
   ]);
@@ -20,9 +36,7 @@ export async function getAdminDashboardChartData() {
   const intakeByDay: Array<{ label: string; leads: number }> = [];
   const sparkByDay: Array<{ value: number }> = [];
 
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(start);
-    day.setDate(start.getDate() + i);
+  for (const day of buckets) {
     const next = new Date(day);
     next.setDate(day.getDate() + 1);
 
@@ -30,10 +44,12 @@ export async function getAdminDashboardChartData() {
       (l) => l.receivedAt >= day && l.receivedAt < next,
     ).length;
 
-    intakeByDay.push({
-      label: day.toLocaleDateString("en-US", { weekday: "short" }),
-      leads: count,
-    });
+    const label =
+      buckets.length === 1
+        ? day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+        : day.toLocaleDateString("en-US", { weekday: "short" });
+
+    intakeByDay.push({ label, leads: count });
     sparkByDay.push({ value: count });
   }
 

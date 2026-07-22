@@ -57,7 +57,7 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 | Widget / control | Boberdoo | Built? |
 |------------------|----------|:------:|
 | Lead type selector (IUL, IUL2, MP, Life, Veteran, FE, Inbound Phone) | ✓ | ✗ |
-| Date range picker (Today, Yesterday, Last 7/30 Days, Custom) | ✓ | ✗ |
+| Date range picker (Today, Yesterday, Last 7/30 Days, Custom) | ✓ | **partial** (Today, Yesterday, Last 7, Custom — no Last 30) |
 | Chart: Lead Sales By Source | ✓ | ✗ |
 | Chart: Leads Overview By Source | ✓ | ✗ |
 | Chart: Leads Overview By Vendors | ✓ | ✗ |
@@ -261,7 +261,7 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 
 | Route | Content |
 |-------|---------|
-| `/admin` | Dashboard (stats, match rate, pending approvals, recent leads) |
+| `/admin` | Operations dashboard (period filter `?period=&from=&to=`, KPIs, intake/delivery charts, recent leads) |
 | `/admin/leads` | Tabs, filters, search, reprocess actions |
 | `/admin/leads/[id]` | Full detail, event log, delivery timeline, raw payload |
 | `/admin/partners` | List, status tabs, approval actions |
@@ -283,7 +283,7 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 
 ### 2.4 Frontend — still missing (V1 polish / P2)
 
-- Admin dashboard charts (sales by source, vendor widgets)
+- Admin dashboard charts beyond intake + delivery channel (sales by source, vendor widgets)
 - Dedicated lead search/delete page (search is on leads list; delete API only)
 - Admin lead row actions: redeliver, admin-initiated refund (APIs exist, no UI buttons)
 - Partner Reports / transaction history page (data in wallet page only)
