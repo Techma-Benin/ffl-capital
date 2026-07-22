@@ -73,7 +73,11 @@ export default async function AdminPartnerDetailPage({
       editInitial={editInitial}
     >
       <div className="pb-10">
-        <PartnerDetailHeader title="Partner profile" partnerId={partner.id} />
+        <PartnerDetailHeader
+          title="Partner profile"
+          partnerId={partner.id}
+          partnerStatus={partner.status}
+        />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
         <aside className="sticky top-6 max-h-[calc(100dvh-3rem)] self-start space-y-3 overflow-y-auto">

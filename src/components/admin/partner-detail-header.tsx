@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ViewAsPartnerButton } from "@/components/admin/view-as-partner-button";
+import { BlockPartnerButton } from "@/components/admin/block-partner-button";
 import { usePartnerDetailEdit } from "@/components/admin/partner-detail-edit-provider";
 import {
   ArrowLeft,
@@ -13,9 +14,14 @@ import {
 type PartnerDetailHeaderProps = {
   title: string;
   partnerId: string;
+  partnerStatus: string;
 };
 
-export function PartnerDetailHeader({ title, partnerId }: PartnerDetailHeaderProps) {
+export function PartnerDetailHeader({
+  title,
+  partnerId,
+  partnerStatus,
+}: PartnerDetailHeaderProps) {
   const { openPartnerEdit } = usePartnerDetailEdit();
 
   return (
@@ -45,6 +51,7 @@ export function PartnerDetailHeader({ title, partnerId }: PartnerDetailHeaderPro
           Edit account
         </button>
         <ViewAsPartnerButton partnerId={partnerId} label="View as partner" />
+        <BlockPartnerButton partnerId={partnerId} status={partnerStatus} />
       </div>
     </div>
   );
