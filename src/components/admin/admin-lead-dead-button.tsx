@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Skull } from "@/lib/icons/client";
+import { Skull, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 export function AdminLeadDeadButton({ leadId }: { leadId: string }) {
   const router = useRouter();
@@ -29,7 +29,7 @@ export function AdminLeadDeadButton({ leadId }: { leadId: string }) {
       disabled={pending}
       className="btn-danger btn-sm inline-flex items-center gap-1"
     >
-      <Skull size={14} />
+      <Skull size={12} weight={ICON_WEIGHT_LINEAR} className="shrink-0" aria-hidden />
       {pending ? "Marking…" : "Mark Dead"}
     </button>
   );

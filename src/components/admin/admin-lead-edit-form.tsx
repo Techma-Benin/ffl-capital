@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { PencilSimple, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 type LeadFields = {
   firstName: string;
@@ -106,7 +106,12 @@ export function AdminLeadEditModal({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn-secondary btn-sm">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="btn-secondary btn-sm inline-flex items-center gap-1"
+      >
+        <PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} className="shrink-0" aria-hidden />
         Edit Lead
       </button>
 

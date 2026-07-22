@@ -48,7 +48,11 @@ export function InlineActionButton({
         </>
       ) : (
         <>
-          {icon}
+          {icon ? (
+            <span className="shrink-0" aria-hidden>
+              {icon}
+            </span>
+          ) : null}
           {children}
         </>
       )}

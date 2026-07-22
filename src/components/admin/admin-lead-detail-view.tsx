@@ -10,6 +10,7 @@ import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-butt
 import { AdminLeadEditModal } from "@/components/admin/admin-lead-edit-form";
 import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
+import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 const TABS = [
   { id: "contact", label: "Contact" },
@@ -129,9 +130,10 @@ export function AdminLeadDetailView({
           <h1 className="page-title">Lead detail</h1>
           <Link
             href="/admin/leads"
-            className="shrink-0 text-sm font-medium text-orange-600 hover:text-orange-700 hover:underline"
+            className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700 hover:underline"
           >
-            ← Back to leads
+            <ArrowLeft size={14} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+            Back to leads
           </Link>
         </div>
         <p className="page-subtitle">

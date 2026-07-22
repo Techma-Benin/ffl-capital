@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowCounterClockwise } from "@/lib/icons/client";
+import { Wallet, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 
 export function AdminLeadRefundButton({
@@ -47,7 +47,7 @@ export function AdminLeadRefundButton({
     return (
       <InlineActionButton
         tone="red"
-        icon={<ArrowCounterClockwise size={12} />}
+        icon={<Wallet size={12} weight={ICON_WEIGHT_LINEAR} />}
         onClick={() => setOpen(true)}
       >
         Refund

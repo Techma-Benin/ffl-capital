@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowsClockwise } from "@/lib/icons/client";
+import { ArrowCounterClockwise, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 export function LeadReprocessButton({ leadId }: { leadId: string }) {
   const router = useRouter();
@@ -30,7 +30,12 @@ export function LeadReprocessButton({ leadId }: { leadId: string }) {
       disabled={pending}
       className="inline-flex items-center gap-1 rounded-md bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors disabled:opacity-50"
     >
-      <ArrowsClockwise size={12} className={pending ? "animate-spin" : ""} />
+      <ArrowCounterClockwise
+        size={12}
+        weight={ICON_WEIGHT_LINEAR}
+        className={pending ? "animate-spin" : ""}
+        aria-hidden
+      />
       {pending ? "Processing…" : "Reprocess"}
     </button>
   );

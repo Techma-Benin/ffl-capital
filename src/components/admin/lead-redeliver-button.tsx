@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { PaperPlaneTilt } from "@/lib/icons/client";
+import { PaperPlaneTilt, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 
 export function LeadRedeliverButton({
@@ -37,7 +37,7 @@ export function LeadRedeliverButton({
   return (
     <InlineActionButton
       tone="slate"
-      icon={<PaperPlaneTilt size={12} />}
+      icon={<PaperPlaneTilt size={12} weight={ICON_WEIGHT_LINEAR} />}
       loading={pending}
       loadingText="Redelivering…"
       onClick={handleRedeliver}
