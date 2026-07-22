@@ -13,13 +13,14 @@ export function clerkProfileImageUrlForDisplay(
 /** Clerk profile image for a linked partner user (admin/server only). */
 export async function getClerkPartnerImageUrl(
   clerkUserId: string | null | undefined,
+  displayPx = 96,
 ): Promise<string | null> {
   if (!clerkUserId) return null;
   try {
     const client = await clerkClient();
     const user = await client.users.getUser(clerkUserId);
     if (!user.imageUrl) return null;
-    return clerkProfileImageUrlForDisplay(user.imageUrl);
+    return clerkProfileImageUrlForDisplay(user.imageUrl, displayPx);
   } catch {
     return null;
   }

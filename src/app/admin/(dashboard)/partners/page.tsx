@@ -22,6 +22,9 @@ import {
   parsePartnerCompanies,
 } from "@/lib/admin/partner-list-filters";
 import { AdminPartnersFilterBar } from "@/components/admin/admin-partners-filter-bar";
+import { getClerkPartnerImageUrl } from "@/lib/auth/clerk-profile";
+
+const TABLE_AVATAR_DISPLAY_PX = 40;
 
 const BASE_PATH = "/admin/partners";
 
@@ -105,6 +108,14 @@ export default async function AdminPartnersPage({
   const [total, pendingCount, activeCount, blockedCount, affiliationGroups] =
     await countsPromise;
 
+  const avatarUrls = await Promise.all(
+    partners.map((p) =>
+      getClerkPartnerImageUrl(p.clerkUserId, TABLE_AVATAR_DISPLAY_PX).catch(
+        () => null,
+      ),
+    ),
+  );
+
   const affiliationOptions = affiliationGroups
     .map((g) => g.affiliation)
     .filter((a): a is string => a != null);
@@ -177,7 +188,7 @@ export default async function AdminPartnersPage({
           <div className="flex min-h-0 flex-1 flex-col">
             <AdminPartnersTable
               sort={tableSort}
-              partners={partners.map((p) => {
+              partners={partners.map((p, index) => {
                 const isActive = p.status === "active";
                 const walletOk = Number(p.walletBalance) >= 25;
                 const statesOk = hasEligibleFilterSet(p.filterSets);
@@ -195,6 +206,7 @@ export default async function AdminPartnersPage({
                   leadBuying,
                   walletOk,
                   leadsCount: p._count.leadDeliveries,
+                  avatarUrl: avatarUrls[index] ?? null,
                 };
               })}
             />

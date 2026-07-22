@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { clsx } from "clsx";
+import { PartnerAvatar } from "@/components/admin/partner-avatar";
 
 const statusBadgeVariant: Record<string, "green" | "yellow" | "red" | "slate"> = {
   active: "green",
@@ -18,51 +19,6 @@ const statusLabel: Record<string, string> = {
   rejected: "Rejected",
   disabled: "Disabled",
 };
-
-const PROFILE_AVATAR_PX = 96;
-
-function partnerInitials(firstName: string, lastName: string) {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-}
-
-function PartnerAvatar({
-  avatarUrl,
-  firstName,
-  lastName,
-}: {
-  avatarUrl?: string | null;
-  firstName: string;
-  lastName: string;
-}) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const initials = partnerInitials(firstName, lastName);
-  const showImage = Boolean(avatarUrl) && !imageFailed;
-  const displayName = `${firstName} ${lastName}`.trim();
-
-  if (showImage) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- Clerk CDN (img.clerk.com); plain img + onError fallback
-      <img
-        src={avatarUrl!}
-        alt={displayName}
-        width={PROFILE_AVATAR_PX}
-        height={PROFILE_AVATAR_PX}
-        className="h-24 w-24 rounded-full object-cover"
-        onError={() => setImageFailed(true)}
-      />
-    );
-  }
-
-  return (
-    <div
-      className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-100 text-2xl font-semibold text-slate-700"
-      aria-label={displayName}
-      role="img"
-    >
-      {initials}
-    </div>
-  );
-}
 
 function formatMemberSince(date: Date) {
   return date.toLocaleDateString("en-US", {

@@ -24,6 +24,7 @@ import {
   DotsThreeVertical,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
+import { PartnerAvatar } from "@/components/admin/partner-avatar";
 
 type Partner = {
   id: string;
@@ -37,6 +38,7 @@ type Partner = {
   leadBuying: boolean;
   walletOk: boolean;
   leadsCount: number;
+  avatarUrl?: string | null;
 };
 
 type ActionKey = "approve" | "block" | "activate" | "delete";
@@ -301,11 +303,22 @@ export function PartnerTableRow({
       onMouseLeave={() => setConfirmDelete(false)}
     >
       <td className={portalTableCellFirst}>
-        <Link href={`/admin/partners/${partner.id}`} className="block hover:text-brand-600">
-          <PortalTablePrimaryCell
-            primary={`${partner.firstName} ${partner.lastName}`}
-            secondary={partner.email}
+        <Link
+          href={`/admin/partners/${partner.id}`}
+          className="flex items-center gap-3 hover:text-brand-600"
+        >
+          <PartnerAvatar
+            size="sm"
+            avatarUrl={partner.avatarUrl}
+            firstName={partner.firstName}
+            lastName={partner.lastName}
           />
+          <div className="min-w-0">
+            <PortalTablePrimaryCell
+              primary={`${partner.firstName} ${partner.lastName}`}
+              secondary={partner.email}
+            />
+          </div>
         </Link>
       </td>
       {columnVisibility.affiliation && (

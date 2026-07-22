@@ -23,6 +23,7 @@ export type AdminPartnerRow = {
   leadBuying: boolean;
   walletOk: boolean;
   leadsCount: number;
+  avatarUrl?: string | null;
 };
 
 export function AdminPartnersTable({
