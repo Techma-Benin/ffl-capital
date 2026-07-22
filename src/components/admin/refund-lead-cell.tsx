@@ -13,17 +13,13 @@ export function RefundLeadCell({ lead, onSelect, variant = "stacked" }: Props) {
     <button
       type="button"
       onClick={() => onSelect(lead)}
-      className="group -mx-2 max-w-full rounded-lg px-2 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+      className="block w-full cursor-pointer px-3 py-2 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
       aria-label={`View lead details for ${lead.name}`}
     >
       {variant === "compact" ? (
-        <span className="font-medium text-slate-900 group-hover:underline">
-          {lead.name}
-        </span>
+        <span className="font-medium text-slate-900">{lead.name}</span>
       ) : (
-        <p className="font-medium text-slate-900 group-hover:underline">
-          {lead.name}
-        </p>
+        <p className="font-medium text-slate-900">{lead.name}</p>
       )}
     </button>
   );

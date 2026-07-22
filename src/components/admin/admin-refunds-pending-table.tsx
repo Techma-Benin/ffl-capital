@@ -242,7 +242,7 @@ export function AdminRefundsPendingTable({
                     onSelect={openPartnerSheet}
                   />
                 </td>
-                <td>
+                <td className="p-0">
                   <RefundLeadCell lead={r.lead} onSelect={openLeadSheet} />
                 </td>
                 <td>
