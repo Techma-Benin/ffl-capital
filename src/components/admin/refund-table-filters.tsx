@@ -15,17 +15,17 @@ type FilterCounts<T extends string> = Partial<Record<T, number>> & { all: number
 
 type OpenCategory = "type" | "decision";
 
-/** Category triggers + active chips (f69cede two-row filter bar). */
+/** Category triggers + active chips — neutral black/slate active state. */
 const filterTriggerActive =
-  "border-brand-300 bg-brand-50 text-brand-700";
+  "border-slate-900 bg-slate-900 text-white";
 const filterTriggerIdle =
   "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
 
 const filterChipPressed =
-  "border-brand-400 bg-brand-50 text-brand-700";
+  "border-slate-900 bg-slate-900 text-white";
 const filterChipIdle =
-  "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700";
-const filterCountPressed = "bg-brand-100 text-brand-700";
+  "border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900";
+const filterCountPressed = "bg-white/20 text-white";
 const filterCountIdle = "bg-slate-100 text-slate-500";
 
 function optionLabel<T extends string>(
@@ -67,7 +67,7 @@ function RefundFilterChipRow<T extends string>({
             onClick={() => onChange(option.value)}
             className={clsx(
               "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
               pressed ? filterChipPressed : filterChipIdle,
             )}
           >
@@ -107,7 +107,7 @@ function CategoryTrigger({
       onClick={onClick}
       className={clsx(
         "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
         isOpen || hasSelection ? filterTriggerActive : filterTriggerIdle,
       )}
     >
@@ -223,7 +223,7 @@ export function RefundTableFilters({
           <button
             type="button"
             onClick={clearFilters}
-            className="ml-auto inline-flex items-center gap-1 text-xs text-slate-400 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-sm"
+            className="ml-auto inline-flex items-center gap-1 text-xs text-slate-400 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-sm"
           >
             <X size={12} weight={ICON_WEIGHT_LINEAR} aria-hidden />
             Clear
