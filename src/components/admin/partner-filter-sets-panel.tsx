@@ -69,6 +69,12 @@ export function PartnerFilterSetsPanel({
     router.refresh();
   }
 
+  function openEditFilterSet(filterSetId: string) {
+    if (modalMode !== "none") return;
+    setEditingId(filterSetId);
+    setModalMode("edit");
+  }
+
   async function handleDelete(filterSetId: string) {
     setDeletingId(filterSetId);
     try {
@@ -123,7 +129,17 @@ export function PartnerFilterSetsPanel({
             {filterSets.map((fs) => (
               <div
                 key={fs.id}
-                className="flex flex-col gap-3 rounded-lg border border-slate-100 p-3.5 transition-colors hover:border-slate-200 sm:flex-row sm:items-center sm:justify-between"
+                role="button"
+                tabIndex={modalMode === "none" ? 0 : -1}
+                aria-disabled={modalMode !== "none"}
+                onClick={() => openEditFilterSet(fs.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openEditFilterSet(fs.id);
+                  }
+                }}
+                className="group flex cursor-pointer flex-col gap-3 rounded-lg border border-slate-100 p-3.5 transition-colors hover:border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -150,9 +166,10 @@ export function PartnerFilterSetsPanel({
                     tone="slate"
                     icon={<PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} />}
                     disabled={modalMode !== "none"}
-                    onClick={() => {
-                      setEditingId(fs.id);
-                      setModalMode("edit");
+                    className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditFilterSet(fs.id);
                     }}
                   >
                     Edit
@@ -164,7 +181,10 @@ export function PartnerFilterSetsPanel({
                       loading={deletingId === fs.id}
                       loadingText="Deleting…"
                       disabled={modalMode !== "none"}
-                      onClick={() => handleDelete(fs.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(fs.id);
+                      }}
                     >
                       Delete
                     </InlineActionButton>
@@ -222,10 +242,7 @@ export function PartnerFilterSetsPanel({
                         tone="slate"
                         icon={<PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} />}
                         disabled={modalMode !== "none"}
-                        onClick={() => {
-                          setEditingId(fs.id);
-                          setModalMode("edit");
-                        }}
+                        onClick={() => openEditFilterSet(fs.id)}
                       >
                         Edit
                       </InlineActionButton>
