@@ -1,7 +1,6 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { usePartnerDetailEdit } from "@/components/admin/partner-detail-edit-provider";
 
 type PartnerAccountCrmCardProps = {
   crmProvider: string;
@@ -40,7 +39,6 @@ export function PartnerAccountCrmCard({
   ringyAuthToken,
   walletBalance,
 }: PartnerAccountCrmCardProps) {
-  const { openPartnerEdit } = usePartnerDetailEdit();
   const needsWebhook = crmProvider === "webhook";
   const webhookOk = !needsWebhook || Boolean(crmWebhookUrl?.trim());
   const needsRingy = crmProvider === "ringy";
@@ -50,15 +48,8 @@ export function PartnerAccountCrmCard({
 
   return (
     <div className="card overflow-hidden rounded-xl">
-      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+      <div className="border-b border-slate-100 px-5 py-4">
         <h2 className="text-sm font-semibold text-slate-900">Account & CRM</h2>
-        <button
-          type="button"
-          onClick={openPartnerEdit}
-          className="text-xs font-medium text-slate-500 transition-colors hover:text-brand-600"
-        >
-          Edit
-        </button>
       </div>
       <div className="px-5 pb-2">
         <ComplianceRow
