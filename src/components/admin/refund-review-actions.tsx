@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import {
   CheckCircle,
   XCircle,
-  DotsThree,
+  DotsThreeVertical,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 
@@ -106,7 +106,7 @@ function RefundReviewMenu({
         aria-label="Refund actions"
         aria-expanded={open}
       >
-        <DotsThree size={18} weight={ICON_WEIGHT_LINEAR} />
+        <DotsThreeVertical size={18} weight={ICON_WEIGHT_LINEAR} />
       </button>
 
       {open &&
