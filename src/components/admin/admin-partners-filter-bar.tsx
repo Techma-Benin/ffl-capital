@@ -12,7 +12,7 @@ const LEGACY_FAMILY_PARAM = "family";
 
 const companyFilterIdle =
   "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
-const companyFilterActive = "border-orange-300 bg-orange-50 text-orange-700";
+const companyFilterActive = "border-rose-300 bg-rose-50 text-rose-800";
 
 export function AdminPartnersFilterBar({
   tabs,
