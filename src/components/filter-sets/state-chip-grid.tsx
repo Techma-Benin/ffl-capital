@@ -17,12 +17,13 @@ export function StateChipGrid({
   selected,
   onToggle,
   ariaLabel,
-  scrollable = true,
+  scrollable = false,
 }: {
   options: { value: string; label: string }[];
   selected: string[];
   onToggle: (value: string) => void;
   ariaLabel: string;
+  /** When true, caps height with an inner vertical scroll (dense modals). */
   scrollable?: boolean;
 }) {
   const selectedSet = new Set(selected);

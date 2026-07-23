@@ -15,7 +15,7 @@ export function FilterChipGroup({
   options: { value: string; label: string }[];
   selected: string[];
   onToggle: (value: string) => void;
-  /** Cap height with vertical scroll for long option lists (e.g. all US states). */
+  /** Use the compact state grid (5 cols) instead of pill chips — sheet/modal scrolls as a whole. */
   scrollable?: boolean;
   /** Optional controls rendered between the label and chip row (e.g. bulk state presets). */
   header?: React.ReactNode;
@@ -32,6 +32,7 @@ export function FilterChipGroup({
           options={options}
           selected={selected}
           onToggle={onToggle}
+          scrollable={false}
         />
       ) : (
         <div role="group" aria-label={label} className="flex flex-wrap gap-2">
