@@ -492,9 +492,15 @@ export function PartnerLeadDeliveryCard({
                         <>
                           <button
                             type="button"
-                            title={crm?.enabled ? "Disable CRM POST" : "Enable CRM POST"}
+                            title={
+                              crm?.enabled
+                                ? "CRM POST is on — click to turn off"
+                                : "CRM POST is off — click to turn on"
+                            }
                             aria-label={
-                              crm?.enabled ? "Disable CRM POST" : "Enable CRM POST"
+                              crm?.enabled
+                                ? "CRM POST is on — click to turn off"
+                                : "CRM POST is off — click to turn on"
                             }
                             disabled={toggling}
                             className={
