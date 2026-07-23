@@ -178,6 +178,47 @@ function isStepComplete(stepIndex: number, form: WizardForm): boolean {
   return getValidationErrors(form).length === 0;
 }
 
+const DEFAULT_API_HEADER_NAME = "X-Api-Key";
+
+function isStepEmpty(stepIndex: number, form: WizardForm): boolean {
+  switch (stepIndex) {
+    case 0:
+      return !form.endpointUrl.trim();
+    case 1:
+      if (form.authType === "none") return true;
+      switch (form.authType) {
+        case "bearer":
+          return !form.bearerToken.trim();
+        case "api_key_header":
+          return (
+            !form.apiHeaderValue.trim() &&
+            form.apiHeaderName.trim() === DEFAULT_API_HEADER_NAME
+          );
+        case "basic":
+          return !form.basicUsername.trim() && !form.basicPassword.trim();
+        case "body_fields":
+          return form.bodyFields.every((f) => !f.value.trim());
+        default:
+          return true;
+      }
+    case 2:
+      return (
+        form.fieldMappings.length === 0 ||
+        form.fieldMappings.every((m) => !m.source.trim() && !m.target.trim())
+      );
+    case 3:
+      return (
+        form.require2xx &&
+        !form.bodyContains.trim() &&
+        !form.bodyRegex.trim() &&
+        !form.bodyKeyEqualsKey.trim() &&
+        !form.bodyKeyEqualsValue.trim()
+      );
+    default:
+      return false;
+  }
+}
+
 function buildPayload(form: WizardForm): CrmOutboundConfigInput {
   const successRule: CrmOutboundConfigInput["successRule"] = {
     require2xx: form.require2xx,
@@ -257,7 +298,9 @@ export function PartnerCrmOutboundWizard({
 
   const validationErrors = useMemo(() => getValidationErrors(form), [form]);
   const canSave = validationErrors.length === 0;
-  const canGoNext = isStepComplete(step, form);
+  const stepEmpty = isStepEmpty(step, form);
+  const stepComplete = isStepComplete(step, form);
+  const canAdvanceStep = stepEmpty || stepComplete;
 
   async function saveConfig(): Promise<boolean> {
     setError("");
@@ -777,10 +820,10 @@ export function PartnerCrmOutboundWizard({
           <button
             type="button"
             className="btn-secondary btn-sm"
-            disabled={!canGoNext}
+            disabled={!canAdvanceStep}
             onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
           >
-            Next
+            {stepEmpty ? "Skip" : "Next"}
           </button>
         )}
       </div>
