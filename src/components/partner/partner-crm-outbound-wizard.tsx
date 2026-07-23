@@ -531,44 +531,86 @@ export function PartnerCrmOutboundWizard({
       )}
 
       {step === 3 && (
-        <div className="space-y-4 border-t border-slate-100 pt-6">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.require2xx}
-              onChange={(e) => setForm({ ...form, require2xx: e.target.checked })}
-            />
-            Require HTTP 2xx
-          </label>
+        <div className="space-y-6 border-t border-slate-100 pt-6">
           <div>
-            <label className="form-label">Body contains (optional)</label>
+            <h3 className="text-sm font-medium text-slate-900">Success criteria</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Choose how we decide that your CRM accepted a lead. When you enable more than one
+              check, every check must pass for the delivery to count as successful.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-900">HTTP status</p>
+            <p className="text-sm text-slate-600">
+              Require a successful HTTP status code (200–299) from your CRM endpoint.
+            </p>
+            <label className="flex items-center gap-2 text-sm text-slate-900">
+              <input
+                type="checkbox"
+                checked={form.require2xx}
+                onChange={(e) => setForm({ ...form, require2xx: e.target.checked })}
+              />
+              Require HTTP 2xx
+            </label>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-900">Body contains</p>
+            <p className="text-sm text-slate-600">
+              Optional. The raw response body must include this exact text (case-sensitive).
+            </p>
             <input
               className="form-input max-w-xl"
               value={form.bodyContains}
               onChange={(e) => setForm({ ...form, bodyContains: e.target.value })}
+              placeholder='e.g. "success"'
             />
           </div>
-          <div>
-            <label className="form-label">Body regex (optional)</label>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-900">Body regex</p>
+            <p className="text-sm text-slate-600">
+              Optional. The response body must match this JavaScript regular expression.
+            </p>
             <input
               className="form-input max-w-xl font-mono text-xs"
               value={form.bodyRegex}
               onChange={(e) => setForm({ ...form, bodyRegex: e.target.value })}
+              placeholder='"status"\\s*:\\s*"success"'
             />
           </div>
-          <div className="flex flex-wrap gap-3">
-            <input
-              className="form-input"
-              placeholder="Top-level JSON key"
-              value={form.bodyKeyEqualsKey}
-              onChange={(e) => setForm({ ...form, bodyKeyEqualsKey: e.target.value })}
-            />
-            <input
-              className="form-input"
-              placeholder="Expected value"
-              value={form.bodyKeyEqualsValue}
-              onChange={(e) => setForm({ ...form, bodyKeyEqualsValue: e.target.value })}
-            />
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-900">Body key equals</p>
+            <p className="text-sm text-slate-600">
+              Optional. Parse the response as JSON and require a top-level property to equal a
+              specific value (flat object only).
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <div className="min-w-[200px] flex-1">
+                <label className="form-label" htmlFor="crm-success-body-key">
+                  Top-level JSON key
+                </label>
+                <input
+                  id="crm-success-body-key"
+                  className="form-input"
+                  placeholder="status"
+                  value={form.bodyKeyEqualsKey}
+                  onChange={(e) => setForm({ ...form, bodyKeyEqualsKey: e.target.value })}
+                />
+              </div>
+              <div className="min-w-[200px] flex-1">
+                <label className="form-label" htmlFor="crm-success-body-value">
+                  Expected value
+                </label>
+                <input
+                  id="crm-success-body-value"
+                  className="form-input"
+                  placeholder="success"
+                  value={form.bodyKeyEqualsValue}
+                  onChange={(e) => setForm({ ...form, bodyKeyEqualsValue: e.target.value })}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -582,16 +624,6 @@ export function PartnerCrmOutboundWizard({
             <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-800">{testResult}</p>
           )}
           <div className="flex flex-wrap gap-3">
-            <ActionButton
-              type="button"
-              variant="primary"
-              loading={saving}
-              success={Boolean(success) && !testing}
-              onClick={() => void saveConfig()}
-              disabled={!canSave || saving}
-            >
-              Save
-            </ActionButton>
             <ActionButton
               type="button"
               variant="secondary"
@@ -630,14 +662,27 @@ export function PartnerCrmOutboundWizard({
         >
           Back
         </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={step >= STEPS.length - 1}
-          onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
-        >
-          Next
-        </button>
+        {step >= STEPS.length - 1 ? (
+          <ActionButton
+            type="button"
+            variant="primary"
+            className="btn-sm"
+            loading={saving}
+            success={Boolean(success) && !testing}
+            onClick={() => void saveConfig()}
+            disabled={!canSave || saving}
+          >
+            Save
+          </ActionButton>
+        ) : (
+          <button
+            type="button"
+            className="btn-secondary btn-sm"
+            onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
+          >
+            Next
+          </button>
+        )}
       </div>
     </section>
   );
