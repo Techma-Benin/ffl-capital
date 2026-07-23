@@ -88,11 +88,14 @@ export function AdminDashboardView({
     [searchShape],
   );
 
-  const periodLabel = adminDashboardPeriodDisplayLabel(
-    period.datePeriod,
-    period.from,
-    period.to,
-  );
+  const periodLabel =
+    period.datePeriod === "custom" && (period.from || period.to)
+      ? adminDashboardPeriodDisplayLabel(
+          period.datePeriod,
+          period.from,
+          period.to,
+        )
+      : undefined;
 
   const view = useMemo(
     () => computeAdminDashboardView(raw ?? initialRaw, receivedRange),

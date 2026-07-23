@@ -70,7 +70,7 @@ export function AdminDashboardPeriodFilter({
       ref={anchorRef}
       className="relative flex shrink-0 flex-nowrap items-center justify-end gap-2"
     >
-      {periodDisplayLabel ? (
+      {datePeriod === "custom" && (from || to) && periodDisplayLabel ? (
         <span
           className="shrink-0 whitespace-nowrap text-sm text-slate-500"
           aria-live="polite"
