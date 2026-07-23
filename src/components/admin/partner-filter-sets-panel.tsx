@@ -5,12 +5,11 @@ import { useEffect, useState } from "react";
 import { PencilSimple, Plus, Trash, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { Badge } from "@/components/ui/badge";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
-import { FilterSetModal } from "@/components/filter-sets/filter-set-modal";
+import { PortalLink } from "@/components/ui/portal-link";
 import {
-  emptyForm,
-  toFormData,
-} from "@/components/filter-sets/filter-set-form";
-
+  adminPartnerFilterSetEditPath,
+  adminPartnerFilterSetNewPath,
+} from "@/lib/filter-sets/routes";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 
 // Re-export shared types so existing importers keep working
@@ -34,7 +33,7 @@ import type { CategoryOption, FilterSetRow } from "@/components/filter-sets/filt
 export function PartnerFilterSetsPanel({
   partnerId,
   filterSets,
-  defaultStates,
+  defaultStates: _defaultStates,
   layout = "table",
 }: {
   partnerId: string;
@@ -44,8 +43,6 @@ export function PartnerFilterSetsPanel({
   layout?: "table" | "document";
 }) {
   const router = useRouter();
-  const [modalMode, setModalMode] = useState<"none" | "create" | "edit">("none");
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
 
@@ -65,18 +62,6 @@ export function PartnerFilterSetsPanel({
       .catch(() => {});
   }, []);
 
-  function handleSaved() {
-    setModalMode("none");
-    setEditingId(null);
-    router.refresh();
-  }
-
-  function openEditFilterSet(filterSetId: string) {
-    if (modalMode !== "none") return;
-    setEditingId(filterSetId);
-    setModalMode("edit");
-  }
-
   async function handleDelete(filterSetId: string) {
     setDeletingId(filterSetId);
     try {
@@ -93,29 +78,24 @@ export function PartnerFilterSetsPanel({
     }
   }
 
-  const editingFilterSet = editingId
-    ? filterSets.find((fs) => fs.id === editingId)
-    : null;
+  const createHref = adminPartnerFilterSetNewPath(partnerId);
 
   return (
     <div className="card overflow-hidden rounded-xl">
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
         <h2 className="text-sm font-semibold text-slate-900">Filter Sets</h2>
-        {modalMode === "none" && (
-          <button
-            type="button"
-            onClick={() => setModalMode("create")}
-            className="btn-secondary btn-sm inline-flex items-center gap-1"
-          >
-            <Plus
-              size={16}
-              weight={ICON_WEIGHT_LINEAR}
-              className="shrink-0 text-slate-700"
-              aria-hidden
-            />
-            Add Filter Set
-          </button>
-        )}
+        <PortalLink
+          href={createHref}
+          className="btn-secondary btn-sm inline-flex items-center gap-1"
+        >
+          <Plus
+            size={16}
+            weight={ICON_WEIGHT_LINEAR}
+            className="shrink-0 text-slate-700"
+            aria-hidden
+          />
+          Add Filter Set
+        </PortalLink>
       </div>
 
       <div className={layout === "document" ? "px-5 pb-5" : "overflow-x-auto"}>
@@ -131,14 +111,15 @@ export function PartnerFilterSetsPanel({
             {filterSets.map((fs) => (
               <div
                 key={fs.id}
-                role="button"
-                tabIndex={modalMode === "none" ? 0 : -1}
-                aria-disabled={modalMode !== "none"}
-                onClick={() => openEditFilterSet(fs.id)}
+                role="link"
+                tabIndex={0}
+                onClick={() =>
+                  router.push(adminPartnerFilterSetEditPath(partnerId, fs.id))
+                }
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    openEditFilterSet(fs.id);
+                    router.push(adminPartnerFilterSetEditPath(partnerId, fs.id));
                   }
                 }}
                 className="group flex cursor-pointer flex-col gap-3 rounded-lg border border-slate-100 p-3.5 transition-colors hover:border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between"
@@ -166,11 +147,10 @@ export function PartnerFilterSetsPanel({
                   <InlineActionButton
                     tone="slate"
                     icon={<PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} />}
-                    disabled={modalMode !== "none"}
                     className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                     onClick={(e) => {
                       e.stopPropagation();
-                      openEditFilterSet(fs.id);
+                      router.push(adminPartnerFilterSetEditPath(partnerId, fs.id));
                     }}
                   >
                     Edit
@@ -181,7 +161,6 @@ export function PartnerFilterSetsPanel({
                       icon={<Trash size={12} weight={ICON_WEIGHT_LINEAR} />}
                       loading={deletingId === fs.id}
                       loadingText="Deleting…"
-                      disabled={modalMode !== "none"}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(fs.id);
@@ -238,8 +217,9 @@ export function PartnerFilterSetsPanel({
                       <InlineActionButton
                         tone="slate"
                         icon={<PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} />}
-                        disabled={modalMode !== "none"}
-                        onClick={() => openEditFilterSet(fs.id)}
+                        onClick={() =>
+                          router.push(adminPartnerFilterSetEditPath(partnerId, fs.id))
+                        }
                       >
                         Edit
                       </InlineActionButton>
@@ -249,7 +229,6 @@ export function PartnerFilterSetsPanel({
                           icon={<Trash size={12} weight={ICON_WEIGHT_LINEAR} />}
                           loading={deletingId === fs.id}
                           loadingText="Deleting…"
-                          disabled={modalMode !== "none"}
                           onClick={() => handleDelete(fs.id)}
                         >
                           Delete
@@ -263,36 +242,6 @@ export function PartnerFilterSetsPanel({
           </table>
         )}
       </div>
-
-      {/* Create modal */}
-      {modalMode === "create" && (
-        <FilterSetModal
-          mode="create"
-          partnerId={partnerId}
-          initial={emptyForm(defaultStates)}
-          categories={categories}
-          onClose={() => setModalMode("none")}
-          onSaved={handleSaved}
-        />
-      )}
-
-      {/* Edit modal */}
-      {modalMode === "edit" && editingFilterSet && (
-        <FilterSetModal
-          mode="edit"
-          partnerId={partnerId}
-          filterSetId={editingFilterSet.id}
-          filterSetName={editingFilterSet.name}
-          filterSetActive={editingFilterSet.active}
-          initial={toFormData(editingFilterSet)}
-          categories={categories}
-          onClose={() => {
-            setModalMode("none");
-            setEditingId(null);
-          }}
-          onSaved={handleSaved}
-        />
-      )}
     </div>
   );
 }

@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
-import { ActionButton } from "@/components/ui/action-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
+import { PortalLink } from "@/components/ui/portal-link";
 import { usePartner } from "@/components/partner/partner-provider";
 import {
   Funnel,
@@ -16,12 +16,10 @@ import {
   PencilSimple,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
-import type { FilterCriteria } from "@/lib/matching/types";
-import { FilterSetModal } from "@/components/filter-sets/filter-set-modal";
 import {
-  type CategoryOption,
-  type FilterSetFormData,
-} from "@/components/filter-sets/filter-set-form";
+  partnerFilterSetEditPath,
+  partnerFilterSetNewPath,
+} from "@/lib/filter-sets/routes";
 import { PartnerLeadDeliveryCard } from "@/components/partner/partner-lead-delivery-card";
 
 // ---------------------------------------------------------------------------
@@ -38,55 +36,17 @@ type PartnerFilterSet = {
   priceOverride?: number | null;
   weeklyLimit?: number | null;
   monthlyLimit?: number | null;
-  filterCriteria?: FilterCriteria;
+  filterCriteria?: import("@/lib/matching/types").FilterCriteria;
 };
-
-const PARTNER_CATEGORIES: CategoryOption[] = [
-  { type: "traditional_iul", label: "Traditional IUL" },
-  { type: "high_intent_iul", label: "High Intent IUL" },
-];
-
-const DEFAULT_FORM: FilterSetFormData = {
-  name: "",
-  leadType: "traditional_iul",
-  filterStates: [],
-  priority: 5,
-  priceOverride: "",
-  active: true,
-  weeklyLimit: "",
-  monthlyLimit: "",
-  filterCriteria: {},
-};
-
-function partnerFilterSetUrl(filterSetId?: string) {
-  return filterSetId
-    ? `/api/partners/filter-sets/${filterSetId}`
-    : "/api/partners/filter-sets";
-}
-
-function toFilterSetFormData(fs: PartnerFilterSet): FilterSetFormData {
-  return {
-    name: fs.name,
-    leadType: fs.leadType,
-    filterStates: fs.filterStates,
-    priority: fs.priority ?? 5,
-    priceOverride: fs.priceOverride != null ? String(fs.priceOverride) : "",
-    active: fs.active,
-    weeklyLimit: fs.weeklyLimit != null ? String(fs.weeklyLimit) : "",
-    monthlyLimit: fs.monthlyLimit != null ? String(fs.monthlyLimit) : "",
-    filterCriteria: (fs.filterCriteria as FilterCriteria) ?? {},
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Filter Sets section
 // ---------------------------------------------------------------------------
 
 function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
+  const router = useRouter();
   const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(null);
   const [loadError, setLoadError] = useState("");
-  const [editingFs, setEditingFs] = useState<PartnerFilterSet | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
 
@@ -103,18 +63,6 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
   useEffect(() => {
     void load();
   }, [load]);
-
-  function handleCreated(created: PartnerFilterSet) {
-    setFilterSets((prev) => [...(prev ?? []), created]);
-    setShowCreateModal(false);
-  }
-
-  function handleUpdated(updated: PartnerFilterSet) {
-    setFilterSets((prev) =>
-      prev ? prev.map((fs) => (fs.id === updated.id ? updated : fs)) : prev,
-    );
-    setEditingFs(null);
-  }
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this filter set? It will be deactivated.")) return;
@@ -147,10 +95,9 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
           Targeting
         </span>
         <div className="ml-auto">
-          {loaded && !showCreateModal && !editingFs && (
-            <button
-              type="button"
-              onClick={() => setShowCreateModal(true)}
+          {loaded && (
+            <PortalLink
+              href={partnerFilterSetNewPath()}
               className="btn-secondary btn-sm inline-flex items-center gap-1"
             >
               <Plus
@@ -159,7 +106,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
                 className="shrink-0 text-slate-700"
               />
               Add Filter Set
-            </button>
+            </PortalLink>
           )}
         </div>
       </div>
@@ -204,7 +151,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
               >
                 <div
                   className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-slate-50 transition-colors"
-                  onClick={() => setEditingFs(fs)}
+                  onClick={() => router.push(partnerFilterSetEditPath(fs.id))}
                 >
                   <div className="flex flex-1 items-center gap-3 min-w-0">
                     <span className="text-sm font-medium text-slate-900 truncate">
@@ -242,36 +189,6 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
         <p className="px-5 py-2 text-xs text-red-600 border-t border-slate-100">
           {deleteError}
         </p>
-      )}
-
-      {/* Create modal */}
-      {showCreateModal && (
-        <FilterSetModal
-          mode="create"
-          showTemplatePicker
-          initial={DEFAULT_FORM}
-          categories={PARTNER_CATEGORIES}
-          buildUrl={partnerFilterSetUrl}
-          onClose={() => setShowCreateModal(false)}
-          onSavedWithData={(data) => handleCreated(data as PartnerFilterSet)}
-          onSaved={() => setShowCreateModal(false)}
-        />
-      )}
-
-      {/* Edit modal */}
-      {editingFs && (
-        <FilterSetModal
-          mode="edit"
-          filterSetId={editingFs.id}
-          filterSetName={editingFs.name}
-          filterSetActive={editingFs.active}
-          initial={toFilterSetFormData(editingFs)}
-          categories={PARTNER_CATEGORIES}
-          buildUrl={partnerFilterSetUrl}
-          onClose={() => setEditingFs(null)}
-          onSavedWithData={(data) => handleUpdated(data as PartnerFilterSet)}
-          onSaved={() => setEditingFs(null)}
-        />
       )}
     </div>
   );

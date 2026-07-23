@@ -361,6 +361,7 @@ export function FilterSetForm({
   formId,
   hideButtons = false,
   onPendingChange,
+  onFormChange,
 }: {
   partnerId?: string;
   filterSetId?: string;
@@ -376,6 +377,8 @@ export function FilterSetForm({
   hideButtons?: boolean;
   /** Called whenever the pending state changes so a parent footer can reflect it */
   onPendingChange?: (pending: boolean) => void;
+  /** Called whenever form values change (e.g. save-as-template from page footer) */
+  onFormChange?: (form: FilterSetFormData) => void;
 }) {
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
@@ -387,6 +390,10 @@ export function FilterSetForm({
   useEffect(() => {
     onPendingChange?.(pending);
   }, [pending, onPendingChange]);
+
+  useEffect(() => {
+    onFormChange?.(form);
+  }, [form, onFormChange]);
 
   function toggleState(code: string) {
     setForm((prev) => ({
