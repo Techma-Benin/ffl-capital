@@ -42,6 +42,19 @@ const DASHBOARD_PERIODS = new Set<AdminDatePeriod>(
 /** Default preset when the dashboard loads without an explicit period in the URL. */
 export const ADMIN_DASHBOARD_DEFAULT_PERIOD: AdminDatePeriod = "last_7_days";
 
+/** Rolling window loaded once on `/admin`; period presets filter this payload client-side. */
+export const ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS = 90;
+
+export function resolveAdminDashboardLookbackWindow(
+  now: Date = new Date(),
+): { gte: Date; lte: Date } {
+  const start = new Date(now);
+  start.setDate(
+    start.getDate() - (ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS - 1),
+  );
+  return { gte: startOfDay(start), lte: endOfDay(now) };
+}
+
 export function adminDashboardHasExplicitPeriod(searchParams: {
   period?: string;
   from?: string;

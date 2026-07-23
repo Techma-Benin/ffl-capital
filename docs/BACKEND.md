@@ -158,7 +158,7 @@ Auth : session **admin** ou **partner** (routes miroir sous `/api/admin/lead-vie
 
 ### Dashboard admin (`/admin`)
 
-Pas d’API dédiée — la page SSR lit les query params et filtre en base.
+Pas d’API dédiée — **une charge SSR** (`fetchAdminDashboardRawData`) sur les **90 derniers jours** calendaires (`ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS`), puis filtre période **côté client** (`computeAdminDashboardView`) sans nouvelle requête DB quand l’utilisateur change le preset / custom. L’URL est mise à jour via `history.replaceState` (partageable) ; rechargement complet ou nouvelle visite = nouvelle charge DB.
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|
@@ -168,7 +168,7 @@ Pas d’API dédiée — la page SSR lit les query params et filtre en base.
 
 **URL canonique** : si la période n’est pas « explicite » (`adminDashboardHasExplicitPeriod` — ex. `/admin` nu, ou `period=custom` sans `from`/`to`), la page SSR **redirige** vers `/admin?period=last_7_days`. Les données suivent le même défaut via `parseAdminDashboardPeriod`.
 
-Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Agrégats graphiques : `getAdminDashboardChartData` (`src/lib/admin/dashboard-stats.ts`). UI : `AdminDashboardPeriodFilter` ; **Custom** ouvre `AdminDateRangePopover` en panneau **modal** ancré en-tête (`hideTrigger`, backdrop) — l’URL `period=custom&from&to` n’est écrite qu’au **Apply** (le choix Custom seul ne laisse pas une URL custom incomplète) ; plage custom plafonnée au **jour calendaire local courant** (pas de dates futures).
+Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Données + agrégats : `fetchAdminDashboardRawData`, `computeAdminDashboardView` (`src/lib/admin/dashboard-stats.ts`). UI : `AdminDashboardView` + `AdminDashboardPeriodFilter` ; **Custom** ouvre `AdminDateRangePopover` en panneau **modal** ancré en-tête (`hideTrigger`, backdrop) — l’URL `period=custom&from&to` n’est écrite qu’au **Apply** (le choix Custom seul ne laisse pas une URL custom incomplète) ; plage custom plafonnée au **jour calendaire local courant** (pas de dates futures). Custom au-delà de 90 jours : seule la partie dans la fenêtre chargée compte.
 
 ### Admin aged browse (`/admin/aged`)
 
@@ -359,6 +359,6 @@ stripe:listen           # webhook Stripe local
 | 2026-07-10 | Core backend 9 phases implémentées — voir journal ci-dessus |
 | 2026-07-21 | Vues liste leads (`lead_list_views`) — remplace onglets statut admin ; CRUD admin/partner |
 | 2026-07-23 | Colonnes liste leads — persistance `columns` sur la vue (PATCH) ; plus de `admin-leads-visible-columns` |
-| 2026-07-23 | Dashboard admin — URL canonique `last_7_days`, custom modal + Apply ; custom sans dates futures |
+| 2026-07-23 | Dashboard admin — charge 90j une fois, filtre période client ; URL canonique, custom modal |
 | 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |
 | 2026-07-22 | Admin aged — tableau tri URL + pagination + mark dead (UI) |

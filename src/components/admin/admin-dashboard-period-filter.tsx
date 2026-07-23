@@ -7,30 +7,41 @@ import { ADMIN_DASHBOARD_PERIOD_OPTIONS } from "@/lib/admin/admin-date-period";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { AdminDateRangePopover } from "@/components/admin/admin-date-range-popover";
 
+type PeriodNavigateInput = {
+  period?: AdminDatePeriod;
+  from?: string;
+  to?: string;
+  clearDates?: boolean;
+};
+
 export function AdminDashboardPeriodFilter({
   datePeriod,
   from,
   to,
+  onPeriodChange,
 }: {
   datePeriod: AdminDatePeriod;
   from?: string;
   to?: string;
+  /** When set, updates period client-side (no full navigation / DB refetch). */
+  onPeriodChange?: (next: PeriodNavigateInput & { period: AdminDatePeriod }) => void;
 }) {
   const { push } = useNavigateWithPending();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [customPickerOpen, setCustomPickerOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
+  const mayReselectCustom = useRef(false);
 
-  function navigate(next: {
-    period?: AdminDatePeriod;
-    from?: string;
-    to?: string;
-    clearDates?: boolean;
-  }) {
-    const params = new URLSearchParams(searchParams.toString());
+  function applyPeriod(next: PeriodNavigateInput) {
     const period = next.period ?? datePeriod;
 
+    if (onPeriodChange) {
+      onPeriodChange({ ...next, period });
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
     params.set("period", period);
 
     if (next.clearDates || period !== "custom") {
@@ -66,27 +77,34 @@ export function AdminDashboardPeriodFilter({
         value={
           customPickerOpen && datePeriod !== "custom" ? "custom" : datePeriod
         }
+        onMouseDown={() => {
+          if (datePeriod === "custom") {
+            mayReselectCustom.current = true;
+          }
+        }}
+        onMouseUp={() => {
+          if (!mayReselectCustom.current) return;
+          mayReselectCustom.current = false;
+          if (datePeriod === "custom") {
+            setCustomPickerOpen(true);
+          }
+        }}
+        onBlur={() => {
+          mayReselectCustom.current = false;
+        }}
         onChange={(e) => {
+          mayReselectCustom.current = false;
           const value = e.target.value as AdminDatePeriod;
           if (value === "custom") {
             setCustomPickerOpen(true);
             return;
           }
           setCustomPickerOpen(false);
-          navigate({ period: value, clearDates: true });
+          applyPeriod({ period: value, clearDates: true });
         }}
       >
         {ADMIN_DASHBOARD_PERIOD_OPTIONS.map((o) => (
-          <option
-            key={o.value}
-            value={o.value}
-            onMouseDown={(e) => {
-              if (o.value === "custom" && datePeriod === "custom") {
-                e.preventDefault();
-                setCustomPickerOpen(true);
-              }
-            }}
-          >
+          <option key={o.value} value={o.value}>
             {o.label}
           </option>
         ))}
@@ -101,7 +119,7 @@ export function AdminDashboardPeriodFilter({
           open={customPickerOpen}
           onOpenChange={setCustomPickerOpen}
           onApply={(fromYmd, toYmd) => {
-            navigate({ period: "custom", from: fromYmd, to: toYmd });
+            applyPeriod({ period: "custom", from: fromYmd, to: toYmd });
             setCustomPickerOpen(false);
           }}
           onCancel={() => {
