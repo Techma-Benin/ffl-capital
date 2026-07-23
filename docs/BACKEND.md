@@ -190,7 +190,7 @@ Tri : `src/lib/admin/admin-aged-leads-sort.ts` (`buildAdminAgedLeadOrderBy` — 
 
 Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `aged_days_threshold`, hors `dead`). **Les filter sets et le `lead_type` du compte ne restreignent pas** le listing ni l’achat — seuls le matching temps réel et les remboursements « wrong filter » s’appuient sur les filter sets.
 
-**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age/haveIul/intent ; filtres et pagination appliqués **côté client** (pas de re-fetch SSR par changement de filtre). Paramètres URL (`state`, `type`, `age`, `haveIul`, `intent`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc.
+**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age/haveIul ; filtres et pagination appliqués **côté client** (pas de re-fetch SSR par changement de filtre). Paramètres URL (`state`, `type`, `age`, `haveIul`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc.
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|
@@ -198,7 +198,6 @@ Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `
 | `type` | `traditional_iul` \| `high_intent_iul` | Filtre client `leadType` (optionnel) |
 | `age` | `30` \| `60` \| `90` | Bucket jours sur `receivedAt` (`filterPartnerAgedLeadsInMemory`) |
 | `haveIul` | `Yes` \| `No` \| `empty` | Filtre client sur `haveIul` (`empty` = null/vide) |
-| `intent` | ex. `High Intent`, `Traditional` | Filtre client sur `intent` (valeur affichée côté listing) |
 
 **Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet ; pas de garde filter set / min 15 états.
 

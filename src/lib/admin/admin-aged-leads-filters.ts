@@ -201,7 +201,6 @@ export function partnerAgedLeadMatchesAgeBucket(
 }
 
 export const PARTNER_AGED_HAVE_IUL_PARAM = "haveIul";
-export const PARTNER_AGED_INTENT_PARAM = "intent";
 
 /** URL / filter value for leads with no Have IUL answer. */
 export const PARTNER_AGED_HAVE_IUL_EMPTY = "empty";
@@ -222,31 +221,11 @@ export const PARTNER_AGED_HAVE_IUL_FILTER_OPTIONS: {
   { value: PARTNER_AGED_HAVE_IUL_EMPTY, label: "Empty" },
 ];
 
-export const PARTNER_AGED_INTENT_CATALOG = [
-  "High Intent",
-  "Traditional",
-] as const;
-
-export type PartnerAgedIntentFilterValue =
-  | "all"
-  | (typeof PARTNER_AGED_INTENT_CATALOG)[number]
-  | string;
-
-export const PARTNER_AGED_INTENT_FILTER_OPTIONS: {
-  value: PartnerAgedIntentFilterValue;
-  label: string;
-}[] = [
-  { value: "all", label: "All" },
-  { value: "High Intent", label: "High Intent" },
-  { value: "Traditional", label: "Traditional" },
-];
-
 export type PartnerAgedClientFilters = {
   states: string[];
   type: string;
   age: string;
   haveIul: string;
-  intent: string;
 };
 
 function parsePartnerAgedHaveIulFilter(raw: string | undefined): string {
@@ -259,25 +238,11 @@ function parsePartnerAgedHaveIulFilter(raw: string | undefined): string {
   return "";
 }
 
-function parsePartnerAgedIntentFilter(raw: string | undefined): string {
-  const trimmed = raw?.trim();
-  if (!trimmed) return "";
-  if (
-    PARTNER_AGED_INTENT_CATALOG.includes(
-      trimmed as (typeof PARTNER_AGED_INTENT_CATALOG)[number],
-    )
-  ) {
-    return trimmed;
-  }
-  return trimmed;
-}
-
 export function parsePartnerAgedClientFilters(searchParams: {
   state?: string;
   type?: string;
   age?: string;
   haveIul?: string;
-  intent?: string;
 }): PartnerAgedClientFilters {
   const typeRaw = searchParams.type?.trim();
   const type =
@@ -297,7 +262,6 @@ export function parsePartnerAgedClientFilters(searchParams: {
     type,
     age,
     haveIul: parsePartnerAgedHaveIulFilter(searchParams.haveIul),
-    intent: parsePartnerAgedIntentFilter(searchParams.intent),
   };
 }
 
@@ -317,7 +281,6 @@ export function filterPartnerAgedLeadsInMemory<
     leadType: string;
     receivedAt: string | Date;
     haveIul?: string | null;
-    intent?: string | null;
   },
 >(leads: T[], filters: PartnerAgedClientFilters): T[] {
   return leads.filter((lead) => {
@@ -339,9 +302,6 @@ export function filterPartnerAgedLeadsInMemory<
       filters.haveIul &&
       !partnerAgedLeadHaveIulMatches(lead.haveIul, filters.haveIul)
     ) {
-      return false;
-    }
-    if (filters.intent && (lead.intent ?? "") !== filters.intent) {
       return false;
     }
     return true;
