@@ -179,7 +179,7 @@ export function LeadDetailTabBar<T extends string>({
             aria-selected={active}
             onClick={() => onSelect(t.id)}
             className={clsx(
-              "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors sm:text-sm",
+              "shrink-0 rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors sm:text-sm",
               active
                 ? "bg-orange-600 text-white shadow-sm"
                 : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50",
