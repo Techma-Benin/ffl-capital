@@ -142,7 +142,11 @@ function RowMenu({
                 onRefund();
               }}
             >
-              <ArrowCounterClockwise size={14} className="text-amber-500" />
+              <ArrowCounterClockwise
+                size={14}
+                weight={ICON_WEIGHT_LINEAR}
+                className="text-amber-500"
+              />
               Request refund
             </button>
           )}
