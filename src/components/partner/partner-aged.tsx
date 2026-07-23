@@ -12,8 +12,12 @@ import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-mo
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { FilterSelectDropdown } from "@/components/admin/filter-select-dropdown";
 import {
+  ADMIN_AGED_AGE_FILTER_OPTIONS,
+  ADMIN_AGED_TYPE_FILTER_OPTIONS,
   filterPartnerAgedLeadsInMemory,
   partnerAgedLeadAgeDays,
+  type AdminAgedLeadAgeFilterValue,
+  type AdminAgedLeadTypeFilter,
   type PartnerAgedClientFilters,
 } from "@/lib/admin/admin-aged-leads-filters";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
@@ -191,25 +195,28 @@ export function PartnerAgedView({
             menuWidthClass="w-64"
             searchable
           />
-          <select
-            value={filters.type}
-            onChange={(e) => updateFilter("type", e.target.value)}
-            className="form-select w-44 py-1.5 text-xs"
-          >
-            <option value="">All Types</option>
-            <option value="traditional_iul">Traditional IUL</option>
-            <option value="high_intent_iul">High Intent IUL</option>
-          </select>
-          <select
-            value={filters.age}
-            onChange={(e) => updateFilter("age", e.target.value)}
-            className="form-select w-36 py-1.5 text-xs"
-          >
-            <option value="">Any Age</option>
-            <option value="30">30–60 days</option>
-            <option value="60">60–90 days</option>
-            <option value="90">90+ days</option>
-          </select>
+          <FilterSelectDropdown
+            id="partner-aged-filter-type"
+            dimensionLabel="Type"
+            accent="teal"
+            value={(filters.type || "all") as AdminAgedLeadTypeFilter}
+            allValue="all"
+            options={ADMIN_AGED_TYPE_FILTER_OPTIONS}
+            onChange={(type) =>
+              updateFilter("type", type === "all" ? "" : type)
+            }
+            searchable={false}
+          />
+          <FilterSelectDropdown
+            id="partner-aged-filter-age"
+            dimensionLabel="Age"
+            accent="teal"
+            value={(filters.age || "all") as AdminAgedLeadAgeFilterValue}
+            allValue="all"
+            options={ADMIN_AGED_AGE_FILTER_OPTIONS}
+            onChange={(age) => updateFilter("age", age === "all" ? "" : age)}
+            searchable={false}
+          />
         </div>
       </div>
 
