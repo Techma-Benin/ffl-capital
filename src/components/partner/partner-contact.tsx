@@ -69,7 +69,7 @@ export function PartnerContactView() {
   }
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div>
       <PageHeader
         title="Contact Us"
         subtitle="Send a message to the FFL Capital support team"
