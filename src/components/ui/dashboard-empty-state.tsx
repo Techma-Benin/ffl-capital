@@ -36,7 +36,7 @@ export function DashboardEmptyState({
         size="sm"
         className="mb-3"
       />
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="text-sm text-slate-400">{title}</p>
       {description ? (
         <p className="mt-1 max-w-xs text-xs text-slate-500">{description}</p>
       ) : null}
