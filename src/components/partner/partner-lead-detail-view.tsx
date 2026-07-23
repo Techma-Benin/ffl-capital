@@ -104,6 +104,11 @@ export function PartnerLeadDetailView({
           </>
         }
         subtitle={subtitleParts.join(" · ")}
+        actions={
+          canRefund ? (
+            <PartnerRefundButton leadDeliveryId={deliveryId} />
+          ) : undefined
+        }
         kpis={
           <>
             <LeadDetailKpiTile label="Price" value={purchase.priceLabel} />
@@ -142,19 +147,6 @@ export function PartnerLeadDetailView({
           <LeadDetailTimelineCard items={timeline} className="lg:self-start" />
         }
       />
-
-      {canRefund && (
-        <div className="card flex items-center justify-between gap-4 p-4 sm:p-5">
-          <div>
-            <p className="text-sm font-medium text-slate-900">Request a refund</p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              This lead is eligible for a refund. Select a reason and submit your
-              request.
-            </p>
-          </div>
-          <PartnerRefundButton leadDeliveryId={deliveryId} />
-        </div>
-      )}
     </div>
   );
 }
