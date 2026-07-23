@@ -12,6 +12,8 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 
+const agedActionColumnClassName = "w-28 min-w-28 text-right";
+
 type AgedLead = {
   id: string;
   firstName: string;
@@ -194,12 +196,12 @@ export function PartnerAgedView({
                   </th>
                   <th>Lead</th>
                   <th>State</th>
-                  <th>Have IUL</th>
                   <th>Type</th>
-                  <th>Age</th>
+                  <th>Have IUL</th>
                   <th>Intent</th>
+                  <th>Age</th>
                   <th className={moneyHeaderClassName}>Price</th>
-                  <th className="text-right">Action</th>
+                  <th className={agedActionColumnClassName}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -231,19 +233,13 @@ export function PartnerAgedView({
                           {lead.state}
                         </span>
                       </td>
-                      <td className="text-xs text-slate-600">
-                        {lead.haveIul ?? "—"}
-                      </td>
                       <td>
                         <Badge variant="blue">
                           {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
                         </Badge>
                       </td>
-                      <td>
-                        <div className="flex items-center gap-1 text-xs text-slate-600">
-                          <Clock size={11} className="text-slate-400" />
-                          <span className="font-medium">{ageDays}d</span>
-                        </div>
+                      <td className="text-xs text-slate-600">
+                        {lead.haveIul ?? "—"}
                       </td>
                       <td>
                         {lead.intent ? (
@@ -254,8 +250,14 @@ export function PartnerAgedView({
                           <span className="text-xs text-slate-300">—</span>
                         )}
                       </td>
-                      <td className={moneyCellClass("font-bold text-slate-900")}>{formatUsd(agedPrice)}</td>
                       <td>
+                        <div className="flex items-center gap-1 text-xs text-slate-600">
+                          <Clock size={11} className="text-slate-400" />
+                          <span className="font-medium">{ageDays}d</span>
+                        </div>
+                      </td>
+                      <td className={moneyCellClass("font-bold text-slate-900")}>{formatUsd(agedPrice)}</td>
+                      <td className={agedActionColumnClassName}>
                         <div className="flex justify-end">
                           <button
                             type="button"
