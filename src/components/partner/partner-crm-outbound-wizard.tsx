@@ -7,6 +7,7 @@ import {
 } from "@/lib/crm-outbound/source-fields";
 import type { CrmOutboundConfigInput } from "@/lib/crm-outbound/schemas";
 import { ActionButton } from "@/components/ui/action-button";
+import { Switch } from "@/components/ui/switch";
 
 type AuthType = CrmOutboundConfigInput["authType"];
 
@@ -330,14 +331,16 @@ export function PartnerCrmOutboundWizard({
 
       {step === 0 && (
         <div className="space-y-4 border-t border-slate-100 pt-6">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="crm-outbound-enabled" className="text-sm text-slate-900">
+              Enable CRM POST on each delivery
+            </label>
+            <Switch
+              id="crm-outbound-enabled"
               checked={form.enabled}
-              onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+              onCheckedChange={(enabled) => setForm({ ...form, enabled })}
             />
-            Enable CRM POST on each delivery
-          </label>
+          </div>
           <div>
             <label className="form-label">Endpoint URL</label>
             <input
