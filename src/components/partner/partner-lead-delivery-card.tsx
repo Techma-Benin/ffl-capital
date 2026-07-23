@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
 import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-display";
-import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { Lightning, Trash, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 const CRM_OUTBOUND_HREF = "/partner/settings/crm-outbound";
 
@@ -28,12 +29,18 @@ function ChannelRow({
   detail,
   status,
   action,
+  href,
 }: {
   name: string;
   detail: string;
   status?: "on" | "ready";
   action?: ReactNode;
+  /** When set, the whole row navigates here (action buttons must stopPropagation). */
+  href?: string;
 }) {
+  const router = useRouter();
+  const interactive = Boolean(href);
+
   const badge =
     status === "on" ? (
       <Badge variant="green">On</Badge>
@@ -41,8 +48,30 @@ function ChannelRow({
       <Badge variant="blue">Ready</Badge>
     ) : null;
 
+  function navigate() {
+    if (href) router.push(href);
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (!interactive) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      navigate();
+    }
+  }
+
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div
+      className={
+        interactive
+          ? "-mx-2 flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          : "flex items-center justify-between gap-3"
+      }
+      role={interactive ? "link" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? navigate : undefined}
+      onKeyDown={interactive ? onKeyDown : undefined}
+    >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-slate-900">{name}</p>
@@ -52,7 +81,9 @@ function ChannelRow({
           {detail}
         </p>
       </div>
-      {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
+      {action ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-1">{action}</div>
+      ) : null}
     </div>
   );
 }
@@ -390,27 +421,33 @@ export function PartnerLeadDeliveryCard({
                     name="CRM POST"
                     detail={host}
                     status="ready"
+                    href={CRM_OUTBOUND_HREF}
                     action={
                       <>
-                        <Link href={CRM_OUTBOUND_HREF} className="btn-secondary btn-sm">
-                          Edit
-                        </Link>
                         <button
                           type="button"
-                          className="btn-secondary btn-sm"
-                          onClick={() => setTestOpen(true)}
+                          title="Test"
+                          aria-label="Test CRM delivery"
+                          className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTestOpen(true);
+                          }}
                         >
-                          Test
+                          <Lightning size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
                         </button>
                         <button
                           type="button"
-                          className="btn-ghost btn-sm text-slate-600"
-                          onClick={() => {
+                          title="Delete"
+                          aria-label="Remove CRM POST"
+                          className="rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setDeleteError("");
                             setDeleteOpen(true);
                           }}
                         >
-                          Delete
+                          <Trash size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
                         </button>
                       </>
                     }
