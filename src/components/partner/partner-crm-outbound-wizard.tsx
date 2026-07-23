@@ -626,16 +626,6 @@ export function PartnerCrmOutboundWizard({
           <div className="flex flex-wrap gap-3">
             <ActionButton
               type="button"
-              variant="primary"
-              loading={saving}
-              success={Boolean(success) && !testing}
-              onClick={() => void saveConfig()}
-              disabled={!canSave || saving}
-            >
-              Save
-            </ActionButton>
-            <ActionButton
-              type="button"
               variant="secondary"
               loading={testing}
               onClick={() => void runTest()}
