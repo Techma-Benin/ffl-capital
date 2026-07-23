@@ -29,7 +29,7 @@ export function LeadDetailBackLink({
   return (
     <Link
       href={href}
-      className="group inline-flex shrink-0 items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700"
+      className="group inline-flex shrink-0 items-center gap-1 text-sm font-medium text-slate-600 transition-colors hover:text-orange-600"
     >
       <ArrowLeft
         size={14}
