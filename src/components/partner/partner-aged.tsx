@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
 import { ShoppingBag, Funnel, Clock } from "@/lib/icons/client";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
-import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
+import { formatUsd } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { FilterSelectDropdown } from "@/components/admin/filter-select-dropdown";
 import {
@@ -26,8 +26,6 @@ import {
   type PartnerAgedLeadPreview,
 } from "@/components/partner/aged-lead-preview-sheet";
 
-const agedPriceColumnWidth = "w-24 min-w-24 whitespace-nowrap";
-const agedPriceHeaderClassName = `${moneyHeaderClassName} ${agedPriceColumnWidth}`;
 const agedActionColumnClassName = "w-36 min-w-36 text-center";
 
 type AgedLead = PartnerAgedLeadPreview;
@@ -280,7 +278,6 @@ export function PartnerAgedView({
                   <th>Have IUL</th>
                   <th>Intent</th>
                   <th>Age</th>
-                  <th className={agedPriceHeaderClassName}>Price</th>
                   <th className={agedActionColumnClassName}>Action</th>
                 </tr>
               </thead>
@@ -339,11 +336,6 @@ export function PartnerAgedView({
                           <Clock size={11} className="text-slate-400" />
                           <span className="font-medium">{ageDays}d</span>
                         </div>
-                      </td>
-                      <td
-                        className={moneyCellClass(agedPriceColumnWidth, "font-bold text-slate-900")}
-                      >
-                        {formatUsd(agedPrice)}
                       </td>
                       <td
                         className={agedActionColumnClassName}
