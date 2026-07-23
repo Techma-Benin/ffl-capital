@@ -1,6 +1,7 @@
 "use client";
 
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
+import { usePersistLeadViewColumns } from "@/hooks/use-persist-lead-view-columns";
 import { useCallback, useEffect, useState } from "react";
 import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import { LeadViewActionsMenu } from "@/components/leads/lead-view-actions-menu";
@@ -11,7 +12,7 @@ import {
 } from "@/components/leads/lead-view-editor-sheet";
 import { LeadColumnSettings } from "@/components/leads/lead-column-settings";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
-import type { LeadViewColumn, LeadViewSort } from "@/lib/leads/list-view-schema";
+import type { LeadViewSort } from "@/lib/leads/list-view-schema";
 import {
   adminLeadViewFiltersSchema,
   parseAdminFilters,
@@ -68,15 +69,21 @@ export function LeadViewsToolbar({
   const [editorMode, setEditorMode] = useState<"create" | "edit">("edit");
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [pending, setPending] = useState(false);
-  const [draftColumns, setDraftColumns] = useState<LeadViewColumn[] | null>(
-    null,
-  );
 
-  const columns =
-    draftColumns ??
-    (Array.isArray(activeView.columns)
-      ? (activeView.columns as LeadViewColumn[])
-      : []);
+  const refresh = useCallback(() => router.refresh(), [router]);
+
+  const {
+    columns,
+    saveColumns,
+    flushColumnsSave,
+    columnsSaveError,
+  } = usePersistLeadViewColumns({
+    apiBase,
+    activeViewId: activeView.id,
+    activeViewColumns: activeView.columns,
+    catalog,
+    onPersisted: refresh,
+  });
 
   const editorInitial = (): LeadViewEditorState => {
     if (editorMode === "create") {
@@ -98,8 +105,6 @@ export function LeadViewsToolbar({
       columns,
     };
   };
-
-  const refresh = useCallback(() => router.refresh(), [router]);
 
   useEffect(() => {
     if (!columnSettingsBridge) return;
@@ -149,21 +154,8 @@ export function LeadViewsToolbar({
           filters,
           columns: state.columns,
         });
-        setDraftColumns(null);
         refresh();
       }
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function saveColumnsOnly(next: LeadViewColumn[]) {
-    setDraftColumns(next);
-    setPending(true);
-    try {
-      await apiPatch(activeView.id, { columns: next });
-      setDraftColumns(null);
-      refresh();
     } finally {
       setPending(false);
     }
@@ -277,11 +269,19 @@ export function LeadViewsToolbar({
 
       <LeadColumnSettings
         open={columnsOpen}
-        onOpenChange={setColumnsOpen}
+        onOpenChange={(open) => {
+          if (!open) void flushColumnsSave();
+          setColumnsOpen(open);
+        }}
         catalog={catalog}
         columns={columns}
-        onChange={saveColumnsOnly}
+        onChange={saveColumns}
       />
+      {columnsSaveError ? (
+        <p className="px-1 text-sm text-red-600" role="alert">
+          {columnsSaveError}
+        </p>
+      ) : null}
     </div>
   );
 }
