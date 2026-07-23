@@ -6,7 +6,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
-import { ShoppingBag, Funnel, Clock } from "@/lib/icons/client";
+import {
+  ShoppingBag,
+  Funnel,
+  Clock,
+  Check,
+  ICON_WEIGHT_LINEAR,
+} from "@/lib/icons/client";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
 import { formatUsd } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
@@ -14,11 +20,15 @@ import { FilterSelectDropdown } from "@/components/admin/filter-select-dropdown"
 import {
   ADMIN_AGED_AGE_FILTER_OPTIONS,
   ADMIN_AGED_TYPE_FILTER_OPTIONS,
+  PARTNER_AGED_HAVE_IUL_FILTER_OPTIONS,
+  PARTNER_AGED_INTENT_FILTER_OPTIONS,
   filterPartnerAgedLeadsInMemory,
   partnerAgedLeadAgeDays,
   type AdminAgedLeadAgeFilterValue,
   type AdminAgedLeadTypeFilter,
   type PartnerAgedClientFilters,
+  type PartnerAgedHaveIulFilterValue,
+  type PartnerAgedIntentFilterValue,
 } from "@/lib/admin/admin-aged-leads-filters";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import {
@@ -27,6 +37,26 @@ import {
 } from "@/components/partner/aged-lead-preview-sheet";
 
 const agedActionColumnClassName = "w-36 min-w-36 text-center";
+const agedHaveIulColumnClassName = "w-20 text-center";
+
+function partnerAgedHaveIulCell(value: string | null | undefined) {
+  const isYes = (value ?? "").trim().toLowerCase() === "yes";
+  if (isYes) {
+    return (
+      <Check
+        size={14}
+        className="text-emerald-500"
+        weight={ICON_WEIGHT_LINEAR}
+        aria-label="Has IUL"
+      />
+    );
+  }
+  return (
+    <span className="text-xs text-slate-300" aria-hidden>
+      —
+    </span>
+  );
+}
 
 type AgedLead = PartnerAgedLeadPreview;
 
@@ -44,6 +74,8 @@ function syncAgedFiltersToUrl(filters: AgedFilters) {
   }
   if (filters.type) params.set("type", filters.type);
   if (filters.age) params.set("age", filters.age);
+  if (filters.haveIul) params.set("haveIul", filters.haveIul);
+  if (filters.intent) params.set("intent", filters.intent);
   const qs = params.toString();
   const next = qs ? `/partner/aged?${qs}` : "/partner/aged";
   window.history.replaceState(null, "", next);
@@ -86,6 +118,19 @@ export function PartnerAgedView({
   useEffect(() => {
     setLeads(initialLeads);
   }, [initialLeads]);
+
+  const partnerAgedIntentOptions = useMemo(() => {
+    const byValue = new Map(
+      PARTNER_AGED_INTENT_FILTER_OPTIONS.map((o) => [o.value, o]),
+    );
+    for (const lead of leads) {
+      const intent = lead.intent?.trim();
+      if (intent && !byValue.has(intent)) {
+        byValue.set(intent, { value: intent, label: intent });
+      }
+    }
+    return Array.from(byValue.values());
+  }, [leads]);
 
   const filteredLeads = useMemo(
     () => filterPartnerAgedLeadsInMemory(leads, filters),
@@ -225,6 +270,30 @@ export function PartnerAgedView({
             onChange={(age) => updateFilter("age", age === "all" ? "" : age)}
             searchable={false}
           />
+          <FilterSelectDropdown
+            id="partner-aged-filter-have-iul"
+            dimensionLabel="Have IUL"
+            accent="teal"
+            value={(filters.haveIul || "all") as PartnerAgedHaveIulFilterValue}
+            allValue="all"
+            options={PARTNER_AGED_HAVE_IUL_FILTER_OPTIONS}
+            onChange={(haveIul) =>
+              updateFilter("haveIul", haveIul === "all" ? "" : haveIul)
+            }
+            searchable={false}
+          />
+          <FilterSelectDropdown
+            id="partner-aged-filter-intent"
+            dimensionLabel="Intent"
+            accent="teal"
+            value={(filters.intent || "all") as PartnerAgedIntentFilterValue}
+            allValue="all"
+            options={partnerAgedIntentOptions}
+            onChange={(intent) =>
+              updateFilter("intent", intent === "all" ? "" : intent)
+            }
+            searchable={false}
+          />
         </div>
       </div>
 
@@ -285,8 +354,7 @@ export function PartnerAgedView({
                   <th>Lead</th>
                   <th>State</th>
                   <th>Type</th>
-                  <th>Have IUL</th>
-                  <th>Intent</th>
+                  <th className={agedHaveIulColumnClassName}>Have IUL</th>
                   <th>Age</th>
                   <th className={agedActionColumnClassName}>Action</th>
                 </tr>
@@ -329,17 +397,10 @@ export function PartnerAgedView({
                           {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
                         </Badge>
                       </td>
-                      <td className="text-xs text-slate-600">{lead.haveIul ?? "—"}</td>
-                      <td>
-                        {lead.intent ? (
-                          <Badge
-                            variant={lead.leadType === "high_intent_iul" ? "green" : "yellow"}
-                          >
-                            {lead.intent}
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-slate-300">—</span>
-                        )}
+                      <td className={agedHaveIulColumnClassName}>
+                        <div className="flex justify-center">
+                          {partnerAgedHaveIulCell(lead.haveIul)}
+                        </div>
                       </td>
                       <td>
                         <div className="flex items-center gap-1 text-xs text-slate-600">

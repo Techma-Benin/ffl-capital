@@ -7,14 +7,21 @@ import { getAgedDaysThreshold, getDefaultAgedPrice } from "@/lib/settings/app-se
 import {
   buildAdminAgedLeadsWhere,
   parseAdminAgedLeadFilters,
-  parseAdminAgedLeadStates,
+  parsePartnerAgedClientFilters,
   PARTNER_AGED_CLIENT_LOAD_LIMIT,
 } from "@/lib/admin/admin-aged-leads-filters";
 
 export default async function PartnerAgedPage({
   searchParams,
 }: {
-  searchParams: { state?: string; type?: string; age?: string; page?: string };
+  searchParams: {
+    state?: string;
+    type?: string;
+    age?: string;
+    haveIul?: string;
+    intent?: string;
+    page?: string;
+  };
 }) {
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
@@ -53,11 +60,7 @@ export default async function PartnerAgedPage({
         }))}
         totalEligible={totalEligible}
         loadCapped={totalEligible > PARTNER_AGED_CLIENT_LOAD_LIMIT}
-        initialFilters={{
-          states: parseAdminAgedLeadStates(searchParams.state),
-          type: searchParams.type ?? "",
-          age: searchParams.age ?? "",
-        }}
+        initialFilters={parsePartnerAgedClientFilters(searchParams)}
       />
     </Suspense>
   );

@@ -200,14 +200,125 @@ export function partnerAgedLeadMatchesAgeBucket(
   return ageDays >= 90;
 }
 
+export const PARTNER_AGED_HAVE_IUL_PARAM = "haveIul";
+export const PARTNER_AGED_INTENT_PARAM = "intent";
+
+/** URL / filter value for leads with no Have IUL answer. */
+export const PARTNER_AGED_HAVE_IUL_EMPTY = "empty";
+
+export type PartnerAgedHaveIulFilterValue =
+  | "all"
+  | "Yes"
+  | "No"
+  | typeof PARTNER_AGED_HAVE_IUL_EMPTY;
+
+export const PARTNER_AGED_HAVE_IUL_FILTER_OPTIONS: {
+  value: PartnerAgedHaveIulFilterValue;
+  label: string;
+}[] = [
+  { value: "all", label: "All" },
+  { value: "Yes", label: "Yes" },
+  { value: "No", label: "No" },
+  { value: PARTNER_AGED_HAVE_IUL_EMPTY, label: "Empty" },
+];
+
+export const PARTNER_AGED_INTENT_CATALOG = [
+  "High Intent",
+  "Traditional",
+] as const;
+
+export type PartnerAgedIntentFilterValue =
+  | "all"
+  | (typeof PARTNER_AGED_INTENT_CATALOG)[number]
+  | string;
+
+export const PARTNER_AGED_INTENT_FILTER_OPTIONS: {
+  value: PartnerAgedIntentFilterValue;
+  label: string;
+}[] = [
+  { value: "all", label: "All" },
+  { value: "High Intent", label: "High Intent" },
+  { value: "Traditional", label: "Traditional" },
+];
+
 export type PartnerAgedClientFilters = {
   states: string[];
   type: string;
   age: string;
+  haveIul: string;
+  intent: string;
 };
 
+function parsePartnerAgedHaveIulFilter(raw: string | undefined): string {
+  const trimmed = raw?.trim();
+  if (!trimmed) return "";
+  if (trimmed === PARTNER_AGED_HAVE_IUL_EMPTY) return PARTNER_AGED_HAVE_IUL_EMPTY;
+  const normalized =
+    trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+  if (normalized === "Yes" || normalized === "No") return normalized;
+  return "";
+}
+
+function parsePartnerAgedIntentFilter(raw: string | undefined): string {
+  const trimmed = raw?.trim();
+  if (!trimmed) return "";
+  if (
+    PARTNER_AGED_INTENT_CATALOG.includes(
+      trimmed as (typeof PARTNER_AGED_INTENT_CATALOG)[number],
+    )
+  ) {
+    return trimmed;
+  }
+  return trimmed;
+}
+
+export function parsePartnerAgedClientFilters(searchParams: {
+  state?: string;
+  type?: string;
+  age?: string;
+  haveIul?: string;
+  intent?: string;
+}): PartnerAgedClientFilters {
+  const typeRaw = searchParams.type?.trim();
+  const type =
+    typeRaw &&
+    ADMIN_AGED_LEAD_TYPES.includes(typeRaw as AdminAgedLeadType)
+      ? typeRaw
+      : "";
+
+  const ageRaw = searchParams.age?.trim();
+  const age =
+    ageRaw && ADMIN_AGED_AGE_BUCKETS.includes(ageRaw as AdminAgedLeadAgeFilter)
+      ? ageRaw
+      : "";
+
+  return {
+    states: parseAdminAgedLeadStates(searchParams.state),
+    type,
+    age,
+    haveIul: parsePartnerAgedHaveIulFilter(searchParams.haveIul),
+    intent: parsePartnerAgedIntentFilter(searchParams.intent),
+  };
+}
+
+function partnerAgedLeadHaveIulMatches(
+  haveIul: string | null | undefined,
+  filter: string,
+): boolean {
+  if (filter === PARTNER_AGED_HAVE_IUL_EMPTY) {
+    return haveIul == null || haveIul.trim() === "";
+  }
+  return (haveIul ?? "").toLowerCase() === filter.toLowerCase();
+}
+
 export function filterPartnerAgedLeadsInMemory<
-  T extends { state: string; leadType: string; receivedAt: string | Date },
+  T extends {
+    state: string;
+    leadType: string;
+    receivedAt: string | Date;
+    haveIul?: string | null;
+    intent?: string | null;
+  },
 >(leads: T[], filters: PartnerAgedClientFilters): T[] {
   return leads.filter((lead) => {
     if (filters.states.length > 0 && !filters.states.includes(lead.state)) {
@@ -222,6 +333,15 @@ export function filterPartnerAgedLeadsInMemory<
         filters.age as AdminAgedLeadAgeFilter,
       )
     ) {
+      return false;
+    }
+    if (
+      filters.haveIul &&
+      !partnerAgedLeadHaveIulMatches(lead.haveIul, filters.haveIul)
+    ) {
+      return false;
+    }
+    if (filters.intent && (lead.intent ?? "") !== filters.intent) {
       return false;
     }
     return true;
