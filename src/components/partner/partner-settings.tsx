@@ -322,11 +322,9 @@ const settingsSectionClass =
 function PartnerProfileField({
   label,
   value,
-  hint,
 }: {
   label: string;
   value: string | null | undefined;
-  hint?: string;
 }) {
   return (
     <div className="min-w-0">
@@ -334,7 +332,6 @@ function PartnerProfileField({
       <dd className="mt-1 break-words text-sm font-semibold text-slate-900">
         {displayProfileValue(value)}
       </dd>
-      {hint ? <p className="mt-1.5 text-xs text-slate-400">{hint}</p> : null}
     </div>
   );
 }
@@ -391,12 +388,10 @@ function PartnerProfileSection({
         <PartnerProfileField
           label="Residence state"
           value={partner.residenceState}
-          hint="Contact admin to update"
         />
         <PartnerProfileField
           label="Affiliation (company)"
           value={partner.affiliation}
-          hint="Contact admin to update"
         />
         <PartnerProfileField
           label="Member since"
