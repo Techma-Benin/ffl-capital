@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LeadCategoryManager } from "@/components/admin/lead-category-manager";
+import { DEFAULT_RESALE_VENDOR_CONFIGS } from "@/lib/settings/resale-vendor-defaults";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -231,7 +232,7 @@ export function AdminSettingsForm() {
             (s.resale_vendor_configs as Record<
               string,
               { enabled?: boolean; pingUrl?: string; postUrl?: string }
-            > | undefined) ?? {},
+            > | undefined) ?? DEFAULT_RESALE_VENDOR_CONFIGS,
           ),
         );
       })

@@ -1,5 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import {
+  DEFAULT_RESALE_VENDOR_CONFIGS,
+  type ResaleVendorConfig,
+} from "@/lib/settings/resale-vendor-defaults";
+
+export type { ResaleVendorConfig } from "@/lib/settings/resale-vendor-defaults";
+export { DEFAULT_RESALE_VENDOR_CONFIGS } from "@/lib/settings/resale-vendor-defaults";
 
 export const APP_SETTING_KEYS = {
   defaultRealtimePrice: "default_realtime_price",
@@ -13,12 +20,6 @@ export const APP_SETTING_KEYS = {
   resaleVendorConfigs: "resale_vendor_configs",
   integrityPostDelayHours: "integrity_post_delay_hours",
 } as const;
-
-export interface ResaleVendorConfig {
-  pingUrl?: string;
-  postUrl?: string;
-  enabled?: boolean;
-}
 
 async function getSetting<T>(key: string, fallback: T): Promise<T> {
   const row = await prisma.appSetting.findUnique({ where: { key } });
@@ -69,7 +70,10 @@ export async function getDuplicateCheckWindowDays(): Promise<number> {
 export async function getResaleVendorConfigs(): Promise<
   Record<string, ResaleVendorConfig>
 > {
-  return getSetting(APP_SETTING_KEYS.resaleVendorConfigs, {});
+  return getSetting(
+    APP_SETTING_KEYS.resaleVendorConfigs,
+    DEFAULT_RESALE_VENDOR_CONFIGS,
+  );
 }
 
 /**
@@ -90,7 +94,10 @@ export async function seedAppSettings(): Promise<void> {
     { key: APP_SETTING_KEYS.trustedformValidationEnabled, value: false },
     { key: APP_SETTING_KEYS.duplicateCheckEnabled, value: true },
     { key: APP_SETTING_KEYS.duplicateCheckWindowDays, value: 30 },
-    { key: APP_SETTING_KEYS.resaleVendorConfigs, value: {} },
+    {
+      key: APP_SETTING_KEYS.resaleVendorConfigs,
+      value: DEFAULT_RESALE_VENDOR_CONFIGS,
+    },
     { key: APP_SETTING_KEYS.integrityPostDelayHours, value: 24 },
   ];
 
