@@ -170,13 +170,10 @@ export function AdminDateRangePopover({
     setPicker(null);
     const anchor = appliedFrom ?? new Date();
     setView(startOfMonth(anchor));
-    if (hideTrigger) {
-      onCancel?.();
-    } else {
-      setOpen(false);
-      setPicker(null);
-    }
-  }, [appliedFrom, appliedTo, hideTrigger, onCancel, setOpen]);
+    onCancel?.();
+    setOpen(false);
+    setPicker(null);
+  }, [appliedFrom, appliedTo, onCancel, setOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -377,7 +374,11 @@ export function AdminDateRangePopover({
     if (!clamped.start) return;
     const endDate = clamped.end ?? clamped.start;
     onApply(adminDateToYmd(clamped.start), adminDateToYmd(endDate));
-    if (!hideTrigger) closePopover();
+    if (hideTrigger) {
+      setOpen(false);
+    } else {
+      closePopover();
+    }
   }
 
   if (hideTrigger) {

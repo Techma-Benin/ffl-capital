@@ -52,8 +52,6 @@ export function AdminDashboardPeriodFilter({
     push(qs ? `${pathname}?${qs}` : pathname);
   }
 
-  const showCustomPicker = datePeriod === "custom" || customPickerOpen;
-
   return (
     <div
       ref={anchorRef}
@@ -85,21 +83,20 @@ export function AdminDashboardPeriodFilter({
         ))}
       </select>
 
-      {showCustomPicker && (
+      {customPickerOpen && (
         <AdminDateRangePopover
           hideTrigger
           anchorRef={anchorRef}
           from={from}
           to={to}
-          open
+          open={customPickerOpen}
+          onOpenChange={setCustomPickerOpen}
           onApply={(fromYmd, toYmd) => {
             navigate({ period: "custom", from: fromYmd, to: toYmd });
             setCustomPickerOpen(false);
           }}
           onCancel={() => {
-            if (datePeriod !== "custom") {
-              setCustomPickerOpen(false);
-            }
+            setCustomPickerOpen(false);
           }}
         />
       )}
