@@ -34,23 +34,25 @@ function ChannelRow({
   status?: "on" | "ready";
   action?: ReactNode;
 }) {
-  const trailing =
-    action ??
-    (status === "on" ? (
+  const badge =
+    status === "on" ? (
       <Badge variant="green">On</Badge>
     ) : status === "ready" ? (
       <Badge variant="blue">Ready</Badge>
-    ) : null);
+    ) : null;
 
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-900">{name}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-900">{name}</p>
+          {badge}
+        </div>
         <p className="truncate text-xs text-slate-500" title={detail}>
           {detail}
         </p>
       </div>
-      {trailing}
+      {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
     </div>
   );
 }
@@ -384,7 +386,35 @@ export function PartnerLeadDeliveryCard({
                 />
                 <div className="border-t border-slate-100" />
                 {configured && host ? (
-                  <ChannelRow name="CRM POST" detail={host} status="ready" />
+                  <ChannelRow
+                    name="CRM POST"
+                    detail={host}
+                    status="ready"
+                    action={
+                      <>
+                        <Link href={CRM_OUTBOUND_HREF} className="btn-secondary btn-sm">
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm"
+                          onClick={() => setTestOpen(true)}
+                        >
+                          Test
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-ghost btn-sm text-slate-600"
+                          onClick={() => {
+                            setDeleteError("");
+                            setDeleteOpen(true);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    }
+                  />
                 ) : (
                   <ChannelRow
                     name="CRM POST"
@@ -400,31 +430,6 @@ export function PartnerLeadDeliveryCard({
                   />
                 )}
               </div>
-
-              {configured ? (
-                <div className="mt-auto flex flex-wrap gap-2 pt-2">
-                  <Link href={CRM_OUTBOUND_HREF} className="btn-secondary btn-sm">
-                    Edit
-                  </Link>
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={() => setTestOpen(true)}
-                  >
-                    Test
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm text-slate-600"
-                    onClick={() => {
-                      setDeleteError("");
-                      setDeleteOpen(true);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ) : null}
             </>
           )}
         </div>
