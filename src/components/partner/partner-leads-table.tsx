@@ -172,11 +172,34 @@ export function PartnerLeadsTable({
 
   const refundable = deliveries.filter((d) => d.canRefund);
   const refundableSelected = refundable.filter((d) => selected.has(d.id));
-  const columnKeys = columns.map((c) => c.key);
+  const selectAllChecked =
+    refundable.length > 0 && selected.size === refundable.length;
+
+  function toggleAll() {
+    if (selected.size === refundable.length) setSelected(new Set());
+    else setSelected(new Set(refundable.map((d) => d.id)));
+  }
 
   const headerColumns = useMemo(() => {
-    if (!columnSettingsBridge) return columns;
-    return columns.map((col) => {
+    const withSelectHeader = columns.map((col) => {
+      if (col.key !== "select") return col;
+      return {
+        ...col,
+        headerClassName: col.headerClassName ?? "w-10",
+        headerContent: (
+          <input
+            type="checkbox"
+            checked={selectAllChecked}
+            onChange={toggleAll}
+            className="rounded border-slate-300"
+            aria-label="Select all refundable leads"
+          />
+        ),
+      };
+    });
+
+    if (!columnSettingsBridge) return withSelectHeader;
+    return withSelectHeader.map((col) => {
       if (col.key !== "actions") return col;
       return {
         ...col,
@@ -188,12 +211,7 @@ export function PartnerLeadsTable({
         ),
       };
     });
-  }, [columns, columnSettingsBridge]);
-
-  function toggleAll() {
-    if (selected.size === refundable.length) setSelected(new Set());
-    else setSelected(new Set(refundable.map((d) => d.id)));
-  }
+  }, [columns, columnSettingsBridge, selectAllChecked, deliveries, selected.size]);
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -344,18 +362,6 @@ export function PartnerLeadsTable({
             <ArrowCounterClockwise size={14} />
             Request Refund ({refundableSelected.length})
           </button>
-        </div>
-      )}
-
-      {columnKeys.includes("select") && (
-        <div className="mb-1 flex px-3">
-          <input
-            type="checkbox"
-            checked={refundable.length > 0 && selected.size === refundable.length}
-            onChange={toggleAll}
-            className="rounded border-slate-300"
-            aria-label="Select all refundable leads"
-          />
         </div>
       )}
 
