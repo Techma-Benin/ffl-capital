@@ -237,7 +237,7 @@ export function PartnerAgedView({
             >
               {pending
                 ? "Purchasing…"
-                : `Buy Selected (${selected.size}) — ${formatUsd(selected.size * agedPrice)}`}
+                : `Buy — ${formatUsd(selected.size * agedPrice)}`}
             </button>
           )}
         </div>
