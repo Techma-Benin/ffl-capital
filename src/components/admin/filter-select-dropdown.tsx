@@ -7,7 +7,31 @@ import { CaretDown, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 const triggerIdle =
   "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50";
-const triggerActive = "border-orange-200 bg-orange-50 text-orange-900";
+
+export type FilterSelectAccent = "orange" | "teal";
+
+const ACCENT_STYLES: Record<
+  FilterSelectAccent,
+  {
+    triggerActive: string;
+    optionChecked: string;
+    checkbox: string;
+    countChecked: string;
+  }
+> = {
+  orange: {
+    triggerActive: "border-orange-200 bg-orange-50 text-orange-900",
+    optionChecked: "bg-orange-50 text-orange-900",
+    checkbox: "text-orange-600 focus:ring-orange-500",
+    countChecked: "bg-orange-100 text-orange-700",
+  },
+  teal: {
+    triggerActive: "border-teal-200 bg-teal-50 text-teal-800",
+    optionChecked: "bg-teal-50 text-teal-800",
+    checkbox: "text-teal-600 focus:ring-teal-500",
+    countChecked: "bg-teal-100 text-teal-700",
+  },
+};
 
 type FilterOption<T extends string> = { value: T; label: string };
 
@@ -19,6 +43,8 @@ type SharedProps<T extends string> = {
   disabled?: boolean;
   menuWidthClass?: string;
   searchable?: boolean;
+  /** Active trigger and selected row styling; admin defaults to orange */
+  accent?: FilterSelectAccent;
 };
 
 type SingleSelectProps<T extends string> = SharedProps<T> & {
@@ -46,7 +72,10 @@ export function FilterSelectDropdown<T extends string>(
     disabled,
     menuWidthClass = "w-56",
     searchable = props.selectionMode === "multi",
+    accent = "orange",
   } = props;
+
+  const accentStyles = ACCENT_STYLES[accent];
 
   const selectionMode = props.selectionMode ?? "single";
   const allValue = props.allValue;
@@ -196,7 +225,7 @@ export function FilterSelectDropdown<T extends string>(
         className={clsx(
           "inline-flex max-w-[240px] min-w-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
-          hasSelection ? triggerActive : triggerIdle,
+          hasSelection ? accentStyles.triggerActive : triggerIdle,
           disabled && "cursor-not-allowed opacity-50",
         )}
       >
@@ -258,7 +287,7 @@ export function FilterSelectDropdown<T extends string>(
                       className={clsx(
                         "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors",
                         checked
-                          ? "bg-orange-50 text-orange-900"
+                          ? accentStyles.optionChecked
                           : "text-slate-700 hover:bg-slate-50",
                       )}
                     >
@@ -267,7 +296,10 @@ export function FilterSelectDropdown<T extends string>(
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleOption(option.value)}
-                        className="size-4 shrink-0 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                        className={clsx(
+                          "size-4 shrink-0 rounded border-slate-300",
+                          accentStyles.checkbox,
+                        )}
                         aria-label={option.label}
                       />
                       <span className="min-w-0 flex-1 truncate font-medium">
@@ -278,7 +310,7 @@ export function FilterSelectDropdown<T extends string>(
                           className={clsx(
                             "min-w-[1.25rem] shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
                             checked
-                              ? "bg-orange-100 text-orange-700"
+                              ? accentStyles.countChecked
                               : "bg-slate-100 text-slate-500",
                           )}
                         >

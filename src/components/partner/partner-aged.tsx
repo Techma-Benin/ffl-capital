@@ -182,6 +182,7 @@ export function PartnerAgedView({
           <FilterSelectDropdown
             id="partner-aged-filter-state"
             dimensionLabel="State"
+            accent="teal"
             selectionMode="multi"
             value={filters.states}
             allValue="all"
