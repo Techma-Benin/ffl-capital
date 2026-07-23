@@ -8,6 +8,8 @@ import {
   portalTableDataCellClassName,
   portalTableRowClassName,
   PortalTablePrimaryCell,
+  portalRowActionsCellClassName,
+  portalRowKebabTriggerClassName,
   type PortalDataTableLayout,
 } from "@/components/ui/portal-data-table";
 import {
@@ -130,11 +132,13 @@ function PartnerRowMenu({
   pending,
   confirmDelete,
   onAction,
+  layout,
 }: {
   actions: ActionDef[];
   pending: ActionKey | null;
   confirmDelete: boolean;
   onAction: (key: ActionKey) => void;
+  layout: PortalDataTableLayout;
 }) {
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(
@@ -193,10 +197,9 @@ function PartnerRowMenu({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className={clsx(
-          "flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-opacity",
-          open ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-        )}
+        className={portalRowKebabTriggerClassName(layout, {
+          revealed: open || pending !== null,
+        })}
         aria-label="Partner actions"
         aria-expanded={open}
       >
@@ -403,10 +406,13 @@ export function PartnerTableRow({
         </td>
       )}
       <td
-        className={portalTableDataCellClassName(layout, {
-          last: true,
-          className: layout === "cards" ? "px-3 text-center" : "text-center",
-        })}
+        className={portalRowActionsCellClassName(
+          layout,
+          portalTableDataCellClassName(layout, {
+            last: true,
+            className: layout === "cards" ? "px-3 text-center" : "text-center",
+          }),
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         {actions.length > 0 && (
@@ -415,6 +421,7 @@ export function PartnerTableRow({
             pending={pending}
             confirmDelete={confirmDelete}
             onAction={handleAction}
+            layout={layout}
           />
         )}
       </td>

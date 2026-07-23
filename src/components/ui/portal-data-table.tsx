@@ -56,6 +56,35 @@ export function portalTableDataCellClassName(
   return clsx(base, options?.className);
 }
 
+/** Card rows: hide kebab until hover/focus; table layout keeps controls visible. */
+export function portalRowKebabTriggerClassName(
+  layout: PortalDataTableLayout,
+  options?: { revealed?: boolean },
+): string {
+  const base =
+    "flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-opacity";
+  if (layout === "table") {
+    return clsx(base, "transition-colors");
+  }
+  return clsx(
+    base,
+    options?.revealed
+      ? "opacity-100"
+      : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+  );
+}
+
+/** Actions cell: reveal kebab when any control inside has focus (keyboard). */
+export function portalRowActionsCellClassName(
+  layout: PortalDataTableLayout,
+  cellClassName?: string,
+) {
+  return clsx(
+    cellClassName,
+    layout === "cards" && "focus-within:[&_button]:opacity-100",
+  );
+}
+
 export type PortalDataTableTabConfig = {
   label: string;
   href: string;

@@ -10,6 +10,8 @@ import {
   portalTableCellLast,
   portalTableDataCellClassName,
   portalTableRowClassName,
+  portalRowActionsCellClassName,
+  portalRowKebabTriggerClassName,
   type PortalDataTableLayout,
 } from "@/components/ui/portal-data-table";
 import { formatDateTime } from "@/lib/format-datetime";
@@ -46,7 +48,13 @@ function adminLeadHasExtraRowActions(lead: LeadRow): boolean {
   );
 }
 
-function AdminLeadRowMenu({ lead }: { lead: LeadRow }) {
+function AdminLeadRowMenu({
+  lead,
+  layout,
+}: {
+  lead: LeadRow;
+  layout: PortalDataTableLayout;
+}) {
   const { push, router } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
   const [reprocessPending, setReprocessPending] = useState(false);
@@ -84,7 +92,7 @@ function AdminLeadRowMenu({ lead }: { lead: LeadRow }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        className={portalRowKebabTriggerClassName(layout, { revealed: open })}
         aria-label="Lead actions"
         aria-expanded={open}
       >
@@ -281,9 +289,16 @@ export function AdminLeadsTable({
         );
       case "actions":
         return (
-          <td key={key} className={cellClass({ first, last })}>
+          <td
+            key={key}
+            className={portalRowActionsCellClassName(
+              layout,
+              cellClass({ first, last }),
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
             {adminLeadHasExtraRowActions(lead) ? (
-              <AdminLeadRowMenu lead={lead} />
+              <AdminLeadRowMenu lead={lead} layout={layout} />
             ) : null}
           </td>
         );

@@ -17,6 +17,8 @@ import {
   portalTableCell,
   portalTableDataCellClassName,
   portalTableRowClassName,
+  portalRowActionsCellClassName,
+  portalRowKebabTriggerClassName,
   type PortalDataTableColumn,
   type PortalDataTableLayout,
 } from "@/components/ui/portal-data-table";
@@ -82,9 +84,11 @@ function PartnerLeadRefundDialog({
 function RowMenu({
   delivery,
   onRefund,
+  layout,
 }: {
   delivery: DeliveryRow;
   onRefund: () => void;
+  layout: PortalDataTableLayout;
 }) {
   const { push } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
@@ -108,7 +112,7 @@ function RowMenu({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        className={portalRowKebabTriggerClassName(layout, { revealed: open })}
         aria-label="Lead actions"
         aria-expanded={open}
       >
@@ -354,9 +358,20 @@ export function PartnerLeadsTable({
         );
       case "actions":
         return (
-          <td key={key} className={cellClass({ first, last })}>
+          <td
+            key={key}
+            className={portalRowActionsCellClassName(
+              layout,
+              cellClass({ first, last }),
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
             {d.canRefund ? (
-              <RowMenu delivery={d} onRefund={() => setRefundDialogId(d.id)} />
+              <RowMenu
+                delivery={d}
+                layout={layout}
+                onRefund={() => setRefundDialogId(d.id)}
+              />
             ) : null}
           </td>
         );
