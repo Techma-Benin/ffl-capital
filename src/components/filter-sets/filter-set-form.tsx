@@ -6,6 +6,7 @@ import {
   US_REGION_STATES,
   US_STATE_CODES,
 } from "@/lib/constants/us-states";
+import { StateChipGrid } from "@/components/filter-sets/state-chip-grid";
 import type { FilterCriteria } from "@/lib/matching/types";
 
 // ---------------------------------------------------------------------------
@@ -384,7 +385,6 @@ export function FilterSetForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  const selected = new Set(form.filterStates);
   const isEligible = form.filterStates.length >= 15;
 
   // Notify parent when pending changes
@@ -634,25 +634,12 @@ export function FilterSetForm({
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
-          {US_STATE_CODES.map((code) => {
-            const isSelected = selected.has(code);
-            return (
-              <button
-                key={code}
-                type="button"
-                onClick={() => toggleState(code)}
-                className={`rounded px-1 py-1.5 text-[10px] font-bold transition-colors ${
-                  isSelected
-                    ? "bg-brand-100 text-brand-700"
-                    : "bg-slate-50 text-slate-500 hover:bg-brand-50"
-                }`}
-              >
-                {code}
-              </button>
-            );
-          })}
-        </div>
+        <StateChipGrid
+          ariaLabel="Target states"
+          options={US_STATE_CODES.map((code) => ({ value: code, label: code }))}
+          selected={form.filterStates}
+          onToggle={toggleState}
+        />
       </div>
 
       <AdvancedFiltersAccordion

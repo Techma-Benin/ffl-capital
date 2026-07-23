@@ -4,6 +4,7 @@ import {
   US_REGION_STATES,
   US_STATE_CODES,
 } from "@/lib/constants/us-states";
+import { StateChipGrid } from "@/components/filter-sets/state-chip-grid";
 
 export function TargetStatesGrid({
   selected,
@@ -80,27 +81,13 @@ export function TargetStatesGrid({
           </button>
         </div>
       </div>
-      <div
-        className={`grid grid-cols-5 gap-1.5 rounded-lg border border-slate-200 bg-white p-2 sm:grid-cols-10 ${scrollable ? "max-h-44 overflow-y-auto" : ""}`}
-      >
-        {US_STATE_CODES.map((code) => {
-          const isSelected = selectedSet.has(code);
-          return (
-            <button
-              key={code}
-              type="button"
-              onClick={() => toggleState(code)}
-              className={`rounded px-1 py-1.5 text-[10px] font-bold transition-colors ${
-                isSelected
-                  ? "bg-brand-100 text-brand-700"
-                  : "bg-slate-50 text-slate-500 hover:bg-brand-50"
-              }`}
-            >
-              {code}
-            </button>
-          );
-        })}
-      </div>
+      <StateChipGrid
+        ariaLabel="Target states"
+        options={US_STATE_CODES.map((code) => ({ value: code, label: code }))}
+        selected={selected}
+        onToggle={toggleState}
+        scrollable={scrollable}
+      />
     </div>
   );
 }
