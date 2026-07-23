@@ -13,11 +13,8 @@ export function LeadDetailPageHeader({
   backLabel: string;
 }) {
   return (
-    <header className="space-y-1">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="page-title">Lead detail</h1>
-        <LeadDetailBackLink href={backHref} label={backLabel} />
-      </div>
+    <header>
+      <LeadDetailBackLink href={backHref} label={backLabel} />
     </header>
   );
 }
