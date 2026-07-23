@@ -50,7 +50,6 @@ export async function GET() {
         filterCriteria: fs.filterCriteria,
         weeklyUsage: usage.weekly,
         monthlyUsage: usage.monthly,
-        deliveryChannel: fs.deliveryChannel,
       };
     }),
   );

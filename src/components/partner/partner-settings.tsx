@@ -9,7 +9,6 @@ import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
 import { usePartner } from "@/components/partner/partner-provider";
 import {
-  PlugsConnected,
   Funnel,
   Plus,
   Trash,
@@ -22,6 +21,7 @@ import {
   type CategoryOption,
   type FilterSetFormData,
 } from "@/components/filter-sets/filter-set-form";
+import { PartnerCrmOutboundWizard } from "@/components/partner/partner-crm-outbound-wizard";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,7 +37,6 @@ type PartnerFilterSet = {
   priceOverride?: number | null;
   weeklyLimit?: number | null;
   monthlyLimit?: number | null;
-  deliveryChannel?: string;
   filterCriteria?: FilterCriteria;
 };
 
@@ -55,7 +54,6 @@ const DEFAULT_FORM: FilterSetFormData = {
   active: true,
   weeklyLimit: "",
   monthlyLimit: "",
-  deliveryChannel: "email",
   filterCriteria: {},
 };
 
@@ -75,7 +73,6 @@ function toFilterSetFormData(fs: PartnerFilterSet): FilterSetFormData {
     active: fs.active,
     weeklyLimit: fs.weeklyLimit != null ? String(fs.weeklyLimit) : "",
     monthlyLimit: fs.monthlyLimit != null ? String(fs.monthlyLimit) : "",
-    deliveryChannel: (fs.deliveryChannel ?? "email") as FilterSetFormData["deliveryChannel"],
     filterCriteria: (fs.filterCriteria as FilterCriteria) ?? {},
   };
 }
@@ -393,7 +390,7 @@ function PartnerProfileSection({
 // ---------------------------------------------------------------------------
 
 export function PartnerSettingsView() {
-  const { partner, patchPartner } = usePartner();
+  const { partner } = usePartner();
   const { user } = useUser();
   const { openUserProfile } = useClerk();
 
@@ -405,39 +402,6 @@ export function PartnerSettingsView() {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  const [webhookUrl, setWebhookUrl] = useState(partner.crmWebhookUrl ?? "");
-
-  const [webhookSaving, setWebhookSaving] = useState(false);
-  const [webhookSuccess, setWebhookSuccess] = useState(false);
-  const [webhookError, setWebhookError] = useState("");
-
-  const webhookDirty = webhookUrl !== (partner.crmWebhookUrl ?? "");
-
-  async function saveWebhook() {
-    setWebhookError("");
-    setWebhookSuccess(false);
-    setWebhookSaving(true);
-    try {
-      const res = await fetch("/api/partners/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ crmWebhookUrl: webhookUrl.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setWebhookError(data.error ?? "Failed to save webhook");
-        return;
-      }
-      patchPartner({ crmWebhookUrl: data.crmWebhookUrl });
-      setWebhookUrl(data.crmWebhookUrl ?? "");
-      setWebhookSuccess(true);
-    } catch {
-      setWebhookError("Request failed. Please try again.");
-    } finally {
-      setWebhookSaving(false);
-    }
-  }
-
   const statusBadge = partnerStatusBadge[partner.status] ?? "slate";
   const statusLabel = partnerStatusLabel[partner.status] ?? partner.status;
 
@@ -445,7 +409,7 @@ export function PartnerSettingsView() {
     <div>
       <PageHeader
         title="Settings"
-        subtitle="Your profile, webhook integrations, and lead filter sets."
+        subtitle="Your profile, CRM outbound, and lead filter sets."
         action={
           <button
             type="button"
@@ -466,53 +430,7 @@ export function PartnerSettingsView() {
           avatarUrl={user?.imageUrl}
         />
 
-        <section id="webhook" className={`${settingsSectionClass} p-6`}>
-          <div className="mb-6">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <PlugsConnected size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
-              CRM delivery webhook
-              <span className="ml-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-                Optional
-              </span>
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              We&apos;ll POST lead data (JSON) to this URL on each delivery.
-              Compatible with GHL, Ringy, HubSpot, or any REST endpoint.
-            </p>
-          </div>
-
-          <div className="border-t border-slate-100 pt-6">
-            <label className="form-label">Webhook URL</label>
-            <input
-              type="url"
-              className="form-input max-w-3xl"
-              value={webhookUrl}
-              onChange={(e) => {
-                setWebhookUrl(e.target.value);
-                setWebhookSuccess(false);
-                setWebhookError("");
-              }}
-              placeholder="https://rest.gohighlevel.com/v1/contacts/"
-            />
-            {webhookError && (
-              <p className="mt-1.5 text-xs text-red-600">{webhookError}</p>
-            )}
-          </div>
-
-          <div className="mt-8 flex justify-end">
-            <ActionButton
-              type="button"
-              loading={webhookSaving}
-              loadingText="Saving…"
-              success={webhookSuccess}
-              successText="Saved"
-              disabled={!webhookDirty}
-              onClick={saveWebhook}
-            >
-              Save webhook
-            </ActionButton>
-          </div>
-        </section>
+        <PartnerCrmOutboundWizard sectionClass={settingsSectionClass} />
 
         <section id="filters" className={settingsSectionClass}>
           <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">

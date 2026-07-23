@@ -36,7 +36,7 @@
 | Stripe Checkout top-up + webhook | ✅ |
 | Auto-recharge hebdomadaire (abonnement Stripe) | ✅ |
 | Email livraison lead (Resend) | ✅ (si `RESEND_API_KEY`) |
-| Webhook CRM générique (`crmWebhookUrl`) | ✅ |
+| CRM outbound partner (POST self-service) | ✅ — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | Remboursements Type A / Type B | ✅ |
 | Marketplace aged (achat + débit wallet) | ✅ |
 | Migration import CSV Boberdoo | ✅ |
@@ -50,7 +50,7 @@
 | Champs lead Boberdoo étendus (~25 champs) | ✅ migration `20250706190000` |
 | Table `lead_events` (audit log) | ✅ |
 | Table `partner_filter_sets` + backfill | ✅ migration `20250710140000` |
-| Credentials livraison (`crmProvider`, Ringy) | ✅ |
+| Table `partner_crm_outbound_configs` | ✅ migration `20250723190000` |
 | Clés `app_settings` étendues | ✅ |
 | Détection doublons + idempotence intake | ✅ |
 | Validation TrustedForm (optionnelle) | ✅ |
@@ -59,7 +59,7 @@
 | APIs admin leads (search, edit, export, timeline, redeliver, delete) | ✅ |
 | Table `lead_list_views` + APIs lead-views (admin + partner CRUD, default) | ✅ migration `20260721120000` |
 | Remboursements bulk + admin-initiated | ✅ |
-| Driver Ringy + logging livraison | ✅ |
+| Driver CRM outbound + logging `crm_outbound` | ✅ |
 | Integrity payload builders + mode storefront | ✅ mock |
 | Seuil aged configurable | ✅ `aged_days_threshold` |
 | `scripts/verify-cron.mjs` | ✅ |
@@ -263,8 +263,7 @@ Transaction atomique à la livraison :
 |-------------|------|-------------------|
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
 | Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` |
-| CRM webhook | par partner | `partners.crm_webhook_url` |
-| Ringy | ✅ | `partners.ringy_sid`, `ringy_auth_token`, `crm_provider=ringy` |
+| CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | IntegrityCONNECT | mock / live | `INTEGRITY_PING_URL`, `INTEGRITY_POST_URL`, `integrations_mode` dans app_settings |
 | Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
 
@@ -321,6 +320,7 @@ pnpm run seed
 pnpm dev
 pnpm run verify          # checklist backend Phase 9 (serveur dev requis)
 pnpm run verify:cron     # smoke test routes cron
+pnpm run test:outbound   # CRM outbound (SSRF, mapping, règles succès — sans DB)
 pnpm run seed:lead       # POST fixture intake
 pnpm stripe:listen       # webhook Stripe local
 ```

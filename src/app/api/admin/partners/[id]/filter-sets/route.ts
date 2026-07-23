@@ -32,7 +32,6 @@ const filterSetSchema = z.object({
   weeklyLimit: z.number().int().positive().nullable().optional(),
   monthlyLimit: z.number().int().positive().nullable().optional(),
   filterCriteria: filterCriteriaSchema,
-  deliveryChannel: z.enum(["email", "webhook", "ringy"]).optional(),
 });
 
 export async function GET(
@@ -84,7 +83,6 @@ export async function POST(
       weeklyLimit: parsed.data.weeklyLimit,
       monthlyLimit: parsed.data.monthlyLimit,
       filterCriteria: parsed.data.filterCriteria ?? {},
-      deliveryChannel: parsed.data.deliveryChannel,
     },
   });
 

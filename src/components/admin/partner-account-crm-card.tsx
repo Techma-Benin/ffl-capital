@@ -1,81 +1,72 @@
-"use client";
-
-import { Badge } from "@/components/ui/badge";
+import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-guard";
 
 type PartnerAccountCrmCardProps = {
-  crmProvider: string;
-  crmWebhookUrl: string | null;
-  ringySid: string | null;
-  ringyAuthToken: string | null;
+  crmOutboundEnabled: boolean;
+  crmOutboundEndpointUrl: string | null;
+  crmOutboundMappingCount: number;
   walletBalance: number;
 };
 
-function ComplianceRow({
+function ChecklistRow({
   title,
-  detail,
+  subtitle,
   satisfied,
 }: {
   title: string;
-  detail: string;
+  subtitle?: string;
   satisfied: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-3.5 last:border-0">
+    <div className="flex gap-3 py-2">
+      <div
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+          satisfied ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"
+        }`}
+      >
+        {satisfied ? "✓" : "·"}
+      </div>
       <div>
         <p className="text-sm font-medium text-slate-900">{title}</p>
-        <p className="mt-0.5 text-xs text-slate-500">{detail}</p>
+        {subtitle ? <p className="text-xs text-slate-500">{subtitle}</p> : null}
       </div>
-      <Badge variant={satisfied ? "green" : "red"} className="shrink-0">
-        {satisfied ? "Satisfied" : "Not satisfied"}
-      </Badge>
     </div>
   );
 }
 
 export function PartnerAccountCrmCard({
-  crmProvider,
-  crmWebhookUrl,
-  ringySid,
-  ringyAuthToken,
+  crmOutboundEnabled,
+  crmOutboundEndpointUrl,
+  crmOutboundMappingCount,
   walletBalance,
 }: PartnerAccountCrmCardProps) {
-  const needsWebhook = crmProvider === "webhook";
-  const webhookOk = !needsWebhook || Boolean(crmWebhookUrl?.trim());
-  const needsRingy = crmProvider === "ringy";
-  const ringyOk =
-    !needsRingy || Boolean(ringySid?.trim() && ringyAuthToken?.trim());
-  const walletOk = walletBalance >= 25;
+  const configured =
+    crmOutboundEnabled &&
+    Boolean(crmOutboundEndpointUrl?.trim()) &&
+    crmOutboundMappingCount > 0;
+  const host = crmOutboundEndpointUrl
+    ? endpointHostForDisplay(crmOutboundEndpointUrl)
+    : null;
 
   return (
-    <div className="card overflow-hidden rounded-xl">
-      <div className="border-b border-slate-100 px-5 py-4">
-        <h2 className="text-sm font-semibold text-slate-900">Account & CRM</h2>
-      </div>
-      <div className="px-5 pb-2">
-        <ComplianceRow
-          title="CRM webhook configured"
-          detail={
-            needsWebhook
-              ? "Webhook provider requires a valid URL"
-              : crmProvider === "ringy"
-                ? "Ringy delivery — webhook not required"
-                : "Email-only delivery"
-          }
-          satisfied={webhookOk}
+    <div className="card rounded-xl p-5">
+      <h2 className="text-sm font-semibold text-slate-900">Account readiness</h2>
+      <p className="mt-1 text-xs text-slate-500">
+        Email delivery is always on when Resend is configured. CRM POST is optional.
+      </p>
+      <div className="mt-4 divide-y divide-slate-100">
+        <ChecklistRow
+          title="Wallet funded"
+          subtitle={walletBalance >= 25 ? "Ready for lead purchases" : "Balance below $25"}
+          satisfied={walletBalance >= 25}
         />
-        <ComplianceRow
-          title="Ringy credentials"
-          detail={
-            needsRingy
-              ? "SID and auth token must be set"
-              : "Not applicable for this CRM provider"
+        <ChecklistRow
+          title="CRM outbound configured"
+          subtitle={
+            configured
+              ? `Active — ${host} (${crmOutboundMappingCount} mappings)`
+              : "Partner has not enabled CRM POST in Settings"
           }
-          satisfied={ringyOk}
-        />
-        <ComplianceRow
-          title="Wallet ≥ $25"
-          detail="Minimum balance for lead purchasing"
-          satisfied={walletOk}
+          satisfied={configured}
         />
       </div>
     </div>

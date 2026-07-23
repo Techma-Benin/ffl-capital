@@ -26,7 +26,6 @@ export type FilterSetRow = {
   weeklyLimit: number | null;
   monthlyLimit: number | null;
   filterCriteria: FilterCriteria;
-  deliveryChannel: string;
 };
 
 export type FilterSetFormData = {
@@ -38,7 +37,6 @@ export type FilterSetFormData = {
   active: boolean;
   weeklyLimit: string;
   monthlyLimit: string;
-  deliveryChannel: "email" | "webhook" | "ringy";
   filterCriteria: FilterCriteria;
 };
 
@@ -52,7 +50,6 @@ export function emptyForm(defaultStates: string[]): FilterSetFormData {
     active: true,
     weeklyLimit: "",
     monthlyLimit: "",
-    deliveryChannel: "email",
     filterCriteria: {},
   };
 }
@@ -67,7 +64,6 @@ export function toFormData(fs: FilterSetRow): FilterSetFormData {
     active: fs.active,
     weeklyLimit: fs.weeklyLimit != null ? String(fs.weeklyLimit) : "",
     monthlyLimit: fs.monthlyLimit != null ? String(fs.monthlyLimit) : "",
-    deliveryChannel: fs.deliveryChannel as FilterSetFormData["deliveryChannel"],
     filterCriteria: fs.filterCriteria ?? {},
   };
 }
@@ -425,7 +421,6 @@ export function FilterSetForm({
       weeklyLimit: form.weeklyLimit ? Number(form.weeklyLimit) : null,
       monthlyLimit: form.monthlyLimit ? Number(form.monthlyLimit) : null,
       filterCriteria: form.filterCriteria,
-      deliveryChannel: form.deliveryChannel,
     };
 
     try {
@@ -519,23 +514,6 @@ export function FilterSetForm({
               setForm((p) => ({ ...p, priceOverride: e.target.value }))
             }
           />
-        </div>
-        <div>
-          <label className="form-label">Delivery Channel</label>
-          <select
-            className="form-select"
-            value={form.deliveryChannel}
-            onChange={(e) =>
-              setForm((p) => ({
-                ...p,
-                deliveryChannel: e.target.value as FilterSetFormData["deliveryChannel"],
-              }))
-            }
-          >
-            <option value="email">Email</option>
-            <option value="webhook">Webhook</option>
-            <option value="ringy">Ringy</option>
-          </select>
         </div>
         <div>
           <label className="form-label">Weekly Limit</label>

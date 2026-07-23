@@ -7,10 +7,6 @@ export type PartnerEditFormInitial = {
   priority: number;
   priceOverride: number | null;
   status: string;
-  crmProvider: string;
-  crmWebhookUrl: string | null;
-  ringySid: string | null;
-  ringyAuthToken: string | null;
 };
 
 type PartnerEditFormProps = {
@@ -46,10 +42,6 @@ export function PartnerEditForm({
           priority: form.priority,
           priceOverride: form.priceOverride,
           status: form.status,
-          crmProvider: form.crmProvider,
-          crmWebhookUrl: form.crmWebhookUrl || null,
-          ringySid: form.ringySid || null,
-          ringyAuthToken: form.ringyAuthToken || null,
         }),
       });
       if (!res.ok) throw new Error("Save failed");
@@ -119,57 +111,9 @@ export function PartnerEditForm({
         </div>
       </div>
 
-      <div className="border-t border-slate-100 pt-5">
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-          CRM & Delivery
-        </h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="form-label">CRM Provider</label>
-            <select
-              value={form.crmProvider}
-              onChange={(e) => setForm({ ...form, crmProvider: e.target.value })}
-              className="form-select"
-            >
-              <option value="email_only">Email only</option>
-              <option value="webhook">Webhook</option>
-              <option value="ringy">Ringy</option>
-            </select>
-          </div>
-          <div>
-            <label className="form-label">CRM Webhook URL</label>
-            <input
-              type="url"
-              placeholder="https://"
-              value={form.crmWebhookUrl ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, crmWebhookUrl: e.target.value || null })
-              }
-              className="form-input"
-            />
-          </div>
-          <div>
-            <label className="form-label">Ringy SID</label>
-            <input
-              type="text"
-              value={form.ringySid ?? ""}
-              onChange={(e) => setForm({ ...form, ringySid: e.target.value || null })}
-              className="form-input"
-            />
-          </div>
-          <div>
-            <label className="form-label">Ringy Auth Token</label>
-            <input
-              type="password"
-              value={form.ringyAuthToken ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, ringyAuthToken: e.target.value || null })
-              }
-              className="form-input"
-            />
-          </div>
-        </div>
-      </div>
+      <p className="text-xs text-slate-500">
+        CRM outbound is configured by the partner under Settings → CRM outbound.
+      </p>
 
       <div
         className={

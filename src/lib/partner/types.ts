@@ -17,7 +17,6 @@ export type PartnerSession = {
   maxFilterSetStates: number;
   walletBalance: number;
   status: PartnerStatus;
-  crmWebhookUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };

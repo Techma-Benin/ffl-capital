@@ -7,6 +7,7 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 - [PRD](docs/PRD.md) — spécification produit complète
 - [PROJECT](docs/PROJECT.md) — mémoire projet et décisions
 - [BACKEND](docs/BACKEND.md) — architecture backend et journal d'implémentation
+- [PARTNER_CRM_OUTBOUND](docs/PARTNER_CRM_OUTBOUND.md) — livraison CRM POST self-service partner
 - [LEADCONDUIT_SETUP](docs/LEADCONDUIT_SETUP.md) — connexion LeadConduit / ngrok / cutover prod
 - [CORE_BACKEND_PLAN](docs/CORE_BACKEND_PLAN.md) — plan backend core (✅ complété)
 - [Boberdoo exploration](docs/BOBERDOO_EXPLORATION.md) — parité fonctionnelle
@@ -60,6 +61,9 @@ curl http://localhost:3000/api/health
 
 # Tests logique matching (sans DB)
 pnpm run test:matching
+
+# Tests CRM outbound (SSRF, mapping, success rules — sans DB)
+pnpm run test:outbound
 
 # Checklist backend E2E (dev server must be running; Replit Run → port 5000)
 API_BASE_URL=http://127.0.0.1:5000 pnpm run verify   # Replit

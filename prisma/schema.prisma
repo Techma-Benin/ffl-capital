@@ -43,16 +43,16 @@ enum LeadEventType {
   deleted
 }
 
-enum CrmProvider {
-  webhook
-  ringy
-  email_only
+enum PartnerCrmOutboundAuthType {
+  none
+  bearer
+  api_key_header
+  basic
+  body_fields
 }
 
-enum FilterSetDeliveryChannel {
-  email
-  webhook
-  ringy
+enum PartnerCrmOutboundHttpMethod {
+  POST
 }
 
 enum DeliveryChannel {
@@ -138,10 +138,6 @@ model Partner {
   priceOverride    Decimal?      @map("price_override") @db.Decimal(10, 2)
   walletBalance    Decimal       @default(0) @map("wallet_balance") @db.Decimal(10, 2)
   status           PartnerStatus @default(pending_approval)
-  crmWebhookUrl    String?       @map("crm_webhook_url")
-  crmProvider      CrmProvider   @default(email_only) @map("crm_provider")
-  ringySid         String?       @map("ringy_sid")
-  ringyAuthToken   String?       @map("ringy_auth_token")
   stripeCustomerId String?       @map("stripe_customer_id")
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
@@ -154,10 +150,28 @@ model Partner {
   createdMigrationJobs MigrationJob[]
   filterSets           PartnerFilterSet[]
   leadListViews        LeadListView[]
+  crmOutboundConfig    PartnerCrmOutboundConfig?
 
   @@index([status])
   @@index([priority])
   @@map("partners")
+}
+
+model PartnerCrmOutboundConfig {
+  partnerId     String                       @id @map("partner_id") @db.Uuid
+  enabled       Boolean                      @default(false)
+  endpointUrl   String                       @map("endpoint_url")
+  httpMethod    PartnerCrmOutboundHttpMethod @default(POST) @map("http_method")
+  authType      PartnerCrmOutboundAuthType   @map("auth_type")
+  authConfig    Json                         @default("{}") @map("auth_config")
+  fieldMappings Json                         @default("[]") @map("field_mappings")
+  successRule   Json                         @default("{\"require2xx\": true}") @map("success_rule")
+  createdAt     DateTime                     @default(now()) @map("created_at")
+  updatedAt     DateTime                     @updatedAt @map("updated_at")
+
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@map("partner_crm_outbound_configs")
 }
 
 model LeadListView {
@@ -191,7 +205,6 @@ model PartnerFilterSet {
   weeklyLimit     Int?                     @map("weekly_limit")
   monthlyLimit    Int?                     @map("monthly_limit")
   filterCriteria  Json                     @default("{}") @map("filter_criteria")
-  deliveryChannel FilterSetDeliveryChannel @default(email) @map("delivery_channel")
   createdAt       DateTime                 @default(now()) @map("created_at")
   updatedAt       DateTime                 @updatedAt @map("updated_at")
 
