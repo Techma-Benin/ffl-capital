@@ -7,6 +7,7 @@
 
 **Documents liés :**
 - `docs/PROJECT.md` — mémoire projet / décisions / FAQ
+- `docs/PARTNER_CRM_OUTBOUND.md` — livraison CRM POST self-service (implémenté juil. 2026)
 - `docs/TECHMA - Lead Distribution Platform Proposal.md` — scope contractuel client
 - `first review with client` — transcript call review #1 (29 juin 2026, Sami Esquivias)
 
@@ -241,7 +242,7 @@ Phase D — Migration Replit (livraison client)
 | **Refund workflow** | Demande agent → validation admin → routage post-remboursement |
 | **Resale** | IntegrityCONNECT ping/post, storefront, réconciliation |
 | **Notifications** | Email lead livré ; alertes admin optionnelles |
-| **CRM delivery** | Push webhook vers CRM agent (Ringy, HubSpot, etc.) |
+| **CRM delivery** | POST JSON optionnel par partner (endpoint + auth + mapping) — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | **Migration** | Import leads/agents depuis export Boberdoo |
 | **Admin config** | Prix globaux, frais (futur), feature flags |
 
@@ -334,7 +335,8 @@ Phase D — Migration Replit (livraison client)
 - *(V2)* panier persistant
 
 #### Paramètres
-- URL webhook CRM personnelle
+- Layout Settings : Profile + **Lead delivery** (demi/demi) ; filter sets en dessous
+- CRM outbound : carte Lead delivery — sans config : Connect CRM ; avec config : host + Ready/Off, toggle enable/disable, Test, Delete (clic → wizard) ; wizard sur `/partner/settings/crm-outbound` (endpoint HTTPS, auth, mapping → JSON plat) — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
 - **Modifier états ciblés** (sélection / désélection) — **validé cliente** ; minimum **15 états** pour rester éligible aux achats
 - Modifier type lead (Traditional / High-Intent)
 - Config récurrence wallet
@@ -463,10 +465,12 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 ### 5.11 CRM custom delivery
 
-- Chaque agent configure une **URL webhook**
-- À chaque livraison : POST JSON (contact, état, type, ids)
-- Format déduit de Boberdoo — pas de question cliente
-- Mode mock : log local / webhook.site en dev
+- Chaque agent configure **un profil POST** via `/partner/settings/crm-outbound` (accès depuis la carte Lead delivery) : URL, auth (`none` / bearer / header / basic / champs body), mapping source → clés JSON plat, règle de succès optionnelle
+- Settings affiche email + CRM : **configuré** (URL sauvegardée) distinct de **activé** (`enabled`) — host + badge Ready/Off, toggle Power (GET puis PATCH), Test (modal, retourne aussi `requestPayload`), Delete ; sans config → Connect CRM seul
+- À chaque livraison matchée : **email toujours** (Resend) ; si config **activée** (`enabled`), POST vers l’endpoint partner
+- Échec POST : pas de retry ; email partner avec raison (**sans** payload lead)
+- Spécification complète : [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) (SSRF, test fixture, admin lecture seule)
+- Mode `integrations_mode=mock` : pas d’appels HTTP CRM réels ; événements lead tracés
 
 ### 5.12 Revente IntegrityCONNECT
 
@@ -673,11 +677,12 @@ migration_jobs                    │
 | price_override | decimal nullable | Prix custom (ex. 20.00) |
 | wallet_balance | decimal | Solde courant, défaut 0 |
 | status | enum | pending_approval \| active \| rejected \| disabled |
-| crm_webhook_url | string nullable | |
 | stripe_customer_id | string nullable | |
 | created_at, updated_at | timestamp | |
 
 **Index :** status, priority, filter_states (GIN)
+
+**CRM outbound (optionnel)** — table `partner_crm_outbound_configs` (1:1 avec agent/partner) : endpoint, auth, `field_mappings`, `success_rule`, `enabled`. Détail : [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md).
 
 ### Table `leads`
 
@@ -802,7 +807,7 @@ migration_jobs                    │
 | Stripe | Entrée | Top-up wallet | sk_test TECHMA |
 | Resend | Sortie | Emails | Mailtrap / log |
 | IntegrityCONNECT | Sortie | Revente leads | Mock server |
-| CRM agent | Sortie | Webhook JSON | webhook.site |
+| CRM agent | Sortie | POST JSON (config partner) | wizard Test + `pnpm run test:outbound` |
 
 **Contrat réponse LeadConduit :** `{ "outcome": "success", "reason": "" }`
 
@@ -826,7 +831,7 @@ Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo u
 | Service | Comportement mock |
 |---------|-------------------|
 | Integrity | Accepte tout, log |
-| CRM | Log payload |
+| CRM outbound | Pas d’HTTP réel ; événements `crm_outbound` / échecs tracés |
 | Email | Console / Mailtrap |
 | Stripe | Vraies clés test (pas mock) |
 
@@ -903,7 +908,7 @@ Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo u
 ### Phase 5 — Intégrations & migration (semaines 5–6) ⏳ partiel
 
 - IntegrityCONNECT live (si specs OK) — **mock prêt, live bloqué client**
-- CRM webhook + Ringy delivery — ✅
+- CRM outbound POST self-service (wizard partner) — ✅ — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
 - **Migration Boberdoo** (écran import CSV) — ✅
 - Deploy Netlify + Supabase staging — ⏳
 - Cutover LeadConduit prod — ⏳ voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)

@@ -7,6 +7,7 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 - [PRD](docs/PRD.md) — spécification produit complète
 - [PROJECT](docs/PROJECT.md) — mémoire projet et décisions
 - [BACKEND](docs/BACKEND.md) — architecture backend et journal d'implémentation
+- [PARTNER_CRM_OUTBOUND](docs/PARTNER_CRM_OUTBOUND.md) — livraison CRM POST self-service partner
 - [LEADCONDUIT_SETUP](docs/LEADCONDUIT_SETUP.md) — connexion LeadConduit / ngrok / cutover prod
 - [CORE_BACKEND_PLAN](docs/CORE_BACKEND_PLAN.md) — plan backend core (✅ complété)
 - [Boberdoo exploration](docs/BOBERDOO_EXPLORATION.md) — parité fonctionnelle
@@ -14,6 +15,7 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 
 ## Stack
 
+- **pnpm** — gestionnaire de paquets (lockfile local, voir `.gitignore`)
 - **Next.js 14** (App Router) + TypeScript
 - **Prisma** + PostgreSQL (Supabase dev → Replit prod)
 - **Clerk** auth (admin + partner)
@@ -21,23 +23,34 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 
 ## Setup rapide
 
+### Replit
+
+1. Activer le module **PostgreSQL** dans le Repl — Replit injecte **`DATABASE_URL`** (vérifier dans Secrets / Database).
+2. Après chaque pull : `bash scripts/post-merge.sh` (ou laisser le hook post-merge le faire).
+3. Première fois sur une base vide : `pnpm run seed`.
+4. Lancer : **Run** (`pnpm dev -- -p 5000`) ou `pnpm dev -- -p 5000`.
+
+Pas besoin de **`DIRECT_URL`** (Supabase seulement) ; Prisma utilise uniquement **`DATABASE_URL`**.
+
+### Local / Supabase
+
 ```bash
 # 1. Cloner et installer
 git clone <repo-url>
 cd ffl-capital
-npm install
+pnpm install
 
 # 2. Configurer la base de données
 cp .env.example .env
-# Remplir DATABASE_URL, DIRECT_URL, CLERK_*, STRIPE_* selon besoin
+# Remplir DATABASE_URL (Replit Postgres le fournit), CLERK_*, STRIPE_* selon besoin
 
 # 3. Migrations et seed
-npx prisma generate
-npx prisma migrate deploy
-npm run seed
+pnpm exec prisma generate
+pnpm exec prisma migrate deploy
+pnpm run seed
 
 # 4. Lancer le serveur dev
-npm run dev
+pnpm dev
 ```
 
 ## Vérification
@@ -47,19 +60,23 @@ npm run dev
 curl http://localhost:3000/api/health
 
 # Tests logique matching (sans DB)
-npm run test:matching
+pnpm run test:matching
 
-# Checklist backend E2E
-npm run verify
+# Tests CRM outbound (SSRF, mapping, success rules — sans DB)
+pnpm run test:outbound
+
+# Checklist backend E2E (dev server must be running; Replit Run → port 5000)
+API_BASE_URL=http://127.0.0.1:5000 pnpm run verify   # Replit
+pnpm run verify                                      # local default http://127.0.0.1:3000
 
 # Simuler un lead (serveur dev requis)
-npm run seed:lead
+pnpm run seed:lead
 
 # Données demo remboursements admin (/admin/refunds)
-npm run seed:refunds-demo
+pnpm run seed:refunds-demo
 
 # Leads vieillis pour /admin/aged et /partner/aged
-npm run seed:aged-leads
+pnpm run seed:aged-leads
 ```
 
 ## Endpoints API (principaux)

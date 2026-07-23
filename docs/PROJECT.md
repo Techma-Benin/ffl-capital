@@ -101,8 +101,8 @@ Un lead est **vendu** quand il est assigné à un agent :
 1. Matching automatique (état + priorité)
 2. **Débit du wallet** de l’agent (25 $ par défaut, remise possible)
 3. Statut → `delivered` / `owned`
-4. **Email** envoyé à l’agent
-5. Optionnel : push vers CRM (Ringy, HubSpot, etc.)
+4. **Email** envoyé à l’agent (toujours)
+5. Optionnel : POST CRM si config **activée** (`enabled`) — carte Lead delivery (configuré ≠ activé) → wizard `/partner/settings/crm-outbound` — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
 
 **Après la vente :**
 - Le lead **ne réapparaît pas** dans la file temps réel
@@ -234,7 +234,7 @@ agents (users)
   ├── wallet_balance
   ├── filter_states[], priority (1-10) on filter sets (`partner_filter_sets.lead_type` per set)
   ├── price_override (nullable, ex. 20 au lieu de 25)
-  └── crm_webhook_url (nullable)
+  └── partner_crm_outbound_configs (optionnel — Lead delivery / wizard crm-outbound, voir PARTNER_CRM_OUTBOUND.md)
 
 leads
   ├── contact fields, state, lead_type, source
@@ -305,7 +305,7 @@ resale_postings                   -- envois IntegrityCONNECT
 | Pipeline intake : validate, normalize, doublons, TrustedForm, match, deliver | ✅ |
 | Moteur matching v2 (filter sets, limites H/J, FIFO) | ✅ |
 | Wallet Stripe (top-up + abonnement hebdo) + ledger | ✅ |
-| Emails livraison (Resend), CRM webhook, Ringy | ✅ |
+| Emails livraison (Resend), CRM outbound POST (wizard) | ✅ |
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
@@ -351,7 +351,7 @@ resale_postings                   -- envois IntegrityCONNECT
 - [x] Admin refunds : file pending + historique
 - [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`), KPI Available + filtres URL (`state`, `type`, `status`, `age`), tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id`
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
-- [x] Partner settings (états, CRM webhook) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner, plus de modal
+- [x] Partner settings (Profile + Lead delivery half/half ; wizard CRM `/partner/settings/crm-outbound`) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner, plus de modal
 
 ### Stripe (**test — terminé**)
 
@@ -376,7 +376,8 @@ resale_postings                   -- envois IntegrityCONNECT
 | **Simulateur interne** | Page/form de test TECHMA (`/dev/lead-simulator`) | Formulaire simple → POST vers `/api/leads/intake` |
 | **Feeding platform** | `/feeding-platform` | UI statique pour soumissions test |
 | **Fixture JSON** | Fichiers `fixtures/lead-payload-*.json` | Payloads conformes au format LeadConduit attendu |
-| **Script CLI** | `npm run seed:lead` ou curl | Injection en masse pour tester matching / aging |
+| **Script CLI** | `pnpm run seed:lead` ou curl | Injection en masse pour tester matching / aging |
+| **Checklist E2E** | `pnpm run verify` (+ serveur dev ; Replit : `API_BASE_URL=http://127.0.0.1:5000`) | Scénarios Phase 9 : intake, limites, refunds, recherche admin, cron Integrity, champs migration |
 | **Webhook mock** | `POST /api/leads/intake` | Endpoint identique à celui branché en prod |
 | **TrustedForm simulé** | URL factice `https://cert.trustedform.com/test-{uuid}` | Suffisant en dev ; champ string en BDD |
 
@@ -622,7 +623,7 @@ Lors d’une reprise de contexte :
 | 0 — Fondations | Repo, Prisma, intake, matching v1, seed | ✅ |
 | 1b — Auth + shells | Clerk, onboarding, admin/partner portails | ✅ |
 | 2 — Pipeline | Intake complet, cron reprocess, Integrity mock | ✅ |
-| 3 — Wallet | Stripe test, emails, CRM/Ringy delivery | ✅ |
+| 3 — Wallet | Stripe test, emails, CRM outbound POST | ✅ |
 | 4 — Aged + refunds | Marketplace, workflow remboursement | ✅ |
 | Core backend (9 phases) | Filter sets, lead_events, admin APIs | ✅ |
 | UI parité (essentiel) | Leads, partners, refunds, wallet, aged | ✅ |

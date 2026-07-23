@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 21 juillet 2026
+> Dernière mise à jour : 23 juillet 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -21,11 +21,11 @@
 | API `POST /api/leads/intake` | ✅ |
 | Moteur matching V1 (FIFO) | ✅ |
 | Wallet ledger append-only | ✅ |
-| Seed partners test | ✅ `npm run seed` |
+| Seed partners test | ✅ `pnpm run seed` |
 | Simulateur dev `/dev/lead-simulator` | ✅ |
 | Feeding platform `/feeding-platform` | ✅ |
 | Projet Supabase `wbzvyvtlopoghvdqltxm` | ✅ eu-west-3 |
-| Vérification E2E locale | ✅ `npm run verify` |
+| Vérification E2E locale | ✅ `pnpm run verify` |
 
 ### Portails + intégrations (juillet 2026 — fait)
 
@@ -36,7 +36,7 @@
 | Stripe Checkout top-up + webhook | ✅ |
 | Auto-recharge hebdomadaire (abonnement Stripe) | ✅ |
 | Email livraison lead (Resend) | ✅ (si `RESEND_API_KEY`) |
-| Webhook CRM générique (`crmWebhookUrl`) | ✅ |
+| CRM outbound partner (POST self-service) | ✅ — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | Remboursements Type A / Type B | ✅ |
 | Marketplace aged (achat + débit wallet) | ✅ |
 | Migration import CSV Boberdoo | ✅ |
@@ -50,7 +50,7 @@
 | Champs lead Boberdoo étendus (~25 champs) | ✅ migration `20250706190000` |
 | Table `lead_events` (audit log) | ✅ |
 | Table `partner_filter_sets` + backfill | ✅ migration `20250710140000` |
-| Credentials livraison (`crmProvider`, Ringy) | ✅ |
+| Table `partner_crm_outbound_configs` | ✅ migration `20250723190000` |
 | Clés `app_settings` étendues | ✅ |
 | Détection doublons + idempotence intake | ✅ |
 | Validation TrustedForm (optionnelle) | ✅ |
@@ -59,7 +59,7 @@
 | APIs admin leads (search, edit, export, timeline, redeliver, delete) | ✅ |
 | Table `lead_list_views` + APIs lead-views (admin + partner CRUD, default) | ✅ migration `20260721120000` |
 | Remboursements bulk + admin-initiated | ✅ |
-| Driver Ringy + logging livraison | ✅ |
+| Driver CRM outbound + logging `crm_outbound` | ✅ |
 | Integrity payload builders + mode storefront | ✅ mock |
 | Seuil aged configurable | ✅ `aged_days_threshold` |
 | `scripts/verify-cron.mjs` | ✅ |
@@ -293,15 +293,15 @@ Transaction atomique à la livraison :
 |-------------|------|-------------------|
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
 | Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` |
-| Partner CRM outbound | par partner | `partner_crm_outbound_configs` — voir `docs/PARTNER_CRM_OUTBOUND.md` |
+| CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | IntegrityCONNECT | mock / live | `INTEGRITY_PING_URL`, `INTEGRITY_POST_URL`, `integrations_mode` dans app_settings |
-| Cron jobs | routes prêtes | `CRON_SECRET` + `npm run verify:cron` (ajouter script) |
+| Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
 
 ---
 
 ## Stratégie jobs planifiés
 
-Routes protégées par `Authorization: Bearer $CRON_SECRET` :
+Routes protégées par `Authorization: Bearer $CRON_SECRET` (en dev, le serveur accepte `dev-cron-secret` si `CRON_SECRET` est vide — voir `src/lib/cron/auth.ts`) :
 
 | Route | Fréquence suggérée | Rôle |
 |-------|-------------------|------|
@@ -325,10 +325,13 @@ Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`
 
 ### Connexion locale (Prisma)
 
+Supabase dev : session pooler (port **5432**), pas le transaction pooler 6543 (transactions Prisma).
+
 ```
-DATABASE_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:5432/postgres?pgbouncer=true
 ```
+
+Replit prod : une seule **`DATABASE_URL`** fournie par le module PostgreSQL Replit.
 
 ### Sécurité RLS
 
@@ -339,17 +342,40 @@ RLS activé sur toutes les tables, **sans policies** `anon`/`authenticated` — 
 ## Commandes dev
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env
-npx prisma generate
-npx prisma migrate deploy
-npm run seed
-npm run dev
-npm run verify          # checklist backend
-node scripts/verify-cron.mjs  # smoke test cron routes
-npm run seed:lead       # POST fixture intake
-stripe:listen           # webhook Stripe local
+pnpm exec prisma generate
+pnpm exec prisma migrate deploy
+pnpm run seed
+pnpm dev
+pnpm run verify          # checklist backend Phase 9 (serveur dev requis)
+pnpm run verify:cron     # smoke test routes cron
+pnpm run test:outbound   # CRM outbound (SSRF, mapping, règles succès — sans DB)
+pnpm run seed:lead       # POST fixture intake
+pnpm stripe:listen       # webhook Stripe local
 ```
+
+---
+
+## Vérification backend (Phase 9)
+
+**Commandes :** `pnpm run verify` (`scripts/verify-backend.mjs`), `pnpm run verify:cron` (`scripts/verify-cron.mjs`). Les deux scripts résolvent l’URL API via `scripts/lib/api-base.mjs` : variable optionnelle **`API_BASE_URL`**, sinon `http://127.0.0.1:3000` en local ou `:5000` sur Replit (`REPL_ID` / `PORT`). Ils chargent **`.env`** pour `CRON_SECRET` (défaut script : `dev-cron-secret`, aligné sur le serveur en `NODE_ENV=development`).
+
+**Préflight verify :** `GET /api/health` + présence du partner seed `tx-priority10@ffl-test.local` (`pnpm run seed` après migrations).
+
+**Scénarios `verify` (sortie `[PASS]` + résumé final) :**
+
+| ID | Sujet |
+|----|--------|
+| p9-1 | Intake payload Boberdoo → match `tx-priority10` → events received / matched / delivered |
+| p9-2 | Rejet doublon email+téléphone ; idempotence `externalId` |
+| prd-ca / prd-wallet / prd-states / prd-fifo | Règles matching (état, solde, ≥15 états, FIFO) |
+| p9-3 | Limite **hebdomadaire** filter set → unmatched |
+| p9-4 | Éligibilité aged (seuil `aged_days_threshold`) |
+| p9-5 | Remboursement Type A (`wrong_filter` → unmatched) et Type B (`invalid_phone` → dead) |
+| p9-6 | Recherche admin par email et téléphone |
+| p9-7 | Cron `POST /api/cron/integrity-post` sur lead unmatched au-delà du délai |
+| p9-8 | Persistance champs lead étendus (import / migration) |
 
 ---
 
@@ -357,8 +383,8 @@ stripe:listen           # webhook Stripe local
 
 | Email | Rôle test |
 |-------|-----------|
-| `tx-priority10@ffl-test.local` | TX, priorité 10 — gagne le match |
-| `fifo-older@ffl-test.local` | TX, priorité 8, créé en premier (FIFO) |
+| `tx-priority10@ffl-test.local` | TX, filter set priorité 10 — gagne le match |
+| `fifo-older@ffl-test.local` | TX, priorité 8, créé en premier (FIFO) ; seed inclut aussi un `partner_crm_outbound_configs` demo (enabled + bearer + mappings) pour prévisualiser Lead delivery sur `/partner/settings` |
 | `fifo-newer@ffl-test.local` | TX, priorité 8, créé après |
 | `ca-partner@ffl-test.local` | CA uniquement |
 | `low-balance@ffl-test.local` | Solde 5 $ — exclu |
@@ -389,3 +415,4 @@ stripe:listen           # webhook Stripe local
 | 2026-07-23 | Dashboard admin — charge 90j une fois, filtre période client ; URL canonique, custom modal |
 | 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |
 | 2026-07-22 | Admin aged — tableau tri URL + pagination + mark dead (UI) |
+| 2026-07-23 | Phase 9 — `verify-backend` scénarios complets, `api-base.mjs`, cron dev secret, seed filter set TX priorité 10 |

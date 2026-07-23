@@ -91,5 +91,3 @@ export async function validateOutboundEndpointUrl(rawUrl: string): Promise<void>
     }
   }
 }
-
-export { endpointHostForDisplay } from "./outbound-url-display";

@@ -21,6 +21,7 @@ import {
   partnerFilterSetNewPath,
 } from "@/lib/filter-sets/routes";
 import { PartnerLeadDeliveryCard } from "@/components/partner/partner-lead-delivery-card";
+import type { PartnerCrmSummary } from "@/lib/partner/types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -306,7 +307,11 @@ function PartnerProfileCard({
 
 // ---------------------------------------------------------------------------
 
-export function PartnerSettingsView() {
+export function PartnerSettingsView({
+  initialCrm = null,
+}: {
+  initialCrm?: PartnerCrmSummary;
+}) {
   const { partner } = usePartner();
   const { user } = useUser();
   const { openUserProfile } = useClerk();
@@ -352,7 +357,10 @@ export function PartnerSettingsView() {
             statusLabel={statusLabel}
             avatarUrl={user?.imageUrl}
           />
-          <PartnerLeadDeliveryCard partnerEmail={partner.email} />
+          <PartnerLeadDeliveryCard
+            partnerEmail={partner.email}
+            initialCrm={initialCrm}
+          />
         </div>
 
         <section id="filters" className={settingsSectionClass}>

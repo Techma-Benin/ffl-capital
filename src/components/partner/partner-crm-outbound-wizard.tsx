@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   LEAD_DELIVERY_SOURCE_FIELDS,
   parseTopLevelJsonKeys,
 } from "@/lib/crm-outbound/source-fields";
 import type { CrmOutboundConfigInput } from "@/lib/crm-outbound/schemas";
 import { ActionButton } from "@/components/ui/action-button";
+import { Switch } from "@/components/ui/switch";
+import { WarningCircle } from "@/lib/icons/client";
 
 type AuthType = CrmOutboundConfigInput["authType"];
 
@@ -28,13 +31,6 @@ type WizardForm = {
   bodyKeyEqualsValue: string;
 };
 
-const defaultMapping = (): { source: string; target: string }[] => [
-  { source: "firstName", target: "first_name" },
-  { source: "lastName", target: "last_name" },
-  { source: "email", target: "email" },
-  { source: "phone", target: "phone" },
-];
-
 function emptyForm(): WizardForm {
   return {
     enabled: false,
@@ -46,7 +42,7 @@ function emptyForm(): WizardForm {
     basicUsername: "",
     basicPassword: "",
     bodyFields: [{ key: "sid", value: "" }, { key: "authToken", value: "" }],
-    fieldMappings: defaultMapping(),
+    fieldMappings: [],
     require2xx: true,
     bodyContains: "",
     bodyRegex: "",
@@ -78,8 +74,7 @@ function formFromApi(data: CrmOutboundConfigInput & { updatedAt?: string }): Wiz
   base.enabled = data.enabled;
   base.endpointUrl = data.endpointUrl;
   base.authType = data.authType;
-  base.fieldMappings =
-    data.fieldMappings.length > 0 ? data.fieldMappings : defaultMapping();
+  base.fieldMappings = data.fieldMappings;
 
   const auth = (data.authConfig ?? {}) as Record<string, unknown>;
   if (data.authType === "bearer" && typeof auth.token === "string") {
@@ -105,6 +100,123 @@ function formFromApi(data: CrmOutboundConfigInput & { updatedAt?: string }): Wiz
   base.bodyKeyEqualsValue = rule.bodyKeyEquals?.value ?? "";
 
   return base;
+}
+
+function isValidHttpUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function validateEndpointStep(form: WizardForm): string[] {
+  return isValidHttpUrl(form.endpointUrl) ? [] : ["Endpoint URL"];
+}
+
+function validateAuthStep(form: WizardForm): string[] {
+  switch (form.authType) {
+    case "bearer":
+      return form.bearerToken.trim() ? [] : ["Bearer token"];
+    case "api_key_header": {
+      const errors: string[] = [];
+      if (!form.apiHeaderName.trim()) errors.push("API header name");
+      if (!form.apiHeaderValue.trim()) errors.push("API header value");
+      return errors;
+    }
+    case "basic": {
+      const errors: string[] = [];
+      if (!form.basicUsername.trim()) errors.push("Basic auth username");
+      if (!form.basicPassword.trim()) errors.push("Basic auth password");
+      return errors;
+    }
+    case "body_fields": {
+      const fields = form.bodyFields.filter((f) => f.key.trim());
+      if (fields.length === 0) return ["Body auth fields"];
+      return fields.every((f) => f.value.trim()) ? [] : ["Body auth field values"];
+    }
+    default:
+      return [];
+  }
+}
+
+function validateMappingStep(form: WizardForm): string[] {
+  const hasMapping = form.fieldMappings.some(
+    (m) => m.source.trim() && m.target.trim(),
+  );
+  return hasMapping ? [] : ["Field mapping"];
+}
+
+function validateSuccessStep(form: WizardForm): string[] {
+  if (!form.bodyRegex.trim()) return [];
+  try {
+    new RegExp(form.bodyRegex);
+    return [];
+  } catch {
+    return ["Valid body regex"];
+  }
+}
+
+const STEP_VALIDATORS = [
+  validateEndpointStep,
+  validateAuthStep,
+  validateMappingStep,
+  validateSuccessStep,
+] as const;
+
+function getValidationErrors(form: WizardForm): string[] {
+  return STEP_VALIDATORS.flatMap((validate) => validate(form));
+}
+
+function isStepComplete(stepIndex: number, form: WizardForm): boolean {
+  if (stepIndex < STEP_VALIDATORS.length) {
+    return STEP_VALIDATORS[stepIndex](form).length === 0;
+  }
+  return getValidationErrors(form).length === 0;
+}
+
+const DEFAULT_API_HEADER_NAME = "X-Api-Key";
+
+function isStepEmpty(stepIndex: number, form: WizardForm): boolean {
+  switch (stepIndex) {
+    case 0:
+      return !form.endpointUrl.trim();
+    case 1:
+      if (form.authType === "none") return true;
+      switch (form.authType) {
+        case "bearer":
+          return !form.bearerToken.trim();
+        case "api_key_header":
+          return (
+            !form.apiHeaderValue.trim() &&
+            form.apiHeaderName.trim() === DEFAULT_API_HEADER_NAME
+          );
+        case "basic":
+          return !form.basicUsername.trim() && !form.basicPassword.trim();
+        case "body_fields":
+          return form.bodyFields.every((f) => !f.value.trim());
+        default:
+          return true;
+      }
+    case 2:
+      return (
+        form.fieldMappings.length === 0 ||
+        form.fieldMappings.every((m) => !m.source.trim() && !m.target.trim())
+      );
+    case 3:
+      return (
+        form.require2xx &&
+        !form.bodyContains.trim() &&
+        !form.bodyRegex.trim() &&
+        !form.bodyKeyEqualsKey.trim() &&
+        !form.bodyKeyEqualsValue.trim()
+      );
+    default:
+      return false;
+  }
 }
 
 function buildPayload(form: WizardForm): CrmOutboundConfigInput {
@@ -143,6 +255,7 @@ export function PartnerCrmOutboundWizard({
   /** When false, page supplies title/back; wizard body only. */
   showPageChrome?: boolean;
 }) {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<WizardForm>(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -183,14 +296,13 @@ export function PartnerCrmOutboundWizard({
     void loadConfig();
   }, [loadConfig]);
 
-  const canSave = useMemo(() => {
-    return (
-      form.endpointUrl.trim().startsWith("http") &&
-      form.fieldMappings.some((m) => m.source && m.target)
-    );
-  }, [form]);
+  const validationErrors = useMemo(() => getValidationErrors(form), [form]);
+  const canSave = validationErrors.length === 0;
+  const stepEmpty = isStepEmpty(step, form);
+  const stepComplete = isStepComplete(step, form);
+  const canAdvanceStep = stepEmpty || stepComplete;
 
-  async function saveConfig() {
+  async function saveConfig(): Promise<boolean> {
     setError("");
     setSuccess("");
     setSaving(true);
@@ -204,16 +316,24 @@ export function PartnerCrmOutboundWizard({
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Save failed");
-        return;
+        return false;
       }
       setConfigured(true);
       setForm(formFromApi(data));
       setSuccess("CRM outbound settings saved.");
+      return true;
     } catch {
       setError("Save failed");
+      return false;
     } finally {
       setSaving(false);
     }
+  }
+
+  async function finishWizard() {
+    if (!canSave || saving) return;
+    const saved = await saveConfig();
+    if (saved) router.push("/partner/settings");
   }
 
   async function runTest() {
@@ -311,33 +431,43 @@ export function PartnerCrmOutboundWizard({
         </div>
       ) : null}
 
-      <div className={`${showPageChrome ? "mb-6" : "mb-4"} flex flex-wrap gap-2`}>
-        {STEPS.map((label, i) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => setStep(i)}
-            className={`rounded-full px-3 py-1 text-xs font-medium ${
-              step === i
-                ? "bg-brand-600 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            {i + 1}. {label}
-          </button>
-        ))}
+      <div
+        className={`${showPageChrome ? "mb-6" : "mb-4"} flex flex-wrap gap-2`}
+        aria-label="Wizard progress"
+      >
+        {STEPS.map((label, i) => {
+          const active = step === i;
+          const completed = i < step;
+          return (
+            <span
+              key={label}
+              aria-current={active ? "step" : undefined}
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                active
+                  ? "bg-brand-600 text-white"
+                  : completed
+                    ? "bg-slate-100 text-slate-700"
+                    : "bg-slate-50 text-slate-400"
+              }`}
+            >
+              {i + 1}. {label}
+            </span>
+          );
+        })}
       </div>
 
       {step === 0 && (
         <div className="space-y-4 border-t border-slate-100 pt-6">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="crm-outbound-enabled" className="text-sm text-slate-900">
+              Enable CRM POST on each delivery
+            </label>
+            <Switch
+              id="crm-outbound-enabled"
               checked={form.enabled}
-              onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+              onCheckedChange={(enabled) => setForm({ ...form, enabled })}
             />
-            Enable CRM POST on each delivery
-          </label>
+          </div>
           <div>
             <label className="form-label">Endpoint URL</label>
             <input
@@ -531,44 +661,87 @@ export function PartnerCrmOutboundWizard({
       )}
 
       {step === 3 && (
-        <div className="space-y-4 border-t border-slate-100 pt-6">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.require2xx}
-              onChange={(e) => setForm({ ...form, require2xx: e.target.checked })}
-            />
-            Require HTTP 2xx
-          </label>
+        <div className="space-y-6 border-t border-slate-100 pt-6">
           <div>
-            <label className="form-label">Body contains (optional)</label>
+            <h3 className="text-sm font-medium text-slate-900">Success criteria</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Choose how we decide that your CRM accepted a lead. When you enable more than one
+              check, every check must pass for the delivery to count as successful.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <label htmlFor="crm-success-require-2xx" className="text-sm font-medium text-slate-900">
+                Require HTTP 2xx
+              </label>
+              <Switch
+                id="crm-success-require-2xx"
+                checked={form.require2xx}
+                onCheckedChange={(require2xx) => setForm({ ...form, require2xx })}
+              />
+            </div>
+            <p className="text-sm text-slate-600">
+              Require a successful HTTP status code (200–299) from your CRM endpoint.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-900">Body contains</p>
+            <p className="text-sm text-slate-600">
+              Optional. The raw response body must include this exact text (case-sensitive).
+            </p>
             <input
               className="form-input max-w-xl"
               value={form.bodyContains}
               onChange={(e) => setForm({ ...form, bodyContains: e.target.value })}
+              placeholder='e.g. "success"'
             />
           </div>
-          <div>
-            <label className="form-label">Body regex (optional)</label>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-900">Body regex</p>
+            <p className="text-sm text-slate-600">
+              Optional. The response body must match this JavaScript regular expression.
+            </p>
             <input
               className="form-input max-w-xl font-mono text-xs"
               value={form.bodyRegex}
               onChange={(e) => setForm({ ...form, bodyRegex: e.target.value })}
+              placeholder='"status"\\s*:\\s*"success"'
             />
           </div>
-          <div className="flex flex-wrap gap-3">
-            <input
-              className="form-input"
-              placeholder="Top-level JSON key"
-              value={form.bodyKeyEqualsKey}
-              onChange={(e) => setForm({ ...form, bodyKeyEqualsKey: e.target.value })}
-            />
-            <input
-              className="form-input"
-              placeholder="Expected value"
-              value={form.bodyKeyEqualsValue}
-              onChange={(e) => setForm({ ...form, bodyKeyEqualsValue: e.target.value })}
-            />
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-900">Body key equals</p>
+            <p className="text-sm text-slate-600">
+              Optional. Parse the response as JSON and require a top-level property to equal a
+              specific value (flat object only).
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <div className="min-w-[200px] flex-1">
+                <label className="form-label" htmlFor="crm-success-body-key">
+                  Top-level JSON key
+                </label>
+                <input
+                  id="crm-success-body-key"
+                  className="form-input"
+                  placeholder="status"
+                  value={form.bodyKeyEqualsKey}
+                  onChange={(e) => setForm({ ...form, bodyKeyEqualsKey: e.target.value })}
+                />
+              </div>
+              <div className="min-w-[200px] flex-1">
+                <label className="form-label" htmlFor="crm-success-body-value">
+                  Expected value
+                </label>
+                <input
+                  id="crm-success-body-value"
+                  className="form-input"
+                  placeholder="success"
+                  value={form.bodyKeyEqualsValue}
+                  onChange={(e) => setForm({ ...form, bodyKeyEqualsValue: e.target.value })}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -581,17 +754,20 @@ export function PartnerCrmOutboundWizard({
           {testResult && (
             <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-800">{testResult}</p>
           )}
+          {validationErrors.length > 0 && (
+            <div className="flex items-start gap-2 text-sm text-amber-800">
+              <WarningCircle
+                size={16}
+                className="mt-0.5 flex-shrink-0 text-amber-500"
+                aria-hidden
+              />
+              <p>
+                <span className="font-medium">Missing:</span>{" "}
+                {validationErrors.join(", ")}
+              </p>
+            </div>
+          )}
           <div className="flex flex-wrap gap-3">
-            <ActionButton
-              type="button"
-              variant="primary"
-              loading={saving}
-              success={Boolean(success) && !testing}
-              onClick={() => void saveConfig()}
-              disabled={!canSave || saving}
-            >
-              Save
-            </ActionButton>
             <ActionButton
               type="button"
               variant="secondary"
@@ -617,9 +793,7 @@ export function PartnerCrmOutboundWizard({
       )}
 
       {error && <p className="mt-4 text-xs text-red-600">{error}</p>}
-      {success && step !== 4 && (
-        <p className="mt-4 text-xs text-green-700">{success}</p>
-      )}
+      {success && <p className="mt-4 text-xs text-green-700">{success}</p>}
 
       <div className="mt-6 flex justify-between border-t border-slate-100 pt-4">
         <button
@@ -630,14 +804,28 @@ export function PartnerCrmOutboundWizard({
         >
           Back
         </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={step >= STEPS.length - 1}
-          onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
-        >
-          Next
-        </button>
+        {step >= STEPS.length - 1 ? (
+          <ActionButton
+            type="button"
+            variant="primary"
+            className="btn-sm"
+            loading={saving}
+            loadingText="Saving…"
+            onClick={() => void finishWizard()}
+            disabled={!canSave || saving}
+          >
+            Done
+          </ActionButton>
+        ) : (
+          <button
+            type="button"
+            className="btn-secondary btn-sm"
+            disabled={!canAdvanceStep}
+            onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
+          >
+            {stepEmpty ? "Skip" : "Next"}
+          </button>
+        )}
       </div>
     </section>
   );

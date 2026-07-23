@@ -276,7 +276,8 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 | `/partner/leads` | Deliveries + refund request |
 | `/partner/wallet` | Stripe top-up + weekly subscribe + transactions |
 | `/partner/aged` | Marketplace browse/purchase |
-| `/partner/settings` | States + CRM URL editor |
+| `/partner/settings` | Profile + Lead delivery cards, filter sets |
+| `/partner/settings/crm-outbound` | CRM outbound wizard (POST config) |
 | `/partner/contact` | Contact form |
 | `/onboarding` | Partner signup flow |
 | `/sign-in`, `/sign-up` | Clerk |
@@ -498,7 +499,7 @@ Dashboard                               /partner
 My Leads + Request Refund               /partner/leads
 Add Funds / Wallet                      /partner/wallet (Stripe)
 Aged Marketplace                        /partner/aged ← innovation
-Settings / Contact                      /partner/settings, /partner/contact
+Settings / Contact                      /partner/settings (+ /crm-outbound), /partner/contact
 Reports                                 (wallet tx only — no reports page)
 Public /signup                          /sign-up + /onboarding
 ```

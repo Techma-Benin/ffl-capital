@@ -17,6 +17,7 @@
     "seed:refunds-demo": "node scripts/seed-refunds-demo.mjs",
     "seed:aged-leads": "node scripts/seed-aged-leads.mjs",
     "test:matching": "node scripts/test-matching.mjs",
+    "test:outbound": "pnpm exec tsx scripts/test-outbound.ts",
     "verify": "node scripts/verify-backend.mjs",
     "verify:cron": "node scripts/verify-cron.mjs",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
@@ -46,6 +47,7 @@
     "postcss": "^8.5.6",
     "prisma": "^6.9.0",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   }
 }

@@ -256,12 +256,12 @@ Expected response: `{"outcome":"success","lead":{"id":"..."}}`
 |------|-----|-----|
 | Lead simulator | `/dev/lead-simulator` | Form → POST `/api/leads/intake` (dev only) |
 | Feeding platform | `/feeding-platform` | Static test UI for batch/manual submissions |
-| CLI | `npm run seed:lead` | POST fixture JSON to intake |
+| CLI | `pnpm run seed:lead` | POST fixture JSON to intake |
 | curl | — | POST `fixtures/boberdoo_iul_submit_lead.example.json` |
 
 ### With LeadConduit (ngrok)
 
-1. Start the app: `npm run dev`
+1. Start the app: `pnpm dev`
 2. Expose localhost: `ngrok http 3000`
 3. Set the delivery URL in LeadConduit to: `https://YOUR-NGROK-HOST/api/leads/intake`
 4. Add header `X-Api-Key: <your secret>` in the delivery step

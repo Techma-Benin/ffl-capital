@@ -1,4 +1,4 @@
-/** Client-safe host display helper (no Node DNS/net). */
+/** Host label for UI — safe in client bundles (no Node DNS). */
 export function endpointHostForDisplay(rawUrl: string): string {
   try {
     return new URL(rawUrl).host;

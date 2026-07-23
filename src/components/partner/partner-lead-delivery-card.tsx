@@ -1,19 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
 import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-display";
-import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { Lightning, Power, Trash, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import type { PartnerCrmSummary } from "@/lib/partner/types";
 
 const CRM_OUTBOUND_HREF = "/partner/settings/crm-outbound";
 
-type CrmSummary = {
-  enabled: boolean;
-  endpointUrl: string;
-  authType: string;
-} | null;
+type CrmSummary = PartnerCrmSummary;
 
 type TestApiResult = {
   ok?: boolean;
@@ -27,29 +25,64 @@ function ChannelRow({
   name,
   detail,
   status,
+  action,
+  href,
 }: {
   name: string;
   detail: string;
-  status: "on" | "ready" | "off";
+  status?: "on" | "ready" | "off";
+  action?: ReactNode;
+  /** When set, the whole row navigates here (action buttons must stopPropagation). */
+  href?: string;
 }) {
+  const router = useRouter();
+  const interactive = Boolean(href);
+
   const badge =
     status === "on" ? (
       <Badge variant="green">On</Badge>
     ) : status === "ready" ? (
       <Badge variant="blue">Ready</Badge>
-    ) : (
+    ) : status === "off" ? (
       <Badge variant="slate">Off</Badge>
-    );
+    ) : null;
+
+  function navigate() {
+    if (href) router.push(href);
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (!interactive) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      navigate();
+    }
+  }
 
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div
+      className={
+        interactive
+          ? "-mx-2 flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          : "flex items-center justify-between gap-3"
+      }
+      role={interactive ? "link" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? navigate : undefined}
+      onKeyDown={interactive ? onKeyDown : undefined}
+    >
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-900">{name}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-900">{name}</p>
+          {badge}
+        </div>
         <p className="truncate text-xs text-slate-500" title={detail}>
           {detail}
         </p>
       </div>
-      {badge}
+      {action ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-1">{action}</div>
+      ) : null}
     </div>
   );
 }
@@ -278,17 +311,23 @@ function CrmTestModal({
 export function PartnerLeadDeliveryCard({
   partnerEmail,
   className,
+  initialCrm,
 }: {
   partnerEmail: string;
   className?: string;
+  /** When provided (including `null`), skip the mount-time CRM fetch. */
+  initialCrm?: CrmSummary;
 }) {
-  const [loading, setLoading] = useState(true);
+  const hasInitial = initialCrm !== undefined;
+  const [loading, setLoading] = useState(!hasInitial);
   const [loadError, setLoadError] = useState("");
-  const [crm, setCrm] = useState<CrmSummary>(null);
+  const [crm, setCrm] = useState<CrmSummary>(hasInitial ? initialCrm : null);
   const [testOpen, setTestOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [toggling, setToggling] = useState(false);
+  const [toggleError, setToggleError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -321,13 +360,59 @@ export function PartnerLeadDeliveryCard({
   }, []);
 
   useEffect(() => {
+    if (hasInitial) return;
     void load();
-  }, [load]);
+  }, [hasInitial, load]);
 
-  const configured = Boolean(crm?.enabled && crm.endpointUrl?.trim());
+  /** Config exists in DB (saved endpoint) — independent of enabled. */
+  const configured = Boolean(crm?.endpointUrl?.trim());
   const host = crm?.endpointUrl
     ? endpointHostForDisplay(crm.endpointUrl)
     : null;
+
+  async function handleToggleEnabled() {
+    if (!crm || toggling) return;
+    const nextEnabled = !crm.enabled;
+    setToggling(true);
+    setToggleError("");
+    try {
+      // Disable: flip off only. Enable: server tests the endpoint first; stays off on failure.
+      const patchRes = await fetch("/api/partners/me/crm-outbound", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: nextEnabled }),
+      });
+      if (!patchRes.ok) {
+        const data = await patchRes.json().catch(() => ({}));
+        setToggleError(
+          typeof data.error === "string"
+            ? data.error
+            : nextEnabled
+              ? "Could not enable CRM — connection test failed"
+              : "Could not disable CRM",
+        );
+        return;
+      }
+      const data = (await patchRes.json()) as {
+        enabled: boolean;
+        endpointUrl: string;
+        authType: string;
+      };
+      setCrm({
+        enabled: data.enabled,
+        endpointUrl: data.endpointUrl,
+        authType: data.authType,
+      });
+    } catch {
+      setToggleError(
+        nextEnabled
+          ? "Could not enable CRM — connection test failed"
+          : "Could not disable CRM",
+      );
+    } finally {
+      setToggling(false);
+    }
+  }
 
   async function handleDelete() {
     setDeleting(true);
@@ -383,53 +468,86 @@ export function PartnerLeadDeliveryCard({
                 />
                 <div className="border-t border-slate-100" />
                 {configured && host ? (
-                  <ChannelRow name="CRM POST" detail={host} status="ready" />
-                ) : (
-                  <div className="space-y-3">
+                  <>
                     <ChannelRow
                       name="CRM POST"
-                      detail="Not configured — leads are emailed only"
-                      status="off"
+                      detail={host}
+                      status={crm?.enabled ? "ready" : "off"}
+                      href={CRM_OUTBOUND_HREF}
+                      action={
+                        <>
+                          <button
+                            type="button"
+                            title={
+                              crm?.enabled
+                                ? "Disable CRM POST"
+                                : "Enable CRM POST — tests connection first"
+                            }
+                            aria-label={
+                              crm?.enabled
+                                ? "Disable CRM POST"
+                                : "Enable CRM POST — tests connection first"
+                            }
+                            disabled={toggling}
+                            className={
+                              crm?.enabled
+                                ? "rounded p-1.5 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                                : "rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleToggleEnabled();
+                            }}
+                          >
+                            <Power size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            title="Test"
+                            aria-label="Test CRM delivery"
+                            className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTestOpen(true);
+                            }}
+                          >
+                            <Lightning size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete"
+                            aria-label="Remove CRM POST"
+                            className="rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteError("");
+                              setDeleteOpen(true);
+                            }}
+                          >
+                            <Trash size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+                          </button>
+                        </>
+                      }
                     />
-                    <div className="rounded-lg border border-slate-100 bg-slate-50 px-3.5 py-3">
-                      <p className="text-xs text-slate-500">
-                        Send a JSON POST to your CRM when a lead matches. Setup
-                        opens a short wizard on a separate page.
-                      </p>
-                      <div className="mt-3">
-                        <Link href={CRM_OUTBOUND_HREF} className="btn btn-sm">
-                          Connect CRM
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+                    {toggleError ? (
+                      <p className="text-xs text-red-600">{toggleError}</p>
+                    ) : null}
+                  </>
+                ) : (
+                  <ChannelRow
+                    name="CRM POST"
+                    detail="Send a JSON POST to your CRM when a lead matches."
+                    action={
+                      <Link
+                        href={CRM_OUTBOUND_HREF}
+                        className="btn-secondary btn-sm shrink-0"
+                      >
+                        Connect CRM
+                      </Link>
+                    }
+                  />
                 )}
               </div>
-
-              {configured ? (
-                <div className="mt-auto flex flex-wrap gap-2 pt-2">
-                  <Link href={CRM_OUTBOUND_HREF} className="btn-secondary btn-sm">
-                    Edit
-                  </Link>
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={() => setTestOpen(true)}
-                  >
-                    Test
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm text-slate-600"
-                    onClick={() => {
-                      setDeleteError("");
-                      setDeleteOpen(true);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ) : null}
             </>
           )}
         </div>
