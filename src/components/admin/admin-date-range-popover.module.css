@@ -23,6 +23,14 @@
   pointer-events: auto;
 }
 
+.popoverInline {
+  position: static;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  box-shadow: 0 12px 32px -8px rgb(20 30 70 / 0.2);
+}
+
 .weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

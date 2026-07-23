@@ -51,8 +51,10 @@ export function AdminDashboardPeriodFilter({
     push(qs ? `${pathname}?${qs}` : pathname);
   }
 
+  const showCustomPicker = datePeriod === "custom" || customPickerOpen;
+
   return (
-    <div className="relative flex flex-wrap items-center justify-end gap-2">
+    <div className="relative flex flex-wrap items-start justify-end gap-2">
       <label className="sr-only" htmlFor="admin-dashboard-period">
         Period
       </label>
@@ -79,17 +81,24 @@ export function AdminDashboardPeriodFilter({
         ))}
       </select>
 
-      {datePeriod === "custom" && (
-        <AdminDateRangePopover
+      {showCustomPicker && (
+        <div className="flex w-full basis-full justify-end">
+          <AdminDateRangePopover
+          hideTrigger
           from={from}
           to={to}
-          open={customPickerOpen}
-          onOpenChange={setCustomPickerOpen}
+          open
           onApply={(fromYmd, toYmd) => {
             navigate({ period: "custom", from: fromYmd, to: toYmd });
             setCustomPickerOpen(false);
           }}
-        />
+          onCancel={() => {
+            if (datePeriod !== "custom") {
+              setCustomPickerOpen(false);
+            }
+          }}
+          />
+        </div>
       )}
     </div>
   );

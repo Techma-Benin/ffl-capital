@@ -85,14 +85,19 @@ export function AdminDateRangePopover({
   from,
   to,
   onApply,
+  onCancel,
   open: openControlled,
   onOpenChange,
+  hideTrigger = false,
 }: {
   from?: string;
   to?: string;
   onApply: (from: string, to: string) => void;
+  onCancel?: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** When true, show the calendar inline without a separate trigger button. */
+  hideTrigger?: boolean;
 }) {
   const dialogId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -138,6 +143,15 @@ export function AdminDateRangePopover({
     setPicker(null);
   }
 
+  function handleDismiss() {
+    resetWorkingFromApplied();
+    if (hideTrigger) {
+      onCancel?.();
+    } else {
+      closePopover();
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
     const nextStart = from ? adminParseYmd(from) : null;
@@ -152,7 +166,7 @@ export function AdminDateRangePopover({
   }, [open, from, to]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || hideTrigger) return;
     function onDocClick(e: globalThis.MouseEvent) {
       const root = rootRef.current;
       if (!root || root.contains(e.target as Node)) return;
@@ -171,7 +185,7 @@ export function AdminDateRangePopover({
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open, setOpen]);
+  }, [open, setOpen, hideTrigger]);
 
   function closePicker() {
     setPicker(null);
@@ -291,11 +305,17 @@ export function AdminDateRangePopover({
     if (!start) return;
     const endDate = end ?? start;
     onApply(adminDateToYmd(start), adminDateToYmd(endDate));
-    closePopover();
+    if (!hideTrigger) closePopover();
   }
 
+  const panelVisible = hideTrigger || open;
+
   return (
-    <div className="relative" ref={rootRef}>
+    <div
+      className={clsx("relative", hideTrigger && "w-full max-w-[390px]")}
+      ref={rootRef}
+    >
+      {!hideTrigger && (
       <button
         type="button"
         className={clsx(
@@ -312,13 +332,17 @@ export function AdminDateRangePopover({
         <span>{triggerLabel}</span>
         <CalendarIcon className="h-[18px] w-[18px] shrink-0 stroke-slate-500" />
       </button>
+      )}
 
       <div
         id={dialogId}
         ref={popoverRef}
         role="dialog"
         aria-label="Filter by date"
-        className={clsx(styles.popover, open && styles.popoverOpen)}
+        className={clsx(
+          styles.popover,
+          hideTrigger ? styles.popoverInline : panelVisible && styles.popoverOpen,
+        )}
         onClick={(e: MouseEvent) => e.stopPropagation()}
         onMouseLeave={() => setHover(null)}
       >
@@ -331,7 +355,7 @@ export function AdminDateRangePopover({
             type="button"
             className="flex rounded-md p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900"
             aria-label="Close"
-            onClick={closePopover}
+            onClick={handleDismiss}
           >
             <X size={18} weight={ICON_WEIGHT_LINEAR} />
           </button>
@@ -505,7 +529,7 @@ export function AdminDateRangePopover({
           <button
             type="button"
             className="rounded-[10px] border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50"
-            onClick={closePopover}
+            onClick={handleDismiss}
           >
             Cancel
           </button>
