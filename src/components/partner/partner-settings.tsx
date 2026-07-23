@@ -388,9 +388,6 @@ function PartnerProfileSection({
       </div>
 
       <dl className="grid gap-x-8 gap-y-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
-        <PartnerProfileField label="First name" value={partner.firstName} />
-        <PartnerProfileField label="Last name" value={partner.lastName} />
-        <PartnerProfileField label="Email" value={partner.email} />
         <PartnerProfileField
           label="Residence state"
           value={partner.residenceState}

@@ -36,9 +36,6 @@ export default function PartnerSettingsLoading() {
           <ProfileFieldSkeleton />
           <ProfileFieldSkeleton />
           <ProfileFieldSkeleton />
-          <ProfileFieldSkeleton />
-          <ProfileFieldSkeleton />
-          <ProfileFieldSkeleton />
         </div>
       </div>
 
