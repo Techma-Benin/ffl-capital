@@ -293,8 +293,7 @@ Transaction atomique à la livraison :
 |-------------|------|-------------------|
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
 | Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` |
-| CRM webhook | par partner | `partners.crm_webhook_url` |
-| Ringy | ✅ | `partners.ringy_sid`, `ringy_auth_token`, `crm_provider=ringy` |
+| Partner CRM outbound | par partner | `partner_crm_outbound_configs` — voir `docs/PARTNER_CRM_OUTBOUND.md` |
 | IntegrityCONNECT | mock / live | `INTEGRITY_PING_URL`, `INTEGRITY_POST_URL`, `integrations_mode` dans app_settings |
 | Cron jobs | routes prêtes | `CRON_SECRET` + `npm run verify:cron` (ajouter script) |
 

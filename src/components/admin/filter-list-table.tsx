@@ -9,7 +9,6 @@ import { X, Funnel, CopySimple, CaretDown, ICON_WEIGHT_LINEAR } from "@/lib/icon
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 import type { FilterCriteria } from "@/lib/matching/types";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
-import { ClientStoreKeys, useClientResource } from "@/lib/client-store";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,7 +27,6 @@ export type FilterListRow = {
     weeklyLimit: number | null;
     monthlyLimit: number | null;
     filterCriteria: FilterCriteria;
-    deliveryChannel: string;
     partner: {
       id: string;
       email: string;
@@ -51,7 +49,6 @@ type EditForm = {
   active: boolean;
   weeklyLimit: string;
   monthlyLimit: string;
-  deliveryChannel: "email" | "webhook" | "ringy";
   filterCriteria: FilterCriteria;
 };
 
@@ -69,7 +66,6 @@ function rowToForm(fs: FilterListRow["fs"]): EditForm {
     active: fs.active,
     weeklyLimit: fs.weeklyLimit != null ? String(fs.weeklyLimit) : "",
     monthlyLimit: fs.monthlyLimit != null ? String(fs.monthlyLimit) : "",
-    deliveryChannel: (fs.deliveryChannel as EditForm["deliveryChannel"]) || "email",
     filterCriteria: fs.filterCriteria ?? {},
   };
 }
@@ -545,7 +541,6 @@ function FilterSetModal({
             weeklyLimit: form.weeklyLimit !== "" ? Number(form.weeklyLimit) : null,
             monthlyLimit: form.monthlyLimit !== "" ? Number(form.monthlyLimit) : null,
             filterCriteria: form.filterCriteria,
-            deliveryChannel: form.deliveryChannel,
           }),
         },
       );
@@ -640,8 +635,8 @@ function FilterSetModal({
             </div>
           </div>
 
-          {/* Priority + price override + delivery */}
-          <div className="grid gap-4 sm:grid-cols-3">
+          {/* Priority + price override */}
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="form-label">Priority (1–10)</label>
               <input
@@ -664,20 +659,6 @@ function FilterSetModal({
                 value={form.priceOverride}
                 onChange={(e) => setForm((p) => ({ ...p, priceOverride: e.target.value }))}
               />
-            </div>
-            <div>
-              <label className="form-label">Delivery channel</label>
-              <select
-                className="form-select"
-                value={form.deliveryChannel}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, deliveryChannel: e.target.value as EditForm["deliveryChannel"] }))
-                }
-              >
-                <option value="email">Email</option>
-                <option value="webhook">Webhook</option>
-                <option value="ringy">Ringy</option>
-              </select>
             </div>
           </div>
 
@@ -834,18 +815,17 @@ function FilterSetModal({
 // ---------------------------------------------------------------------------
 
 export function FilterListTable({ initialRows, sources = [] }: { initialRows: FilterListRow[]; sources?: string[] }) {
-  const { data: cachedRows, mutate } = useClientResource<FilterListRow[]>(
-    ClientStoreKeys.adminFilterList,
-    { initialData: initialRows },
-  );
-  const rows = cachedRows ?? initialRows;
+  const [rows, setRows] = useState<FilterListRow[]>(initialRows);
   const [selected, setSelected] = useState<FilterListRow | null>(null);
 
   function handleSaved(updated: FilterListRow["fs"]) {
-    mutate((prev) =>
-      (prev ?? initialRows).map((r) =>
+    setRows((prev) =>
+      prev.map((r) =>
         r.fs.id === updated.id ? { ...r, fs: { ...r.fs, ...updated } } : r,
       ),
+    );
+    setSelected((prev) =>
+      prev ? { ...prev, fs: { ...prev.fs, ...updated } } : null,
     );
     setSelected(null);
   }

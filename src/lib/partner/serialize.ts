@@ -36,7 +36,6 @@ export function serializePartner(
     maxFilterSetStates,
     walletBalance: Number(partner.walletBalance),
     status: partner.status,
-    crmWebhookUrl: partner.crmWebhookUrl,
     createdAt: partner.createdAt.toISOString(),
     updatedAt: partner.updatedAt.toISOString(),
   };

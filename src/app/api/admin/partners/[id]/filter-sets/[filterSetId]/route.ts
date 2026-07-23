@@ -32,7 +32,6 @@ const patchSchema = z.object({
   weeklyLimit: z.number().int().positive().nullable().optional(),
   monthlyLimit: z.number().int().positive().nullable().optional(),
   filterCriteria: filterCriteriaSchema,
-  deliveryChannel: z.enum(["email", "webhook", "ringy"]).optional(),
 });
 
 export async function GET(
@@ -98,9 +97,6 @@ export async function PATCH(
         : {}),
       ...(parsed.data.filterCriteria !== undefined
         ? { filterCriteria: parsed.data.filterCriteria ?? {} }
-        : {}),
-      ...(parsed.data.deliveryChannel !== undefined
-        ? { deliveryChannel: parsed.data.deliveryChannel }
         : {}),
     },
   });

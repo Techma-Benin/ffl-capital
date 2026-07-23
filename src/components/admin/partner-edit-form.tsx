@@ -1,5 +1,6 @@
 "use client";
 
+import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -7,11 +8,14 @@ export type PartnerEditFormInitial = {
   priority: number;
   priceOverride: number | null;
   status: string;
-  crmProvider: string;
-  crmWebhookUrl: string | null;
-  ringySid: string | null;
-  ringyAuthToken: string | null;
 };
+
+const STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "disabled", label: "Disabled" },
+  { value: "pending_approval", label: "Pending" },
+  { value: "rejected", label: "Rejected" },
+] as const;
 
 type PartnerEditFormProps = {
   partnerId: string;
@@ -46,10 +50,6 @@ export function PartnerEditForm({
           priority: form.priority,
           priceOverride: form.priceOverride,
           status: form.status,
-          crmProvider: form.crmProvider,
-          crmWebhookUrl: form.crmWebhookUrl || null,
-          ringySid: form.ringySid || null,
-          ringyAuthToken: form.ringyAuthToken || null,
         }),
       });
       if (!res.ok) throw new Error("Save failed");
@@ -105,71 +105,41 @@ export function PartnerEditForm({
           />
         </div>
         <div>
-          <label className="form-label">Status</label>
-          <select
-            value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value })}
-            className="form-select"
+          <label className="form-label" id="partner-edit-status-label">
+            Status
+          </label>
+          <div
+            role="group"
+            aria-labelledby="partner-edit-status-label"
+            className="grid w-full grid-cols-2 gap-0.5 rounded-lg border border-slate-200 bg-slate-100 p-0.5"
           >
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
-            <option value="pending_approval">Pending</option>
-            <option value="rejected">Rejected</option>
-          </select>
+            {STATUS_OPTIONS.map(({ value, label }) => {
+              const selected = form.status === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setForm({ ...form, status: value })}
+                  className={clsx(
+                    "rounded-md px-2 py-1.5 text-center text-xs font-medium transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1",
+                    selected
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "bg-transparent text-slate-500 hover:text-slate-700",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="border-t border-slate-100 pt-5">
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-          CRM & Delivery
-        </h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="form-label">CRM Provider</label>
-            <select
-              value={form.crmProvider}
-              onChange={(e) => setForm({ ...form, crmProvider: e.target.value })}
-              className="form-select"
-            >
-              <option value="email_only">Email only</option>
-              <option value="webhook">Webhook</option>
-              <option value="ringy">Ringy</option>
-            </select>
-          </div>
-          <div>
-            <label className="form-label">CRM Webhook URL</label>
-            <input
-              type="url"
-              placeholder="https://"
-              value={form.crmWebhookUrl ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, crmWebhookUrl: e.target.value || null })
-              }
-              className="form-input"
-            />
-          </div>
-          <div>
-            <label className="form-label">Ringy SID</label>
-            <input
-              type="text"
-              value={form.ringySid ?? ""}
-              onChange={(e) => setForm({ ...form, ringySid: e.target.value || null })}
-              className="form-input"
-            />
-          </div>
-          <div>
-            <label className="form-label">Ringy Auth Token</label>
-            <input
-              type="password"
-              value={form.ringyAuthToken ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, ringyAuthToken: e.target.value || null })
-              }
-              className="form-input"
-            />
-          </div>
-        </div>
-      </div>
+      <p className="text-xs text-slate-500">
+        CRM outbound is configured by the partner under Settings → CRM outbound.
+      </p>
 
       <div
         className={

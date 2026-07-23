@@ -21,6 +21,7 @@ export default async function AdminPartnerDetailPage({
     where: { id: params.id },
     include: {
       filterSets: { orderBy: { createdAt: "asc" } },
+      crmOutboundConfig: true,
       transactions: { orderBy: { createdAt: "desc" }, take: 10 },
       leadDeliveries: {
         orderBy: { deliveredAt: "desc" },
@@ -54,17 +55,15 @@ export default async function AdminPartnerDetailPage({
     weeklyLimit: fs.weeklyLimit,
     monthlyLimit: fs.monthlyLimit,
     filterCriteria: (fs.filterCriteria ?? {}) as import("@/lib/matching/types").FilterCriteria,
-    deliveryChannel: fs.deliveryChannel,
   }));
+
+  const crmMappings = partner.crmOutboundConfig?.fieldMappings;
+  const mappingCount = Array.isArray(crmMappings) ? crmMappings.length : 0;
 
   const editInitial = {
     priority: partner.priority,
     priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
     status: partner.status,
-    crmProvider: partner.crmProvider,
-    crmWebhookUrl: partner.crmWebhookUrl,
-    ringySid: partner.ringySid,
-    ringyAuthToken: partner.ringyAuthToken,
   };
 
   return (
@@ -147,10 +146,9 @@ export default async function AdminPartnerDetailPage({
           </div>
 
           <PartnerAccountCrmCard
-            crmProvider={partner.crmProvider}
-            crmWebhookUrl={partner.crmWebhookUrl}
-            ringySid={partner.ringySid}
-            ringyAuthToken={partner.ringyAuthToken}
+            crmOutboundEnabled={partner.crmOutboundConfig?.enabled ?? false}
+            crmOutboundEndpointUrl={partner.crmOutboundConfig?.endpointUrl ?? null}
+            crmOutboundMappingCount={mappingCount}
             walletBalance={walletBalance}
           />
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { ActionButton } from "@/components/ui/action-button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -9,7 +10,6 @@ import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
 import { usePartner } from "@/components/partner/partner-provider";
 import {
-  PlugsConnected,
   Funnel,
   Plus,
   Trash,
@@ -22,6 +22,7 @@ import {
   type CategoryOption,
   type FilterSetFormData,
 } from "@/components/filter-sets/filter-set-form";
+import { PartnerLeadDeliveryCard } from "@/components/partner/partner-lead-delivery-card";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,7 +38,6 @@ type PartnerFilterSet = {
   priceOverride?: number | null;
   weeklyLimit?: number | null;
   monthlyLimit?: number | null;
-  deliveryChannel?: string;
   filterCriteria?: FilterCriteria;
 };
 
@@ -55,7 +55,6 @@ const DEFAULT_FORM: FilterSetFormData = {
   active: true,
   weeklyLimit: "",
   monthlyLimit: "",
-  deliveryChannel: "email",
   filterCriteria: {},
 };
 
@@ -75,7 +74,6 @@ function toFilterSetFormData(fs: PartnerFilterSet): FilterSetFormData {
     active: fs.active,
     weeklyLimit: fs.weeklyLimit != null ? String(fs.weeklyLimit) : "",
     monthlyLimit: fs.monthlyLimit != null ? String(fs.monthlyLimit) : "",
-    deliveryChannel: (fs.deliveryChannel ?? "email") as FilterSetFormData["deliveryChannel"],
     filterCriteria: (fs.filterCriteria as FilterCriteria) ?? {},
   };
 }
@@ -319,24 +317,7 @@ function formatPartnerDisplayName(
 const settingsSectionClass =
   "card scroll-mt-6 overflow-hidden";
 
-function PartnerProfileField({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | null | undefined;
-}) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs font-medium text-slate-500">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-semibold text-slate-900">
-        {displayProfileValue(value)}
-      </dd>
-    </div>
-  );
-}
-
-function PartnerProfileSection({
+function PartnerProfileCard({
   partner,
   statusBadge,
   statusLabel,
@@ -347,45 +328,61 @@ function PartnerProfileSection({
   statusLabel: string;
   avatarUrl?: string;
 }) {
+  const detailRows = [
+    { label: "Company", value: displayProfileValue(partner.affiliation) },
+    {
+      label: "Residence state",
+      value: displayProfileValue(partner.residenceState),
+    },
+    {
+      label: "Member since",
+      value: formatMemberSince(partner.createdAt),
+    },
+  ];
+
   return (
-    <section id="profile" className={settingsSectionClass}>
-      <div className="border-b border-slate-100 p-6">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <PartnerAvatar
-            avatarUrl={avatarUrl}
-            firstName={partner.firstName}
-            lastName={partner.lastName}
-            size="lg"
-          />
-          <div className="min-w-0 flex-1">
-            <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
-              {formatPartnerDisplayName(partner.firstName, partner.lastName)}
-              <Badge variant={statusBadge}>{statusLabel}</Badge>
-            </h2>
-            <p
-              className="mt-1 truncate text-sm text-slate-500"
-              title={partner.email?.trim() || undefined}
-            >
-              {displayProfileValue(partner.email)}
-            </p>
-          </div>
+    <section
+      id="profile"
+      className="card flex h-full min-w-0 flex-col overflow-hidden rounded-xl"
+    >
+      <div className="flex flex-col items-center gap-3 border-b border-slate-100 px-5 py-6 text-center">
+        <PartnerAvatar
+          avatarUrl={avatarUrl}
+          firstName={partner.firstName}
+          lastName={partner.lastName}
+          size="lg"
+        />
+        <div className="min-w-0">
+          <p className="text-lg font-semibold text-slate-900">
+            {formatPartnerDisplayName(partner.firstName, partner.lastName)}
+          </p>
+          <p
+            className="mt-0.5 truncate text-sm text-slate-500"
+            title={partner.email?.trim() || undefined}
+          >
+            {displayProfileValue(partner.email)}
+          </p>
         </div>
+        <Badge variant={statusBadge}>{statusLabel}</Badge>
       </div>
 
-      <dl className="grid grid-cols-1 gap-x-8 gap-y-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
-        <PartnerProfileField
-          label="Residence state"
-          value={partner.residenceState}
-        />
-        <PartnerProfileField
-          label="Affiliation (company)"
-          value={partner.affiliation}
-        />
-        <PartnerProfileField
-          label="Member since"
-          value={formatMemberSince(partner.createdAt)}
-        />
+      <dl className="flex-1 space-y-2.5 px-5 py-4 text-sm">
+        {detailRows.map((row) => (
+          <div
+            key={row.label}
+            className="flex items-center justify-between gap-3"
+          >
+            <dt className="text-slate-500">{row.label}</dt>
+            <dd className="truncate font-semibold text-slate-900" title={row.value}>
+              {row.value}
+            </dd>
+          </div>
+        ))}
       </dl>
+
+      <p className="px-5 pb-4 text-xs text-slate-400">
+        Managed by your account. Contact support to change email.
+      </p>
     </section>
   );
 }
@@ -393,50 +390,22 @@ function PartnerProfileSection({
 // ---------------------------------------------------------------------------
 
 export function PartnerSettingsView() {
-  const { partner, patchPartner } = usePartner();
+  const { partner } = usePartner();
   const { user } = useUser();
   const { openUserProfile } = useClerk();
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.location.hash) return;
     const id = window.location.hash.slice(1);
     if (!id) return;
+    if (id === "crm-outbound") {
+      router.replace("/partner/settings/crm-outbound");
+      return;
+    }
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
-  const [webhookUrl, setWebhookUrl] = useState(partner.crmWebhookUrl ?? "");
-
-  const [webhookSaving, setWebhookSaving] = useState(false);
-  const [webhookSuccess, setWebhookSuccess] = useState(false);
-  const [webhookError, setWebhookError] = useState("");
-
-  const webhookDirty = webhookUrl !== (partner.crmWebhookUrl ?? "");
-
-  async function saveWebhook() {
-    setWebhookError("");
-    setWebhookSuccess(false);
-    setWebhookSaving(true);
-    try {
-      const res = await fetch("/api/partners/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ crmWebhookUrl: webhookUrl.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setWebhookError(data.error ?? "Failed to save webhook");
-        return;
-      }
-      patchPartner({ crmWebhookUrl: data.crmWebhookUrl });
-      setWebhookUrl(data.crmWebhookUrl ?? "");
-      setWebhookSuccess(true);
-    } catch {
-      setWebhookError("Request failed. Please try again.");
-    } finally {
-      setWebhookSaving(false);
-    }
-  }
+  }, [router]);
 
   const statusBadge = partnerStatusBadge[partner.status] ?? "slate";
   const statusLabel = partnerStatusLabel[partner.status] ?? partner.status;
@@ -445,7 +414,7 @@ export function PartnerSettingsView() {
     <div>
       <PageHeader
         title="Settings"
-        subtitle="Your profile, webhook integrations, and lead filter sets."
+        subtitle="Your profile, lead delivery, and filter sets."
         action={
           <button
             type="button"
@@ -459,60 +428,15 @@ export function PartnerSettingsView() {
       />
 
       <div className="space-y-6">
-        <PartnerProfileSection
-          partner={partner}
-          statusBadge={statusBadge}
-          statusLabel={statusLabel}
-          avatarUrl={user?.imageUrl}
-        />
-
-        <section id="webhook" className={`${settingsSectionClass} p-6`}>
-          <div className="mb-6">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <PlugsConnected size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
-              CRM delivery webhook
-              <span className="ml-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-                Optional
-              </span>
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              We&apos;ll POST lead data (JSON) to this URL on each delivery.
-              Compatible with GHL, Ringy, HubSpot, or any REST endpoint.
-            </p>
-          </div>
-
-          <div className="border-t border-slate-100 pt-6">
-            <label className="form-label">Webhook URL</label>
-            <input
-              type="url"
-              className="form-input max-w-3xl"
-              value={webhookUrl}
-              onChange={(e) => {
-                setWebhookUrl(e.target.value);
-                setWebhookSuccess(false);
-                setWebhookError("");
-              }}
-              placeholder="https://rest.gohighlevel.com/v1/contacts/"
-            />
-            {webhookError && (
-              <p className="mt-1.5 text-xs text-red-600">{webhookError}</p>
-            )}
-          </div>
-
-          <div className="mt-8 flex justify-end">
-            <ActionButton
-              type="button"
-              loading={webhookSaving}
-              loadingText="Saving…"
-              success={webhookSuccess}
-              successText="Saved"
-              disabled={!webhookDirty}
-              onClick={saveWebhook}
-            >
-              Save webhook
-            </ActionButton>
-          </div>
-        </section>
+        <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+          <PartnerProfileCard
+            partner={partner}
+            statusBadge={statusBadge}
+            statusLabel={statusLabel}
+            avatarUrl={user?.imageUrl}
+          />
+          <PartnerLeadDeliveryCard partnerEmail={partner.email} />
+        </div>
 
         <section id="filters" className={settingsSectionClass}>
           <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">

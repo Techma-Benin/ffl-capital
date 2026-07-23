@@ -156,8 +156,7 @@ export function PartnerFilterSetsPanel({
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
                     {fs.filterStates.length} state
-                    {fs.filterStates.length === 1 ? "" : "s"} · Priority {fs.priority} ·{" "}
-                    {fs.deliveryChannel ?? "email"}
+                    {fs.filterStates.length === 1 ? "" : "s"} · Priority {fs.priority}
                     {fs.priceOverride != null
                       ? ` · ${formatUsd(fs.priceOverride)} override`
                       : ""}
@@ -205,7 +204,6 @@ export function PartnerFilterSetsPanel({
                 <th>Priority</th>
                 <th className={moneyHeaderClassName}>Price Override</th>
                 <th>Limits</th>
-                <th>Delivery</th>
                 <th>Status</th>
                 <th className="text-right">Actions</th>
               </tr>
@@ -229,9 +227,6 @@ export function PartnerFilterSetsPanel({
                   </td>
                   <td className="text-xs text-slate-500">
                     {fs.weeklyLimit ?? "∞"}/wk · {fs.monthlyLimit ?? "∞"}/mo
-                  </td>
-                  <td className="text-xs capitalize">
-                    {fs.deliveryChannel ?? "email"}
                   </td>
                   <td>
                     <Badge variant={fs.active ? "green" : "slate"}>
