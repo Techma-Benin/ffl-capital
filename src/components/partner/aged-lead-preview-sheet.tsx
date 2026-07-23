@@ -6,6 +6,7 @@ import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { Clock } from "@/lib/icons/client";
 import { formatUsd, moneyValueClassName } from "@/lib/format-money";
 import { partnerAgedLeadAgeDays } from "@/lib/admin/admin-aged-leads-filters";
+import { getPartnerAgedLeadAgeChipClassNames } from "@/lib/partner/aged-lead-age-chip";
 
 export type PartnerAgedLeadPreview = {
   id: string;
@@ -23,6 +24,7 @@ export type PartnerAgedLeadPreview = {
 type Props = {
   lead: PartnerAgedLeadPreview | null;
   agedPrice: number;
+  agedDays: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -36,11 +38,18 @@ function displayValue(value: string | null | undefined): string {
   return value;
 }
 
-export function AgedLeadPreviewSheet({ lead, agedPrice, open, onOpenChange }: Props) {
+export function AgedLeadPreviewSheet({
+  lead,
+  agedPrice,
+  agedDays,
+  open,
+  onOpenChange,
+}: Props) {
   if (!lead) return null;
 
   const name = `${lead.firstName} ${lead.lastName}`.trim();
   const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
+  const ageChip = getPartnerAgedLeadAgeChipClassNames(ageDays, agedDays);
 
   return (
     <Sheet
@@ -64,10 +73,10 @@ export function AgedLeadPreviewSheet({ lead, agedPrice, open, onOpenChange }: Pr
                 {lead.intent}
               </Badge>
             ) : null}
-            <div className="flex items-center gap-1 text-xs text-slate-600">
-              <Clock size={12} className="text-slate-400" />
-              <span className="font-medium">{ageDays} days old</span>
-            </div>
+            <span className={ageChip.chip}>
+              <Clock size={12} className={ageChip.icon} aria-hidden />
+              {ageDays} days old
+            </span>
           </div>
         </div>
 

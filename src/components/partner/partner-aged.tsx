@@ -27,6 +27,7 @@ import {
   AgedLeadPreviewSheet,
   type PartnerAgedLeadPreview,
 } from "@/components/partner/aged-lead-preview-sheet";
+import { getPartnerAgedLeadAgeChipClassNames } from "@/lib/partner/aged-lead-age-chip";
 
 type AgedLead = PartnerAgedLeadPreview;
 
@@ -297,6 +298,7 @@ export function PartnerAgedView({
           <ul className="divide-y divide-slate-100" aria-label="Available aged leads">
             {visibleLeads.map((lead) => {
               const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
+              const ageChip = getPartnerAgedLeadAgeChipClassNames(ageDays, agedDays);
               const leadName = `${lead.firstName} ${lead.lastName}`;
 
               function onRowKeyDown(e: React.KeyboardEvent) {
@@ -339,8 +341,8 @@ export function PartnerAgedView({
                           <Badge variant="blue">
                             {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
                           </Badge>
-                          <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">
-                            <Clock size={11} className="text-slate-400" aria-hidden />
+                          <span className={ageChip.chip}>
+                            <Clock size={11} className={ageChip.icon} aria-hidden />
                             {ageDays}d
                           </span>
                         </div>
@@ -387,6 +389,7 @@ export function PartnerAgedView({
       <AgedLeadPreviewSheet
         lead={previewLead}
         agedPrice={agedPrice}
+        agedDays={agedDays}
         open={previewOpen}
         onOpenChange={setPreviewOpen}
       />
