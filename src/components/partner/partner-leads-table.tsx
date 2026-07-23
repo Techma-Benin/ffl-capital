@@ -212,10 +212,15 @@ export function PartnerLeadsTable({
         };
       }
       if (col.key === "actions") {
+        const hideActionsHeader =
+          layout === "cards" && selected.size === 0;
+        const baseHeaderClass = col.headerClassName ?? "w-12 text-right";
         return {
           ...col,
-          headerClassName: col.headerClassName ?? "w-12 text-right",
-          headerContent: (
+          headerClassName: hideActionsHeader
+            ? `${baseHeaderClass} invisible`
+            : baseHeaderClass,
+          headerContent: hideActionsHeader ? null : (
             <div className="flex justify-end">
               <button
                 type="button"
@@ -241,7 +246,15 @@ export function PartnerLeadsTable({
       }
       return col;
     });
-  }, [columns, selectAllChecked, toggleAll, bulkRefundLabel, refundableSelected.length]);
+  }, [
+    columns,
+    layout,
+    selected.size,
+    selectAllChecked,
+    toggleAll,
+    bulkRefundLabel,
+    refundableSelected.length,
+  ]);
 
   function toggle(id: string) {
     setSelected((prev) => {
