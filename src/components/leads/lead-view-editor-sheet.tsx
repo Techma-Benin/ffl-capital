@@ -2,16 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
-import { TargetStatesGrid } from "@/components/filter-sets/target-states-grid";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type {
-  AdminDatePeriod,
   AdminLeadViewFilters,
   LeadViewColumn,
   PartnerLeadViewFilters,
 } from "@/lib/leads/list-view-schema";
-import { ADMIN_DATE_PERIOD_OPTIONS } from "@/lib/admin/admin-date-period";
 import { LeadColumnSettings } from "@/components/leads/lead-column-settings";
+import { AdminLeadViewFilterFields } from "@/components/leads/admin-lead-view-filter-fields";
+import { PartnerLeadViewFilterFields } from "@/components/leads/partner-lead-view-filter-fields";
 
 type Scope = "admin" | "partner";
 
@@ -36,7 +35,7 @@ export function LeadViewEditorSheet({
   mode,
   initial,
   catalog,
-  partnerMeta,
+  partnerFilterSets,
   onSave,
   pending,
 }: {
@@ -46,10 +45,8 @@ export function LeadViewEditorSheet({
   mode: "create" | "edit";
   initial: LeadViewEditorState;
   catalog: LeadColumnDef[];
-  partnerMeta?: {
-    filterSets: { id: string; name: string }[];
-    availableStates: string[];
-  };
+  /** Partner scope only: filter sets for the filter-set dropdown. */
+  partnerFilterSets?: { id: string; name: string }[];
   onSave: (state: LeadViewEditorState) => Promise<void>;
   pending?: boolean;
 }) {
@@ -112,103 +109,16 @@ export function LeadViewEditorSheet({
             </div>
 
             {scope === "admin" && adminFilters && (
-              <>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Filters
-                </p>
-                <div>
-                  <label className="form-label text-[10px]">Status slice</label>
-                  <select
-                    className="form-select w-full text-sm"
-                    value={adminFilters.statusSlice ?? "all"}
-                    onChange={(e) =>
-                      setFilters({
-                        statusSlice: e.target.value as AdminLeadViewFilters["statusSlice"],
-                      })
-                    }
-                  >
-                    <option value="all">All leads</option>
-                    <option value="matched">Matched</option>
-                    <option value="unmatched">Unmatched</option>
-                    <option value="integrity_posted">Integrity</option>
-                    <option value="aged_listed">Aged listed</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="form-label text-[10px]">States</label>
-                  <TargetStatesGrid
-                    selected={adminFilters.states ?? []}
-                    onChange={(states) =>
-                      setFilters({ states: states.length ? states : undefined })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="form-label text-[10px]">Date period</label>
-                  <select
-                    className="form-select w-full text-sm"
-                    value={adminFilters.datePeriod ?? ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (!value) {
-                        setFilters({
-                          datePeriod: undefined,
-                          from: undefined,
-                          to: undefined,
-                        });
-                        return;
-                      }
-                      if (value === "custom") {
-                        setFilters({ datePeriod: "custom" });
-                        return;
-                      }
-                      setFilters({
-                        datePeriod: value as AdminDatePeriod,
-                        from: undefined,
-                        to: undefined,
-                      });
-                    }}
-                  >
-                    {ADMIN_DATE_PERIOD_OPTIONS.map((o) => (
-                      <option key={o.value || "none"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {adminFilters.datePeriod === "custom" && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="form-label text-[10px]">From</label>
-                      <input
-                        type="date"
-                        className="form-input w-full text-sm"
-                        value={adminFilters.from ?? ""}
-                        onChange={(e) =>
-                          setFilters({ from: e.target.value || undefined })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="form-label text-[10px]">To</label>
-                      <input
-                        type="date"
-                        className="form-input w-full text-sm"
-                        value={adminFilters.to ?? ""}
-                        onChange={(e) =>
-                          setFilters({ to: e.target.value || undefined })
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
+              <AdminLeadViewFilterFields
+                filters={adminFilters}
+                onChange={setFilters}
+              />
             )}
 
-            {scope === "partner" && partnerFilters && partnerMeta && (
-              <PartnerFilterFields
+            {scope === "partner" && partnerFilters && partnerFilterSets && (
+              <PartnerLeadViewFilterFields
                 filters={partnerFilters}
-                meta={partnerMeta}
+                filterSets={partnerFilterSets}
                 onChange={setFilters}
               />
             )}
@@ -253,123 +163,5 @@ export function LeadViewEditorSheet({
         onChange={(columns) => setState((s) => ({ ...s, columns }))}
       />
     </>
-  );
-}
-
-function PartnerFilterFields({
-  filters,
-  meta,
-  onChange,
-}: {
-  filters: PartnerLeadViewFilters;
-  meta: {
-    filterSets: { id: string; name: string }[];
-    availableStates: string[];
-  };
-  onChange: (patch: Partial<PartnerLeadViewFilters>) => void;
-}) {
-  function toggleArray(
-    key: "locations" | "channels" | "types" | "statuses",
-    value: string,
-  ) {
-    const current = filters[key] ?? [];
-    const next = current.includes(value)
-      ? current.filter((v) => v !== value)
-      : [...current, value];
-    onChange({ [key]: next.length ? next : undefined });
-  }
-
-  return (
-    <>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Filters
-      </p>
-      <div>
-        <label className="form-label text-[10px]">Filter set</label>
-        <select
-          className="form-select w-full text-sm"
-          value={filters.filterSetId ?? ""}
-          onChange={(e) =>
-            onChange({
-              filterSetId: e.target.value || null,
-            })
-          }
-        >
-          <option value="">All filter sets</option>
-          {meta.filterSets.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <CheckboxGroup
-        label="Locations"
-        options={meta.availableStates.map((s) => ({ value: s, label: s }))}
-        selected={filters.locations ?? []}
-        onToggle={(v) => toggleArray("locations", v)}
-      />
-      <CheckboxGroup
-        label="Channel"
-        options={[
-          { value: "realtime", label: "Real-time" },
-          { value: "aged", label: "Aged" },
-        ]}
-        selected={filters.channels ?? []}
-        onToggle={(v) => toggleArray("channels", v)}
-      />
-      <CheckboxGroup
-        label="Type"
-        options={[
-          { value: "traditional_iul", label: "Trad. IUL" },
-          { value: "high_intent_iul", label: "High Intent" },
-        ]}
-        selected={filters.types ?? []}
-        onToggle={(v) => toggleArray("types", v)}
-      />
-      <CheckboxGroup
-        label="Status"
-        options={[
-          { value: "active", label: "Active" },
-          { value: "refund_pending", label: "Refund pending" },
-          { value: "refunded", label: "Refunded" },
-        ]}
-        selected={filters.statuses ?? []}
-        onToggle={(v) => toggleArray("statuses", v)}
-      />
-    </>
-  );
-}
-
-function CheckboxGroup({
-  label,
-  options,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  options: { value: string; label: string }[];
-  selected: string[];
-  onToggle: (value: string) => void;
-}) {
-  return (
-    <div>
-      <p className="form-label text-[10px]">{label}</p>
-      <div className="flex flex-wrap gap-2">
-        {options.map((o) => (
-          <label
-            key={o.value}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs"
-          >
-            <input
-              type="checkbox"
-              checked={selected.includes(o.value)}
-              onChange={() => onToggle(o.value)}
-            />
-            {o.label}
-          </label>
-        ))}
-      </div>
-    </div>
   );
 }

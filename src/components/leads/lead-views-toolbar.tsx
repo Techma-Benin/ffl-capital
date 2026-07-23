@@ -270,7 +270,7 @@ export function LeadViewsToolbar({
         mode={editorMode}
         initial={editorInitial()}
         catalog={catalog}
-        partnerMeta={partnerMeta}
+        partnerFilterSets={partnerMeta?.filterSets}
         onSave={saveView}
         pending={pending}
       />
