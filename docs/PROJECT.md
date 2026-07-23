@@ -102,7 +102,7 @@ Un lead est **vendu** quand il est assigné à un agent :
 2. **Débit du wallet** de l’agent (25 $ par défaut, remise possible)
 3. Statut → `delivered` / `owned`
 4. **Email** envoyé à l’agent (toujours)
-5. Optionnel : POST CRM configuré par le partner (wizard Settings) — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
+5. Optionnel : POST CRM configuré par le partner (carte Lead delivery → wizard `/partner/settings/crm-outbound`) — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
 
 **Après la vente :**
 - Le lead **ne réapparaît pas** dans la file temps réel
@@ -234,7 +234,7 @@ agents (users)
   ├── wallet_balance
   ├── filter_states[], priority (1-10) on filter sets (`partner_filter_sets.lead_type` per set)
   ├── price_override (nullable, ex. 20 au lieu de 25)
-  └── partner_crm_outbound_configs (optionnel — wizard Settings, voir PARTNER_CRM_OUTBOUND.md)
+  └── partner_crm_outbound_configs (optionnel — Lead delivery / wizard crm-outbound, voir PARTNER_CRM_OUTBOUND.md)
 
 leads
   ├── contact fields, state, lead_type, source
@@ -351,7 +351,7 @@ resale_postings                   -- envois IntegrityCONNECT
 - [x] Admin refunds : file pending + historique
 - [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`), KPI Available + filtres URL (`state`, `type`, `status`, `age`), tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id`
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
-- [x] Partner settings (états, CRM outbound wizard `#crm-outbound`)
+- [x] Partner settings (Profile + Lead delivery half/half, filter sets ; wizard CRM `/partner/settings/crm-outbound`)
 
 ### Stripe (**test — terminé**)
 

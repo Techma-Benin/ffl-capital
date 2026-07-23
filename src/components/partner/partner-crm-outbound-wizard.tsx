@@ -135,7 +135,14 @@ function buildPayload(form: WizardForm): CrmOutboundConfigInput {
 
 const STEPS = ["Endpoint", "Auth", "Mapping", "Success", "Test & save"] as const;
 
-export function PartnerCrmOutboundWizard({ sectionClass }: { sectionClass: string }) {
+export function PartnerCrmOutboundWizard({
+  sectionClass,
+  showPageChrome = true,
+}: {
+  sectionClass: string;
+  /** When false, page supplies title/back; wizard body only. */
+  showPageChrome?: boolean;
+}) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<WizardForm>(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -294,15 +301,17 @@ export function PartnerCrmOutboundWizard({ sectionClass }: { sectionClass: strin
 
   return (
     <section id="crm-outbound" className={`${sectionClass} p-6`}>
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-900">CRM outbound (POST)</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Optional JSON POST to your CRM on each lead delivery. Email delivery always runs
-          separately.
-        </p>
-      </div>
+      {showPageChrome ? (
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900">CRM outbound (POST)</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Optional JSON POST to your CRM on each lead delivery. Email delivery always runs
+            separately.
+          </p>
+        </div>
+      ) : null}
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className={`${showPageChrome ? "mb-6" : "mb-4"} flex flex-wrap gap-2`}>
         {STEPS.map((label, i) => (
           <button
             key={label}

@@ -16,7 +16,7 @@ Spécification produit et technique pour la livraison CRM optionnelle côté par
 | Auth | `none`, `bearer`, `api_key_header`, `basic`, `body_fields` (paires clé/valeur dans le JSON plat) |
 | Secrets | Stockés **en clair** en BDD (choix produit) |
 | Payload | **JSON plat uniquement** ; mapping source → clé destination |
-| Wizard UX | Endpoint + auth + mapping ; « coller un exemple JSON » pour pré-remplir les clés (top-level) ; test / edit / delete |
+| Wizard UX | Route dédiée `/partner/settings/crm-outbound` ; endpoint + auth + mapping ; « coller un exemple JSON » pour pré-remplir les clés (top-level). Sur Settings : carte **Lead delivery** (email + CRM) avec Connect / Edit / Test / Delete |
 | Succès | Par défaut **HTTP 2xx** ; règle optionnelle : `bodyContains`, `bodyRegex`, `bodyKeyEquals` (clé top-level) |
 | Échec POST | **Pas de retry** ; email partner avec raison (status, réseau, règle) — **sans payload lead** |
 | SSRF | IP privées/loopback/metadata, DNS + re-check IP, `redirect: manual`, timeout ~15s, taille réponse max |
@@ -64,7 +64,7 @@ Champs supprimés (juil. 2026) : `partners.crm_webhook_url`, `crm_provider`, `ri
 | GET | `/api/partners/me/crm-outbound` | Lire la config (404 si absente) |
 | PATCH | `/api/partners/me/crm-outbound` | Créer / mettre à jour (validation URL SSRF + Zod) |
 | DELETE | `/api/partners/me/crm-outbound` | Supprimer la config |
-| POST | `/api/partners/me/crm-outbound/test` | POST fixture synthétique → `{ ok, statusCode, bodyPreview, error }` |
+| POST | `/api/partners/me/crm-outbound/test` | POST fixture synthétique → `{ ok, statusCode, bodyPreview, error, requestPayload }` (`requestPayload` = body mappé envoyé au CRM) |
 
 Admin : plus d’édition CRM sur fiche partner ; carte compte = lecture seule (config activée + host endpoint + mapping non vide).
 
@@ -86,7 +86,7 @@ Liste fermée alignée sur `buildLeadDeliveryPayload` (`src/lib/delivery/lead-pa
 | Config partner | PostgreSQL (`DATABASE_URL` Repl ou Supabase) — rien à copier hors BDD partagée |
 | Secrets CRM | En clair en BDD — pas de Replit Secrets dédiés Ringy/webhook |
 | Env livraison | Inchangées : `RESEND_API_KEY`, `FROM_EMAIL`, `DATABASE_URL`, `DIRECT_URL` (Repl : souvent `DIRECT_URL=$DATABASE_URL`) |
-| HTTP sortant | `fetch` depuis le serveur Next.js (comme Integrity) ; bouton **Test** Settings appelle l’API publique du Repl |
+| HTTP sortant | `fetch` depuis le serveur Next.js (comme Integrity) ; bouton **Test** (carte Lead delivery) appelle l’API publique du Repl |
 | Post-deploy | Partners avec ancien webhook admin **reconfigurent** le wizard ; vérifier `INTEGRATIONS_MODE=live` (`.replit` `[userenv.shared]`) |
 
 **Risques existants (hors scope CRM)** : URLs redirect Clerk / domaine Repl ; cron externe.
@@ -103,6 +103,7 @@ Liste fermée alignée sur `buildLeadDeliveryPayload` (`src/lib/delivery/lead-pa
 | Orchestration | `src/lib/delivery/deliver-lead.ts` |
 | Schémas Zod | `src/lib/crm-outbound/schemas.ts` |
 | Email échec | `src/lib/delivery/crm-outbound-failure-email.ts` |
-| UI wizard | `src/components/partner/partner-crm-outbound-wizard.tsx` (Settings `#crm-outbound`) |
+| UI Settings | `partner-settings.tsx` + `partner-lead-delivery-card.tsx` (Profile + Lead delivery half/half ; filter sets en dessous) |
+| UI wizard | `partner-crm-outbound-wizard.tsx` sur `/partner/settings/crm-outbound` |
 
 Tests : `pnpm run test:outbound` (`scripts/test-outbound.ts`).
