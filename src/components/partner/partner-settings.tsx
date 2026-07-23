@@ -379,10 +379,6 @@ function PartnerProfileCard({
           </div>
         ))}
       </dl>
-
-      <p className="px-5 pb-4 text-xs text-slate-400">
-        Managed by your account. Contact support to change email.
-      </p>
     </section>
   );
 }
