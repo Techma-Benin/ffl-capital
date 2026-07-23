@@ -90,10 +90,11 @@ export function AdminAgedLeadsFilters({
   }
 
   return (
-    <div className="card flex flex-wrap items-center gap-2 p-4 sm:col-span-2">
+    <div className="mb-5 flex flex-wrap items-center gap-2">
       <FilterSelectDropdown
         id="admin-aged-filter-state"
         dimensionLabel="State"
+        accent="teal"
         selectionMode="multi"
         value={filters.states}
         allValue="all"
@@ -105,6 +106,7 @@ export function AdminAgedLeadsFilters({
       <FilterSelectDropdown
         id="admin-aged-filter-type"
         dimensionLabel="Type"
+        accent="teal"
         value={filters.type}
         allValue="all"
         options={ADMIN_AGED_TYPE_FILTER_OPTIONS}
@@ -114,6 +116,7 @@ export function AdminAgedLeadsFilters({
       <FilterSelectDropdown
         id="admin-aged-filter-status"
         dimensionLabel="Status"
+        accent="teal"
         value={filters.status}
         allValue="all"
         options={ADMIN_AGED_STATUS_FILTER_OPTIONS}
@@ -123,6 +126,7 @@ export function AdminAgedLeadsFilters({
       <FilterSelectDropdown
         id="admin-aged-filter-age"
         dimensionLabel="Age"
+        accent="teal"
         value={filters.age}
         allValue="all"
         options={ADMIN_AGED_AGE_FILTER_OPTIONS}

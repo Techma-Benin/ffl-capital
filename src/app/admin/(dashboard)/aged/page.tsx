@@ -4,7 +4,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Archive } from "@/lib/icons/ssr";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
-import { StatCard } from "@/components/ui/stat-card";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
 import { formatUsd } from "@/lib/format-money";
@@ -89,24 +88,20 @@ export default async function AdminAgedPage({
       <PageHeader
         title="Aged Leads"
         subtitle={`Leads ${agedDays}+ days old — default price ${formatUsd(agedPrice)}`}
+        badge={
+          <span className="inline-flex items-center rounded-full border border-teal-100 bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
+            {total.toLocaleString()} available
+          </span>
+        }
       />
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Available"
-          value={total}
-          icon={Archive}
-          accent="blue"
-          blobIndex={0}
-        />
-        <Suspense
-          fallback={
-            <div className="card p-4 sm:col-span-2 min-h-[52px] animate-pulse bg-slate-50" />
-          }
-        >
-          <AdminAgedLeadsFilters stateOptions={stateOptions} />
-        </Suspense>
-      </div>
+      <Suspense
+        fallback={
+          <div className="mb-5 min-h-[36px] animate-pulse rounded-md bg-slate-50" />
+        }
+      >
+        <AdminAgedLeadsFilters stateOptions={stateOptions} />
+      </Suspense>
 
       <div className="card">
         <div className="overflow-x-auto">
