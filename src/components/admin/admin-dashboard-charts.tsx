@@ -2,6 +2,7 @@
 
 import { StatCard } from "@/components/ui/stat-card";
 import { IntakeAreaChart, DonutChart } from "@/components/ui/charts";
+import { DashboardEmptyState } from "@/components/ui/dashboard-empty-state";
 import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
 import { FileText, CalendarCheck, UsersThree, Warning } from "@/lib/icons/client";
@@ -63,7 +64,14 @@ export function AdminDashboardCharts({
               <DonutChart data={deliveringDonut} height={300} />
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-slate-400">No deliveries yet</p>
+            <div className="flex w-full min-h-[300px] flex-1 flex-col items-center justify-center">
+              <DashboardEmptyState
+                icon={CalendarCheck}
+                title="No deliveries yet"
+                accent="purple"
+                blobIndex={1}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -93,8 +101,13 @@ export function AdminDashboardCharts({
             <tbody>
               {recentLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400">
-                    No leads yet
+                  <td colSpan={6} className="py-10">
+                    <DashboardEmptyState
+                      icon={FileText}
+                      title="No leads yet"
+                      accent="blue"
+                      blobIndex={0}
+                    />
                   </td>
                 </tr>
               ) : (
