@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
-import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-guard";
+import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-display";
 import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 const CRM_OUTBOUND_HREF = "/partner/settings/crm-outbound";

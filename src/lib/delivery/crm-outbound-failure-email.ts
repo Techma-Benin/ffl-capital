@@ -1,4 +1,4 @@
-import { endpointHostForDisplay } from "./outbound-url-guard";
+import { endpointHostForDisplay } from "./outbound-url-display";
 
 export function buildCrmOutboundFailureEmail(params: {
   leadId: string;

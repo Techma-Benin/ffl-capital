@@ -9,7 +9,7 @@ import {
 } from "./lead-payload";
 import { postPartnerCrmOutbound } from "./outbound-http";
 import { sendCrmOutboundFailureEmail } from "./crm-outbound-failure-email";
-import { endpointHostForDisplay } from "./outbound-url-guard";
+import { endpointHostForDisplay } from "./outbound-url-display";
 
 async function getPartnerEmail(partner: { clerkUserId: string | null; email: string }): Promise<string> {
   if (partner.clerkUserId) {

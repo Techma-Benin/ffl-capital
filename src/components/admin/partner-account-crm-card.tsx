@@ -1,4 +1,4 @@
-import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-guard";
+import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-display";
 
 type PartnerAccountCrmCardProps = {
   crmOutboundEnabled: boolean;
