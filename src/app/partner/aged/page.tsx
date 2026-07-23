@@ -4,10 +4,10 @@ import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PartnerAgedView } from "@/components/partner/partner-aged";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
-import { parsePageParams } from "@/lib/pagination";
 import {
   buildAdminAgedLeadsWhere,
   parseAdminAgedLeadFilters,
+  PARTNER_AGED_CLIENT_LOAD_LIMIT,
 } from "@/lib/admin/admin-aged-leads-filters";
 
 export default async function PartnerAgedPage({
@@ -18,21 +18,13 @@ export default async function PartnerAgedPage({
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
-  const filters = parseAdminAgedLeadFilters({
-    state: searchParams.state,
-    type: searchParams.type,
-    age: searchParams.age,
-  });
-  const agedWhere = await buildAdminAgedLeadsWhere(filters);
+  const agedWhere = await buildAdminAgedLeadsWhere(parseAdminAgedLeadFilters({}));
 
-  const { page, pageSize, skip } = parsePageParams(searchParams);
-
-  const [agedLeads, total, agedPrice] = await Promise.all([
+  const [agedLeads, totalEligible, agedPrice] = await Promise.all([
     prisma.lead.findMany({
       where: agedWhere,
       orderBy: { receivedAt: "asc" },
-      skip,
-      take: pageSize,
+      take: PARTNER_AGED_CLIENT_LOAD_LIMIT,
     }),
     prisma.lead.count({ where: agedWhere }),
     getDefaultAgedPrice(),
@@ -42,11 +34,7 @@ export default async function PartnerAgedPage({
     <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading…</div>}>
       <PartnerAgedView
         agedPrice={agedPrice}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        paginationParams={searchParams}
-        agedLeads={agedLeads.map((lead) => ({
+        allAgedLeads={agedLeads.map((lead) => ({
           id: lead.id,
           firstName: lead.firstName,
           lastName: lead.lastName,
@@ -54,10 +42,19 @@ export default async function PartnerAgedPage({
           address: lead.address,
           leadType: lead.leadType,
           receivedAt: lead.receivedAt.toISOString(),
-          intent: lead.intent ?? (lead.leadType === "high_intent_iul" ? "High Intent" : "Traditional"),
+          intent:
+            lead.intent ??
+            (lead.leadType === "high_intent_iul" ? "High Intent" : "Traditional"),
           haveIul: lead.haveIul,
           primaryGoal: lead.primaryGoal,
         }))}
+        totalEligible={totalEligible}
+        loadCapped={totalEligible > PARTNER_AGED_CLIENT_LOAD_LIMIT}
+        initialFilters={{
+          state: searchParams.state ?? "",
+          type: searchParams.type ?? "",
+          age: searchParams.age ?? "",
+        }}
       />
     </Suspense>
   );

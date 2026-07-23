@@ -1,75 +1,98 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
 import { ShoppingBag, Funnel, Clock } from "@/lib/icons/client";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { ClientTablePagination } from "@/components/ui/table-pagination";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
+import {
+  filterPartnerAgedLeadsInMemory,
+  partnerAgedLeadAgeDays,
+} from "@/lib/admin/admin-aged-leads-filters";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
+import {
+  AgedLeadPreviewSheet,
+  type PartnerAgedLeadPreview,
+} from "@/components/partner/aged-lead-preview-sheet";
 
 const agedPriceColumnWidth = "w-24 min-w-24 whitespace-nowrap";
 const agedPriceHeaderClassName = `${moneyHeaderClassName} ${agedPriceColumnWidth}`;
 const agedActionColumnClassName = "w-36 min-w-36 text-center";
 
-type AgedLead = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  state: string;
-  address: string | null;
-  leadType: string;
-  receivedAt: string;
-  intent: string;
-  haveIul: string | null;
-  primaryGoal: string | null;
-};
+type AgedLead = PartnerAgedLeadPreview;
+
+type AgedFilters = { state: string; type: string; age: string };
+
+function syncAgedFiltersToUrl(filters: AgedFilters) {
+  const params = new URLSearchParams();
+  if (filters.state) params.set("state", filters.state);
+  if (filters.type) params.set("type", filters.type);
+  if (filters.age) params.set("age", filters.age);
+  const qs = params.toString();
+  const next = qs ? `/partner/aged?${qs}` : "/partner/aged";
+  window.history.replaceState(null, "", next);
+}
 
 export function PartnerAgedView({
-  agedLeads,
+  allAgedLeads: initialLeads,
   agedPrice,
-  total,
-  page,
-  pageSize,
-  paginationParams,
+  totalEligible,
+  loadCapped,
+  initialFilters,
 }: {
-  agedLeads: AgedLead[];
+  allAgedLeads: AgedLead[];
   agedPrice: number;
-  total: number;
-  page: number;
-  pageSize: number;
-  paginationParams: Record<string, string | undefined>;
+  totalEligible: number;
+  loadCapped: boolean;
+  initialFilters: AgedFilters;
 }) {
   const { partner } = usePartner();
-  const { push, router } = useNavigateWithPending();
-  const urlSearchParams = useSearchParams();
+  const { router } = useNavigateWithPending();
   const canBuy = partner.status === "active" && partner.walletBalance >= agedPrice;
 
+  const [leads, setLeads] = useState(initialLeads);
+  const [filters, setFilters] = useState<AgedFilters>(initialFilters);
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
+  const [previewLead, setPreviewLead] = useState<AgedLead | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
-  const stateFilter = urlSearchParams.get("state") ?? "";
-  const typeFilter = urlSearchParams.get("type") ?? "";
-  const ageFilter = urlSearchParams.get("age") ?? "";
-
-  function getAgeDays(receivedAt: string) {
-    return Math.floor((Date.now() - new Date(receivedAt).getTime()) / (1000 * 60 * 60 * 24));
+  function openPreview(lead: AgedLead) {
+    setPreviewLead(lead);
+    setPreviewOpen(true);
   }
 
-  function updateFilter(key: "state" | "type" | "age", value: string) {
-    const params = new URLSearchParams();
-    const state = key === "state" ? value : stateFilter;
-    const type = key === "type" ? value : typeFilter;
-    const age = key === "age" ? value : ageFilter;
-    if (state) params.set("state", state);
-    if (type) params.set("type", type);
-    if (age) params.set("age", age);
-    const qs = params.toString();
-    push(qs ? `/partner/aged?${qs}` : "/partner/aged");
+  useEffect(() => {
+    setLeads(initialLeads);
+  }, [initialLeads]);
+
+  const filteredLeads = useMemo(
+    () => filterPartnerAgedLeadsInMemory(leads, filters),
+    [leads, filters],
+  );
+
+  const pageSize = DEFAULT_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+
+  const visibleLeads = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredLeads.slice(start, start + pageSize);
+  }, [filteredLeads, safePage, pageSize]);
+
+  function updateFilter(key: keyof AgedFilters, value: string) {
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+      syncAgedFiltersToUrl(next);
+      return next;
+    });
+    setPage(1);
   }
 
   function toggleLead(id: string) {
@@ -82,11 +105,17 @@ export function PartnerAgedView({
   }
 
   function toggleAll() {
-    if (selected.size === agedLeads.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(agedLeads.map((l) => l.id)));
-    }
+    const visibleIds = visibleLeads.map((l) => l.id);
+    const allVisibleSelected = visibleIds.every((id) => selected.has(id));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        for (const id of visibleIds) next.delete(id);
+      } else {
+        for (const id of visibleIds) next.add(id);
+      }
+      return next;
+    });
   }
 
   async function purchase(leadIds: string[]) {
@@ -99,7 +128,13 @@ export function PartnerAgedView({
         body: JSON.stringify({ leadIds }),
       });
       if (!res.ok) throw new Error("Purchase failed");
-      setSelected(new Set());
+      const purchased = new Set(leadIds);
+      setLeads((prev) => prev.filter((l) => !purchased.has(l.id)));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        for (const id of leadIds) next.delete(id);
+        return next;
+      });
       router.refresh();
     } catch {
       // allow retry
@@ -108,6 +143,9 @@ export function PartnerAgedView({
     }
   }
 
+  const allVisibleSelected =
+    visibleLeads.length > 0 && visibleLeads.every((l) => selected.has(l.id));
+
   return (
     <div>
       <PageHeader
@@ -115,6 +153,13 @@ export function PartnerAgedView({
         subtitle={`Browse leads 30+ days old — only ${formatUsd(agedPrice)} each`}
       />
 
+      {loadCapped && (
+        <p className="mb-4 text-xs text-amber-700">
+          Showing the first {leads.length.toLocaleString()} of{" "}
+          {totalEligible.toLocaleString()} eligible leads. Narrow filters or contact support if
+          you need the full catalog.
+        </p>
+      )}
 
       <div className="mb-5 card p-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -123,17 +168,19 @@ export function PartnerAgedView({
             Filters:
           </div>
           <select
-            value={stateFilter}
+            value={filters.state}
             onChange={(e) => updateFilter("state", e.target.value)}
             className="form-select w-40 py-1.5 text-xs"
           >
             <option value="">All States</option>
             {US_STATE_CODES.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
           <select
-            value={typeFilter}
+            value={filters.type}
             onChange={(e) => updateFilter("type", e.target.value)}
             className="form-select w-44 py-1.5 text-xs"
           >
@@ -142,7 +189,7 @@ export function PartnerAgedView({
             <option value="high_intent_iul">High Intent IUL</option>
           </select>
           <select
-            value={ageFilter}
+            value={filters.age}
             onChange={(e) => updateFilter("age", e.target.value)}
             className="form-select w-36 py-1.5 text-xs"
           >
@@ -159,7 +206,7 @@ export function PartnerAgedView({
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-slate-900">Available Aged Leads</h2>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-              {agedLeads.length}
+              {filteredLeads.length}
             </span>
           </div>
           {selected.size > 0 && canBuy && (
@@ -177,7 +224,7 @@ export function PartnerAgedView({
         </div>
 
         <div className="overflow-x-auto">
-          {agedLeads.length === 0 ? (
+          {filteredLeads.length === 0 ? (
             <EmptyState
               icon={ShoppingBag}
               title="No aged leads available"
@@ -191,7 +238,7 @@ export function PartnerAgedView({
                   <th className="w-8">
                     <input
                       type="checkbox"
-                      checked={selected.size === agedLeads.length && agedLeads.length > 0}
+                      checked={allVisibleSelected}
                       onChange={toggleAll}
                       className="rounded border-slate-300"
                     />
@@ -207,11 +254,15 @@ export function PartnerAgedView({
                 </tr>
               </thead>
               <tbody>
-                {agedLeads.map((lead) => {
-                  const ageDays = getAgeDays(lead.receivedAt);
+                {visibleLeads.map((lead) => {
+                  const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
                   return (
-                    <tr key={lead.id}>
-                      <td>
+                    <tr
+                      key={lead.id}
+                      className="cursor-pointer"
+                      onClick={() => openPreview(lead)}
+                    >
+                      <td onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={selected.has(lead.id)}
@@ -240,12 +291,12 @@ export function PartnerAgedView({
                           {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
                         </Badge>
                       </td>
-                      <td className="text-xs text-slate-600">
-                        {lead.haveIul ?? "—"}
-                      </td>
+                      <td className="text-xs text-slate-600">{lead.haveIul ?? "—"}</td>
                       <td>
                         {lead.intent ? (
-                          <Badge variant={lead.leadType === "high_intent_iul" ? "green" : "yellow"}>
+                          <Badge
+                            variant={lead.leadType === "high_intent_iul" ? "green" : "yellow"}
+                          >
                             {lead.intent}
                           </Badge>
                         ) : (
@@ -258,10 +309,15 @@ export function PartnerAgedView({
                           <span className="font-medium">{ageDays}d</span>
                         </div>
                       </td>
-                      <td className={moneyCellClass(agedPriceColumnWidth, "font-bold text-slate-900")}>
+                      <td
+                        className={moneyCellClass(agedPriceColumnWidth, "font-bold text-slate-900")}
+                      >
                         {formatUsd(agedPrice)}
                       </td>
-                      <td className={agedActionColumnClassName}>
+                      <td
+                        className={agedActionColumnClassName}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex justify-center">
                           <button
                             type="button"
@@ -284,14 +340,20 @@ export function PartnerAgedView({
             </table>
           )}
         </div>
-        <TablePagination
-          page={page}
+        <ClientTablePagination
+          page={safePage}
           pageSize={pageSize}
-          total={total}
-          basePath="/partner/aged"
-          searchParams={paginationParams}
+          total={filteredLeads.length}
+          onPageChange={setPage}
         />
       </div>
+
+      <AgedLeadPreviewSheet
+        lead={previewLead}
+        agedPrice={agedPrice}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
     </div>
   );
 }

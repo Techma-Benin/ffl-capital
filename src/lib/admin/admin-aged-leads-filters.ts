@@ -180,6 +180,49 @@ export async function buildAdminAgedLeadsWhere(
   return buildAgedLeadWhereWithCutoff(cutoff, extra);
 }
 
+/** Max aged leads loaded once for partner marketplace client-side filters. */
+export const PARTNER_AGED_CLIENT_LOAD_LIMIT = 2500;
+
+export function partnerAgedLeadAgeDays(receivedAt: Date | string): number {
+  return Math.floor(
+    (Date.now() - new Date(receivedAt).getTime()) / (1000 * 60 * 60 * 24),
+  );
+}
+
+/** Mirrors `resolveAgedLeadAgeReceivedAt` buckets for in-memory partner filtering. */
+export function partnerAgedLeadMatchesAgeBucket(
+  receivedAt: Date | string,
+  bucket: AdminAgedLeadAgeFilter,
+): boolean {
+  const ageDays = partnerAgedLeadAgeDays(receivedAt);
+  if (bucket === "30") return ageDays >= 30 && ageDays <= 60;
+  if (bucket === "60") return ageDays >= 60 && ageDays <= 90;
+  return ageDays >= 90;
+}
+
+export function filterPartnerAgedLeadsInMemory<
+  T extends { state: string; leadType: string; receivedAt: string | Date },
+>(
+  leads: T[],
+  filters: { state: string; type: string; age: string },
+): T[] {
+  return leads.filter((lead) => {
+    if (filters.state && lead.state !== filters.state) return false;
+    if (filters.type && lead.leadType !== filters.type) return false;
+    if (
+      filters.age &&
+      ADMIN_AGED_AGE_BUCKETS.includes(filters.age as AdminAgedLeadAgeFilter) &&
+      !partnerAgedLeadMatchesAgeBucket(
+        lead.receivedAt,
+        filters.age as AdminAgedLeadAgeFilter,
+      )
+    ) {
+      return false;
+    }
+    return true;
+  });
+}
+
 export function adminAgedLeadFiltersToSearchParams(
   filters: AdminAgedLeadFilters,
 ): URLSearchParams {
