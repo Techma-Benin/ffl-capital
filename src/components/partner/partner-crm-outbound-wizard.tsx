@@ -8,7 +8,7 @@ import {
 import type { CrmOutboundConfigInput } from "@/lib/crm-outbound/schemas";
 import { ActionButton } from "@/components/ui/action-button";
 import { Switch } from "@/components/ui/switch";
-import { CheckCircle, WarningCircle } from "@/lib/icons/client";
+import { WarningCircle } from "@/lib/icons/client";
 
 type AuthType = CrmOutboundConfigInput["authType"];
 
@@ -388,33 +388,18 @@ export function PartnerCrmOutboundWizard({
 
       <div className={`${showPageChrome ? "mb-6" : "mb-4"} flex flex-wrap gap-2`}>
         {STEPS.map((label, i) => {
-          const complete = isStepComplete(i, form);
           const active = step === i;
           return (
             <button
               key={label}
               type="button"
               onClick={() => setStep(i)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
                 active
                   ? "bg-brand-600 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
-              {complete ? (
-                <CheckCircle
-                  size={12}
-                  className={active ? "text-white/90" : "text-emerald-500"}
-                  aria-hidden
-                />
-              ) : (
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    active ? "bg-amber-200" : "bg-amber-400"
-                  }`}
-                  aria-hidden
-                />
-              )}
               {i + 1}. {label}
             </button>
           );
