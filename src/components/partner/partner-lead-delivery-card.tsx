@@ -388,7 +388,7 @@ export function PartnerLeadDeliveryCard({
                   <div className="space-y-3">
                     <ChannelRow
                       name="CRM POST"
-                      detail="Not configured — leads are emailed only"
+                      detail="Send a JSON POST to your CRM when a lead matches."
                       status="off"
                     />
                     <div className="rounded-lg border border-slate-100 bg-slate-50 px-3.5 py-3">
