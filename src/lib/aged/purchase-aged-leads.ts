@@ -1,7 +1,6 @@
 import {
   DeliveryChannel,
   LeadEventType,
-  LeadStatus,
   PartnerStatus,
   TransactionType,
 } from "@prisma/client";
@@ -12,8 +11,6 @@ import { deliverLead } from "@/lib/delivery/deliver-lead";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { debitWallet } from "@/lib/wallet/ledger";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
-
-const MIN_FILTER_STATES = 15;
 
 export interface AgedPurchaseResult {
   purchased: Array<{ leadId: string; deliveryId: string }>;
@@ -26,21 +23,10 @@ export async function purchaseAgedLeads(
 ): Promise<AgedPurchaseResult> {
   const partner = await prisma.partner.findUniqueOrThrow({
     where: { id: partnerId },
-    include: {
-      filterSets: { where: { active: true }, select: { filterStates: true } },
-    },
   });
 
   if (partner.status !== PartnerStatus.active) {
     throw new Error("Partner account is not active");
-  }
-
-  const allowedStates = Array.from(
-    new Set(partner.filterSets.flatMap((fs) => fs.filterStates)),
-  );
-
-  if (allowedStates.length < MIN_FILTER_STATES) {
-    throw new Error("Partner must have at least 15 target states across active filter sets");
   }
 
   const agedPrice = await getDefaultAgedPrice();
@@ -52,8 +38,6 @@ export async function purchaseAgedLeads(
       const deliveryId = await purchaseSingleAgedLead(
         partnerId,
         leadId,
-        allowedStates,
-        partner.leadType,
         agedPrice,
       );
       purchased.push({ leadId, deliveryId });
@@ -71,8 +55,6 @@ export async function purchaseAgedLeads(
 async function purchaseSingleAgedLead(
   partnerId: string,
   leadId: string,
-  filterStates: string[],
-  partnerLeadType: string,
   agedPrice: number,
 ): Promise<string> {
   const agedWhere = await buildAgedLeadWhere();
@@ -82,12 +64,6 @@ async function purchaseSingleAgedLead(
     });
 
     if (!lead) throw new Error("Lead not available for aged purchase");
-    if (!filterStates.includes(lead.state)) {
-      throw new Error("Lead state not in your target states");
-    }
-    if (lead.leadType !== partnerLeadType) {
-      throw new Error("Lead type does not match your account");
-    }
 
     const partner = await tx.partner.findUniqueOrThrow({
       where: { id: partnerId },

@@ -10,6 +10,7 @@ import { usePartner } from "@/components/partner/partner-provider";
 import { ShoppingBag, Funnel, Clock, ShieldCheck } from "@/lib/icons/client";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
+import { US_STATE_CODES } from "@/lib/constants/us-states";
 
 type AgedLead = {
   id: string;
@@ -120,7 +121,7 @@ export function PartnerAgedView({
             className="form-select w-40 py-1.5 text-xs"
           >
             <option value="">All States</option>
-            {partner.filterStates.map((s) => (
+            {US_STATE_CODES.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
@@ -177,11 +178,7 @@ export function PartnerAgedView({
               icon={ShoppingBag}
               title="No aged leads available"
               accent="teal"
-              description={
-                partner.filterStates.length === 0
-                  ? "You have no target states selected. Set up your states in Settings to see leads."
-                  : "No aged leads match your filters right now. Check back later."
-              }
+              description="No aged leads match your filters right now. Check back later."
             />
           ) : (
             <table className="data-table">

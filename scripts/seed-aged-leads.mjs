@@ -1,6 +1,7 @@
 /**
  * Inserts aged leads (received_at older than the aged-days threshold) for admin
- * /admin/aged and partner /partner/aged UI demos. Does not delete unrelated data.
+ * /admin/aged and partner /partner/aged UI demos. Partner marketplace lists the
+ * full aged pool (no filter-set targeting). Does not delete unrelated data.
  * Re-run replaces rows whose external_id starts with aged-demo-.
  *
  * Usage: npm run seed:aged-leads

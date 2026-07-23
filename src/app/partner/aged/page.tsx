@@ -1,12 +1,14 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PartnerAgedView } from "@/components/partner/partner-aged";
-import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 import { parsePageParams } from "@/lib/pagination";
+import {
+  buildAdminAgedLeadsWhere,
+  parseAdminAgedLeadFilters,
+} from "@/lib/admin/admin-aged-leads-filters";
 
 export default async function PartnerAgedPage({
   searchParams,
@@ -16,48 +18,14 @@ export default async function PartnerAgedPage({
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
-  const targeting = await prisma.partner.findUnique({
-    where: { id: partnerId },
-    select: {
-      leadType: true,
-      filterSets: { where: { active: true }, select: { filterStates: true } },
-    },
+  const filters = parseAdminAgedLeadFilters({
+    state: searchParams.state,
+    type: searchParams.type,
+    age: searchParams.age,
   });
-  if (!targeting) redirect("/onboarding");
-
-  const allowedStates = Array.from(
-    new Set(targeting.filterSets.flatMap((fs) => fs.filterStates)),
-  );
-
-  const extra: Prisma.LeadWhereInput = {
-    state: { in: allowedStates.length > 0 ? allowedStates : ["__none__"] },
-    leadType: targeting.leadType,
-  };
-
-  if (searchParams.state) extra.state = searchParams.state;
-  if (searchParams.type) extra.leadType = searchParams.type;
-
-  if (searchParams.age) {
-    const minDays = Number(searchParams.age);
-    const maxCutoff = new Date();
-    maxCutoff.setDate(maxCutoff.getDate() - minDays);
-
-    if (searchParams.age === "30") {
-      const minCutoff = new Date();
-      minCutoff.setDate(minCutoff.getDate() - 60);
-      extra.receivedAt = { lte: maxCutoff, gte: minCutoff };
-    } else if (searchParams.age === "60") {
-      const minCutoff = new Date();
-      minCutoff.setDate(minCutoff.getDate() - 90);
-      extra.receivedAt = { lte: maxCutoff, gte: minCutoff };
-    } else {
-      extra.receivedAt = { lte: maxCutoff };
-    }
-  }
+  const agedWhere = await buildAdminAgedLeadsWhere(filters);
 
   const { page, pageSize, skip } = parsePageParams(searchParams);
-
-  const agedWhere = await buildAgedLeadWhere(extra);
 
   const [agedLeads, total, agedPrice] = await Promise.all([
     prisma.lead.findMany({

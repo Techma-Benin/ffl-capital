@@ -326,8 +326,8 @@ Phase D — Migration Replit (livraison client)
 - Historique transactions (pas de PDF facture obligatoire V1)
 
 #### Marketplace aged leads
-- Filtres : état(s), type IUL, budget max
-- Liste leads `available=true`, âge ≥ 30 jours, prix 5 $
+- Filtres **UI** (optionnels) : état, type IUL, tranche d’âge — **pas** de restriction par filter set ni par `lead_type` compte
+- Liste : même éligibilité que admin (âge ≥ seuil, `status != dead`) ; **pas** de condition `available = true`
 - **Achat unitaire** : bouton acheter sur une ligne
 - **Sélection multiple** : checkboxes + « Acheter la sélection »
 - Débit wallet, livraison email + CRM
@@ -387,15 +387,17 @@ Phase D — Migration Replit (livraison client)
 
 ### 5.7 Marketplace aged leads
 
-**Éligibilité listing (séparée de `available`) :**
-- `now - received_at ≥ 30 jours`
+**Éligibilité listing (séparée de `available` et des filter sets temps réel) :**
+- `now - received_at ≥ 30 jours` (seuil admin configurable)
 - `status != dead`
 - **Pas de condition `available = true`** — un lead déjà vendu en temps réel (`available=false`) peut être listé
-- Filtres partner : état, type IUL, wallet, ≥ 15 états
+- **Pas d’application des `partner_filter_sets`** sur le browse : le partenaire voit l’inventaire aged global et filtre via l’UI (état, type, âge)
 
 **Achat partner :**
-- Manuel (unitaire ou checkboxes)
-- Débit wallet 5 $ (ou prix config admin)
+- Manuel (unitaire ou checkboxes) ; débit wallet (prix aged config admin, défaut 5 $)
+- Compte `active` + solde wallet suffisant
+- Lead toujours éligible aged au moment de l’achat (même règles d’âge / hors `dead`)
+- **Pas** de contrôle état ∈ filter set ni égalité `lead_type` compte (distinct du matching temps réel)
 - Créer `lead_delivery` channel=`aged`
 - `available` **reste `false`** (déjà vendu ou non — inchangé)
 - Email + CRM

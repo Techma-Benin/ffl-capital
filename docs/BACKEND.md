@@ -186,6 +186,19 @@ Tri : `src/lib/admin/admin-aged-leads-sort.ts` (`buildAdminAgedLeadOrderBy` — 
 
 **Mark dead (ligne)** : `DELETE /api/admin/leads/:id` (existant) → `status=dead`, `available=false` ; retire le lead de la liste aged.
 
+### Partner aged marketplace (`/partner/aged`)
+
+Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `aged_days_threshold`, hors `dead`). **Les filter sets et le `lead_type` du compte ne restreignent pas** le listing ni l’achat — seuls le matching temps réel et les remboursements « wrong filter » s’appuient sur les filter sets.
+
+| Param | Valeurs | Effet |
+|-------|---------|--------|
+| `state` | code US 2 lettres (ex. `TX`) | Filtre `state` (optionnel) |
+| `type` | `traditional_iul` \| `high_intent_iul` | Filtre `leadType` (optionnel) |
+| `age` | `30` \| `60` \| `90` | Bucket jours sur `receivedAt` (intersecté avec le seuil aged) |
+| `page` | entier | Pagination (`parsePageParams`, 25/page) |
+
+**Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet ; pas de garde filter set / min 15 états.
+
 ---
 
 ## Mapping intake Boberdoo
