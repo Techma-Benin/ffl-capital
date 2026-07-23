@@ -84,6 +84,21 @@ async function main() {
       walletBalance: 500,
       status: PartnerStatus.active,
       createdAt: baseDate,
+      // Sample CRM outbound so Partner Settings shows the configured Lead delivery UI.
+      crmOutboundConfig: {
+        create: {
+          enabled: true,
+          endpointUrl: "https://crm.example.com/leads",
+          httpMethod: "POST",
+          authType: "bearer",
+          authConfig: { token: "seed-demo-token" },
+          fieldMappings: [
+            { source: "firstName", target: "first_name" },
+            { source: "email", target: "email" },
+          ],
+          successRule: { require2xx: true },
+        },
+      },
     },
   });
 

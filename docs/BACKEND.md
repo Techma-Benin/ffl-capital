@@ -354,7 +354,7 @@ pnpm stripe:listen       # webhook Stripe local
 | Email | Rôle test |
 |-------|-----------|
 | `tx-priority10@ffl-test.local` | TX, filter set priorité 10 — gagne le match |
-| `fifo-older@ffl-test.local` | TX, priorité 8, créé en premier (FIFO) |
+| `fifo-older@ffl-test.local` | TX, priorité 8, créé en premier (FIFO) ; seed inclut aussi un `partner_crm_outbound_configs` demo (enabled + bearer + mappings) pour prévisualiser Lead delivery sur `/partner/settings` |
 | `fifo-newer@ffl-test.local` | TX, priorité 8, créé après |
 | `ca-partner@ffl-test.local` | CA uniquement |
 | `low-balance@ffl-test.local` | Solde 5 $ — exclu |
