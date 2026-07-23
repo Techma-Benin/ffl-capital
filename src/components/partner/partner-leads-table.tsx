@@ -185,24 +185,58 @@ export function PartnerLeadsTable({
     else setSelected(new Set(refundable.map((d) => d.id)));
   }, [refundable, selected.size]);
 
+  const bulkRefundLabel =
+    refundableSelected.length > 0
+      ? `Request refund (${refundableSelected.length})`
+      : "Request refund";
+
   const headerColumns = useMemo(() => {
     return columns.map((col) => {
-      if (col.key !== "select") return col;
-      return {
-        ...col,
-        headerClassName: col.headerClassName ?? "w-10",
-        headerContent: (
-          <input
-            type="checkbox"
-            checked={selectAllChecked}
-            onChange={toggleAll}
-            className="rounded border-slate-300"
-            aria-label="Select all refundable leads"
-          />
-        ),
-      };
+      if (col.key === "select") {
+        return {
+          ...col,
+          headerClassName: col.headerClassName ?? "w-10",
+          headerContent: (
+            <input
+              type="checkbox"
+              checked={selectAllChecked}
+              onChange={toggleAll}
+              className="rounded border-slate-300"
+              aria-label="Select all refundable leads"
+            />
+          ),
+        };
+      }
+      if (col.key === "actions") {
+        return {
+          ...col,
+          headerClassName: col.headerClassName ?? "w-12 text-right",
+          headerContent: (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={!refundableSelected.length}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBulkRefundOpen(true);
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-amber-600 disabled:pointer-events-none disabled:opacity-40"
+                aria-label={bulkRefundLabel}
+                title={bulkRefundLabel}
+              >
+                <ArrowCounterClockwise
+                  size={18}
+                  weight={ICON_WEIGHT_LINEAR}
+                  aria-hidden
+                />
+              </button>
+            </div>
+          ),
+        };
+      }
+      return col;
     });
-  }, [columns, selectAllChecked, toggleAll]);
+  }, [columns, selectAllChecked, toggleAll, bulkRefundLabel, refundableSelected.length]);
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -382,20 +416,6 @@ export function PartnerLeadsTable({
 
   return (
     <>
-      {selected.size > 0 && (
-        <div className="flex items-center justify-end gap-2 px-1 pb-2 pt-1">
-          <button
-            type="button"
-            disabled={!refundableSelected.length}
-            onClick={() => setBulkRefundOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-40"
-          >
-            <ArrowCounterClockwise size={14} />
-            Request refund ({refundableSelected.length})
-          </button>
-        </div>
-      )}
-
       <PortalDataTable
         columns={headerColumns}
         sort={sort}
