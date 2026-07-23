@@ -184,11 +184,12 @@ export function AdminDateRangePopover({
   }, [open, from, to]);
 
   useLayoutEffect(() => {
-    if (!hideTrigger || !open || !anchorRef?.current) {
+    if (!hideTrigger || !open || !anchorRef) {
       return;
     }
+    const anchorEl = anchorRef;
     function place() {
-      const anchor = anchorRef.current;
+      const anchor = anchorEl.current;
       const panel = popoverRef.current;
       if (!anchor) return;
       const rect = anchor.getBoundingClientRect();

@@ -15,7 +15,7 @@ import {
   computeAdminPartnersView,
   type AdminPartnersListFilters,
   type AdminPartnersRawData,
-} from "@/lib/admin/partners-raw";
+} from "@/lib/admin/partners-view";
 import { PARTNER_COMPANY_PARAM } from "@/lib/admin/partner-list-filters";
 import {
   PARTNER_SORT_KEYS,
