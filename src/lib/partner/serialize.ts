@@ -30,7 +30,6 @@ export function serializePartner(
     lastName: partner.lastName,
     affiliation: partner.affiliation,
     residenceState: partner.residenceState,
-    leadType: partner.leadType,
     filterStates,
     hasEligibleFilterSet: hasEligibleFilterSet(filterSets),
     hasStatesInAnyFilterSet,

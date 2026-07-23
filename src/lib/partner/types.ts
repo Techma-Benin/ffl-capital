@@ -8,7 +8,6 @@ export type PartnerSession = {
   lastName: string;
   affiliation: string | null;
   residenceState: string;
-  leadType: string;
   filterStates: string[];
   /** True when an active filter set meets matching min-states eligibility. */
   hasEligibleFilterSet: boolean;

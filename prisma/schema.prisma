@@ -134,7 +134,6 @@ model Partner {
   lastName         String        @map("last_name")
   affiliation      String?
   residenceState   String        @map("residence_state")
-  leadType         String        @map("lead_type")
   filterStates     String[]      @map("filter_states")
   priority         Int           @default(5)
   priceOverride    Decimal?      @map("price_override") @db.Decimal(10, 2)

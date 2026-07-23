@@ -19,6 +19,7 @@ import {
 import type { FilterCriteria } from "@/lib/matching/types";
 import { FilterSetModal } from "@/components/filter-sets/filter-set-modal";
 import {
+  type CategoryOption,
   type FilterSetFormData,
 } from "@/components/filter-sets/filter-set-form";
 
@@ -40,12 +41,10 @@ type PartnerFilterSet = {
   filterCriteria?: FilterCriteria;
 };
 
-const PARTNER_CATEGORIES = [
+const PARTNER_CATEGORIES: CategoryOption[] = [
   { type: "traditional_iul", label: "Traditional IUL" },
   { type: "high_intent_iul", label: "High Intent IUL" },
-] as const;
-
-type PartnerLeadType = (typeof PARTNER_CATEGORIES)[number]["type"];
+];
 
 const DEFAULT_FORM: FilterSetFormData = {
   name: "",
@@ -309,11 +308,6 @@ function displayProfileValue(value: string | null | undefined) {
   return trimmed ? trimmed : "—";
 }
 
-function leadTypeLabel(value: string | null | undefined) {
-  const match = PARTNER_CATEGORIES.find((c) => c.type === value);
-  return match?.label ?? displayProfileValue(value);
-}
-
 function formatPartnerDisplayName(
   firstName: string | null | undefined,
   lastName: string | null | undefined,
@@ -347,70 +341,12 @@ function PartnerProfileSection({
   statusBadge,
   statusLabel,
   avatarUrl,
-  isEditing,
-  onIsEditingChange,
-  onProfileSavingChange,
 }: {
   partner: ReturnType<typeof usePartner>["partner"];
   statusBadge: "green" | "yellow" | "red" | "slate";
   statusLabel: string;
   avatarUrl?: string;
-  isEditing: boolean;
-  onIsEditingChange: (editing: boolean) => void;
-  onProfileSavingChange?: (saving: boolean) => void;
 }) {
-  const clerk = useClerk();
-  const { patchPartner } = usePartner();
-  const [draftLeadType, setDraftLeadType] = useState<PartnerLeadType>(
-    partner.leadType as PartnerLeadType,
-  );
-  const [leadTypeSaving, setLeadTypeSaving] = useState(false);
-  const [leadTypeSuccess, setLeadTypeSuccess] = useState(false);
-  const [leadTypeError, setLeadTypeError] = useState("");
-
-  useEffect(() => {
-    if (!isEditing) {
-      setDraftLeadType(partner.leadType as PartnerLeadType);
-      setLeadTypeError("");
-      setLeadTypeSuccess(false);
-    }
-  }, [partner.leadType, isEditing]);
-
-  const leadTypeDirty = draftLeadType !== partner.leadType;
-
-  useEffect(() => {
-    onProfileSavingChange?.(leadTypeSaving);
-  }, [leadTypeSaving, onProfileSavingChange]);
-
-  async function saveProfile() {
-    if (!leadTypeDirty) {
-      onIsEditingChange(false);
-      return;
-    }
-    setLeadTypeError("");
-    setLeadTypeSuccess(false);
-    setLeadTypeSaving(true);
-    try {
-      const res = await fetch("/api/partners/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadType: draftLeadType }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setLeadTypeError(data.error ?? "Failed to save lead type");
-        return;
-      }
-      patchPartner({ leadType: data.leadType });
-      setLeadTypeSuccess(true);
-      onIsEditingChange(false);
-    } catch {
-      setLeadTypeError("Request failed. Please try again.");
-    } finally {
-      setLeadTypeSaving(false);
-    }
-  }
-
   return (
     <section id="profile" className={settingsSectionClass}>
       <div className="border-b border-slate-100 p-6">
@@ -432,20 +368,11 @@ function PartnerProfileSection({
             >
               {displayProfileValue(partner.email)}
             </p>
-            {isEditing && (
-              <button
-                type="button"
-                onClick={() => clerk.openUserProfile()}
-                className="mt-2 text-xs font-medium text-brand-600 hover:text-brand-700"
-              >
-                Update name, email, or photo
-              </button>
-            )}
           </div>
         </div>
       </div>
 
-      <dl className="grid grid-cols-1 gap-x-8 gap-y-6 p-6 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid grid-cols-1 gap-x-8 gap-y-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
         <PartnerProfileField
           label="Residence state"
           value={partner.residenceState}
@@ -454,57 +381,11 @@ function PartnerProfileSection({
           label="Affiliation (company)"
           value={partner.affiliation}
         />
-        {isEditing ? (
-          <div className="min-w-0">
-            <dt className="text-xs font-medium text-slate-500">Lead type</dt>
-            <dd className="mt-1">
-              <select
-                className="form-select max-w-xs"
-                value={draftLeadType}
-                onChange={(e) => {
-                  setDraftLeadType(e.target.value as PartnerLeadType);
-                  setLeadTypeSuccess(false);
-                  setLeadTypeError("");
-                }}
-              >
-                {PARTNER_CATEGORIES.map((c) => (
-                  <option key={c.type} value={c.type}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              {leadTypeError && (
-                <p className="mt-1 text-xs text-red-600">{leadTypeError}</p>
-              )}
-            </dd>
-          </div>
-        ) : (
-          <PartnerProfileField
-            label="Lead type"
-            value={leadTypeLabel(partner.leadType)}
-          />
-        )}
         <PartnerProfileField
           label="Member since"
           value={formatMemberSince(partner.createdAt)}
         />
       </dl>
-
-      {isEditing && (
-        <div className="flex justify-end border-t border-slate-100 px-6 py-4">
-          <ActionButton
-            type="button"
-            loading={leadTypeSaving}
-            loadingText="Saving…"
-            success={leadTypeSuccess}
-            successText="Saved"
-            disabled={!leadTypeDirty}
-            onClick={saveProfile}
-          >
-            Save changes
-          </ActionButton>
-        </div>
-      )}
     </section>
   );
 }
@@ -514,8 +395,7 @@ function PartnerProfileSection({
 export function PartnerSettingsView() {
   const { partner, patchPartner } = usePartner();
   const { user } = useUser();
-  const [profileEditing, setProfileEditing] = useState(false);
-  const [profileSaving, setProfileSaving] = useState(false);
+  const { openUserProfile } = useClerk();
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.location.hash) return;
@@ -567,25 +447,14 @@ export function PartnerSettingsView() {
         title="Settings"
         subtitle="Your profile, webhook integrations, and lead filter sets."
         action={
-          profileEditing ? (
-            <button
-              type="button"
-              onClick={() => setProfileEditing(false)}
-              disabled={profileSaving}
-              className="btn-secondary btn-sm"
-            >
-              Cancel
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setProfileEditing(true)}
-              className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-            >
-              <PencilSimple size={16} weight={ICON_WEIGHT_LINEAR} />
-              Edit profile
-            </button>
-          )
+          <button
+            type="button"
+            onClick={() => openUserProfile()}
+            className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+          >
+            <PencilSimple size={16} weight={ICON_WEIGHT_LINEAR} />
+            Edit profile
+          </button>
         }
       />
 
@@ -595,9 +464,6 @@ export function PartnerSettingsView() {
           statusBadge={statusBadge}
           statusLabel={statusLabel}
           avatarUrl={user?.imageUrl}
-          isEditing={profileEditing}
-          onIsEditingChange={setProfileEditing}
-          onProfileSavingChange={setProfileSaving}
         />
 
         <section id="webhook" className={`${settingsSectionClass} p-6`}>

@@ -6,7 +6,6 @@ import { getPartnerSession, getPartnerId } from "@/lib/partner/session";
 import { serializePartner } from "@/lib/partner/serialize";
 const patchSchema = z.object({
   crmWebhookUrl: z.union([z.string().url(), z.literal("")]).optional(),
-  leadType: z.enum(["traditional_iul", "high_intent_iul"]).optional(),
 });
 
 export async function GET() {
@@ -40,16 +39,11 @@ export async function PATCH(request: NextRequest) {
 
   const data: {
     crmWebhookUrl?: string | null;
-    leadType?: "traditional_iul" | "high_intent_iul";
   } = {};
 
   if (parsed.data.crmWebhookUrl !== undefined) {
     data.crmWebhookUrl =
       parsed.data.crmWebhookUrl === "" ? null : parsed.data.crmWebhookUrl;
-  }
-
-  if (parsed.data.leadType !== undefined) {
-    data.leadType = parsed.data.leadType;
   }
 
   if (Object.keys(data).length === 0) {

@@ -77,7 +77,6 @@ export async function POST(request: NextRequest) {
       lastName: parsed.data.lastName,
       affiliation: parsed.data.affiliation,
       residenceState: parsed.data.residenceState.toUpperCase(),
-      leadType: parsed.data.leadType,
       filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
       status,
       filterSets: {
