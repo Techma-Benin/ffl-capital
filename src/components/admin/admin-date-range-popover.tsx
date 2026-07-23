@@ -17,8 +17,10 @@ import { clsx } from "clsx";
 import { ArrowLeft, ArrowRight, X } from "@/lib/icons/client";
 import { ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import {
+  adminCalendarToday,
   adminDateToYmd,
   adminParseYmd,
+  clampAdminDateRangeToToday,
   formatAdminCustomRangeLabel,
   formatAdminDateRangeFieldLabel,
 } from "@/lib/admin/admin-date-period";
@@ -135,14 +137,19 @@ export function AdminDateRangePopover({
     left: 0,
   });
 
-  function resetWorkingFromApplied() {
-    setStart(appliedFrom);
-    setEnd(appliedTo);
+  function syncWorkingRange(fromDate: Date | null, toDate: Date | null) {
+    const clamped = clampAdminDateRangeToToday(fromDate, toDate);
+    setStart(clamped.start);
+    setEnd(clamped.end);
     setEditing(null);
     setHover(null);
     setPicker(null);
-    const anchor = appliedFrom ?? new Date();
+    const anchor = clamped.start ?? clamped.end ?? adminCalendarToday();
     setView(startOfMonth(anchor));
+  }
+
+  function resetWorkingFromApplied() {
+    syncWorkingRange(appliedFrom, appliedTo);
   }
 
   function openPopover() {
@@ -175,13 +182,8 @@ export function AdminDateRangePopover({
     if (!open) return;
     const nextStart = from ? adminParseYmd(from) : null;
     const nextEnd = to ? adminParseYmd(to) : null;
-    setStart(nextStart);
-    setEnd(nextEnd);
-    setEditing(null);
-    setHover(null);
-    setPicker(null);
-    const anchor = nextStart ?? new Date();
-    setView(startOfMonth(anchor));
+    syncWorkingRange(nextStart, nextEnd);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-sync when props change while open
   }, [open, from, to]);
 
   useLayoutEffect(() => {
@@ -248,6 +250,8 @@ export function AdminDateRangePopover({
   }
 
   function pick(t: number) {
+    const maxSelectable = ymdTime(adminCalendarToday())!;
+    if (t > maxSelectable) return;
     const d = new Date(t);
     if (editing === "start") {
       setStart(d);
@@ -302,13 +306,20 @@ export function AdminDateRangePopover({
   const first = new Date(view.getFullYear(), view.getMonth(), 1);
   const gridStart = new Date(first);
   gridStart.setDate(1 - first.getDay());
-  const today = ymdTime(new Date());
+  const calendarToday = adminCalendarToday();
+  const today = ymdTime(calendarToday)!;
+  const maxSelectable = today;
+  const canGoNextMonth =
+    view.getFullYear() < calendarToday.getFullYear() ||
+    (view.getFullYear() === calendarToday.getFullYear() &&
+      view.getMonth() < calendarToday.getMonth());
   const cells: ReactNode[] = [];
 
   for (let i = 0; i < 42; i++) {
     const d = new Date(gridStart);
     d.setDate(gridStart.getDate() + i);
     const t = ymdTime(d)!;
+    const isFuture = t > maxSelectable;
     const other = d.getMonth() !== view.getMonth();
     const col = i % 7;
     const isStart = sameDay(d, start);
@@ -331,6 +342,7 @@ export function AdminDateRangePopover({
         className={clsx(
           styles.cell,
           other && styles.other,
+          isFuture && styles.disabled,
           t === today && styles.today,
           col === 0 && styles.weekStart,
           col === 6 && styles.weekEnd,
@@ -344,8 +356,11 @@ export function AdminDateRangePopover({
           type="button"
           className={styles.day}
           data-t={t}
+          disabled={isFuture}
+          aria-disabled={isFuture}
           onClick={() => onDayClick(t, view.getMonth())}
           onMouseEnter={() => {
+            if (isFuture) return;
             if (start && !end) setHover(d);
           }}
         >
@@ -358,9 +373,10 @@ export function AdminDateRangePopover({
   const triggerLabel = formatAdminCustomRangeLabel(from, to);
 
   function handleApply() {
-    if (!start) return;
-    const endDate = end ?? start;
-    onApply(adminDateToYmd(start), adminDateToYmd(endDate));
+    const clamped = clampAdminDateRangeToToday(start, end);
+    if (!clamped.start) return;
+    const endDate = clamped.end ?? clamped.start;
+    onApply(adminDateToYmd(clamped.start), adminDateToYmd(endDate));
     if (!hideTrigger) closePopover();
   }
 
@@ -533,9 +549,11 @@ export function AdminDateRangePopover({
           </div>
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-900 hover:bg-slate-50"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Next month"
+            disabled={!canGoNextMonth}
             onClick={() => {
+              if (!canGoNextMonth) return;
               closePicker();
               setView(
                 new Date(view.getFullYear(), view.getMonth() + 1, 1),
@@ -562,40 +580,55 @@ export function AdminDateRangePopover({
             )}
           >
             {picker === "month" &&
-              MONTHS_SHORT.map((m, i) => (
-                <button
-                  key={m}
-                  type="button"
-                  className={clsx(
-                    "rounded-[10px] border px-0 py-3 text-sm font-medium transition-colors",
-                    i === view.getMonth()
-                      ? "border-brand-700 bg-brand-700 font-semibold text-white"
-                      : "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50",
-                  )}
-                  onClick={() => {
-                    setView(new Date(view.getFullYear(), i, 1));
-                    closePicker();
-                  }}
-                >
-                  {m}
-                </button>
-              ))}
+              MONTHS_SHORT.map((m, i) => {
+                const monthFuture =
+                  view.getFullYear() > calendarToday.getFullYear() ||
+                  (view.getFullYear() === calendarToday.getFullYear() &&
+                    i > calendarToday.getMonth());
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    disabled={monthFuture}
+                    className={clsx(
+                      "rounded-[10px] border px-0 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                      i === view.getMonth()
+                        ? "border-brand-700 bg-brand-700 font-semibold text-white"
+                        : "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50",
+                    )}
+                    onClick={() => {
+                      if (monthFuture) return;
+                      setView(new Date(view.getFullYear(), i, 1));
+                      closePicker();
+                    }}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
             {picker === "year" &&
               Array.from({ length: 12 }, (_, idx) => {
                 const y = view.getFullYear() - 6 + idx;
                 const sel = y === view.getFullYear();
+                const yearFuture = y > calendarToday.getFullYear();
                 return (
                   <button
                     key={y}
                     type="button"
+                    disabled={yearFuture}
                     className={clsx(
-                      "rounded-[10px] border px-0 py-3 text-sm font-medium transition-colors",
+                      "rounded-[10px] border px-0 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
                       sel
                         ? "border-brand-700 bg-brand-700 font-semibold text-white"
                         : "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50",
                     )}
                     onClick={() => {
-                      setView(new Date(y, view.getMonth(), 1));
+                      if (yearFuture) return;
+                      const month =
+                        y === calendarToday.getFullYear()
+                          ? Math.min(view.getMonth(), calendarToday.getMonth())
+                          : view.getMonth();
+                      setView(new Date(y, month, 1));
                       closePicker();
                     }}
                   >

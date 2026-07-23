@@ -158,6 +158,26 @@ export function adminParseYmd(ymd: string): Date {
   return new Date(y, m - 1, d);
 }
 
+/** Local calendar "today" for admin date pickers (start of day, no TZ shift). */
+export function adminCalendarToday(now: Date = new Date()): Date {
+  return adminParseYmd(adminDateToYmd(now));
+}
+
+/** Clamp a working range so neither bound exceeds local today. */
+export function clampAdminDateRangeToToday(
+  start: Date | null,
+  end: Date | null,
+  now: Date = new Date(),
+): { start: Date | null; end: Date | null } {
+  const maxYmd = adminDateToYmd(now);
+  let s = start;
+  let e = end;
+  if (s && adminDateToYmd(s) > maxYmd) s = adminParseYmd(maxYmd);
+  if (e && adminDateToYmd(e) > maxYmd) e = adminParseYmd(maxYmd);
+  if (s && e && adminDateToYmd(s) > adminDateToYmd(e)) e = s;
+  return { start: s, end: e };
+}
+
 export function formatAdminDateRangeFieldLabel(ymd: string): string {
   const d = adminParseYmd(ymd);
   return `${MONTHS_LONG[d.getMonth()]}, ${String(d.getDate()).padStart(2, "0")}`;
