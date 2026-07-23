@@ -30,13 +30,6 @@ type WizardForm = {
   bodyKeyEqualsValue: string;
 };
 
-const defaultMapping = (): { source: string; target: string }[] => [
-  { source: "firstName", target: "first_name" },
-  { source: "lastName", target: "last_name" },
-  { source: "email", target: "email" },
-  { source: "phone", target: "phone" },
-];
-
 function emptyForm(): WizardForm {
   return {
     enabled: false,
@@ -48,7 +41,7 @@ function emptyForm(): WizardForm {
     basicUsername: "",
     basicPassword: "",
     bodyFields: [{ key: "sid", value: "" }, { key: "authToken", value: "" }],
-    fieldMappings: defaultMapping(),
+    fieldMappings: [],
     require2xx: true,
     bodyContains: "",
     bodyRegex: "",
@@ -80,8 +73,7 @@ function formFromApi(data: CrmOutboundConfigInput & { updatedAt?: string }): Wiz
   base.enabled = data.enabled;
   base.endpointUrl = data.endpointUrl;
   base.authType = data.authType;
-  base.fieldMappings =
-    data.fieldMappings.length > 0 ? data.fieldMappings : defaultMapping();
+  base.fieldMappings = data.fieldMappings;
 
   const auth = (data.authConfig ?? {}) as Record<string, unknown>;
   if (data.authType === "bearer" && typeof auth.token === "string") {
