@@ -61,7 +61,8 @@ export function PartnerAvatar({
   return (
     <div
       className={clsx(
-        "flex shrink-0 items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-700",
+        // Match Clerk UserButton default avatar (--clerk-color-primary from ClerkProvider).
+        "flex shrink-0 items-center justify-center rounded-full bg-[var(--clerk-color-primary,#2563eb)] font-medium text-white",
         box,
         text,
         className,
