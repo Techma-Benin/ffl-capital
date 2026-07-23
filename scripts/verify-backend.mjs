@@ -213,7 +213,6 @@ async function main() {
       where: {
         email: { not: "fifo-older@ffl-test.local" },
         filterStates: { has: "TX" },
-        leadType: "high_intent_iul",
         status: PartnerStatus.active,
       },
       data: { status: PartnerStatus.disabled },
