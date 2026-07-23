@@ -9,7 +9,7 @@ import { usePartner } from "@/components/partner/partner-provider";
 import { isPartnerActive } from "@/lib/partner/active";
 import { Wallet, FileText, TrendUp, ShoppingBag, MapPin, WarningCircle } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyValueClassName } from "@/lib/format-money";
 
 type RecentDelivery = {
   id: string;
@@ -53,6 +53,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           icon={Wallet}
           accent={walletOk ? "emerald" : "red"}
           blobIndex={0}
+          valueClassName={moneyValueClassName}
         />
         <StatCard
           label="Leads Received"
@@ -74,6 +75,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           icon={ShoppingBag}
           accent="cyan"
           blobIndex={3}
+          valueClassName={moneyValueClassName}
         />
       </div>
 
@@ -109,7 +111,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                   <th>State</th>
                   <th>Type</th>
                   <th>Channel</th>
-                  <th>Price</th>
+                  <th className={moneyHeaderClassName}>Price</th>
                   <th>Delivered</th>
                 </tr>
               </thead>
@@ -137,7 +139,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                         {d.channel === "realtime" ? "Real-time" : "Aged"}
                       </Badge>
                     </td>
-                    <td className="font-semibold text-slate-900">{formatUsd(d.price)}</td>
+                    <td className={moneyCellClass("font-semibold text-slate-900")}>{formatUsd(d.price)}</td>
                     <td className="text-xs text-slate-400" suppressHydrationWarning>
                       {formatDateTime(d.deliveredAt)}
                     </td>

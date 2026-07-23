@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
+import { clsx } from "clsx";
 import { formatDateTime } from "@/lib/format-datetime";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClassName } from "@/lib/format-money";
 import { deliveryChannelLabel, formatTypeLabel } from "@/lib/format-type-label";
 
 type DeliveryRow = {
@@ -25,8 +26,10 @@ type TransactionRow = {
 
 type ActivityItem = DeliveryRow | TransactionRow;
 
-const amountBaseClass =
-  "shrink-0 text-sm font-semibold tabular-nums";
+const amountBaseClass = clsx(
+  "shrink-0 text-sm font-semibold",
+  moneyCellClassName,
+);
 
 function activityAmountClassName(item: ActivityItem): string {
   if (item.kind === "delivery") {

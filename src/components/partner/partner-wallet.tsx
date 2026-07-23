@@ -8,7 +8,7 @@ import { usePartner } from "@/components/partner/partner-provider";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { Wallet, ArrowUpRight, ArrowsClockwise, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyValueClassName } from "@/lib/format-money";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -140,7 +140,7 @@ export function PartnerWalletView({
             >
               Current Balance
             </p>
-            <p className="mt-3 text-5xl font-bold tracking-tight tabular-nums text-white">
+            <p className={clsx("mt-3 text-5xl font-bold tracking-tight text-white", moneyValueClassName)}>
               {formatUsd(balance)}
             </p>
             <p
@@ -353,7 +353,7 @@ export function PartnerWalletView({
                           <p className="mt-1.5 truncate text-xs font-medium text-slate-700">{t.description}</p>
                         )}
                       </div>
-                      <p className={clsx("shrink-0 text-base font-bold tabular-nums", isCredit ? "text-emerald-600" : "text-slate-900")}>
+                      <p className={clsx("shrink-0 text-base font-bold", moneyValueClassName, isCredit ? "text-emerald-600" : "text-slate-900")}>
                         {isCredit ? "+" : "−"}
                         {formatUsd(Math.abs(t.amount))}
                       </p>
@@ -371,7 +371,7 @@ export function PartnerWalletView({
                       <p className="text-[11px] text-slate-400" suppressHydrationWarning>
                         {formatDateTime(t.createdAt)}
                       </p>
-                      <p className="text-[11px] font-medium text-slate-400">
+                      <p className={clsx("text-[11px] font-medium text-slate-400", moneyValueClassName)}>
                         bal. {formatUsd(t.balanceAfter)}
                       </p>
                     </div>

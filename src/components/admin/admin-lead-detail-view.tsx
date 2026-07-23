@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { clsx } from "clsx";
 import { Badge } from "@/components/ui/badge";
 import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
 import { LeadRedeliverButton } from "@/components/admin/lead-redeliver-button";
@@ -10,7 +11,7 @@ import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
 import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyValueClassName } from "@/lib/format-money";
 import { LeadDetailEventsPanel } from "@/components/leads/lead-detail-events-panel";
 import {
   LeadDetailCompliancePanel,
@@ -164,7 +165,7 @@ export function AdminLeadDetailView({
             <LeadDetailKpiTile
               label="Gross sold"
               value={formatUsd(grossSold)}
-              valueClassName="text-emerald-600"
+              valueClassName={clsx("text-emerald-600", moneyValueClassName)}
             />
             <LeadDetailKpiTile
               label="Refundable"
@@ -206,7 +207,7 @@ export function AdminLeadDetailView({
                     <tr>
                       <th>Partner</th>
                       <th>Channel</th>
-                      <th>Price</th>
+                      <th className={moneyHeaderClassName}>Price</th>
                       <th>Delivered</th>
                     </tr>
                   </thead>
@@ -240,7 +241,7 @@ export function AdminLeadDetailView({
                               {d.channel}
                             </Badge>
                           </td>
-                          <td className="font-medium text-slate-700">
+                          <td className={moneyCellClass("font-medium text-slate-700")}>
                             {formatUsd(d.price)}
                           </td>
                           <td

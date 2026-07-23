@@ -11,7 +11,7 @@ import {
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClass } from "@/lib/format-money";
 import {
   PortalDataTable,
   portalTableCell,
@@ -320,7 +320,7 @@ export function PartnerLeadsTable({
             className={cellClass({
               first,
               last,
-              className: "font-semibold text-slate-700",
+              className: moneyCellClass("font-semibold text-slate-700"),
             })}
           >
             {formatUsd(d.price)}

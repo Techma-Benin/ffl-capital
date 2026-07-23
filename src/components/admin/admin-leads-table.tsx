@@ -13,6 +13,7 @@ import {
   type PortalDataTableLayout,
 } from "@/components/ui/portal-data-table";
 import { formatDateTime } from "@/lib/format-datetime";
+import { moneyCellClass } from "@/lib/format-money";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import {
   ArrowsClockwise,
@@ -233,7 +234,7 @@ export function AdminLeadsTable({
             className={cellClass({
               first,
               last,
-              className: "font-semibold text-slate-700",
+              className: moneyCellClass("font-semibold text-slate-700"),
             })}
           >
             {lead.price ?? <span className="text-slate-300">—</span>}

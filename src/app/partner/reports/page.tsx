@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ChartBar, FileText, TrendUp, TrendDown, ArrowCounterClockwise } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDateTime } from "@/lib/format-datetime";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyValueClassName } from "@/lib/format-money";
 
 export default async function PartnerReportsPage() {
   const partnerId = await getPartnerId();
@@ -40,13 +40,14 @@ export default async function PartnerReportsPage() {
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Funded" value={formatUsd(totalTopUp)} icon={TrendUp} accent="emerald" />
-        <StatCard label="Total on Leads" value={formatUsd(totalLeads)} icon={TrendDown} accent="brand" />
+        <StatCard label="Total Funded" value={formatUsd(totalTopUp)} icon={TrendUp} accent="emerald" valueClassName={moneyValueClassName} />
+        <StatCard label="Total on Leads" value={formatUsd(totalLeads)} icon={TrendDown} accent="brand" valueClassName={moneyValueClassName} />
         <StatCard
           label="Total Refunded"
           value={formatUsd(totalRefunds)}
           icon={ArrowCounterClockwise}
           accent="amber"
+          valueClassName={moneyValueClassName}
         />
         <StatCard
           label="Leads Purchased"
@@ -75,8 +76,8 @@ export default async function PartnerReportsPage() {
                 <tr>
                   <th>Type</th>
                   <th>Description</th>
-                  <th>Amount</th>
-                  <th>Balance After</th>
+                  <th className={moneyHeaderClassName}>Amount</th>
+                  <th className={moneyHeaderClassName}>Balance After</th>
                   <th>Date</th>
                 </tr>
               </thead>
@@ -97,13 +98,13 @@ export default async function PartnerReportsPage() {
                     <tr key={t.id}>
                       <td><Badge variant={typeConfig.variant}>{typeConfig.label}</Badge></td>
                       <td className="text-slate-500">{t.description ?? "—"}</td>
-                      <td>
+                      <td className={moneyCellClass()}>
                         <span className={`font-semibold ${isCredit ? "text-emerald-600" : "text-slate-900"}`}>
                           {isCredit ? "+" : ""}
                           {formatUsd(Math.abs(amount))}
                         </span>
                       </td>
-                      <td className="font-medium">{formatUsd(t.balanceAfter)}</td>
+                      <td className={moneyCellClass("font-medium")}>{formatUsd(t.balanceAfter)}</td>
                       <td className="text-xs text-slate-400" suppressHydrationWarning>
                         {formatDateTime(t.createdAt)}
                       </td>

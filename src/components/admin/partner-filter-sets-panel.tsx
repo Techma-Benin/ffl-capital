@@ -11,7 +11,7 @@ import {
   toFormData,
 } from "@/components/filter-sets/filter-set-form";
 
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 
 // Re-export shared types so existing importers keep working
 export type {
@@ -203,7 +203,7 @@ export function PartnerFilterSetsPanel({
                 <th>Lead Type</th>
                 <th>States</th>
                 <th>Priority</th>
-                <th>Price Override</th>
+                <th className={moneyHeaderClassName}>Price Override</th>
                 <th>Limits</th>
                 <th>Delivery</th>
                 <th>Status</th>
@@ -222,7 +222,7 @@ export function PartnerFilterSetsPanel({
                   </td>
                   <td>{fs.filterStates.length}</td>
                   <td>{fs.priority}</td>
-                  <td>
+                  <td className={moneyCellClass()}>
                     {fs.priceOverride != null
                       ? formatUsd(fs.priceOverride)
                       : "—"}

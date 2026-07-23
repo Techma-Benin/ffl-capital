@@ -20,7 +20,7 @@ import {
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import type { RefundLeadSnapshot } from "@/lib/admin/refund-lead-snapshot";
 import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
 import { RefundLeadCell } from "@/components/admin/refund-lead-cell";
@@ -286,7 +286,7 @@ export function AdminRefundsPendingTable({
               <th>State</th>
               <th>Type</th>
               <th>Reason</th>
-              <th>Amount</th>
+              <th className={moneyHeaderClassName}>Amount</th>
               <th>Requested</th>
               <th className="w-12 text-center" />
             </tr>
@@ -343,7 +343,7 @@ export function AdminRefundsPendingTable({
                   />
                 </td>
                 <RefundReasonCell reason={r.reason} />
-                <td className="font-semibold text-slate-900">
+                <td className={moneyCellClass("font-semibold text-slate-900")}>
                   {formatUsd(r.amount)}
                 </td>
                 <td className="text-xs text-slate-400" suppressHydrationWarning>

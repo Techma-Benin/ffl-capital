@@ -1,5 +1,7 @@
 /** Shared USD formatting for UI (en-US, 2 decimal places, grouping). */
 
+import { clsx } from "clsx";
+
 export type MoneyInput =
   | number
   | string
@@ -40,4 +42,17 @@ export function formatUsd(amount: MoneyInput): string {
 /** e.g. `1,050.00` (no currency symbol) */
 export function formatUsdPlain(amount: MoneyInput): string {
   return usdPlainFormatter.format(toMoneyNumber(amount));
+}
+
+/** Table cells for Price, Amount, Balance, Wallet, etc. */
+export const moneyCellClassName = "text-right tabular-nums";
+
+/** Table header alignment for monetary columns. */
+export const moneyHeaderClassName = "text-right";
+
+/** KPI / stat card values when showing currency. */
+export const moneyValueClassName = "text-right tabular-nums";
+
+export function moneyCellClass(...extra: (string | false | null | undefined)[]) {
+  return clsx(moneyCellClassName, ...extra);
 }

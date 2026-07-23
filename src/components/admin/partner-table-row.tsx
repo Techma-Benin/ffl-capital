@@ -15,7 +15,7 @@ import {
   type PartnersColumnVisibilityState,
 } from "@/lib/admin/partners-table-columns";
 import { clsx } from "clsx";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClass } from "@/lib/format-money";
 import {
   CheckCircle,
   Prohibit,
@@ -365,12 +365,12 @@ export function PartnerTableRow({
       {columnVisibility.wallet && (
         <td
           className={portalTableDataCellClassName(layout, {
-            className: "text-right",
+            className: moneyCellClass(),
           })}
         >
           <span
             className={clsx(
-              "font-semibold tabular-nums",
+              "font-semibold",
               partner.walletOk ? "text-slate-900" : "text-red-500",
             )}
           >

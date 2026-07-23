@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
 import { ShoppingBag, Funnel, Clock, ShieldCheck } from "@/lib/icons/client";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 
 type AgedLead = {
   id: string;
@@ -202,7 +202,7 @@ export function PartnerAgedView({
                   <th>Age</th>
                   <th>Intent</th>
                   <th>TrustedForm</th>
-                  <th>Price</th>
+                  <th className={moneyHeaderClassName}>Price</th>
                   <th className="text-right">Action</th>
                 </tr>
               </thead>
@@ -273,7 +273,7 @@ export function PartnerAgedView({
                           <span className="text-xs text-slate-300">—</span>
                         )}
                       </td>
-                      <td className="font-bold text-slate-900">{formatUsd(agedPrice)}</td>
+                      <td className={moneyCellClass("font-bold text-slate-900")}>{formatUsd(agedPrice)}</td>
                       <td>
                         <div className="flex justify-end">
                           <button

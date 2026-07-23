@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatUsdPlain } from "@/lib/format-money";
+import { formatUsdPlain, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -374,7 +374,7 @@ export function LeadCategoryManager() {
                 <tr>
                   <th className="px-4 py-2.5 text-left">Category</th>
                   <th className="px-4 py-2.5 text-left">SRC</th>
-                  <th className="px-4 py-2.5 text-left">Price</th>
+                  <th className={`px-4 py-2.5 ${moneyHeaderClassName}`}>Price</th>
                   <th className="px-4 py-2.5 text-left">Status</th>
                 </tr>
               </thead>
@@ -392,7 +392,7 @@ export function LeadCategoryManager() {
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">
                       {cat.src ?? <span className="text-slate-300">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className={moneyCellClass("px-4 py-3 text-xs text-slate-600")}>
                       {cat.defaultPrice != null
                         ? formatUsdPlain(cat.defaultPrice)
                         : <span className="text-slate-400">global</span>}

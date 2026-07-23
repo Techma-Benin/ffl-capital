@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { clsx } from "clsx";
 import { Badge } from "@/components/ui/badge";
 import { PrimaryLinkArrow } from "@/components/ui/primary-link-arrow";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { formatDateTime } from "@/lib/format-datetime";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyValueClassName } from "@/lib/format-money";
 import {
   formatRefundLeadChannel,
   refundLeadStatusBadge,
@@ -52,6 +53,7 @@ export function RefundLeadDetailSheet({ lead, open, onOpenChange }: Props) {
             {
               label: "Delivery price",
               value: formatUsd(lead.delivery.price),
+              valueClassName: moneyValueClassName,
             },
             {
               label: "Delivery channel",
@@ -65,7 +67,14 @@ export function RefundLeadDetailSheet({ lead, open, onOpenChange }: Props) {
               <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 {item.label}
               </dt>
-              <dd className="mt-1 text-base font-bold text-slate-900">{item.value}</dd>
+              <dd
+                className={clsx(
+                  "mt-1 text-base font-bold text-slate-900",
+                  item.valueClassName,
+                )}
+              >
+                {item.value}
+              </dd>
             </div>
           ))}
         </dl>

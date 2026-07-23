@@ -1,4 +1,5 @@
 import type { LeadViewColumn } from "@/lib/leads/list-view-schema";
+import { moneyHeaderClassName } from "@/lib/format-money";
 
 export type LeadColumnDef = {
   key: string;
@@ -17,7 +18,7 @@ export const ADMIN_LEAD_COLUMNS: LeadColumnDef[] = [
   { key: "type", label: "Type", sortable: true, sortKey: "leadType" },
   { key: "status", label: "Status", sortable: true, sortKey: "status" },
   { key: "partner", label: "Partner" },
-  { key: "price", label: "Price" },
+  { key: "price", label: "Price", headerClassName: moneyHeaderClassName },
   { key: "received", label: "Received", sortable: true, sortKey: "receivedAt" },
   { key: "trustedform", label: "TrustedForm" },
   { key: "actions", label: "", required: true },
@@ -30,7 +31,7 @@ export const PARTNER_LEAD_COLUMNS: LeadColumnDef[] = [
   { key: "location", label: "Location", sortable: true, sortKey: "state" },
   { key: "type", label: "Type", sortable: true, sortKey: "type" },
   { key: "channel", label: "Channel", sortable: true, sortKey: "channel" },
-  { key: "price", label: "Price", sortable: true, sortKey: "price" },
+  { key: "price", label: "Price", sortable: true, sortKey: "price", headerClassName: moneyHeaderClassName },
   { key: "status", label: "Status", sortable: true, sortKey: "status" },
   { key: "delivered", label: "Delivered", sortable: true, sortKey: "deliveredAt" },
   { key: "actions", label: "", required: true },

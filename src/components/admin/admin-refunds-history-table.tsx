@@ -18,7 +18,7 @@ import {
   type RefundTypeFilter,
 } from "@/lib/refunds/constants";
 import { formatDateTime } from "@/lib/format-datetime";
-import { formatUsd } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import type { RefundLeadSnapshot } from "@/lib/admin/refund-lead-snapshot";
 import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
 import { RefundLeadCell } from "@/components/admin/refund-lead-cell";
@@ -160,7 +160,7 @@ export function AdminRefundsHistoryTable({
               <th>Partner</th>
               <th>Lead</th>
               <th>Type</th>
-              <th>Amount</th>
+              <th className={moneyHeaderClassName}>Amount</th>
               <th>Decision</th>
               <th>Reviewed</th>
             </tr>
@@ -193,7 +193,7 @@ export function AdminRefundsHistoryTable({
                     }
                   />
                 </td>
-                <td className="font-semibold">{formatUsd(r.amount)}</td>
+                <td className={moneyCellClass("font-semibold")}>{formatUsd(r.amount)}</td>
                 <td>
                   <RefundDecisionBadge
                     decision={r.status}
