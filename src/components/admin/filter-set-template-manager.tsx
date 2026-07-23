@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import {
   Plus,
-  PencilSimple,
   Trash,
   X,
   Funnel,
@@ -392,8 +391,16 @@ export function FilterSetTemplateManager() {
                     />
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between px-5 py-3.5">
-                    <div className="flex-1 min-w-0">
+                  <div className="flex items-center px-5 py-3.5 hover:bg-brand-50 transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(t.id);
+                        setShowCreate(false);
+                      }}
+                      className="flex-1 min-w-0 text-left cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+                      aria-label={`Edit template ${t.name}`}
+                    >
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-slate-900 truncate">{t.name}</span>
                         <Badge variant="blue">{LEAD_TYPE_LABELS[t.leadType]}</Badge>
@@ -402,29 +409,16 @@ export function FilterSetTemplateManager() {
                       {t.description && (
                         <p className="text-xs text-slate-500 mt-0.5 truncate">{t.description}</p>
                       )}
-                    </div>
-                    <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                      <button
-                        type="button"
-                        title="Edit"
-                        onClick={() => {
-                          setEditingId(t.id);
-                          setShowCreate(false);
-                        }}
-                        className="rounded p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
-                      >
-                        <PencilSimple size={14} weight={ICON_WEIGHT_LINEAR} />
-                      </button>
-                      <button
-                        type="button"
-                        title="Delete"
-                        disabled={deletingId === t.id}
-                        onClick={() => handleDelete(t.id)}
-                        className="rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
-                      >
-                        <Trash size={14} weight={ICON_WEIGHT_LINEAR} />
-                      </button>
-                    </div>
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete"
+                      disabled={deletingId === t.id}
+                      onClick={() => handleDelete(t.id)}
+                      className="ml-4 flex-shrink-0 rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+                    >
+                      <Trash size={14} weight={ICON_WEIGHT_LINEAR} />
+                    </button>
                   </div>
                 )}
               </div>
