@@ -21,14 +21,12 @@ import {
   ADMIN_AGED_AGE_FILTER_OPTIONS,
   ADMIN_AGED_TYPE_FILTER_OPTIONS,
   PARTNER_AGED_HAVE_IUL_FILTER_OPTIONS,
-  PARTNER_AGED_INTENT_FILTER_OPTIONS,
   filterPartnerAgedLeadsInMemory,
   partnerAgedLeadAgeDays,
   type AdminAgedLeadAgeFilterValue,
   type AdminAgedLeadTypeFilter,
   type PartnerAgedClientFilters,
   type PartnerAgedHaveIulFilterValue,
-  type PartnerAgedIntentFilterValue,
 } from "@/lib/admin/admin-aged-leads-filters";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import {
@@ -75,7 +73,6 @@ function syncAgedFiltersToUrl(filters: AgedFilters) {
   if (filters.type) params.set("type", filters.type);
   if (filters.age) params.set("age", filters.age);
   if (filters.haveIul) params.set("haveIul", filters.haveIul);
-  if (filters.intent) params.set("intent", filters.intent);
   const qs = params.toString();
   const next = qs ? `/partner/aged?${qs}` : "/partner/aged";
   window.history.replaceState(null, "", next);
@@ -118,19 +115,6 @@ export function PartnerAgedView({
   useEffect(() => {
     setLeads(initialLeads);
   }, [initialLeads]);
-
-  const partnerAgedIntentOptions = useMemo(() => {
-    const byValue = new Map(
-      PARTNER_AGED_INTENT_FILTER_OPTIONS.map((o) => [o.value, o]),
-    );
-    for (const lead of leads) {
-      const intent = lead.intent?.trim();
-      if (intent && !byValue.has(intent)) {
-        byValue.set(intent, { value: intent, label: intent });
-      }
-    }
-    return Array.from(byValue.values());
-  }, [leads]);
 
   const filteredLeads = useMemo(
     () => filterPartnerAgedLeadsInMemory(leads, filters),
@@ -279,18 +263,6 @@ export function PartnerAgedView({
             options={PARTNER_AGED_HAVE_IUL_FILTER_OPTIONS}
             onChange={(haveIul) =>
               updateFilter("haveIul", haveIul === "all" ? "" : haveIul)
-            }
-            searchable={false}
-          />
-          <FilterSelectDropdown
-            id="partner-aged-filter-intent"
-            dimensionLabel="Intent"
-            accent="teal"
-            value={(filters.intent || "all") as PartnerAgedIntentFilterValue}
-            allValue="all"
-            options={partnerAgedIntentOptions}
-            onChange={(intent) =>
-              updateFilter("intent", intent === "all" ? "" : intent)
             }
             searchable={false}
           />
