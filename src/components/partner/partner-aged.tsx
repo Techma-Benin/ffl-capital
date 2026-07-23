@@ -6,13 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
-import {
-  ShoppingBag,
-  Funnel,
-  Clock,
-  Check,
-  ICON_WEIGHT_LINEAR,
-} from "@/lib/icons/client";
+import { ShoppingBag, Funnel, Clock } from "@/lib/icons/client";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
 import { formatUsd } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
@@ -35,26 +29,6 @@ import {
 } from "@/components/partner/aged-lead-preview-sheet";
 
 const agedActionColumnClassName = "w-36 min-w-36 text-center";
-const agedHaveIulColumnClassName = "w-20 text-center";
-
-function partnerAgedHaveIulCell(value: string | null | undefined) {
-  const isYes = (value ?? "").trim().toLowerCase() === "yes";
-  if (isYes) {
-    return (
-      <Check
-        size={14}
-        className="text-emerald-500"
-        weight={ICON_WEIGHT_LINEAR}
-        aria-label="Has IUL"
-      />
-    );
-  }
-  return (
-    <span className="text-xs text-slate-300" aria-hidden>
-      —
-    </span>
-  );
-}
 
 type AgedLead = PartnerAgedLeadPreview;
 
@@ -326,7 +300,6 @@ export function PartnerAgedView({
                   <th>Lead</th>
                   <th>State</th>
                   <th>Type</th>
-                  <th className={agedHaveIulColumnClassName}>Have IUL</th>
                   <th>Age</th>
                   <th className={agedActionColumnClassName}>Action</th>
                 </tr>
@@ -368,11 +341,6 @@ export function PartnerAgedView({
                         <Badge variant="blue">
                           {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
                         </Badge>
-                      </td>
-                      <td className={agedHaveIulColumnClassName}>
-                        <div className="flex justify-center">
-                          {partnerAgedHaveIulCell(lead.haveIul)}
-                        </div>
                       </td>
                       <td>
                         <div className="flex items-center gap-1 text-xs text-slate-600">
