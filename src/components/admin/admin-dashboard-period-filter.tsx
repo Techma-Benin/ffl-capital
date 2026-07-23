@@ -18,11 +18,13 @@ export function AdminDashboardPeriodFilter({
   datePeriod,
   from,
   to,
+  periodDisplayLabel,
   onPeriodChange,
 }: {
   datePeriod: AdminDatePeriod;
   from?: string;
   to?: string;
+  periodDisplayLabel?: string;
   /** When set, updates period client-side (no full navigation / DB refetch). */
   onPeriodChange?: (next: PeriodNavigateInput & { period: AdminDatePeriod }) => void;
 }) {
@@ -68,6 +70,11 @@ export function AdminDashboardPeriodFilter({
       ref={anchorRef}
       className="relative flex items-center justify-end gap-2"
     >
+      {periodDisplayLabel ? (
+        <span className="text-sm text-slate-500" aria-live="polite">
+          {periodDisplayLabel}
+        </span>
+      ) : null}
       <label className="sr-only" htmlFor="admin-dashboard-period">
         Period
       </label>

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db";
 import { PartnerStatus } from "@prisma/client";
-import type { AdminDatePeriod } from "@/lib/leads/list-view-schema";
 import { resolveAdminDashboardLookbackWindow } from "@/lib/admin/admin-date-period";
 
 function startOfDay(d: Date): Date {
@@ -179,8 +178,6 @@ export function computeAdminDashboardChartData(
 export function computeAdminDashboardView(
   raw: AdminDashboardRawData,
   range: { gte: Date; lte: Date },
-  periodLabel: string,
-  datePeriod: AdminDatePeriod,
 ) {
   const leadsInPeriod = raw.leads.filter((l) =>
     inRange(l.receivedAt, range.gte, range.lte),
@@ -199,21 +196,13 @@ export function computeAdminDashboardView(
     .filter((l) => inRange(l.receivedAt, range.gte, range.lte))
     .slice(0, 8);
 
-  const intakeTitle =
-    datePeriod === "last_7_days"
-      ? "Lead Intake (7 days)"
-      : `Lead Intake (${periodLabel})`;
-
   return {
     chartData,
-    intakeTitle,
     kpis: {
       leadsInPeriod,
       deliveriesInPeriod,
       activePartners: raw.activePartners,
       unmatchedLeads: raw.unmatchedLeads,
-      leadsLabel: `Leads (${periodLabel})`,
-      deliveriesLabel: `Deliveries (${periodLabel})`,
     },
     recentLeads,
   };

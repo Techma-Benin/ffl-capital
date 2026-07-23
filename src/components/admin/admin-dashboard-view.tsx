@@ -95,14 +95,8 @@ export function AdminDashboardView({
   );
 
   const view = useMemo(
-    () =>
-      computeAdminDashboardView(
-        raw ?? initialRaw,
-        receivedRange,
-        periodLabel,
-        period.datePeriod,
-      ),
-    [raw, initialRaw, receivedRange, periodLabel, period.datePeriod],
+    () => computeAdminDashboardView(raw ?? initialRaw, receivedRange),
+    [raw, initialRaw, receivedRange],
   );
 
   return (
@@ -115,6 +109,7 @@ export function AdminDashboardView({
             datePeriod={period.datePeriod}
             from={period.from}
             to={period.to}
+            periodDisplayLabel={periodLabel}
             onPeriodChange={onPeriodChange}
           />
         }
@@ -124,7 +119,6 @@ export function AdminDashboardView({
         intakeByDay={view.chartData.intakeByDay}
         sparkByDay={view.chartData.sparkByDay}
         deliveringDonut={view.chartData.deliveringDonut}
-        intakeChartTitle={view.intakeTitle}
         kpis={view.kpis}
         recentLeads={view.recentLeads}
       />
