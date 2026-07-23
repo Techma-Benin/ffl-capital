@@ -144,6 +144,8 @@ Auth : session **admin** ou **partner** (routes miroir sous `/api/admin/lead-vie
 }
 ```
 
+**Corps PATCH** — sous-ensemble optionnel de `name`, `filters`, `sort`, `columns`, `isDefault`. Le sélecteur de colonnes (admin + partner) persiste `{ "columns": [...] }` sur la vue active via `PATCH .../lead-views/[id]` (debounce côté client, flush à la fermeture du panneau). Le layout cartes/tableau reste en `localStorage` (`admin-leads-table-layout` / `partner-leads-table-layout`), pas les colonnes.
+
 **Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `states` (tableau de codes US 2 lettres ; vide ou absent = tous les états ; l’ancien champ `state` unique est migré à la lecture), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `custom`), et si `datePeriod` = `custom` optionnel `from` / `to` (dates ISO `YYYY-MM-DD`, bornes `receivedAt` en jours calendaires locaux), optionnel `q`. Les vues sans `datePeriod` mais avec `from`/`to` sont traitées comme `custom`.
 
 **Filtres partner** (`filters`) : optionnel `filterSetId`, `locations[]`, `channels[]` (`realtime` \| `aged`), `types[]`, `statuses[]` (`active` \| `refund_pending` \| `refunded`).
@@ -339,5 +341,6 @@ stripe:listen           # webhook Stripe local
 | 2026-07-10 | Integrity live bloqué sur specs client ; mock en place |
 | 2026-07-10 | Core backend 9 phases implémentées — voir journal ci-dessus |
 | 2026-07-21 | Vues liste leads (`lead_list_views`) — remplace onglets statut admin ; CRUD admin/partner |
+| 2026-07-23 | Colonnes liste leads — persistance `columns` sur la vue (PATCH) ; plus de `admin-leads-visible-columns` |
 | 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |
 | 2026-07-22 | Admin aged — tableau tri URL + pagination + mark dead (UI) |
