@@ -23,8 +23,11 @@ export default function PartnerSettingsLoading() {
           <Skeleton className="h-20 w-20 shrink-0 rounded-full" />
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:justify-between">
             <div className="space-y-2">
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-4 w-full max-w-md" />
+              <div className="flex flex-wrap items-center gap-2">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-56 max-w-full" />
             </div>
             <Skeleton className="h-8 w-28 shrink-0 rounded-lg" />
           </div>

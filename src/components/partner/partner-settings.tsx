@@ -9,7 +9,6 @@ import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
 import { usePartner } from "@/components/partner/partner-provider";
 import {
-  Users,
   Gear,
   PlugsConnected,
   Funnel,
@@ -309,6 +308,14 @@ function displayProfileValue(value: string | null | undefined) {
   return trimmed ? trimmed : "—";
 }
 
+function formatPartnerDisplayName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+) {
+  const name = [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ");
+  return name || "Partner";
+}
+
 const settingsSectionClass =
   "card scroll-mt-6 overflow-hidden";
 
@@ -358,17 +365,14 @@ function PartnerProfileSection({
           <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
-                <Users
-                  size={18}
-                  className="text-brand-600"
-                  weight={ICON_WEIGHT_LINEAR}
-                />
-                Profile
+                {formatPartnerDisplayName(partner.firstName, partner.lastName)}
                 <Badge variant={statusBadge}>{statusLabel}</Badge>
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Your account identity and partner record. Name, email, and photo
-                are managed through your sign-in account.
+              <p
+                className="mt-1 truncate text-sm text-slate-500"
+                title={partner.email?.trim() || undefined}
+              >
+                {displayProfileValue(partner.email)}
               </p>
             </div>
             <button
