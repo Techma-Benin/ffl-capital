@@ -296,10 +296,13 @@ Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`
 
 ### Connexion locale (Prisma)
 
+Supabase dev : session pooler (port **5432**), pas le transaction pooler 6543 (transactions Prisma).
+
 ```
-DATABASE_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://postgres.wbzvyvtlopoghvdqltxm:[PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:5432/postgres?pgbouncer=true
 ```
+
+Replit prod : une seule **`DATABASE_URL`** fournie par le module PostgreSQL Replit.
 
 ### Sécurité RLS
 

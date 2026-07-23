@@ -21,6 +21,17 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 
 ## Setup rapide
 
+### Replit
+
+1. Activer le module **PostgreSQL** dans le Repl — Replit injecte **`DATABASE_URL`** (vérifier dans Secrets / Database).
+2. Après chaque pull : `bash scripts/post-merge.sh` (ou laisser le hook post-merge le faire).
+3. Première fois sur une base vide : `npm run seed`.
+4. Lancer : **Run** (`npm run dev -- -p 5000`) ou `npm run dev -- -p 5000`.
+
+Pas besoin de **`DIRECT_URL`** (Supabase seulement) ; Prisma utilise uniquement **`DATABASE_URL`**.
+
+### Local / Supabase
+
 ```bash
 # 1. Cloner et installer
 git clone <repo-url>
@@ -29,7 +40,7 @@ npm install
 
 # 2. Configurer la base de données
 cp .env.example .env
-# Remplir DATABASE_URL, DIRECT_URL, CLERK_*, STRIPE_* selon besoin
+# Remplir DATABASE_URL (Replit Postgres le fournit), CLERK_*, STRIPE_* selon besoin
 
 # 3. Migrations et seed
 npx prisma generate
