@@ -49,20 +49,24 @@ export function PartnerAgedView({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
 
-  const [stateFilter, setStateFilter] = useState(urlSearchParams.get("state") ?? "");
-  const [typeFilter, setTypeFilter] = useState(urlSearchParams.get("type") ?? "");
-  const [ageFilter, setAgeFilter] = useState(urlSearchParams.get("age") ?? "");
+  const stateFilter = urlSearchParams.get("state") ?? "";
+  const typeFilter = urlSearchParams.get("type") ?? "";
+  const ageFilter = urlSearchParams.get("age") ?? "";
 
   function getAgeDays(receivedAt: string) {
     return Math.floor((Date.now() - new Date(receivedAt).getTime()) / (1000 * 60 * 60 * 24));
   }
 
-  function applyFilters() {
+  function updateFilter(key: "state" | "type" | "age", value: string) {
     const params = new URLSearchParams();
-    if (stateFilter) params.set("state", stateFilter);
-    if (typeFilter) params.set("type", typeFilter);
-    if (ageFilter) params.set("age", ageFilter);
-    push(`/partner/aged?${params.toString()}`);
+    const state = key === "state" ? value : stateFilter;
+    const type = key === "type" ? value : typeFilter;
+    const age = key === "age" ? value : ageFilter;
+    if (state) params.set("state", state);
+    if (type) params.set("type", type);
+    if (age) params.set("age", age);
+    const qs = params.toString();
+    push(qs ? `/partner/aged?${qs}` : "/partner/aged");
   }
 
   function toggleLead(id: string) {
@@ -117,7 +121,7 @@ export function PartnerAgedView({
           </div>
           <select
             value={stateFilter}
-            onChange={(e) => setStateFilter(e.target.value)}
+            onChange={(e) => updateFilter("state", e.target.value)}
             className="form-select w-40 py-1.5 text-xs"
           >
             <option value="">All States</option>
@@ -127,7 +131,7 @@ export function PartnerAgedView({
           </select>
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={(e) => updateFilter("type", e.target.value)}
             className="form-select w-44 py-1.5 text-xs"
           >
             <option value="">All Types</option>
@@ -136,7 +140,7 @@ export function PartnerAgedView({
           </select>
           <select
             value={ageFilter}
-            onChange={(e) => setAgeFilter(e.target.value)}
+            onChange={(e) => updateFilter("age", e.target.value)}
             className="form-select w-36 py-1.5 text-xs"
           >
             <option value="">Any Age</option>
@@ -144,9 +148,6 @@ export function PartnerAgedView({
             <option value="60">60–90 days</option>
             <option value="90">90+ days</option>
           </select>
-          <button type="button" onClick={applyFilters} className="btn-secondary btn-sm ml-auto">
-            Apply
-          </button>
         </div>
       </div>
 
@@ -283,7 +284,7 @@ export function PartnerAgedView({
                                 : "bg-slate-100 text-slate-400 cursor-not-allowed"
                             }`}
                           >
-                            Buy — {formatUsd(agedPrice)}
+                            Buy
                           </button>
                         </div>
                       </td>
