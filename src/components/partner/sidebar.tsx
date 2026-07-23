@@ -35,8 +35,8 @@ const navItems: {
 }[] = [
   { href: "/partner", label: "Dashboard", icon: SquaresFour, exact: true, accent: "brand" },
   { href: "/partner/leads", label: "My Leads", icon: FileText, accent: "orange" },
-  { href: "/partner/wallet", label: "Wallet", icon: Wallet, accent: "red" },
   { href: "/partner/aged", label: "Aged Marketplace", icon: ShoppingBag, accent: "mint" },
+  { href: "/partner/wallet", label: "Wallet", icon: Wallet, accent: "red" },
   { href: "/partner/reports", label: "Reports", icon: ChartBar, accent: "violet" },
   { href: "/partner/settings", label: "Settings", icon: Gear, accent: "amber" },
   { href: "/partner/contact", label: "Contact Us", icon: Phone, accent: "cyan" },
