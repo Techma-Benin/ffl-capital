@@ -55,6 +55,7 @@ export {
   ForbiddenCircle as Prohibit,
   CheckCircle,
   PlugCircle as PlugsConnected,
+  Power,
   ArrowUp,
   ArrowDown,
   Phone,

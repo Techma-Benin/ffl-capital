@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
 import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-display";
-import { Lightning, Trash, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { Lightning, Power, Trash, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 const CRM_OUTBOUND_HREF = "/partner/settings/crm-outbound";
 
@@ -15,6 +15,16 @@ type CrmSummary = {
   endpointUrl: string;
   authType: string;
 } | null;
+
+type CrmOutboundFullConfig = {
+  enabled: boolean;
+  endpointUrl: string;
+  httpMethod?: "POST";
+  authType: string;
+  authConfig?: Record<string, unknown>;
+  fieldMappings: { source: string; target: string }[];
+  successRule?: Record<string, unknown>;
+};
 
 type TestApiResult = {
   ok?: boolean;
@@ -33,7 +43,7 @@ function ChannelRow({
 }: {
   name: string;
   detail: string;
-  status?: "on" | "ready";
+  status?: "on" | "ready" | "off";
   action?: ReactNode;
   /** When set, the whole row navigates here (action buttons must stopPropagation). */
   href?: string;
@@ -46,6 +56,8 @@ function ChannelRow({
       <Badge variant="green">On</Badge>
     ) : status === "ready" ? (
       <Badge variant="blue">Ready</Badge>
+    ) : status === "off" ? (
+      <Badge variant="slate">Off</Badge>
     ) : null;
 
   function navigate() {
@@ -323,6 +335,8 @@ export function PartnerLeadDeliveryCard({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [toggling, setToggling] = useState(false);
+  const [toggleError, setToggleError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -358,10 +372,59 @@ export function PartnerLeadDeliveryCard({
     void load();
   }, [load]);
 
-  const configured = Boolean(crm?.enabled && crm.endpointUrl?.trim());
+  /** Config exists in DB (saved endpoint) — independent of enabled. */
+  const configured = Boolean(crm?.endpointUrl?.trim());
   const host = crm?.endpointUrl
     ? endpointHostForDisplay(crm.endpointUrl)
     : null;
+
+  async function handleToggleEnabled() {
+    if (!crm || toggling) return;
+    setToggling(true);
+    setToggleError("");
+    try {
+      const getRes = await fetch("/api/partners/me/crm-outbound");
+      if (!getRes.ok) {
+        setToggleError("Could not load CRM config");
+        return;
+      }
+      const config = (await getRes.json()) as CrmOutboundFullConfig;
+      const patchRes = await fetch("/api/partners/me/crm-outbound", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: !config.enabled,
+          endpointUrl: config.endpointUrl,
+          httpMethod: "POST" as const,
+          authType: config.authType,
+          authConfig: config.authConfig ?? {},
+          fieldMappings: config.fieldMappings,
+          successRule: config.successRule,
+        }),
+      });
+      if (!patchRes.ok) {
+        const data = await patchRes.json().catch(() => ({}));
+        setToggleError(
+          typeof data.error === "string" ? data.error : "Could not update CRM",
+        );
+        return;
+      }
+      const data = (await patchRes.json()) as {
+        enabled: boolean;
+        endpointUrl: string;
+        authType: string;
+      };
+      setCrm({
+        enabled: data.enabled,
+        endpointUrl: data.endpointUrl,
+        authType: data.authType,
+      });
+    } catch {
+      setToggleError("Could not update CRM");
+    } finally {
+      setToggling(false);
+    }
+  }
 
   async function handleDelete() {
     setDeleting(true);
@@ -417,41 +480,65 @@ export function PartnerLeadDeliveryCard({
                 />
                 <div className="border-t border-slate-100" />
                 {configured && host ? (
-                  <ChannelRow
-                    name="CRM POST"
-                    detail={host}
-                    status="ready"
-                    href={CRM_OUTBOUND_HREF}
-                    action={
-                      <>
-                        <button
-                          type="button"
-                          title="Test"
-                          aria-label="Test CRM delivery"
-                          className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTestOpen(true);
-                          }}
-                        >
-                          <Lightning size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
-                        </button>
-                        <button
-                          type="button"
-                          title="Delete"
-                          aria-label="Remove CRM POST"
-                          className="rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteError("");
-                            setDeleteOpen(true);
-                          }}
-                        >
-                          <Trash size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
-                        </button>
-                      </>
-                    }
-                  />
+                  <>
+                    <ChannelRow
+                      name="CRM POST"
+                      detail={host}
+                      status={crm?.enabled ? "ready" : "off"}
+                      href={CRM_OUTBOUND_HREF}
+                      action={
+                        <>
+                          <button
+                            type="button"
+                            title={crm?.enabled ? "Disable CRM POST" : "Enable CRM POST"}
+                            aria-label={
+                              crm?.enabled ? "Disable CRM POST" : "Enable CRM POST"
+                            }
+                            disabled={toggling}
+                            className={
+                              crm?.enabled
+                                ? "rounded p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
+                                : "rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleToggleEnabled();
+                            }}
+                          >
+                            <Power size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            title="Test"
+                            aria-label="Test CRM delivery"
+                            className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTestOpen(true);
+                            }}
+                          >
+                            <Lightning size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete"
+                            aria-label="Remove CRM POST"
+                            className="rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteError("");
+                              setDeleteOpen(true);
+                            }}
+                          >
+                            <Trash size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+                          </button>
+                        </>
+                      }
+                    />
+                    {toggleError ? (
+                      <p className="text-xs text-red-600">{toggleError}</p>
+                    ) : null}
+                  </>
                 ) : (
                   <ChannelRow
                     name="CRM POST"
