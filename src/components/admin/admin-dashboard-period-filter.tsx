@@ -77,7 +77,16 @@ export function AdminDashboardPeriodFilter({
         }}
       >
         {ADMIN_DASHBOARD_PERIOD_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
+          <option
+            key={o.value}
+            value={o.value}
+            onMouseDown={(e) => {
+              if (o.value === "custom" && datePeriod === "custom") {
+                e.preventDefault();
+                setCustomPickerOpen(true);
+              }
+            }}
+          >
             {o.label}
           </option>
         ))}
