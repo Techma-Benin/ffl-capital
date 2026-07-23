@@ -104,10 +104,6 @@ export function AgedLeadPreviewSheet({ lead, agedPrice, open, onOpenChange }: Pr
             <p className="mt-1 text-sm font-medium text-slate-900">{lead.address}</p>
           </div>
         ) : null}
-
-        <p className="rounded-xl border border-slate-100 bg-slate-50/60 p-4 text-xs leading-relaxed text-slate-600">
-          Email, phone, and other contact details are available after you purchase this lead.
-        </p>
       </SheetBody>
     </Sheet>
   );
