@@ -89,8 +89,11 @@ export default async function AdminAgedPage({
         title="Aged Leads"
         subtitle={`Leads ${agedDays}+ days old — default price ${formatUsd(agedPrice)}`}
         badge={
-          <span className="inline-flex items-center rounded-full border border-teal-100 bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
-            {total.toLocaleString()} available
+          <span
+            title={`${total.toLocaleString()} available`}
+            className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-teal-200 bg-teal-50 px-1 text-xs font-semibold tabular-nums text-teal-700"
+          >
+            {total.toLocaleString()}
           </span>
         }
       />
