@@ -378,22 +378,27 @@ export function PartnerCrmOutboundWizard({
         </div>
       ) : null}
 
-      <div className={`${showPageChrome ? "mb-6" : "mb-4"} flex flex-wrap gap-2`}>
+      <div
+        className={`${showPageChrome ? "mb-6" : "mb-4"} flex flex-wrap gap-2`}
+        aria-label="Wizard progress"
+      >
         {STEPS.map((label, i) => {
           const active = step === i;
+          const completed = i < step;
           return (
-            <button
+            <span
               key={label}
-              type="button"
-              onClick={() => setStep(i)}
+              aria-current={active ? "step" : undefined}
               className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
                 active
                   ? "bg-brand-600 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  : completed
+                    ? "bg-slate-100 text-slate-700"
+                    : "bg-slate-50 text-slate-400"
               }`}
             >
               {i + 1}. {label}
-            </button>
+            </span>
           );
         })}
       </div>
