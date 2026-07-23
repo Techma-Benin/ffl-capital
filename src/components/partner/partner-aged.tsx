@@ -228,17 +228,29 @@ export function PartnerAgedView({
               {filteredLeads.length}
             </span>
           </div>
-          {selected.size > 0 && canBuy && (
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => purchase(Array.from(selected))}
-              className="btn-primary btn-sm"
-            >
-              {pending
-                ? "Purchasing…"
-                : `Buy — ${formatUsd(selected.size * agedPrice)}`}
-            </button>
+          {selected.size > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => setSelected(new Set())}
+                className="btn-secondary btn-sm"
+              >
+                Clear selection
+              </button>
+              {canBuy && (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => purchase(Array.from(selected))}
+                  className="btn-primary btn-sm"
+                >
+                  {pending
+                    ? "Purchasing…"
+                    : `Buy — ${formatUsd(selected.size * agedPrice)}`}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
