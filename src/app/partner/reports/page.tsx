@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ChartBar, FileText, TrendUp, TrendDown, ArrowCounterClockwise } from "@/lib/icons/ssr";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDateTime } from "@/lib/format-datetime";
-import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyValueClassName } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyStatValueClassName } from "@/lib/format-money";
 
 export default async function PartnerReportsPage() {
   const partnerId = await getPartnerId();
@@ -40,14 +40,14 @@ export default async function PartnerReportsPage() {
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Funded" value={formatUsd(totalTopUp)} icon={TrendUp} accent="emerald" valueClassName={moneyValueClassName} />
-        <StatCard label="Total on Leads" value={formatUsd(totalLeads)} icon={TrendDown} accent="brand" valueClassName={moneyValueClassName} />
+        <StatCard label="Total Funded" value={formatUsd(totalTopUp)} icon={TrendUp} accent="emerald" valueClassName={moneyStatValueClassName} />
+        <StatCard label="Total on Leads" value={formatUsd(totalLeads)} icon={TrendDown} accent="brand" valueClassName={moneyStatValueClassName} />
         <StatCard
           label="Total Refunded"
           value={formatUsd(totalRefunds)}
           icon={ArrowCounterClockwise}
           accent="amber"
-          valueClassName={moneyValueClassName}
+          valueClassName={moneyStatValueClassName}
         />
         <StatCard
           label="Leads Purchased"

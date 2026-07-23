@@ -50,7 +50,10 @@ export const moneyCellClassName = "text-right tabular-nums";
 /** Table header alignment for monetary columns. */
 export const moneyHeaderClassName = "text-right";
 
-/** KPI / stat card values when showing currency. */
+/** KPI / stat card values when currency should align with the label (left). */
+export const moneyStatValueClassName = "tabular-nums";
+
+/** KPI / detail values when currency should stay right-aligned. */
 export const moneyValueClassName = "text-right tabular-nums";
 
 export function moneyCellClass(...extra: (string | false | null | undefined)[]) {
