@@ -1,6 +1,5 @@
 "use client";
 
-import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -9,13 +8,6 @@ export type PartnerEditFormInitial = {
   priceOverride: number | null;
   status: string;
 };
-
-const STATUS_OPTIONS = [
-  { value: "active", label: "Active" },
-  { value: "disabled", label: "Disabled" },
-  { value: "pending_approval", label: "Pending" },
-  { value: "rejected", label: "Rejected" },
-] as const;
 
 type PartnerEditFormProps = {
   partnerId: string;
@@ -105,35 +97,17 @@ export function PartnerEditForm({
           />
         </div>
         <div>
-          <label className="form-label" id="partner-edit-status-label">
-            Status
-          </label>
-          <div
-            role="group"
-            aria-labelledby="partner-edit-status-label"
-            className="grid w-full grid-cols-2 gap-0.5 rounded-lg border border-slate-200 bg-slate-100 p-0.5"
+          <label className="form-label">Status</label>
+          <select
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+            className="form-select"
           >
-            {STATUS_OPTIONS.map(({ value, label }) => {
-              const selected = form.status === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setForm({ ...form, status: value })}
-                  className={clsx(
-                    "rounded-md px-2 py-1.5 text-center text-xs font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1",
-                    selected
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "bg-transparent text-slate-500 hover:text-slate-700",
-                  )}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+            <option value="pending_approval">Pending</option>
+            <option value="rejected">Rejected</option>
+          </select>
         </div>
       </div>
 
