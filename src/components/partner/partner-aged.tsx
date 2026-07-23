@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
-import { ShoppingBag, Funnel, Clock, ShieldCheck } from "@/lib/icons/client";
+import { ShoppingBag, Funnel, Clock } from "@/lib/icons/client";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
@@ -20,7 +20,6 @@ type AgedLead = {
   address: string | null;
   leadType: string;
   receivedAt: string;
-  trustedformCertUrl: string | null;
   intent: string;
   haveIul: string | null;
   primaryGoal: string | null;
@@ -199,7 +198,6 @@ export function PartnerAgedView({
                   <th>Type</th>
                   <th>Age</th>
                   <th>Intent</th>
-                  <th>TrustedForm</th>
                   <th className={moneyHeaderClassName}>Price</th>
                   <th className="text-right">Action</th>
                 </tr>
@@ -252,21 +250,6 @@ export function PartnerAgedView({
                           <Badge variant={lead.leadType === "high_intent_iul" ? "green" : "yellow"}>
                             {lead.intent}
                           </Badge>
-                        ) : (
-                          <span className="text-xs text-slate-300">—</span>
-                        )}
-                      </td>
-                      <td>
-                        {lead.trustedformCertUrl ? (
-                          <a
-                            href={lead.trustedformCertUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
-                          >
-                            <ShieldCheck size={11} />
-                            View
-                          </a>
                         ) : (
                           <span className="text-xs text-slate-300">—</span>
                         )}

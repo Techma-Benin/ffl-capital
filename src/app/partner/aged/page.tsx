@@ -54,7 +54,6 @@ export default async function PartnerAgedPage({
           address: lead.address,
           leadType: lead.leadType,
           receivedAt: lead.receivedAt.toISOString(),
-          trustedformCertUrl: lead.trustedformCertUrl,
           intent: lead.intent ?? (lead.leadType === "high_intent_iul" ? "High Intent" : "Traditional"),
           haveIul: lead.haveIul,
           primaryGoal: lead.primaryGoal,
