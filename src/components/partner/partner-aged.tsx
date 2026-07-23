@@ -49,14 +49,18 @@ function syncAgedFiltersToUrl(filters: AgedFilters) {
   window.history.replaceState(null, "", next);
 }
 
+const agedSubtitleEmphasisClassName = "font-semibold text-slate-700";
+
 export function PartnerAgedView({
   allAgedLeads: initialLeads,
+  agedDays,
   agedPrice,
   totalEligible,
   loadCapped,
   initialFilters,
 }: {
   allAgedLeads: AgedLead[];
+  agedDays: number;
   agedPrice: number;
   totalEligible: number;
   loadCapped: boolean;
@@ -164,7 +168,13 @@ export function PartnerAgedView({
     <div>
       <PageHeader
         title="Aged Lead Marketplace"
-        subtitle={`Browse leads 30+ days old — only ${formatUsd(agedPrice)} each`}
+        subtitle={
+          <>
+            Browse leads{" "}
+            <span className={agedSubtitleEmphasisClassName}>{agedDays}+</span> days old — only{" "}
+            <span className={agedSubtitleEmphasisClassName}>{formatUsd(agedPrice)}</span> each
+          </>
+        }
       />
 
       {loadCapped && (

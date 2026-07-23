@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PartnerAgedView } from "@/components/partner/partner-aged";
-import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
+import { getAgedDaysThreshold, getDefaultAgedPrice } from "@/lib/settings/app-settings";
 import {
   buildAdminAgedLeadsWhere,
   parseAdminAgedLeadFilters,
@@ -21,7 +21,7 @@ export default async function PartnerAgedPage({
 
   const agedWhere = await buildAdminAgedLeadsWhere(parseAdminAgedLeadFilters({}));
 
-  const [agedLeads, totalEligible, agedPrice] = await Promise.all([
+  const [agedLeads, totalEligible, agedPrice, agedDays] = await Promise.all([
     prisma.lead.findMany({
       where: agedWhere,
       orderBy: { receivedAt: "asc" },
@@ -29,11 +29,13 @@ export default async function PartnerAgedPage({
     }),
     prisma.lead.count({ where: agedWhere }),
     getDefaultAgedPrice(),
+    getAgedDaysThreshold(),
   ]);
 
   return (
     <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading…</div>}>
       <PartnerAgedView
+        agedDays={agedDays}
         agedPrice={agedPrice}
         allAgedLeads={agedLeads.map((lead) => ({
           id: lead.id,

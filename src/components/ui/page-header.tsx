@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export function PageHeader({
   title,
   subtitle,
@@ -5,7 +7,7 @@ export function PageHeader({
   badge,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   action?: React.ReactNode;
   badge?: React.ReactNode;
 }) {
