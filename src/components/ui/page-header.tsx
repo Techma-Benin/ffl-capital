@@ -12,15 +12,19 @@ export function PageHeader({
   badge?: React.ReactNode;
 }) {
   return (
-    <div className="section-header mb-6">
-      <div>
+    <div className="section-header mb-6 flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="min-w-0">
         <div className="flex items-center gap-2.5">
           <h1 className="page-title">{title}</h1>
           {badge}
         </div>
         {subtitle && <p className="page-subtitle">{subtitle}</p>}
       </div>
-      {action && <div className="flex items-center gap-2">{action}</div>}
+      {action && (
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {action}
+        </div>
+      )}
     </div>
   );
 }

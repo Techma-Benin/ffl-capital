@@ -68,10 +68,13 @@ export function AdminDashboardPeriodFilter({
   return (
     <div
       ref={anchorRef}
-      className="relative flex items-center justify-end gap-2"
+      className="relative flex shrink-0 flex-nowrap items-center justify-end gap-2"
     >
       {periodDisplayLabel ? (
-        <span className="text-sm text-slate-500" aria-live="polite">
+        <span
+          className="shrink-0 whitespace-nowrap text-sm text-slate-500"
+          aria-live="polite"
+        >
           {periodDisplayLabel}
         </span>
       ) : null}
