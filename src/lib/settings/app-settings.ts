@@ -96,7 +96,7 @@ export async function seedAppSettings(): Promise<void> {
     { key: APP_SETTING_KEYS.duplicateCheckWindowDays, value: 30 },
     {
       key: APP_SETTING_KEYS.resaleVendorConfigs,
-      value: DEFAULT_RESALE_VENDOR_CONFIGS,
+      value: DEFAULT_RESALE_VENDOR_CONFIGS as Prisma.InputJsonValue,
     },
     { key: APP_SETTING_KEYS.integrityPostDelayHours, value: 24 },
   ];
