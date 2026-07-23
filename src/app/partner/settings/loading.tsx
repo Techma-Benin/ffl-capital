@@ -32,7 +32,7 @@ export default function PartnerSettingsLoading() {
             <Skeleton className="h-8 w-28 shrink-0 rounded-lg" />
           </div>
         </div>
-        <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2 lg:grid-cols-4">
           <ProfileFieldSkeleton />
           <ProfileFieldSkeleton />
           <ProfileFieldSkeleton />

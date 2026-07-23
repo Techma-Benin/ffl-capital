@@ -417,7 +417,7 @@ function PartnerProfileSection({
   return (
     <section id="profile" className={settingsSectionClass}>
       <div className="border-b border-slate-100 p-6">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
           <PartnerAvatar
             avatarUrl={avatarUrl}
             firstName={partner.firstName}
@@ -469,7 +469,7 @@ function PartnerProfileSection({
         </div>
       </div>
 
-      <dl className="grid gap-x-8 gap-y-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
+      <dl className="grid grid-cols-1 gap-x-8 gap-y-6 p-6 sm:grid-cols-2 lg:grid-cols-4">
         <PartnerProfileField
           label="Residence state"
           value={partner.residenceState}
