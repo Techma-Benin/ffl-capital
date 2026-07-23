@@ -284,7 +284,7 @@ export function PartnerAgedView({
                                 : "bg-slate-100 text-slate-400 cursor-not-allowed"
                             }`}
                           >
-                            Buy
+                            Buy — {formatUsd(agedPrice)}
                           </button>
                         </div>
                       </td>
