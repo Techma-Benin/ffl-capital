@@ -28,8 +28,6 @@ import {
   type PartnerAgedLeadPreview,
 } from "@/components/partner/aged-lead-preview-sheet";
 
-const agedActionColumnClassName = "w-36 min-w-36 text-center";
-
 type AgedLead = PartnerAgedLeadPreview;
 
 type AgedFilters = PartnerAgedClientFilters;
@@ -245,11 +243,22 @@ export function PartnerAgedView({
 
       <div className="card">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-900">Available Aged Leads</h2>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-              {filteredLeads.length}
-            </span>
+          <div className="flex items-center gap-3">
+            {filteredLeads.length > 0 && (
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleAll}
+                className="rounded border-slate-300"
+                aria-label="Select all leads on this page"
+              />
+            )}
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-slate-900">Available Aged Leads</h2>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                {filteredLeads.length}
+              </span>
+            </div>
           </div>
           {selected.size > 0 && (
             <div className="flex items-center gap-2">
@@ -277,103 +286,96 @@ export function PartnerAgedView({
           )}
         </div>
 
-        <div className="overflow-x-auto">
-          {filteredLeads.length === 0 ? (
-            <EmptyState
-              icon={ShoppingBag}
-              title="No aged leads available"
-              accent="teal"
-              description="No aged leads match your filters right now. Check back later."
-            />
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="w-8">
-                    <input
-                      type="checkbox"
-                      checked={allVisibleSelected}
-                      onChange={toggleAll}
-                      className="rounded border-slate-300"
-                    />
-                  </th>
-                  <th>Lead</th>
-                  <th>State</th>
-                  <th>Type</th>
-                  <th>Age</th>
-                  <th className={agedActionColumnClassName}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleLeads.map((lead) => {
-                  const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
-                  return (
-                    <tr
-                      key={lead.id}
-                      className="cursor-pointer"
-                      onClick={() => openPreview(lead)}
+        {filteredLeads.length === 0 ? (
+          <EmptyState
+            icon={ShoppingBag}
+            title="No aged leads available"
+            accent="teal"
+            description="No aged leads match your filters right now. Check back later."
+          />
+        ) : (
+          <ul className="divide-y divide-slate-100" aria-label="Available aged leads">
+            {visibleLeads.map((lead) => {
+              const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
+              const leadName = `${lead.firstName} ${lead.lastName}`;
+
+              function onRowKeyDown(e: React.KeyboardEvent) {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openPreview(lead);
+                }
+              }
+
+              return (
+                <li key={lead.id}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className="flex cursor-pointer items-start gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600 sm:items-center"
+                    onClick={() => openPreview(lead)}
+                    onKeyDown={onRowKeyDown}
+                    aria-label={`Preview ${leadName}`}
+                  >
+                    <div
+                      className="flex shrink-0 items-center pt-0.5 sm:pt-0"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(lead.id)}
-                          onChange={() => toggleLead(lead.id)}
-                          className="rounded border-slate-300"
-                        />
-                      </td>
-                      <td>
-                        <p className="font-medium text-slate-900">
-                          {lead.firstName} {lead.lastName}
-                        </p>
-                        {lead.address && (
-                          <p className="text-xs text-slate-400">{lead.address}</p>
-                        )}
-                        {lead.primaryGoal && (
-                          <p className="text-xs text-slate-400">{lead.primaryGoal}</p>
-                        )}
-                      </td>
-                      <td>
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                          {lead.state}
-                        </span>
-                      </td>
-                      <td>
-                        <Badge variant="blue">
-                          {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                        </Badge>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1 text-xs text-slate-600">
-                          <Clock size={11} className="text-slate-400" />
-                          <span className="font-medium">{ageDays}d</span>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(lead.id)}
+                        onChange={() => toggleLead(lead.id)}
+                        className="rounded border-slate-300"
+                        aria-label={`Select ${leadName}`}
+                      />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                        <p className="font-medium text-slate-900">{leadName}</p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
+                            {lead.state}
+                          </span>
+                          <Badge variant="blue">
+                            {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                          </Badge>
+                          <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">
+                            <Clock size={11} className="text-slate-400" aria-hidden />
+                            {ageDays}d
+                          </span>
                         </div>
-                      </td>
-                      <td
-                        className={agedActionColumnClassName}
-                        onClick={(e) => e.stopPropagation()}
+                      </div>
+                      {lead.address && (
+                        <p className="mt-0.5 text-xs text-slate-400">{lead.address}</p>
+                      )}
+                      {lead.primaryGoal && (
+                        <p className="text-xs text-slate-400">{lead.primaryGoal}</p>
+                      )}
+                    </div>
+
+                    <div
+                      className="ml-auto shrink-0 self-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        disabled={!canBuy || pending}
+                        onClick={() => purchase([lead.id])}
+                        className={`btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                          canBuy
+                            ? "bg-brand-700 text-white hover:bg-brand-800"
+                            : "cursor-not-allowed bg-slate-100 text-slate-400"
+                        }`}
                       >
-                        <div className="flex justify-center">
-                          <button
-                            type="button"
-                            disabled={!canBuy || pending}
-                            onClick={() => purchase([lead.id])}
-                            className={`btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                              canBuy
-                                ? "bg-brand-700 text-white hover:bg-brand-800"
-                                : "bg-slate-100 text-slate-400 cursor-not-allowed"
-                            }`}
-                          >
-                            Buy
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+                        Buy
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
         <ClientTablePagination
           page={safePage}
           pageSize={pageSize}
