@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { AdminDatePeriod } from "@/lib/leads/list-view-schema";
 import { ADMIN_DASHBOARD_PERIOD_OPTIONS } from "@/lib/admin/admin-date-period";
@@ -20,6 +20,7 @@ export function AdminDashboardPeriodFilter({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [customPickerOpen, setCustomPickerOpen] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
 
   function navigate(next: {
     period?: AdminDatePeriod;
@@ -54,7 +55,10 @@ export function AdminDashboardPeriodFilter({
   const showCustomPicker = datePeriod === "custom" || customPickerOpen;
 
   return (
-    <div className="relative flex flex-wrap items-start justify-end gap-2">
+    <div
+      ref={anchorRef}
+      className="relative flex items-center justify-end gap-2"
+    >
       <label className="sr-only" htmlFor="admin-dashboard-period">
         Period
       </label>
@@ -82,9 +86,9 @@ export function AdminDashboardPeriodFilter({
       </select>
 
       {showCustomPicker && (
-        <div className="flex w-full basis-full justify-end">
-          <AdminDateRangePopover
+        <AdminDateRangePopover
           hideTrigger
+          anchorRef={anchorRef}
           from={from}
           to={to}
           open
@@ -97,8 +101,7 @@ export function AdminDashboardPeriodFilter({
               setCustomPickerOpen(false);
             }
           }}
-          />
-        </div>
+        />
       )}
     </div>
   );

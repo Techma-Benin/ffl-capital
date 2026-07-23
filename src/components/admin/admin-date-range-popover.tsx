@@ -4,11 +4,15 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type MouseEvent,
   type ReactNode,
+  type RefObject,
 } from "react";
+import { createPortal } from "react-dom";
 import { clsx } from "clsx";
 import { ArrowLeft, ArrowRight, X } from "@/lib/icons/client";
 import { ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
@@ -89,6 +93,7 @@ export function AdminDateRangePopover({
   open: openControlled,
   onOpenChange,
   hideTrigger = false,
+  anchorRef,
 }: {
   from?: string;
   to?: string;
@@ -96,8 +101,10 @@ export function AdminDateRangePopover({
   onCancel?: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  /** When true, show the calendar inline without a separate trigger button. */
+  /** When true, show the calendar without a separate trigger button (anchored modal). */
   hideTrigger?: boolean;
+  /** Anchor element for positioned modal when `hideTrigger` is true. */
+  anchorRef?: RefObject<HTMLElement | null>;
 }) {
   const dialogId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -122,6 +129,11 @@ export function AdminDateRangePopover({
   const [hover, setHover] = useState<Date | null>(null);
   const [editing, setEditing] = useState<EditingField>(null);
   const [picker, setPicker] = useState<PickerKind>(null);
+  const [anchorStyle, setAnchorStyle] = useState<CSSProperties>({
+    visibility: "hidden",
+    top: 0,
+    left: 0,
+  });
 
   function resetWorkingFromApplied() {
     setStart(appliedFrom);
@@ -143,14 +155,21 @@ export function AdminDateRangePopover({
     setPicker(null);
   }
 
-  function handleDismiss() {
-    resetWorkingFromApplied();
+  const handleDismiss = useCallback(() => {
+    setStart(appliedFrom);
+    setEnd(appliedTo);
+    setEditing(null);
+    setHover(null);
+    setPicker(null);
+    const anchor = appliedFrom ?? new Date();
+    setView(startOfMonth(anchor));
     if (hideTrigger) {
       onCancel?.();
     } else {
-      closePopover();
+      setOpen(false);
+      setPicker(null);
     }
-  }
+  }, [appliedFrom, appliedTo, hideTrigger, onCancel, setOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -165,6 +184,53 @@ export function AdminDateRangePopover({
     setView(startOfMonth(anchor));
   }, [open, from, to]);
 
+  useLayoutEffect(() => {
+    if (!hideTrigger || !open || !anchorRef?.current) {
+      return;
+    }
+    function place() {
+      const anchor = anchorRef.current;
+      const panel = popoverRef.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const panelWidth = panel?.offsetWidth ?? 390;
+      const panelHeight = panel?.offsetHeight ?? 420;
+      const gap = 8;
+      const left = Math.min(
+        Math.max(16, rect.right - panelWidth),
+        window.innerWidth - panelWidth - 16,
+      );
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUp =
+        spaceBelow < panelHeight + gap && rect.top > panelHeight + gap;
+      const top = openUp
+        ? rect.top - gap - panelHeight
+        : rect.bottom + gap;
+      setAnchorStyle({
+        top: Math.max(16, top),
+        left,
+        visibility: "visible",
+      });
+    }
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [hideTrigger, open, anchorRef, picker, start, end, view]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      handleDismiss();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, handleDismiss]);
+
   useEffect(() => {
     if (!open || hideTrigger) return;
     function onDocClick(e: globalThis.MouseEvent) {
@@ -173,18 +239,8 @@ export function AdminDateRangePopover({
       setOpen(false);
       setPicker(null);
     }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setOpen(false);
-        setPicker(null);
-      }
-    }
     document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("mousedown", onDocClick);
   }, [open, setOpen, hideTrigger]);
 
   function closePicker() {
@@ -308,14 +364,35 @@ export function AdminDateRangePopover({
     if (!hideTrigger) closePopover();
   }
 
-  const panelVisible = hideTrigger || open;
+  if (hideTrigger) {
+    if (!open || typeof document === "undefined") return null;
+    return createPortal(
+      <>
+        <div
+          className={styles.backdrop}
+          aria-hidden
+          onClick={handleDismiss}
+        />
+        <div
+          id={dialogId}
+          ref={popoverRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filter by date"
+          className={styles.popoverAnchored}
+          style={anchorStyle}
+          onClick={(e: MouseEvent) => e.stopPropagation()}
+          onMouseLeave={() => setHover(null)}
+        >
+          {renderPanelBody()}
+        </div>
+      </>,
+      document.body,
+    );
+  }
 
   return (
-    <div
-      className={clsx("relative", hideTrigger && "w-full max-w-[390px]")}
-      ref={rootRef}
-    >
-      {!hideTrigger && (
+    <div className="relative" ref={rootRef}>
       <button
         type="button"
         className={clsx(
@@ -332,20 +409,24 @@ export function AdminDateRangePopover({
         <span>{triggerLabel}</span>
         <CalendarIcon className="h-[18px] w-[18px] shrink-0 stroke-slate-500" />
       </button>
-      )}
 
       <div
         id={dialogId}
         ref={popoverRef}
         role="dialog"
         aria-label="Filter by date"
-        className={clsx(
-          styles.popover,
-          hideTrigger ? styles.popoverInline : panelVisible && styles.popoverOpen,
-        )}
+        className={clsx(styles.popover, open && styles.popoverOpen)}
         onClick={(e: MouseEvent) => e.stopPropagation()}
         onMouseLeave={() => setHover(null)}
       >
+        {renderPanelBody()}
+      </div>
+    </div>
+  );
+
+  function renderPanelBody() {
+    return (
+      <>
         <div className="mb-4 flex items-center gap-2.5">
           <CalendarIcon className="h-5 w-5 shrink-0 stroke-slate-900" />
           <h2 className="flex-1 text-base font-semibold text-slate-900">
@@ -542,9 +623,9 @@ export function AdminDateRangePopover({
             Apply
           </button>
         </div>
-      </div>
-    </div>
-  );
+      </>
+    );
+  }
 }
 
 function startOfMonth(d: Date): Date {
