@@ -336,7 +336,7 @@ Phase D — Migration Replit (livraison client)
 
 #### Paramètres
 - Layout Settings : Profile + **Lead delivery** (demi/demi) ; filter sets en dessous
-- CRM outbound : carte Lead delivery (Connect / Edit / Test / Delete) ; wizard sur `/partner/settings/crm-outbound` (endpoint HTTPS, auth, mapping → JSON plat) — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
+- CRM outbound : carte Lead delivery — sans config : Connect CRM ; avec config : host + Ready/Off, toggle enable/disable, Test, Delete (clic → wizard) ; wizard sur `/partner/settings/crm-outbound` (endpoint HTTPS, auth, mapping → JSON plat) — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
 - **Modifier états ciblés** (sélection / désélection) — **validé cliente** ; minimum **15 états** pour rester éligible aux achats
 - Modifier type lead (Traditional / High-Intent)
 - Config récurrence wallet
@@ -466,8 +466,8 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 ### 5.11 CRM custom delivery
 
 - Chaque agent configure **un profil POST** via `/partner/settings/crm-outbound` (accès depuis la carte Lead delivery) : URL, auth (`none` / bearer / header / basic / champs body), mapping source → clés JSON plat, règle de succès optionnelle
-- Settings affiche email + CRM (host) ; Test (modal, retourne aussi `requestPayload`) / Edit / Delete
-- À chaque livraison matchée : **email toujours** (Resend) ; si config activée, POST vers l’endpoint partner
+- Settings affiche email + CRM : **configuré** (URL sauvegardée) distinct de **activé** (`enabled`) — host + badge Ready/Off, toggle Power (GET puis PATCH), Test (modal, retourne aussi `requestPayload`), Delete ; sans config → Connect CRM seul
+- À chaque livraison matchée : **email toujours** (Resend) ; si config **activée** (`enabled`), POST vers l’endpoint partner
 - Échec POST : pas de retry ; email partner avec raison (**sans** payload lead)
 - Spécification complète : [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) (SSRF, test fixture, admin lecture seule)
 - Mode `integrations_mode=mock` : pas d’appels HTTP CRM réels ; événements lead tracés

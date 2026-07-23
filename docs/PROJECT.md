@@ -102,7 +102,7 @@ Un lead est **vendu** quand il est assigné à un agent :
 2. **Débit du wallet** de l’agent (25 $ par défaut, remise possible)
 3. Statut → `delivered` / `owned`
 4. **Email** envoyé à l’agent (toujours)
-5. Optionnel : POST CRM configuré par le partner (carte Lead delivery → wizard `/partner/settings/crm-outbound`) — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
+5. Optionnel : POST CRM si config **activée** (`enabled`) — carte Lead delivery (configuré ≠ activé) → wizard `/partner/settings/crm-outbound` — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
 
 **Après la vente :**
 - Le lead **ne réapparaît pas** dans la file temps réel
