@@ -331,27 +331,29 @@ export function PartnerAgedView({
                       />
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <span className="font-medium text-slate-900">{leadName}</span>
-                      {lead.address && (
-                        <p className="mt-0.5 text-xs text-slate-400">{lead.address}</p>
-                      )}
-                      {lead.primaryGoal && (
-                        <p className="text-xs text-slate-400">{lead.primaryGoal}</p>
-                      )}
-                    </div>
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="min-w-0">
+                        <span className="font-medium text-slate-900">{leadName}</span>
+                        {lead.address && (
+                          <p className="mt-0.5 text-xs text-slate-400">{lead.address}</p>
+                        )}
+                        {lead.primaryGoal && (
+                          <p className="text-xs text-slate-400">{lead.primaryGoal}</p>
+                        )}
+                      </div>
 
-                    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                        {lead.state}
-                      </span>
-                      <Badge variant="blue">
-                        {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                      </Badge>
-                      <span className={ageChip.chip}>
-                        <Clock size={11} className={ageChip.icon} aria-hidden />
-                        {ageDays}d
-                      </span>
+                      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
+                          {lead.state}
+                        </span>
+                        <Badge variant="blue">
+                          {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                        </Badge>
+                        <span className={ageChip.chip}>
+                          <Clock size={11} className={ageChip.icon} aria-hidden />
+                          {ageDays}d
+                        </span>
+                      </div>
                     </div>
 
                     <div
