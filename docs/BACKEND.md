@@ -168,7 +168,7 @@ Pas d’API dédiée — la page SSR lit les query params et filtre en base.
 
 **URL canonique** : si la période n’est pas « explicite » (`adminDashboardHasExplicitPeriod` — ex. `/admin` nu, ou `period=custom` sans `from`/`to`), la page SSR **redirige** vers `/admin?period=last_7_days`. Les données suivent le même défaut via `parseAdminDashboardPeriod`.
 
-Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Agrégats graphiques : `getAdminDashboardChartData` (`src/lib/admin/dashboard-stats.ts`). UI : `AdminDashboardPeriodFilter` ; **Custom** affiche `AdminDateRangePopover` en calendrier **inline** (`hideTrigger`) — l’URL `period=custom&from&to` n’est écrite qu’au **Apply** (le choix Custom seul ne laisse pas une URL custom incomplète).
+Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Agrégats graphiques : `getAdminDashboardChartData` (`src/lib/admin/dashboard-stats.ts`). UI : `AdminDashboardPeriodFilter` ; **Custom** ouvre `AdminDateRangePopover` en panneau **modal** ancré en-tête (`hideTrigger`, backdrop) — l’URL `period=custom&from&to` n’est écrite qu’au **Apply** (le choix Custom seul ne laisse pas une URL custom incomplète).
 
 ### Admin aged browse (`/admin/aged`)
 
@@ -359,6 +359,6 @@ stripe:listen           # webhook Stripe local
 | 2026-07-10 | Core backend 9 phases implémentées — voir journal ci-dessus |
 | 2026-07-21 | Vues liste leads (`lead_list_views`) — remplace onglets statut admin ; CRUD admin/partner |
 | 2026-07-23 | Colonnes liste leads — persistance `columns` sur la vue (PATCH) ; plus de `admin-leads-visible-columns` |
-| 2026-07-23 | Dashboard admin — URL canonique `last_7_days`, custom inline + Apply |
+| 2026-07-23 | Dashboard admin — URL canonique `last_7_days`, custom modal + Apply |
 | 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |
 | 2026-07-22 | Admin aged — tableau tri URL + pagination + mark dead (UI) |
