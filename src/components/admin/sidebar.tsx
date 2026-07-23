@@ -41,7 +41,7 @@ const navItems: {
   { href: "/admin/aged", label: "Aged Leads", icon: Archive, accent: "mint" },
   { href: "/admin/filter-list", label: "Filter List", icon: Funnel, accent: "amber" },
   { href: "/admin/integrity", label: "Integrity", icon: Shield, accent: "purple" },
-  { href: "/admin/migration", label: "Migration", icon: DownloadSimple, accent: "cyan" },
+  { href: "/admin/migration", label: "Import", icon: DownloadSimple, accent: "cyan" },
   { href: "/admin/settings", label: "Settings", icon: Gear, accent: "slate" },
 ];
 
