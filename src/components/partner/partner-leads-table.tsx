@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
-import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
-import { LeadTableColumnPickerButton } from "@/components/leads/lead-table-column-picker-button";
 import { Badge } from "@/components/ui/badge";
 import {
   DotsThreeVertical,
@@ -17,10 +15,10 @@ import { formatUsd } from "@/lib/format-money";
 import {
   PortalDataTable,
   portalTableCell,
-  portalTableCellFirst,
-  portalTableCellLast,
+  portalTableDataCellClassName,
   portalTableRowClassName,
   type PortalDataTableColumn,
+  type PortalDataTableLayout,
 } from "@/components/ui/portal-data-table";
 import { RefundRequestModal } from "@/components/refunds/refund-request-modal";
 
@@ -128,7 +126,7 @@ function RowMenu({
             }}
           >
             <Eye size={14} className="text-slate-400" />
-            View Lead
+            View lead
           </button>
 
           {delivery.canRefund && (
@@ -141,7 +139,7 @@ function RowMenu({
               }}
             >
               <ArrowCounterClockwise size={14} className="text-amber-500" />
-              Request Refund
+              Request refund
             </button>
           )}
         </div>
@@ -154,6 +152,8 @@ export function PartnerLeadsTable({
   deliveries,
   columns,
   sort,
+  layout = "cards",
+  tableFooter,
 }: {
   deliveries: DeliveryRow[];
   columns: PortalDataTableColumn[];
@@ -162,9 +162,10 @@ export function PartnerLeadsTable({
     dir: "asc" | "desc";
     hrefBySortKey: Record<string, string>;
   };
+  layout?: PortalDataTableLayout;
+  tableFooter?: React.ReactNode;
 }) {
   const { push, router } = useNavigateWithPending();
-  const columnSettingsBridge = useLeadColumnSettingsBridge();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
   const [bulkRefundOpen, setBulkRefundOpen] = useState(false);
@@ -175,13 +176,13 @@ export function PartnerLeadsTable({
   const selectAllChecked =
     refundable.length > 0 && selected.size === refundable.length;
 
-  function toggleAll() {
+  const toggleAll = useCallback(() => {
     if (selected.size === refundable.length) setSelected(new Set());
     else setSelected(new Set(refundable.map((d) => d.id)));
-  }
+  }, [refundable, selected.size]);
 
   const headerColumns = useMemo(() => {
-    const withSelectHeader = columns.map((col) => {
+    return columns.map((col) => {
       if (col.key !== "select") return col;
       return {
         ...col,
@@ -197,21 +198,7 @@ export function PartnerLeadsTable({
         ),
       };
     });
-
-    if (!columnSettingsBridge) return withSelectHeader;
-    return withSelectHeader.map((col) => {
-      if (col.key !== "actions") return col;
-      return {
-        ...col,
-        headerClassName: col.headerClassName ?? "w-12 text-center",
-        headerContent: (
-          <LeadTableColumnPickerButton
-            onClick={columnSettingsBridge.openColumnSettings}
-          />
-        ),
-      };
-    });
-  }, [columns, columnSettingsBridge, selectAllChecked, deliveries, selected.size]);
+  }, [columns, selectAllChecked, toggleAll]);
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -248,19 +235,31 @@ export function PartnerLeadsTable({
     }
   }
 
-  function renderCell(key: string, d: DeliveryRow, isFirst: boolean, isLast: boolean) {
-    const cellClass = isFirst
-      ? portalTableCellFirst
-      : isLast
-        ? portalTableCellLast
-        : portalTableCell;
+  function cellClass(
+    options: { first?: boolean; last?: boolean; className?: string } = {},
+  ) {
+    return (
+      portalTableDataCellClassName(layout, options) ??
+      options.className ??
+      portalTableCell
+    );
+  }
+
+  function renderCell(
+    key: string,
+    d: DeliveryRow,
+    index: number,
+    total: number,
+  ) {
+    const first = index === 0;
+    const last = index === total - 1;
 
     switch (key) {
       case "select":
         return (
           <td
             key={key}
-            className={portalTableCellFirst}
+            className={cellClass({ first, last })}
             onClick={(e) => e.stopPropagation()}
           >
             <input
@@ -274,29 +273,33 @@ export function PartnerLeadsTable({
         );
       case "name":
         return (
-          <td key={key} className={`whitespace-nowrap ${cellClass}`}>
-            <p className="font-semibold text-slate-900">
+          <td key={key} className={cellClass({ first, last })}>
+            <p className="font-medium text-slate-900">
               {d.lead.firstName} {d.lead.lastName}
             </p>
+            <p className="text-xs text-slate-400">{d.lead.email}</p>
           </td>
         );
       case "contact":
         return (
-          <td key={key} className={`whitespace-nowrap text-sm text-slate-500 ${cellClass}`}>
+          <td
+            key={key}
+            className={cellClass({ first, last, className: "text-slate-500" })}
+          >
             {d.lead.phone}
           </td>
         );
       case "location":
         return (
-          <td key={key} className={cellClass}>
-            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
+          <td key={key} className={cellClass({ first, last })}>
+            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
               {d.lead.state}
             </span>
           </td>
         );
       case "type":
         return (
-          <td key={key} className={cellClass}>
+          <td key={key} className={cellClass({ first, last })}>
             <Badge variant="purple">
               {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
             </Badge>
@@ -304,7 +307,7 @@ export function PartnerLeadsTable({
         );
       case "channel":
         return (
-          <td key={key} className={cellClass}>
+          <td key={key} className={cellClass({ first, last })}>
             <Badge variant={d.channel === "realtime" ? "green" : "purple"}>
               {d.channel === "realtime" ? "Real-time" : "Aged"}
             </Badge>
@@ -312,13 +315,20 @@ export function PartnerLeadsTable({
         );
       case "price":
         return (
-          <td key={key} className={`whitespace-nowrap font-semibold text-slate-900 ${cellClass}`}>
+          <td
+            key={key}
+            className={cellClass({
+              first,
+              last,
+              className: "font-semibold text-slate-700",
+            })}
+          >
             {formatUsd(d.price)}
           </td>
         );
       case "status":
         return (
-          <td key={key} className={cellClass}>
+          <td key={key} className={cellClass({ first, last })}>
             {d.refundedAt ? (
               <Badge variant="slate">Refunded</Badge>
             ) : d.refundStatus ? (
@@ -332,7 +342,11 @@ export function PartnerLeadsTable({
         return (
           <td
             key={key}
-            className={`whitespace-nowrap text-sm text-slate-400 ${cellClass}`}
+            className={cellClass({
+              first,
+              last,
+              className: "text-slate-400 text-xs",
+            })}
             suppressHydrationWarning
           >
             {formatDateTime(d.deliveredAt)}
@@ -340,7 +354,7 @@ export function PartnerLeadsTable({
         );
       case "actions":
         return (
-          <td key={key} className={`text-right ${portalTableCellLast}`}>
+          <td key={key} className={cellClass({ first, last })}>
             <RowMenu delivery={d} onRefund={() => setRefundDialogId(d.id)} />
           </td>
         );
@@ -352,7 +366,7 @@ export function PartnerLeadsTable({
   return (
     <>
       {selected.size > 0 && (
-        <div className="flex items-center justify-end gap-2 px-4 py-2">
+        <div className="flex items-center justify-end gap-2 px-1 pb-2 pt-1">
           <button
             type="button"
             disabled={!refundableSelected.length}
@@ -360,25 +374,25 @@ export function PartnerLeadsTable({
             className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-40"
           >
             <ArrowCounterClockwise size={14} />
-            Request Refund ({refundableSelected.length})
+            Request refund ({refundableSelected.length})
           </button>
         </div>
       )}
 
-      <PortalDataTable columns={headerColumns} sort={sort}>
+      <PortalDataTable
+        columns={headerColumns}
+        sort={sort}
+        layout={layout}
+        footer={tableFooter}
+      >
         {deliveries.map((d) => (
           <tr
             key={d.id}
-            className={`cursor-pointer ${portalTableRowClassName()}`}
+            className={`cursor-pointer ${portalTableRowClassName(undefined, layout)}`}
             onClick={() => push(`/partner/leads/${d.id}`)}
           >
             {headerColumns.map((col, i) =>
-              renderCell(
-                col.key,
-                d,
-                i === 0,
-                i === headerColumns.length - 1,
-              ),
+              renderCell(col.key, d, i, headerColumns.length),
             )}
           </tr>
         ))}

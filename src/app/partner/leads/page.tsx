@@ -3,14 +3,9 @@ import { LeadListViewScope } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PartnerLeadsTable } from "@/components/partner/partner-leads-table";
+import { PartnerLeadsListClient } from "@/components/partner/partner-leads-list-client";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { PortalDataTableCard } from "@/components/ui/portal-data-table";
 import { parsePageParams } from "@/lib/pagination";
-import { FileText } from "@/lib/icons/ssr";
-import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
-import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
 import { buildPartnerLeadsWhere } from "@/lib/partner/partner-leads-query";
 import {
   PARTNER_LEAD_SORT_KEYS,
@@ -143,36 +138,61 @@ export default async function PartnerLeadsPage({
         }
       />
 
-      <LeadColumnSettingsBridge>
-        <PortalDataTableCard
-        tabsSlot={
-          <div className="px-1">
-            <LeadViewsToolbar
-              scope="partner"
-              apiBase="/api/partner/lead-views"
-              basePath={BASE_PATH}
-              views={views}
-              activeView={view}
-              catalog={PARTNER_LEAD_COLUMNS}
-              partnerMeta={{ filterSets, availableStates }}
-              filterSummary={
-                filterChips.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 px-1 text-xs text-slate-500">
-                    {filterChips.map((c) => (
-                      <span
-                        key={c}
-                        className="rounded-full bg-slate-100 px-2 py-0.5"
-                      >
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                ) : null
-              }
-            />
-          </div>
+      <PartnerLeadsListClient
+        basePath={BASE_PATH}
+        views={views}
+        activeView={view}
+        catalog={PARTNER_LEAD_COLUMNS}
+        partnerMeta={{ filterSets, availableStates }}
+        filterSummary={
+          filterChips.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 px-1 text-xs text-slate-500">
+              {filterChips.map((c) => (
+                <span
+                  key={c}
+                  className="rounded-full bg-slate-100 px-2 py-0.5"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          ) : null
         }
-        footer={
+        deliveries={deliveries.map((d) => {
+          const refundReq = d.refundRequests[0];
+          const isRefunded = !!d.refundedAt;
+          const canRefund = d.lead.refundable && !isRefunded && !refundReq;
+          return {
+            id: d.id,
+            price: Number(d.price),
+            channel: d.channel,
+            deliveredAt: d.deliveredAt.toISOString(),
+            refundedAt: d.refundedAt?.toISOString() ?? null,
+            canRefund,
+            refundStatus: refundReq?.status ?? null,
+            lead: {
+              firstName: d.lead.firstName,
+              lastName: d.lead.lastName,
+              email: d.lead.email,
+              phone: d.lead.phone,
+              state: d.lead.state,
+              address: d.lead.address,
+              leadType: d.lead.leadType,
+              intent: d.lead.intent,
+              haveIul: d.lead.haveIul,
+              primaryGoal: d.lead.primaryGoal,
+              refundable: d.lead.refundable,
+              trustedformCertUrl: d.lead.trustedformCertUrl,
+            },
+          };
+        })}
+        columns={tableColumns}
+        sort={{
+          active: sortState.field,
+          dir: sortState.direction,
+          hrefBySortKey: sortHrefMap,
+        }}
+        pagination={
           total > 0 ? (
             <TablePagination
               page={page}
@@ -181,56 +201,9 @@ export default async function PartnerLeadsPage({
               basePath={BASE_PATH}
               searchParams={paginationParams}
             />
-          ) : null
+          ) : undefined
         }
-      >
-        {deliveries.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="No leads match this view"
-            description="Try editing this view’s filters or create a new view."
-            accent="orange"
-          />
-        ) : (
-          <PartnerLeadsTable
-            deliveries={deliveries.map((d) => {
-              const refundReq = d.refundRequests[0];
-              const isRefunded = !!d.refundedAt;
-              const canRefund = d.lead.refundable && !isRefunded && !refundReq;
-              return {
-                id: d.id,
-                price: Number(d.price),
-                channel: d.channel,
-                deliveredAt: d.deliveredAt.toISOString(),
-                refundedAt: d.refundedAt?.toISOString() ?? null,
-                canRefund,
-                refundStatus: refundReq?.status ?? null,
-                lead: {
-                  firstName: d.lead.firstName,
-                  lastName: d.lead.lastName,
-                  email: d.lead.email,
-                  phone: d.lead.phone,
-                  state: d.lead.state,
-                  address: d.lead.address,
-                  leadType: d.lead.leadType,
-                  intent: d.lead.intent,
-                  haveIul: d.lead.haveIul,
-                  primaryGoal: d.lead.primaryGoal,
-                  refundable: d.lead.refundable,
-                  trustedformCertUrl: d.lead.trustedformCertUrl,
-                },
-              };
-            })}
-            columns={tableColumns}
-            sort={{
-              active: sortState.field,
-              dir: sortState.direction,
-              hrefBySortKey: sortHrefMap,
-            }}
-          />
-        )}
-        </PortalDataTableCard>
-      </LeadColumnSettingsBridge>
+      />
     </div>
   );
 }

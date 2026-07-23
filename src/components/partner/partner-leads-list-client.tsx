@@ -3,13 +3,14 @@
 import { FileText } from "@/lib/icons/client";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
-import { LeadListTableShell } from "@/components/leads/lead-list-table-shell";
 import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
+import { LeadListTableShell } from "@/components/leads/lead-list-table-shell";
 import { LeadViewsToolbar } from "@/components/leads/lead-views-toolbar";
-import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
+import { PartnerLeadsTable } from "@/components/partner/partner-leads-table";
 import { PartnersTableLayoutToggle } from "@/components/admin/partners-table-layout-toggle";
-import { useAdminLeadsTableLayout } from "@/components/admin/use-admin-leads-table-layout";
 import { LeadToolbarColumnSettingsButton } from "@/components/leads/lead-table-column-picker-button";
+import { usePortalDataTableLayout } from "@/hooks/use-portal-data-table-layout";
+import { PARTNER_LEADS_TABLE_LAYOUT_KEY } from "@/lib/partner/partner-leads-table-display";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 
 type ViewRecord = {
@@ -21,30 +22,38 @@ type ViewRecord = {
   isDefault: boolean;
 };
 
-type LeadRow = {
+type DeliveryRow = {
   id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  state: string;
-  leadType: string;
-  status: string;
-  available: boolean;
-  receivedAt: Date;
-  trustedformCertUrl: string | null;
-  partnerName: string | null;
-  price: string | null;
+  price: number;
+  channel: string;
+  deliveredAt: string;
+  refundedAt: string | null;
+  canRefund: boolean;
+  refundStatus: string | null;
+  lead: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    state: string;
+    address: string | null;
+    leadType: string;
+    intent: string | null;
+    haveIul: string | null;
+    primaryGoal: string | null;
+    refundable: boolean;
+    trustedformCertUrl: string | null;
+  };
 };
 
-export function AdminLeadsListClient({
+export function PartnerLeadsListClient({
   basePath,
   views,
   activeView,
   catalog,
+  partnerMeta,
   filterSummary,
-  exportSlot,
-  leads,
+  deliveries,
   columns,
   sort,
   pagination,
@@ -53,9 +62,12 @@ export function AdminLeadsListClient({
   views: ViewRecord[];
   activeView: ViewRecord;
   catalog: LeadColumnDef[];
+  partnerMeta: {
+    filterSets: { id: string; name: string }[];
+    availableStates: string[];
+  };
   filterSummary?: React.ReactNode;
-  exportSlot?: React.ReactNode;
-  leads: LeadRow[];
+  deliveries: DeliveryRow[];
   columns: PortalDataTableColumn[];
   sort: {
     active?: string;
@@ -64,7 +76,7 @@ export function AdminLeadsListClient({
   };
   pagination?: React.ReactNode;
 }) {
-  const { layout, setLayout } = useAdminLeadsTableLayout();
+  const { layout, setLayout } = usePortalDataTableLayout(PARTNER_LEADS_TABLE_LAYOUT_KEY);
 
   const viewControls = (
     <>
@@ -78,31 +90,31 @@ export function AdminLeadsListClient({
       <LeadListTableShell
         layout={layout}
         pagination={pagination}
-        isEmpty={leads.length === 0}
+        isEmpty={deliveries.length === 0}
         emptyState={
           <EmptyState
             icon={FileText}
-            title="No leads found"
+            title="No leads match this view"
             description="Try editing this view’s filters or create a new view."
             accent="orange"
           />
         }
         toolbar={
           <LeadViewsToolbar
-            scope="admin"
-            apiBase="/api/admin/lead-views"
+            scope="partner"
+            apiBase="/api/partner/lead-views"
             basePath={basePath}
             views={views}
             activeView={activeView}
             catalog={catalog}
+            partnerMeta={partnerMeta}
             filterSummary={filterSummary}
-            exportSlot={exportSlot}
             displayControls={viewControls}
           />
         }
       >
-        <AdminLeadsTable
-          leads={leads}
+        <PartnerLeadsTable
+          deliveries={deliveries}
           columns={columns}
           sort={sort}
           layout={layout}
