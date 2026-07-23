@@ -626,6 +626,7 @@ Lors d’une reprise de contexte :
 | 4 — Aged + refunds | Marketplace, workflow remboursement | ✅ |
 | Core backend (9 phases) | Filter sets, lead_events, admin APIs | ✅ |
 | UI parité (essentiel) | Leads, partners, refunds, wallet, aged | ✅ |
+| Client store / load-once | Dashboard 90j, partners list, filter-list, refunds, partner aged — filtre client + `src/lib/client-store` ; listes leads unbounded restent paginées serveur | ✅ |
 
 **Prochaines étapes :** cutover LeadConduit prod, Integrity live, Stripe prod, scheduler cron prod, polish UI avancé (charts, billing PDF).
 

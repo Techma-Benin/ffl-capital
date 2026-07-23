@@ -9,6 +9,7 @@ import { X, Funnel, CopySimple, CaretDown, ICON_WEIGHT_LINEAR } from "@/lib/icon
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 import type { FilterCriteria } from "@/lib/matching/types";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
+import { ClientStoreKeys, useClientResource } from "@/lib/client-store";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -833,17 +834,18 @@ function FilterSetModal({
 // ---------------------------------------------------------------------------
 
 export function FilterListTable({ initialRows, sources = [] }: { initialRows: FilterListRow[]; sources?: string[] }) {
-  const [rows, setRows] = useState<FilterListRow[]>(initialRows);
+  const { data: cachedRows, mutate } = useClientResource<FilterListRow[]>(
+    ClientStoreKeys.adminFilterList,
+    { initialData: initialRows },
+  );
+  const rows = cachedRows ?? initialRows;
   const [selected, setSelected] = useState<FilterListRow | null>(null);
 
   function handleSaved(updated: FilterListRow["fs"]) {
-    setRows((prev) =>
-      prev.map((r) =>
+    mutate((prev) =>
+      (prev ?? initialRows).map((r) =>
         r.fs.id === updated.id ? { ...r, fs: { ...r.fs, ...updated } } : r,
       ),
-    );
-    setSelected((prev) =>
-      prev ? { ...prev, fs: { ...prev.fs, ...updated } } : null,
     );
     setSelected(null);
   }

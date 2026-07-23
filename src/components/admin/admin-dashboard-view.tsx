@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import type { AdminDatePeriod } from "@/lib/leads/list-view-schema";
 import {
   adminDashboardPeriodDisplayLabel,
-  parseAdminDashboardPeriod,
   resolveAdminDashboardReceivedAtRange,
 } from "@/lib/admin/admin-date-period";
 import {
@@ -15,6 +14,7 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { AdminDashboardCharts } from "@/components/admin/admin-dashboard-charts";
 import { AdminDashboardPeriodFilter } from "@/components/admin/admin-dashboard-period-filter";
+import { ClientStoreKeys, useClientResource } from "@/lib/client-store";
 
 type PeriodState = {
   datePeriod: AdminDatePeriod;
@@ -35,13 +35,17 @@ function syncDashboardUrl(pathname: string, state: PeriodState) {
 }
 
 export function AdminDashboardView({
-  raw,
+  raw: initialRaw,
   initialPeriod,
 }: {
   raw: AdminDashboardRawData;
   initialPeriod: PeriodState;
 }) {
   const pathname = usePathname();
+  const { data: raw } = useClientResource<AdminDashboardRawData>(
+    ClientStoreKeys.adminDashboard,
+    { initialData: initialRaw },
+  );
   const [period, setPeriod] = useState<PeriodState>(initialPeriod);
 
   const onPeriodChange = useCallback(
@@ -93,12 +97,12 @@ export function AdminDashboardView({
   const view = useMemo(
     () =>
       computeAdminDashboardView(
-        raw,
+        raw ?? initialRaw,
         receivedRange,
         periodLabel,
         period.datePeriod,
       ),
-    [raw, receivedRange, periodLabel, period.datePeriod],
+    [raw, initialRaw, receivedRange, periodLabel, period.datePeriod],
   );
 
   return (

@@ -168,7 +168,35 @@ Pas d’API dédiée — **une charge SSR** (`fetchAdminDashboardRawData`) sur l
 
 **URL canonique** : si la période n’est pas « explicite » (`adminDashboardHasExplicitPeriod` — ex. `/admin` nu, ou `period=custom` sans `from`/`to`), la page SSR **redirige** vers `/admin?period=last_7_days`. Les données suivent le même défaut via `parseAdminDashboardPeriod`.
 
-Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Données + agrégats : `fetchAdminDashboardRawData`, `computeAdminDashboardView` (`src/lib/admin/dashboard-stats.ts`). UI : `AdminDashboardView` + `AdminDashboardPeriodFilter` ; **Custom** ouvre `AdminDateRangePopover` en panneau **modal** ancré en-tête (`hideTrigger`, backdrop) — l’URL `period=custom&from&to` n’est écrite qu’au **Apply** (le choix Custom seul ne laisse pas une URL custom incomplète) ; plage custom plafonnée au **jour calendaire local courant** (pas de dates futures). Custom au-delà de 90 jours : seule la partie dans la fenêtre chargée compte.
+Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Données + agrégats : `fetchAdminDashboardRawData`, `computeAdminDashboardView` (`src/lib/admin/dashboard-stats.ts`). UI : `AdminDashboardView` + `AdminDashboardPeriodFilter` ; **Custom** ouvre `AdminDateRangePopover` en panneau **modal** ancré en-tête (`hideTrigger`, backdrop) — l’URL `period=custom&from&to` n’est écrite qu’au **Apply** (le choix Custom seul ne laisse pas une URL custom incomplète) ; plage custom plafonnée au **jour calendaire local courant** (pas de dates futures). Custom au-delà de 90 jours : seule la partie dans la fenêtre chargée compte. Cache client : clé `admin-dashboard` via `src/lib/client-store`.
+
+### Client store (load-once / SWR léger)
+
+Module `src/lib/client-store` (pas de dépendance Zustand/SWR) : cache mémoire clé → données, `useClientResource` (seed SSR + mutate / invalidate), clés dans `ClientStoreKeys`.
+
+| Page | Approche | Skip / notes |
+|------|----------|--------------|
+| `/admin` dashboard | Charge 90 j + filtre client + store | — |
+| `/admin/partners` | Charge jusqu’à 2000 partners + filtre/tri/page client + store | Cap `ADMIN_PARTNERS_CLIENT_LOAD_LIMIT` |
+| `/admin/filter-list` | SSR all filter sets + store ; patch à l’édition | — |
+| `/admin/refunds` | SSR pending + 30 history + store ; filtres déjà client | — |
+| `/partner/aged` | Cap 2500 + filtre client + store | — |
+| `/admin/leads`, `/partner/leads` | Pagination / search serveur | Volumes unbounded |
+| `/admin/aged` | Pagination serveur | Volumes aged unbounded |
+| Export / auth / settings | Serveur | Sécurité / streaming |
+
+Invalidate typique : actions partner (approve/block/delete), review refund, achat aged → `clientStore.invalidate(...)` + `router.refresh()`.
+
+### Admin partners list (`/admin/partners`)
+
+**Une charge SSR** (`fetchAdminPartnersRawData`, cap `ADMIN_PARTNERS_CLIENT_LOAD_LIMIT`) puis filtre statut / company, tri et pagination **côté client** (`computeAdminPartnersView`). URL via `history.replaceState` (pas de re-SSR sur changement d’onglet). Helpers : `src/lib/admin/partners-raw.ts` ; UI : `AdminPartnersView`.
+
+| Param | Effet |
+|-------|--------|
+| `status` | `pending_approval` \| `active` \| `disabled` (client) |
+| `company` | affiliation (client ; legacy `family` lu) |
+| `sort` / `dir` | tri client |
+| `page` | pagination client |
 
 ### Admin aged browse (`/admin/aged`)
 
@@ -192,7 +220,7 @@ Tri : `src/lib/admin/admin-aged-leads-sort.ts` (`buildAdminAgedLeadOrderBy` — 
 
 Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `aged_days_threshold`, hors `dead`). **Les filter sets partner ne restreignent pas** le listing ni l’achat aged — seuls le matching temps réel et les remboursements « wrong filter » s’appuient sur les filter sets (`partner_filter_sets.lead_type`).
 
-**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age/haveIul ; filtres et pagination appliqués **côté client** (pas de re-fetch SSR par changement de filtre). Paramètres URL (`state`, `type`, `age`, `haveIul`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc.
+**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age/haveIul ; filtres et pagination appliqués **côté client** (pas de re-fetch SSR par changement de filtre). Paramètres URL (`state`, `type`, `age`, `haveIul`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc. Cache : clé `partner-aged` (`client-store`) ; invalidate / patch à l’achat.
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|

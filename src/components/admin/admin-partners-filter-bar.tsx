@@ -174,11 +174,14 @@ export function AdminPartnersFilterBar({
   tabs,
   affiliationOptions,
   selectedCompanies,
+  onCompanyChange,
   trailing,
 }: {
   tabs: PortalDataTableTabConfig[];
   affiliationOptions: string[];
   selectedCompanies: string[];
+  /** Client filter mode — skips router.push. */
+  onCompanyChange?: (company: string) => void;
   trailing?: React.ReactNode;
 }) {
   const { push } = useNavigateWithPending();
@@ -189,6 +192,10 @@ export function AdminPartnersFilterBar({
   const companyDisabled = affiliationOptions.length === 0;
 
   function navigateCompany(company: string) {
+    if (onCompanyChange) {
+      onCompanyChange(company);
+      return;
+    }
     const next = new URLSearchParams(searchParams.toString());
     next.delete("page");
     next.delete(LEGACY_FAMILY_PARAM);
@@ -206,6 +213,7 @@ export function AdminPartnersFilterBar({
           <PortalDataTableTab
             key={tab.label}
             href={tab.href}
+            onClick={tab.onClick}
             active={tab.active}
             count={tab.count}
             accent="rose"

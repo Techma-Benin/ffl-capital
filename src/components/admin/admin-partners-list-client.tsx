@@ -19,6 +19,7 @@ export function AdminPartnersListClient({
   tabs,
   affiliationOptions,
   selectedCompanies,
+  onCompanyChange,
   partners,
   sort,
   pagination,
@@ -26,6 +27,8 @@ export function AdminPartnersListClient({
   tabs: PortalDataTableTabConfig[];
   affiliationOptions: string[];
   selectedCompanies: string[];
+  /** When set, company filter is client-side (no router.push). */
+  onCompanyChange?: (company: string) => void;
   partners: AdminPartnerRow[];
   sort: PortalDataTableSortState;
   pagination?: React.ReactNode;
@@ -49,6 +52,7 @@ export function AdminPartnersListClient({
         tabs={tabs}
         affiliationOptions={affiliationOptions}
         selectedCompanies={selectedCompanies}
+        onCompanyChange={onCompanyChange}
         trailing={viewControls}
       />
 

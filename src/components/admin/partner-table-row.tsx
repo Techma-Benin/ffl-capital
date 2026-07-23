@@ -27,6 +27,7 @@ import {
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
+import { ClientStoreKeys, clientStore } from "@/lib/client-store";
 
 type Partner = {
   id: string;
@@ -279,6 +280,11 @@ export function PartnerTableRow({
       }
       setPending("delete");
       await fetch(`/api/admin/partners/${partner.id}`, { method: "DELETE" });
+      clientStore.invalidate([
+        ClientStoreKeys.adminPartners,
+        ClientStoreKeys.adminFilterList,
+        ClientStoreKeys.adminDashboard,
+      ]);
       router.refresh();
       return;
     }
@@ -307,6 +313,11 @@ export function PartnerTableRow({
     }
 
     setPending(null);
+    clientStore.invalidate([
+      ClientStoreKeys.adminPartners,
+      ClientStoreKeys.adminFilterList,
+      ClientStoreKeys.adminDashboard,
+    ]);
     router.refresh();
   }
 

@@ -54,18 +54,33 @@ export function PortalTableHeaderCell({
 export function PortalSortableHeaderCell({
   label,
   href,
+  onClick,
   active,
   dir,
   headerClassName,
 }: {
   label: string;
-  href: string;
+  /** Link navigation (server-paginated lists). Ignored when `onClick` is set. */
+  href?: string;
+  /** Client-side sort (load-once lists). Prefer over `href` when both set. */
+  onClick?: () => void;
   active: boolean;
   dir: SortDirection;
   headerClassName?: string;
 }) {
   const { pendingPath, startNavigation } = usePortal();
-  const pending = isNavigationPending(pendingPath, href);
+  const pending = href ? isNavigationPending(pendingPath, href) : false;
+
+  const className = clsx(
+    "inline-flex cursor-pointer items-center gap-1 text-slate-500 hover:text-slate-700",
+    active && "text-orange-600 hover:text-orange-700",
+    pending && "pointer-events-none opacity-70",
+    (headerClassName?.includes("text-center") ||
+      headerClassName?.includes("text-right")) &&
+      "w-full",
+    headerClassName?.includes("text-center") && "justify-center",
+    headerClassName?.includes("text-right") && "justify-end",
+  );
 
   return (
     <th
@@ -76,25 +91,28 @@ export function PortalSortableHeaderCell({
         headerClassName,
       )}
     >
-      <Link
-        href={href}
-        onClick={() => startNavigation(href)}
-        aria-busy={pending}
-        className={clsx(
-          "inline-flex cursor-pointer items-center gap-1 text-slate-500 hover:text-slate-700",
-          active && "text-orange-600 hover:text-orange-700",
-          pending && "pointer-events-none opacity-70",
-          (headerClassName?.includes("text-center") ||
-            headerClassName?.includes("text-right")) &&
-            "w-full",
-          headerClassName?.includes("text-center") && "justify-center",
-          headerClassName?.includes("text-right") && "justify-end",
-        )}
-      >
-        {pending && <Spinner size="xs" />}
-        {label}
-        <SortIcon active={active} dir={dir} />
-      </Link>
+      {onClick ? (
+        <button type="button" onClick={onClick} className={className}>
+          {label}
+          <SortIcon active={active} dir={dir} />
+        </button>
+      ) : href ? (
+        <Link
+          href={href}
+          onClick={() => startNavigation(href)}
+          aria-busy={pending}
+          className={className}
+        >
+          {pending && <Spinner size="xs" />}
+          {label}
+          <SortIcon active={active} dir={dir} />
+        </Link>
+      ) : (
+        <span className={className}>
+          {label}
+          <SortIcon active={active} dir={dir} />
+        </span>
+      )}
     </th>
   );
 }

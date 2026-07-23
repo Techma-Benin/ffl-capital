@@ -1,41 +1,8 @@
-import { Suspense } from "react";
-import { prisma } from "@/lib/db";
-import { PageHeader } from "@/components/ui/page-header";
-import { Users, Lightning, Clock } from "@/lib/icons/ssr";
-import { StatCard } from "@/components/ui/stat-card";
-import { TablePagination } from "@/components/ui/table-pagination";
-import { parsePageParams } from "@/lib/pagination";
-import { AdminPartnersListClient } from "@/components/admin/admin-partners-list-client";
 import {
-  buildPartnerOrderBy,
-  buildPartnerSortHref,
-  computeLeadBuying,
-  countPartnersLeadBuying,
-  parsePartnerSort,
-  sortPartnersByLeadBuying,
-  PARTNER_SORT_KEYS,
-} from "@/lib/admin/partner-list-sort";
-import {
-  buildPartnerListWhere,
-  buildPartnerStatusTabHref,
-  parsePartnerCompanies,
-} from "@/lib/admin/partner-list-filters";
-import { getClerkPartnerImageUrl } from "@/lib/auth/clerk-profile";
-
-const TABLE_AVATAR_DISPLAY_PX = 40;
-
-const BASE_PATH = "/admin/partners";
-
-function sortHrefMap(
-  searchParams: Record<string, string | undefined>,
-): Record<string, string> {
-  return Object.fromEntries(
-    PARTNER_SORT_KEYS.map((key) => [
-      key,
-      buildPartnerSortHref(BASE_PATH, searchParams, key),
-    ]),
-  );
-}
+  fetchAdminPartnersRawData,
+  parseAdminPartnersListFilters,
+} from "@/lib/admin/partners-raw";
+import { AdminPartnersView } from "@/components/admin/admin-partners-view";
 
 export default async function AdminPartnersPage({
   searchParams,
@@ -43,195 +10,17 @@ export default async function AdminPartnersPage({
   searchParams: {
     status?: string;
     page?: string;
+    pageSize?: string;
     sort?: string;
     dir?: string;
     company?: string;
     family?: string;
   };
 }) {
-  const statusFilter = searchParams.status;
-  const selectedCompanies = parsePartnerCompanies(searchParams);
-  const { page, pageSize, skip } = parsePageParams(searchParams);
-  const { sort, dir } = parsePartnerSort(searchParams);
-
-  const where = buildPartnerListWhere(statusFilter, selectedCompanies);
-
-  const partnerInclude = {
-    filterSets: true,
-    _count: { select: { leadDeliveries: true } },
-  } as const;
-
-  const countsPromise = Promise.all([
-    prisma.partner.count({ where }),
-    // Tab counts respect the active company filter (affiliation), not global totals.
-    prisma.partner.count({
-      where: buildPartnerListWhere("pending_approval", selectedCompanies),
-    }),
-    prisma.partner.count({
-      where: buildPartnerListWhere("active", selectedCompanies),
-    }),
-    prisma.partner.count({
-      where: buildPartnerListWhere("disabled", selectedCompanies),
-    }),
-    prisma.partner.groupBy({
-      by: ["affiliation"],
-      where: { affiliation: { not: null } },
-      orderBy: { affiliation: "asc" },
-    }),
-    prisma.partner.findMany({
-      where: buildPartnerListWhere("active", selectedCompanies),
-      select: {
-        status: true,
-        walletBalance: true,
-        filterSets: { select: { active: true, filterStates: true } },
-      },
-    }),
-  ]);
-
-  let partners: Awaited<
-    ReturnType<
-      typeof prisma.partner.findMany<{ include: typeof partnerInclude }>
-    >
-  >;
-
-  if (sort === "leadBuying") {
-    const all = await prisma.partner.findMany({
-      where,
-      include: partnerInclude,
-    });
-    const sorted = sortPartnersByLeadBuying(all, dir);
-    partners = sorted.slice(skip, skip + pageSize);
-  } else {
-    partners = await prisma.partner.findMany({
-      orderBy: buildPartnerOrderBy(sort, dir),
-      skip,
-      take: pageSize,
-      where,
-      include: partnerInclude,
-    });
-  }
-
-  const [
-    total,
-    pendingCount,
-    activeCount,
-    blockedCount,
-    affiliationGroups,
-    activePartnersForLeadBuying,
-  ] = await countsPromise;
-
-  const leadBuyingCount = countPartnersLeadBuying(activePartnersForLeadBuying);
-
-  const avatarUrls = await Promise.all(
-    partners.map((p) =>
-      getClerkPartnerImageUrl(p.clerkUserId, TABLE_AVATAR_DISPLAY_PX).catch(
-        () => null,
-      ),
-    ),
-  );
-
-  const affiliationOptions = affiliationGroups
-    .map((g) => g.affiliation)
-    .filter((a): a is string => a != null);
-
-  const tableSort = {
-    active: sort,
-    dir,
-    hrefBySortKey: sortHrefMap(searchParams),
-  };
-
-  const paginationParams: Record<string, string | undefined> = {
-    status: searchParams.status,
-    company: searchParams.company,
-    family: searchParams.family,
-    sort: searchParams.sort,
-    dir: searchParams.dir,
-  };
-
-  const pagination = (
-    <TablePagination
-      page={page}
-      pageSize={pageSize}
-      total={total}
-      basePath={BASE_PATH}
-      searchParams={paginationParams}
-    />
-  );
-
-  const statusTabs = [
-    {
-      label: "All Partners",
-      href: buildPartnerStatusTabHref(BASE_PATH, searchParams),
-      active: !statusFilter,
-      count: total,
-    },
-    {
-      label: "Pending",
-      href: buildPartnerStatusTabHref(BASE_PATH, searchParams, "pending_approval"),
-      active: statusFilter === "pending_approval",
-      count: pendingCount,
-    },
-    {
-      label: "Active",
-      href: buildPartnerStatusTabHref(BASE_PATH, searchParams, "active"),
-      active: statusFilter === "active",
-      count: activeCount,
-    },
-    {
-      label: "Blocked",
-      href: buildPartnerStatusTabHref(BASE_PATH, searchParams, "disabled"),
-      active: statusFilter === "disabled",
-      count: blockedCount,
-    },
-  ];
+  const initialFilters = parseAdminPartnersListFilters(searchParams);
+  const raw = await fetchAdminPartnersRawData();
 
   return (
-    <div className="flex flex-col">
-      <PageHeader
-        title="Partners"
-        subtitle="Manage lead buyers and their accounts"
-      />
-
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total Partners" value={total} icon={Users} accent="blue" blobIndex={0} />
-        <StatCard
-          label="Lead Buying"
-          value={leadBuyingCount}
-          icon={Lightning}
-          accent="emerald"
-          blobIndex={1}
-        />
-        <StatCard label="Pending" value={pendingCount} icon={Clock} accent="orange" blobIndex={2} />
-      </div>
-
-      <Suspense fallback={null}>
-        <AdminPartnersListClient
-          tabs={statusTabs}
-          affiliationOptions={affiliationOptions}
-          selectedCompanies={selectedCompanies}
-          sort={tableSort}
-          pagination={pagination}
-          partners={partners.map((p, index) => {
-            const leadBuying = computeLeadBuying(p);
-            const walletOk = Number(p.walletBalance) >= 25;
-
-            return {
-              id: p.id,
-              firstName: p.firstName,
-              lastName: p.lastName,
-              email: p.email,
-              affiliation: p.affiliation,
-              status: p.status,
-              priority: p.priority,
-              walletBalance: Number(p.walletBalance),
-              leadBuying,
-              walletOk,
-              leadsCount: p._count.leadDeliveries,
-              avatarUrl: avatarUrls[index] ?? null,
-            };
-          })}
-        />
-      </Suspense>
-    </div>
+    <AdminPartnersView raw={raw} initialFilters={initialFilters} />
   );
 }

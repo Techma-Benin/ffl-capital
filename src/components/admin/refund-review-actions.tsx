@@ -10,6 +10,7 @@ import {
   DotsThreeVertical,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
+import { ClientStoreKeys, clientStore } from "@/lib/client-store";
 
 type ActionKey = "approve" | "reject";
 
@@ -172,6 +173,7 @@ export function RefundReviewActions({ refundId }: { refundId: string }) {
         body: JSON.stringify({ action }),
       });
       if (!res.ok) throw new Error("Request failed");
+      clientStore.invalidate(ClientStoreKeys.adminRefunds);
       router.refresh();
     } catch {
       // allow retry

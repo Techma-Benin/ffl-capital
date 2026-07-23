@@ -1,7 +1,7 @@
 "use client";
 
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,10 +28,19 @@ import {
   type PartnerAgedLeadPreview,
 } from "@/components/partner/aged-lead-preview-sheet";
 import { getPartnerAgedLeadAgeChipClassNames } from "@/lib/partner/aged-lead-age-chip";
+import { ClientStoreKeys, useClientResource } from "@/lib/client-store";
 
 type AgedLead = PartnerAgedLeadPreview;
 
 type AgedFilters = PartnerAgedClientFilters;
+
+type PartnerAgedStorePayload = {
+  leads: AgedLead[];
+  agedDays: number;
+  agedPrice: number;
+  totalEligible: number;
+  loadCapped: boolean;
+};
 
 const partnerAgedStateOptions = US_STATE_CODES.map((code) => ({
   value: code,
@@ -72,7 +81,25 @@ export function PartnerAgedView({
   const { router } = useNavigateWithPending();
   const canBuy = partner.status === "active" && partner.walletBalance >= agedPrice;
 
-  const [leads, setLeads] = useState(initialLeads);
+  const initialPayload: PartnerAgedStorePayload = useMemo(
+    () => ({
+      leads: initialLeads,
+      agedDays,
+      agedPrice,
+      totalEligible,
+      loadCapped,
+    }),
+    [initialLeads, agedDays, agedPrice, totalEligible, loadCapped],
+  );
+
+  const { data: cached, mutate } = useClientResource<PartnerAgedStorePayload>(
+    ClientStoreKeys.partnerAged,
+    { initialData: initialPayload },
+  );
+
+  const leads = cached?.leads ?? initialLeads;
+  const effectiveLoadCapped = cached?.loadCapped ?? loadCapped;
+  const effectiveTotalEligible = cached?.totalEligible ?? totalEligible;
   const [filters, setFilters] = useState<AgedFilters>(initialFilters);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -84,10 +111,6 @@ export function PartnerAgedView({
     setPreviewLead(lead);
     setPreviewOpen(true);
   }
-
-  useEffect(() => {
-    setLeads(initialLeads);
-  }, [initialLeads]);
 
   const filteredLeads = useMemo(
     () => filterPartnerAgedLeadsInMemory(leads, filters),
@@ -149,7 +172,14 @@ export function PartnerAgedView({
       });
       if (!res.ok) throw new Error("Purchase failed");
       const purchased = new Set(leadIds);
-      setLeads((prev) => prev.filter((l) => !purchased.has(l.id)));
+      mutate((prev) => {
+        const base = prev ?? initialPayload;
+        return {
+          ...base,
+          leads: base.leads.filter((l) => !purchased.has(l.id)),
+          totalEligible: Math.max(0, base.totalEligible - leadIds.length),
+        };
+      });
       setSelected((prev) => {
         const next = new Set(prev);
         for (const id of leadIds) next.delete(id);
@@ -179,10 +209,10 @@ export function PartnerAgedView({
         }
       />
 
-      {loadCapped && (
+      {effectiveLoadCapped && (
         <p className="mb-4 text-xs text-amber-700">
           Showing the first {leads.length.toLocaleString()} of{" "}
-          {totalEligible.toLocaleString()} eligible leads. Narrow filters or contact support if
+          {effectiveTotalEligible.toLocaleString()} eligible leads. Narrow filters or contact support if
           you need the full catalog.
         </p>
       )}

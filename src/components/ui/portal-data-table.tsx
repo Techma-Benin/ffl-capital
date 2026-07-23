@@ -19,7 +19,10 @@ export type PortalDataTableColumn = {
 export type PortalDataTableSortState = {
   active?: string;
   dir: SortDirection;
-  hrefBySortKey: Record<string, string>;
+  /** Server navigation sort links. Prefer `onSortKey` for client-side sort. */
+  hrefBySortKey?: Record<string, string>;
+  /** Client-side sort callback (no router navigation). */
+  onSortKey?: (sortKey: string) => void;
 };
 
 export type PortalDataTableLayout = "cards" | "table";
@@ -87,7 +90,8 @@ export function portalRowActionsCellClassName(
 
 export type PortalDataTableTabConfig = {
   label: string;
-  href: string;
+  href?: string;
+  onClick?: () => void;
   active: boolean;
   count?: number;
 };
@@ -99,6 +103,7 @@ export function PortalDataTableTabs({ tabs }: { tabs: PortalDataTableTabConfig[]
         <PortalDataTableTab
           key={tab.label}
           href={tab.href}
+          onClick={tab.onClick}
           active={tab.active}
           count={tab.count}
         >
@@ -165,12 +170,24 @@ export function PortalDataTable({
       <thead>
         <tr>
           {columns.map((col) => {
-            if (col.sortKey && sort?.hrefBySortKey[col.sortKey]) {
+            const canSort =
+              col.sortKey &&
+              (sort?.onSortKey || sort?.hrefBySortKey?.[col.sortKey]);
+            if (col.sortKey && canSort) {
               return (
                 <PortalSortableHeaderCell
                   key={col.key}
                   label={col.label}
-                  href={sort.hrefBySortKey[col.sortKey]}
+                  href={
+                    sort?.onSortKey
+                      ? undefined
+                      : sort?.hrefBySortKey?.[col.sortKey]
+                  }
+                  onClick={
+                    sort?.onSortKey
+                      ? () => sort.onSortKey!(col.sortKey!)
+                      : undefined
+                  }
                   active={sort.active === col.sortKey}
                   dir={sort.dir}
                   headerClassName={col.headerClassName}
