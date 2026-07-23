@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { AdminDatePeriod } from "@/lib/leads/list-view-schema";
 import { ADMIN_DASHBOARD_PERIOD_OPTIONS } from "@/lib/admin/admin-date-period";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
+import { AdminDateRangePopover } from "@/components/admin/admin-date-range-popover";
 
 export function AdminDashboardPeriodFilter({
   datePeriod,
@@ -17,6 +19,7 @@ export function AdminDashboardPeriodFilter({
   const { push } = useNavigateWithPending();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [customPickerOpen, setCustomPickerOpen] = useState(false);
 
   function navigate(next: {
     period?: AdminDatePeriod;
@@ -49,7 +52,7 @@ export function AdminDashboardPeriodFilter({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="relative flex flex-wrap items-center justify-end gap-2">
       <label className="sr-only" htmlFor="admin-dashboard-period">
         Period
       </label>
@@ -61,8 +64,10 @@ export function AdminDashboardPeriodFilter({
           const value = e.target.value as AdminDatePeriod;
           if (value === "custom") {
             navigate({ period: "custom", clearDates: false });
+            setCustomPickerOpen(true);
             return;
           }
+          setCustomPickerOpen(false);
           navigate({ period: value, clearDates: true });
         }}
       >
@@ -74,23 +79,16 @@ export function AdminDashboardPeriodFilter({
       </select>
 
       {datePeriod === "custom" && (
-        <>
-          <input
-            type="date"
-            aria-label="From date"
-            className="form-input py-1.5 text-sm"
-            value={from ?? ""}
-            onChange={(e) => navigate({ from: e.target.value || undefined })}
-          />
-          <span className="text-xs text-slate-400">–</span>
-          <input
-            type="date"
-            aria-label="To date"
-            className="form-input py-1.5 text-sm"
-            value={to ?? ""}
-            onChange={(e) => navigate({ to: e.target.value || undefined })}
-          />
-        </>
+        <AdminDateRangePopover
+          from={from}
+          to={to}
+          open={customPickerOpen}
+          onOpenChange={setCustomPickerOpen}
+          onApply={(fromYmd, toYmd) => {
+            navigate({ period: "custom", from: fromYmd, to: toYmd });
+            setCustomPickerOpen(false);
+          }}
+        />
       )}
     </div>
   );

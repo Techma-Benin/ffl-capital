@@ -166,7 +166,7 @@ Pas d’API dédiée — la page SSR lit les query params et filtre en base.
 | `from`, `to` | `YYYY-MM-DD` | Requis pour bornes en mode `custom` (ou seuls → `custom` implicite) |
 | *(absent)* | — | Défaut `last_7_days` |
 
-Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange` (`src/lib/admin/admin-date-period.ts`). Agrégats graphiques : `getAdminDashboardChartData` (`src/lib/admin/dashboard-stats.ts`). UI filtre : `AdminDashboardPeriodFilter`.
+Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Agrégats graphiques : `getAdminDashboardChartData` (`src/lib/admin/dashboard-stats.ts`). UI : `AdminDashboardPeriodFilter`, `AdminDateRangePopover` (plage custom).
 
 ### Admin aged browse (`/admin/aged`)
 

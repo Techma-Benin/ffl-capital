@@ -6,7 +6,7 @@ import { getAdminDashboardChartData } from "@/lib/admin/dashboard-stats";
 import { AdminDashboardCharts } from "@/components/admin/admin-dashboard-charts";
 import { AdminDashboardPeriodFilter } from "@/components/admin/admin-dashboard-period-filter";
 import {
-  adminDatePeriodLabel,
+  adminDashboardPeriodDisplayLabel,
   parseAdminDashboardPeriod,
   resolveAdminDashboardReceivedAtRange,
 } from "@/lib/admin/admin-date-period";
@@ -22,7 +22,11 @@ export default async function AdminDashboardPage({
 }) {
   const periodFilters = parseAdminDashboardPeriod(searchParams);
   const receivedRange = resolveAdminDashboardReceivedAtRange(searchParams);
-  const periodLabel = adminDatePeriodLabel(periodFilters.datePeriod) ?? "Last 7 days";
+  const periodLabel = adminDashboardPeriodDisplayLabel(
+    periodFilters.datePeriod,
+    periodFilters.from,
+    periodFilters.to,
+  );
 
   const receivedAtWhere = {
     receivedAt: { gte: receivedRange.gte, lte: receivedRange.lte },

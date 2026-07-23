@@ -274,7 +274,7 @@ Phase D — Migration Replit (livraison client)
 ### 5.2 Portail admin
 
 #### Dashboard
-- Vue synthèse (Operations Dashboard) : KPIs leads/livraisons sur la période choisie (aujourd’hui, hier, 7 derniers jours, plage custom via URL), graphiques intake et répartition canal, leads récents ; compteurs agents actifs et file unmatched (état courant)
+- Vue synthèse (Operations Dashboard) : KPIs leads/livraisons sur la période choisie (aujourd’hui, hier, 7 derniers jours, plage custom via sélecteur calendrier ou URL `period=custom&from&to`), titres KPI/graphiques selon la période ; graphiques intake et répartition canal, leads récents ; compteurs agents actifs et file unmatched (état courant)
 - Alertes optionnelles (pics unmatched)
 
 #### Gestion agents

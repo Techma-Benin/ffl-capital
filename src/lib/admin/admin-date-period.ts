@@ -84,6 +84,80 @@ export function adminDatePeriodLabel(
   return ADMIN_DATE_PERIOD_OPTIONS.find((o) => o.value === period)?.label ?? period;
 }
 
+const MONTHS_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+const MONTHS_LONG = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+/** Local calendar date as `YYYY-MM-DD` (no timezone shift). */
+export function adminDateToYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function adminParseYmd(ymd: string): Date {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function formatAdminDateRangeFieldLabel(ymd: string): string {
+  const d = adminParseYmd(ymd);
+  return `${MONTHS_LONG[d.getMonth()]}, ${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Short label for custom range triggers and chart headers. */
+export function formatAdminCustomRangeLabel(
+  from?: string,
+  to?: string,
+): string {
+  if (!from && !to) return "Select date range";
+  const start = from ? adminParseYmd(from) : adminParseYmd(to!);
+  const end = to ? adminParseYmd(to) : start;
+  const sStr = `${MONTHS_SHORT[start.getMonth()]} ${String(start.getDate()).padStart(2, "0")}`;
+  const eStr = `${MONTHS_SHORT[end.getMonth()]} ${String(end.getDate()).padStart(2, "0")}`;
+  const yr = end.getFullYear();
+  return `${sStr} - ${eStr} ${yr}`;
+}
+
+export function adminDashboardPeriodDisplayLabel(
+  datePeriod: AdminDatePeriod,
+  from?: string,
+  to?: string,
+): string {
+  if (datePeriod === "custom") {
+    if (from || to) return formatAdminCustomRangeLabel(from, to);
+    return adminDatePeriodLabel("custom") ?? "Custom period";
+  }
+  return adminDatePeriodLabel(datePeriod) ?? "Last 7 days";
+}
+
 /** Resolve admin view date filters to receivedAt bounds (local calendar days). */
 export function resolveAdminReceivedAtRange(
   filters: Pick<AdminLeadViewFilters, "datePeriod" | "from" | "to">,
