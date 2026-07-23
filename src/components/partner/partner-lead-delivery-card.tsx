@@ -7,14 +7,11 @@ import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
 import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-display";
 import { Lightning, Power, Trash, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import type { PartnerCrmSummary } from "@/lib/partner/types";
 
 const CRM_OUTBOUND_HREF = "/partner/settings/crm-outbound";
 
-type CrmSummary = {
-  enabled: boolean;
-  endpointUrl: string;
-  authType: string;
-} | null;
+type CrmSummary = PartnerCrmSummary;
 
 type CrmOutboundFullConfig = {
   enabled: boolean;
@@ -324,13 +321,17 @@ function CrmTestModal({
 export function PartnerLeadDeliveryCard({
   partnerEmail,
   className,
+  initialCrm,
 }: {
   partnerEmail: string;
   className?: string;
+  /** When provided (including `null`), skip the mount-time CRM fetch. */
+  initialCrm?: CrmSummary;
 }) {
-  const [loading, setLoading] = useState(true);
+  const hasInitial = initialCrm !== undefined;
+  const [loading, setLoading] = useState(!hasInitial);
   const [loadError, setLoadError] = useState("");
-  const [crm, setCrm] = useState<CrmSummary>(null);
+  const [crm, setCrm] = useState<CrmSummary>(hasInitial ? initialCrm : null);
   const [testOpen, setTestOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -369,8 +370,9 @@ export function PartnerLeadDeliveryCard({
   }, []);
 
   useEffect(() => {
+    if (hasInitial) return;
     void load();
-  }, [load]);
+  }, [hasInitial, load]);
 
   /** Config exists in DB (saved endpoint) — independent of enabled. */
   const configured = Boolean(crm?.endpointUrl?.trim());

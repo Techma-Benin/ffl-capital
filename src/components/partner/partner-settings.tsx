@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
-import { ActionButton } from "@/components/ui/action-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
@@ -16,29 +15,23 @@ import {
   PencilSimple,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
-import type { FilterCriteria } from "@/lib/matching/types";
 import { FilterSetModal } from "@/components/filter-sets/filter-set-modal";
 import {
   type CategoryOption,
   type FilterSetFormData,
 } from "@/components/filter-sets/filter-set-form";
 import { PartnerLeadDeliveryCard } from "@/components/partner/partner-lead-delivery-card";
+import type {
+  PartnerCrmSummary,
+  PartnerFilterSetSession,
+} from "@/lib/partner/types";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type PartnerFilterSet = {
-  id: string;
-  name: string;
-  leadType: "traditional_iul" | "high_intent_iul";
-  filterStates: string[];
-  priority: number;
-  active: boolean;
+type PartnerFilterSet = PartnerFilterSetSession & {
   priceOverride?: number | null;
-  weeklyLimit?: number | null;
-  monthlyLimit?: number | null;
-  filterCriteria?: FilterCriteria;
 };
 
 const PARTNER_CATEGORIES: CategoryOption[] = [
@@ -74,7 +67,7 @@ function toFilterSetFormData(fs: PartnerFilterSet): FilterSetFormData {
     active: fs.active,
     weeklyLimit: fs.weeklyLimit != null ? String(fs.weeklyLimit) : "",
     monthlyLimit: fs.monthlyLimit != null ? String(fs.monthlyLimit) : "",
-    filterCriteria: (fs.filterCriteria as FilterCriteria) ?? {},
+    filterCriteria: fs.filterCriteria ?? {},
   };
 }
 
@@ -82,36 +75,28 @@ function toFilterSetFormData(fs: PartnerFilterSet): FilterSetFormData {
 // Filter Sets section
 // ---------------------------------------------------------------------------
 
-function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
-  const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(null);
-  const [loadError, setLoadError] = useState("");
+function FilterSetsSection({
+  embedded = false,
+  initialFilterSets,
+}: {
+  embedded?: boolean;
+  initialFilterSets: PartnerFilterSet[];
+}) {
+  const [filterSets, setFilterSets] =
+    useState<PartnerFilterSet[]>(initialFilterSets);
   const [editingFs, setEditingFs] = useState<PartnerFilterSet | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/partners/filter-sets");
-      if (!res.ok) throw new Error("Failed to load");
-      setFilterSets(await res.json());
-    } catch {
-      setLoadError("Could not load filter sets.");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
   function handleCreated(created: PartnerFilterSet) {
-    setFilterSets((prev) => [...(prev ?? []), created]);
+    setFilterSets((prev) => [...prev, created]);
     setShowCreateModal(false);
   }
 
   function handleUpdated(updated: PartnerFilterSet) {
     setFilterSets((prev) =>
-      prev ? prev.map((fs) => (fs.id === updated.id ? updated : fs)) : prev,
+      prev.map((fs) => (fs.id === updated.id ? updated : fs)),
     );
     setEditingFs(null);
   }
@@ -129,7 +114,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
         setDeleteError(data.error ?? "Failed to delete");
         return;
       }
-      setFilterSets((prev) => prev?.filter((fs) => fs.id !== id) ?? null);
+      setFilterSets((prev) => prev.filter((fs) => fs.id !== id));
     } catch {
       setDeleteError("Request failed. Please try again.");
     } finally {
@@ -137,8 +122,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
     }
   }
 
-  const loaded = filterSets !== null;
-  const isEmpty = loaded && filterSets.length === 0;
+  const isEmpty = filterSets.length === 0;
 
   return (
     <div className={embedded ? "overflow-hidden" : "mb-5 card overflow-hidden"}>
@@ -147,7 +131,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
           Targeting
         </span>
         <div className="ml-auto">
-          {loaded && !showCreateModal && !editingFs && (
+          {!showCreateModal && !editingFs && (
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
@@ -163,14 +147,6 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
           )}
         </div>
       </div>
-
-      {loadError && (
-        <p className="px-5 py-4 text-sm text-red-600">{loadError}</p>
-      )}
-
-      {!loaded && !loadError && (
-        <p className="px-5 py-4 text-sm text-slate-400">Loading…</p>
-      )}
 
       {/* Empty state */}
       {isEmpty && (
@@ -193,7 +169,7 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
       )}
 
       {/* List */}
-      {filterSets && filterSets.length > 0 && (
+      {filterSets.length > 0 && (
         <div>
           {filterSets.map((fs) => {
             const eligible = fs.filterStates.length >= 15;
@@ -385,7 +361,11 @@ function PartnerProfileCard({
 
 // ---------------------------------------------------------------------------
 
-export function PartnerSettingsView() {
+export function PartnerSettingsView({
+  initialCrm,
+}: {
+  initialCrm: PartnerCrmSummary;
+}) {
   const { partner } = usePartner();
   const { user } = useUser();
   const { openUserProfile } = useClerk();
@@ -431,7 +411,10 @@ export function PartnerSettingsView() {
             statusLabel={statusLabel}
             avatarUrl={user?.imageUrl}
           />
-          <PartnerLeadDeliveryCard partnerEmail={partner.email} />
+          <PartnerLeadDeliveryCard
+            partnerEmail={partner.email}
+            initialCrm={initialCrm}
+          />
         </div>
 
         <section id="filters" className={settingsSectionClass}>
@@ -446,7 +429,10 @@ export function PartnerSettingsView() {
               </p>
             </div>
           </div>
-          <FilterSetsSection embedded />
+          <FilterSetsSection
+            embedded
+            initialFilterSets={partner.filterSets}
+          />
         </section>
       </div>
     </div>
