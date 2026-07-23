@@ -347,15 +347,20 @@ function PartnerProfileSection({
   statusBadge,
   statusLabel,
   avatarUrl,
+  isEditing,
+  onIsEditingChange,
+  onProfileSavingChange,
 }: {
   partner: ReturnType<typeof usePartner>["partner"];
   statusBadge: "green" | "yellow" | "red" | "slate";
   statusLabel: string;
   avatarUrl?: string;
+  isEditing: boolean;
+  onIsEditingChange: (editing: boolean) => void;
+  onProfileSavingChange?: (saving: boolean) => void;
 }) {
   const clerk = useClerk();
   const { patchPartner } = usePartner();
-  const [isEditing, setIsEditing] = useState(false);
   const [draftLeadType, setDraftLeadType] = useState<PartnerLeadType>(
     partner.leadType as PartnerLeadType,
   );
@@ -366,28 +371,20 @@ function PartnerProfileSection({
   useEffect(() => {
     if (!isEditing) {
       setDraftLeadType(partner.leadType as PartnerLeadType);
+      setLeadTypeError("");
+      setLeadTypeSuccess(false);
     }
   }, [partner.leadType, isEditing]);
 
   const leadTypeDirty = draftLeadType !== partner.leadType;
 
-  function startEditing() {
-    setDraftLeadType(partner.leadType as PartnerLeadType);
-    setLeadTypeError("");
-    setLeadTypeSuccess(false);
-    setIsEditing(true);
-  }
-
-  function cancelEditing() {
-    setDraftLeadType(partner.leadType as PartnerLeadType);
-    setLeadTypeError("");
-    setLeadTypeSuccess(false);
-    setIsEditing(false);
-  }
+  useEffect(() => {
+    onProfileSavingChange?.(leadTypeSaving);
+  }, [leadTypeSaving, onProfileSavingChange]);
 
   async function saveProfile() {
     if (!leadTypeDirty) {
-      setIsEditing(false);
+      onIsEditingChange(false);
       return;
     }
     setLeadTypeError("");
@@ -406,7 +403,7 @@ function PartnerProfileSection({
       }
       patchPartner({ leadType: data.leadType });
       setLeadTypeSuccess(true);
-      setIsEditing(false);
+      onIsEditingChange(false);
     } catch {
       setLeadTypeError("Request failed. Please try again.");
     } finally {
@@ -417,52 +414,31 @@ function PartnerProfileSection({
   return (
     <section id="profile" className={settingsSectionClass}>
       <div className="border-b border-slate-100 p-6">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
           <PartnerAvatar
             avatarUrl={avatarUrl}
             firstName={partner.firstName}
             lastName={partner.lastName}
             size="lg"
           />
-          <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
-                {formatPartnerDisplayName(partner.firstName, partner.lastName)}
-                <Badge variant={statusBadge}>{statusLabel}</Badge>
-              </h2>
-              <p
-                className="mt-1 truncate text-sm text-slate-500"
-                title={partner.email?.trim() || undefined}
-              >
-                {displayProfileValue(partner.email)}
-              </p>
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={() => clerk.openUserProfile()}
-                  className="mt-2 text-xs font-medium text-brand-600 hover:text-brand-700"
-                >
-                  Update name, email, or photo
-                </button>
-              )}
-            </div>
-            {isEditing ? (
+          <div className="min-w-0 flex-1">
+            <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
+              {formatPartnerDisplayName(partner.firstName, partner.lastName)}
+              <Badge variant={statusBadge}>{statusLabel}</Badge>
+            </h2>
+            <p
+              className="mt-1 truncate text-sm text-slate-500"
+              title={partner.email?.trim() || undefined}
+            >
+              {displayProfileValue(partner.email)}
+            </p>
+            {isEditing && (
               <button
                 type="button"
-                onClick={cancelEditing}
-                disabled={leadTypeSaving}
-                className="btn-secondary btn-sm shrink-0 self-start"
+                onClick={() => clerk.openUserProfile()}
+                className="mt-2 text-xs font-medium text-brand-600 hover:text-brand-700"
               >
-                Cancel
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={startEditing}
-                className="btn-secondary btn-sm inline-flex shrink-0 items-center gap-1.5 self-start"
-              >
-                <PencilSimple size={16} weight={ICON_WEIGHT_LINEAR} />
-                Edit profile
+                Update name, email, or photo
               </button>
             )}
           </div>
@@ -538,6 +514,8 @@ function PartnerProfileSection({
 export function PartnerSettingsView() {
   const { partner, patchPartner } = usePartner();
   const { user } = useUser();
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.location.hash) return;
@@ -588,6 +566,27 @@ export function PartnerSettingsView() {
       <PageHeader
         title="Settings"
         subtitle="Your profile, webhook integrations, and lead filter sets."
+        action={
+          profileEditing ? (
+            <button
+              type="button"
+              onClick={() => setProfileEditing(false)}
+              disabled={profileSaving}
+              className="btn-secondary btn-sm"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setProfileEditing(true)}
+              className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+            >
+              <PencilSimple size={16} weight={ICON_WEIGHT_LINEAR} />
+              Edit profile
+            </button>
+          )
+        }
       />
 
       <div className="space-y-6">
@@ -596,6 +595,9 @@ export function PartnerSettingsView() {
           statusBadge={statusBadge}
           statusLabel={statusLabel}
           avatarUrl={user?.imageUrl}
+          isEditing={profileEditing}
+          onIsEditingChange={setProfileEditing}
+          onProfileSavingChange={setProfileSaving}
         />
 
         <section id="webhook" className={`${settingsSectionClass} p-6`}>
