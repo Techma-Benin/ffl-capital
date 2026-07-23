@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { ActionButton } from "@/components/ui/action-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import {
   Funnel,
   Plus,
   Trash,
+  PencilSimple,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 import type { FilterCriteria } from "@/lib/matching/types";
@@ -303,8 +304,107 @@ function formatMemberSince(value: string) {
   });
 }
 
+function displayProfileValue(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : "—";
+}
+
 const settingsSectionClass =
   "card scroll-mt-6 overflow-hidden";
+
+function PartnerProfileField({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string | null | undefined;
+  hint?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs font-medium text-slate-500">{label}</dt>
+      <dd className="mt-1 break-words text-sm font-semibold text-slate-900">
+        {displayProfileValue(value)}
+      </dd>
+      {hint ? <p className="mt-1.5 text-xs text-slate-400">{hint}</p> : null}
+    </div>
+  );
+}
+
+function PartnerProfileSection({
+  partner,
+  statusBadge,
+  statusLabel,
+  avatarUrl,
+}: {
+  partner: ReturnType<typeof usePartner>["partner"];
+  statusBadge: "green" | "yellow" | "red" | "slate";
+  statusLabel: string;
+  avatarUrl?: string;
+}) {
+  const clerk = useClerk();
+
+  return (
+    <section id="profile" className={settingsSectionClass}>
+      <div className="border-b border-slate-100 p-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+          <PartnerAvatar
+            avatarUrl={avatarUrl}
+            firstName={partner.firstName}
+            lastName={partner.lastName}
+            size="lg"
+          />
+          <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
+                <Users
+                  size={18}
+                  className="text-brand-600"
+                  weight={ICON_WEIGHT_LINEAR}
+                />
+                Profile
+                <Badge variant={statusBadge}>{statusLabel}</Badge>
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Your account identity and partner record. Name, email, and photo
+                are managed through your sign-in account.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => clerk.openUserProfile()}
+              className="btn-secondary btn-sm inline-flex shrink-0 items-center gap-1.5 self-start"
+            >
+              <PencilSimple size={16} weight={ICON_WEIGHT_LINEAR} />
+              Edit profile
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <dl className="grid gap-x-8 gap-y-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
+        <PartnerProfileField label="First name" value={partner.firstName} />
+        <PartnerProfileField label="Last name" value={partner.lastName} />
+        <PartnerProfileField label="Email" value={partner.email} />
+        <PartnerProfileField
+          label="Residence state"
+          value={partner.residenceState}
+          hint="Contact admin to update"
+        />
+        <PartnerProfileField
+          label="Affiliation (company)"
+          value={partner.affiliation}
+          hint="Contact admin to update"
+        />
+        <PartnerProfileField
+          label="Member since"
+          value={formatMemberSince(partner.createdAt)}
+        />
+      </dl>
+    </section>
+  );
+}
 
 // ---------------------------------------------------------------------------
 
@@ -396,99 +496,12 @@ export function PartnerSettingsView() {
       />
 
       <div className="space-y-6">
-        <section id="profile" className={settingsSectionClass}>
-          <div className="flex flex-col gap-6 border-b border-slate-100 p-6 sm:flex-row sm:items-center">
-            <PartnerAvatar
-              avatarUrl={user?.imageUrl}
-              firstName={partner.firstName}
-              lastName={partner.lastName}
-              size="lg"
-            />
-            <div className="min-w-0 flex-1">
-              <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
-                <Users
-                  size={18}
-                  className="text-brand-600"
-                  weight={ICON_WEIGHT_LINEAR}
-                />
-                Profile
-                <Badge variant={statusBadge}>{statusLabel}</Badge>
-              </h2>
-              <p className="mt-1 text-sm font-medium text-slate-900">
-                {partner.firstName} {partner.lastName}
-              </p>
-              <p className="text-sm text-slate-500">{partner.email}</p>
-              <p className="mt-2 text-xs text-slate-400">
-                Update your photo and sign-in details from the account menu in
-                the sidebar.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <label className="form-label">First name</label>
-              <input
-                className="form-input bg-slate-50"
-                value={partner.firstName}
-                disabled
-                readOnly
-              />
-            </div>
-            <div>
-              <label className="form-label">Last name</label>
-              <input
-                className="form-input bg-slate-50"
-                value={partner.lastName}
-                disabled
-                readOnly
-              />
-            </div>
-            <div>
-              <label className="form-label">Email</label>
-              <input
-                className="form-input bg-slate-50"
-                value={partner.email}
-                disabled
-                readOnly
-              />
-            </div>
-            <div>
-              <label className="form-label">Residence state</label>
-              <input
-                className="form-input bg-slate-50"
-                value={partner.residenceState}
-                disabled
-                readOnly
-              />
-              <p className="mt-1 text-xs text-slate-400">
-                Contact admin to update
-              </p>
-            </div>
-            <div>
-              <label className="form-label">Affiliation (company)</label>
-              <input
-                className="form-input bg-slate-50"
-                value={partner.affiliation ?? ""}
-                placeholder="—"
-                disabled
-                readOnly
-              />
-              <p className="mt-1 text-xs text-slate-400">
-                Contact admin to update
-              </p>
-            </div>
-            <div>
-              <label className="form-label">Member since</label>
-              <input
-                className="form-input bg-slate-50"
-                value={formatMemberSince(partner.createdAt)}
-                disabled
-                readOnly
-              />
-            </div>
-          </div>
-        </section>
+        <PartnerProfileSection
+          partner={partner}
+          statusBadge={statusBadge}
+          statusLabel={statusLabel}
+          avatarUrl={user?.imageUrl}
+        />
 
         <section id="account" className={`${settingsSectionClass} p-6`}>
           <div className="mb-6">
