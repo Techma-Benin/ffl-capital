@@ -60,13 +60,15 @@ export function PartnerAccountCrmCard({
           satisfied={walletBalance >= 25}
         />
         <ChecklistRow
-          title="CRM outbound configured"
+          title="Lead outbound"
           subtitle={
             configured
-              ? `Active — ${host} (${crmOutboundMappingCount} mappings)`
-              : "Partner has not enabled CRM POST in Settings"
+              ? host
+                ? `Email + CRM POST — ${host}`
+                : "Email + CRM POST"
+              : "Leads go out by email"
           }
-          satisfied={configured}
+          satisfied
         />
       </div>
     </div>
