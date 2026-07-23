@@ -175,9 +175,48 @@
   }
 
   /* Shrink date/action/price trailing columns instead of absorbing table slack */
-  .data-table:not(.data-table-recent-leads) th:last-child,
-  .data-table:not(.data-table-recent-leads) td:last-child {
+  .data-table:not(.data-table-recent-leads):not(.data-table-partner-transactions) th:last-child,
+  .data-table:not(.data-table-recent-leads):not(.data-table-partner-transactions) td:last-child {
     @apply w-px whitespace-nowrap;
+  }
+
+  /* Partner reports: Transaction History */
+  .data-table-partner-transactions {
+    @apply w-full table-fixed;
+  }
+
+  .data-table-partner-transactions col:nth-child(1) {
+    width: 14%;
+  }
+
+  .data-table-partner-transactions col:nth-child(2) {
+    width: 20%;
+  }
+
+  .data-table-partner-transactions col:nth-child(3) {
+    width: 13%;
+  }
+
+  .data-table-partner-transactions col:nth-child(4) {
+    width: 15%;
+  }
+
+  .data-table-partner-transactions col:nth-child(5) {
+    width: 38%;
+  }
+
+  .data-table-partner-transactions th:last-child,
+  .data-table-partner-transactions td:last-child {
+    @apply w-auto whitespace-nowrap;
+  }
+
+  .data-table-partner-transactions th:nth-child(2),
+  .data-table-partner-transactions td:nth-child(2) {
+    @apply min-w-0 max-w-0 truncate;
+  }
+
+  .data-table-partner-transactions th.text-right {
+    @apply text-right;
   }
 
   /* Partner dashboard Recent Leads: full card width with balanced % columns */

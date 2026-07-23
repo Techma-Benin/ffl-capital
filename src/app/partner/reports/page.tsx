@@ -71,7 +71,14 @@ export default async function PartnerReportsPage() {
               accent="violet"
             />
           ) : (
-            <table className="data-table">
+            <table className="data-table data-table-partner-transactions">
+              <colgroup>
+                <col />
+                <col />
+                <col />
+                <col />
+                <col />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Type</th>
@@ -97,7 +104,9 @@ export default async function PartnerReportsPage() {
                   return (
                     <tr key={t.id}>
                       <td><Badge variant={typeConfig.variant}>{typeConfig.label}</Badge></td>
-                      <td className="text-slate-500">{t.description ?? "—"}</td>
+                      <td className="truncate text-slate-500" title={t.description ?? undefined}>
+                        {t.description ?? "—"}
+                      </td>
                       <td className={moneyCellClass()}>
                         <span className={`font-semibold ${isCredit ? "text-emerald-600" : "text-slate-900"}`}>
                           {isCredit ? "+" : ""}
