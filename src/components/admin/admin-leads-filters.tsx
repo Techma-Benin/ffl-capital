@@ -6,7 +6,7 @@ import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 
 export function AdminLeadsFilters() {
-  const { push } = useNavigateWithPending();
+  const { push: navigate } = useNavigateWithPending();
   const searchParams = useSearchParams();
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [state, setState] = useState(searchParams.get("state") ?? "");
@@ -14,7 +14,7 @@ export function AdminLeadsFilters() {
   const [to, setTo] = useState(searchParams.get("to") ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function push(overrides: { q?: string; state?: string; from?: string; to?: string }) {
+  function pushFilters(overrides: { q?: string; state?: string; from?: string; to?: string }) {
     const params = new URLSearchParams(searchParams.toString());
     const values = { q, state, from, to, ...overrides };
     if (values.q?.trim()) params.set("q", values.q.trim()); else params.delete("q");
@@ -22,20 +22,20 @@ export function AdminLeadsFilters() {
     if (values.from) params.set("from", values.from); else params.delete("from");
     if (values.to) params.set("to", values.to); else params.delete("to");
     params.delete("page");
-    push(`/admin/leads?${params.toString()}`);
+    navigate(`/admin/leads?${params.toString()}`);
   }
 
   // Debounce the text search input
   function handleQ(value: string) {
     setQ(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => push({ q: value }), 400);
+    debounceRef.current = setTimeout(() => pushFilters({ q: value }), 400);
   }
 
   // Instant push for select/date fields
-  function handleState(value: string) { setState(value); push({ state: value }); }
-  function handleFrom(value: string)  { setFrom(value);  push({ from: value });  }
-  function handleTo(value: string)    { setTo(value);    push({ to: value });    }
+  function handleState(value: string) { setState(value); pushFilters({ state: value }); }
+  function handleFrom(value: string)  { setFrom(value);  pushFilters({ from: value });  }
+  function handleTo(value: string)    { setTo(value);    pushFilters({ to: value });    }
 
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 

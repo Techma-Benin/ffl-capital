@@ -216,7 +216,7 @@
   }
 
   .data-table-partner-transactions th.text-right {
-    @apply text-right;
+    text-align: right;
   }
 
   /* Partner dashboard Recent Leads: full card width with balanced % columns */

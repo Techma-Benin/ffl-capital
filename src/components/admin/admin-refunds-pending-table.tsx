@@ -103,7 +103,7 @@ export function AdminRefundsPendingTable({
   const counts = useMemo(() => refundTypeCounts(refunds), [refunds]);
   const stateCounts = useMemo(() => refundStateCounts(refunds), [refunds]);
   const availableStates = useMemo(
-    () => [...new Set(refunds.map((r) => r.lead.state))].sort(),
+    () => Array.from(new Set(refunds.map((r) => r.lead.state))).sort(),
     [refunds],
   );
   const stateOptions = useMemo(

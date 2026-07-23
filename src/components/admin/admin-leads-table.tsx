@@ -151,7 +151,6 @@ export function AdminLeadsTable({
   columns,
   sort,
   layout = "cards",
-  visibility,
   tableFooter,
 }: {
   leads: LeadRow[];

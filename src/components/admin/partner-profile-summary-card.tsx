@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { clsx } from "clsx";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";

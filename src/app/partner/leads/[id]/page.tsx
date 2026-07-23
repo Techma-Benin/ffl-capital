@@ -125,7 +125,7 @@ export default async function PartnerLeadDetailPage({
       isRefunded={isRefunded}
       refundStatus={refundReq?.status ?? null}
       refundable={lead.refundable}
-      trustedFormCertified={lead.trustedformValid}
+      trustedFormCertified={lead.trustedformValid ?? false}
     />
   );
 }

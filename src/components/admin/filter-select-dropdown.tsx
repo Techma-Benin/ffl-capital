@@ -50,14 +50,14 @@ type SharedProps<T extends string> = {
 type SingleSelectProps<T extends string> = SharedProps<T> & {
   selectionMode?: "single";
   value: T;
-  allValue: T;
+  allValue: string;
   onChange: (next: T) => void;
 };
 
 type MultiSelectProps<T extends string> = SharedProps<T> & {
   selectionMode: "multi";
   value: string[];
-  allValue: T;
+  allValue: string;
   onChange: (next: string[]) => void;
 };
 
@@ -193,19 +193,21 @@ export function FilterSelectDropdown<T extends string>(
 
   function toggleOption(optionValue: T) {
     if (selectionMode === "multi") {
+      const multi = props as MultiSelectProps<T>;
       if (optionValue === allValue) {
-        props.onChange([]);
+        multi.onChange([]);
         return;
       }
-      const current = props.value;
+      const current = multi.value;
       if (current.includes(optionValue)) {
-        props.onChange(current.filter((v) => v !== optionValue));
+        multi.onChange(current.filter((v) => v !== optionValue));
       } else {
-        props.onChange([...current, optionValue]);
+        multi.onChange([...current, optionValue]);
       }
       return;
     }
-    props.onChange(optionValue);
+    const single = props as SingleSelectProps<T>;
+    single.onChange(optionValue);
     if (optionValue !== allValue) {
       setOpen(false);
     }

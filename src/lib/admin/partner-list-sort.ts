@@ -74,15 +74,18 @@ export function buildPartnerOrderBy(
   }
 }
 
-type PartnerForLeadBuyingSort = {
-  firstName: string;
-  lastName: string;
+type PartnerForLeadBuyingCompute = {
   status: string;
   walletBalance: { toNumber?: () => number } | number | string;
   filterSets: Array<{ active: boolean; filterStates: string[] }>;
 };
 
-export function computeLeadBuying(partner: PartnerForLeadBuyingSort): boolean {
+type PartnerForLeadBuyingSort = PartnerForLeadBuyingCompute & {
+  firstName: string;
+  lastName: string;
+};
+
+export function computeLeadBuying(partner: PartnerForLeadBuyingCompute): boolean {
   const isActive = partner.status === "active";
   const balance =
     typeof partner.walletBalance === "object" &&
@@ -97,7 +100,7 @@ export function computeLeadBuying(partner: PartnerForLeadBuyingSort): boolean {
 }
 
 export function countPartnersLeadBuying(
-  partners: PartnerForLeadBuyingSort[],
+  partners: PartnerForLeadBuyingCompute[],
 ): number {
   return partners.reduce((n, p) => n + (computeLeadBuying(p) ? 1 : 0), 0);
 }
