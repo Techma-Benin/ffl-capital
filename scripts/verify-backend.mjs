@@ -133,7 +133,6 @@ async function main() {
     where: {
       email: { notIn: ["low-balance@ffl-test.local"] },
       filterStates: { has: "TX" },
-      leadType: "high_intent_iul",
       status: PartnerStatus.active,
     },
     data: { status: PartnerStatus.disabled },
@@ -157,7 +156,6 @@ async function main() {
     where: {
       email: { not: "few-states@ffl-test.local" },
       filterStates: { has: "TX" },
-      leadType: "high_intent_iul",
       status: PartnerStatus.active,
     },
     data: { status: PartnerStatus.disabled },
@@ -181,7 +179,6 @@ async function main() {
     where: {
       email: { notIn: ["fifo-older@ffl-test.local", "fifo-newer@ffl-test.local"] },
       filterStates: { has: "TX" },
-      leadType: "high_intent_iul",
       status: PartnerStatus.active,
     },
     data: { status: PartnerStatus.disabled },

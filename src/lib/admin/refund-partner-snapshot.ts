@@ -12,7 +12,6 @@ export type RefundPartnerSnapshot = {
   filterStates: string[];
   walletBalance: number;
   priceOverride: number | null;
-  leadType: string;
   priority: number;
   deliveryCount: number;
 };
@@ -45,7 +44,6 @@ type PartnerRowSource = {
   filterStates: string[];
   walletBalance: { toString(): string } | number;
   priceOverride: { toString(): string } | number | null;
-  leadType: string;
   priority: number;
   _count: { leadDeliveries: number };
 };
@@ -69,7 +67,6 @@ export function refundPartnerSnapshotFromRow(
     walletBalance: Number(partner.walletBalance),
     priceOverride:
       partner.priceOverride != null ? Number(partner.priceOverride) : null,
-    leadType: partner.leadType,
     priority: partner.priority,
     deliveryCount: partner._count.leadDeliveries,
   };

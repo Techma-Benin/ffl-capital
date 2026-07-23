@@ -51,7 +51,6 @@ export async function listPartnerFilterSets(
 export async function syncDefaultFilterSetStates(params: {
   partnerId: string;
   filterStates: string[];
-  leadType: string;
   partnerStatus: PartnerStatus;
   client?: DbClient;
 }): Promise<PartnerFilterSet> {
@@ -75,7 +74,7 @@ export async function syncDefaultFilterSetStates(params: {
     data: {
       partnerId: params.partnerId,
       name: DEFAULT_FILTER_SET_NAME,
-      leadType: params.leadType,
+      leadType: "traditional_iul",
       filterStates: params.filterStates,
       active: params.partnerStatus === PartnerStatus.active,
     },

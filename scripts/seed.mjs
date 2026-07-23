@@ -1,4 +1,4 @@
-import { PrismaClient, LeadType, PartnerStatus } from "@prisma/client";
+import { PrismaClient, PartnerStatus } from "@prisma/client";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -25,6 +25,17 @@ const APP_SETTING_KEYS = {
 };
 
 const prisma = new PrismaClient();
+
+function defaultFilterSet(filterStates, leadType, active = true) {
+  return {
+    create: {
+      name: "Default",
+      leadType,
+      filterStates,
+      active,
+    },
+  };
+}
 
 async function seedAppSettings() {
   const defaults = [
@@ -66,8 +77,8 @@ async function main() {
       lastName: "Older",
       affiliation: "Test Agency",
       residenceState: "TX",
-      leadType: LeadType.high_intent_iul,
       filterStates: TX_STATES,
+      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul"),
       priority: 8,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -82,8 +93,8 @@ async function main() {
       lastName: "Newer",
       affiliation: "Test Agency",
       residenceState: "TX",
-      leadType: LeadType.high_intent_iul,
       filterStates: TX_STATES,
+      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul"),
       priority: 8,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -98,8 +109,8 @@ async function main() {
       lastName: "Priority10",
       affiliation: "FFL Capital Test",
       residenceState: "TX",
-      leadType: LeadType.high_intent_iul,
       filterStates: TX_STATES,
+      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul"),
       priority: 10,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -113,8 +124,8 @@ async function main() {
       lastName: "Partner",
       affiliation: "West Coast Agency",
       residenceState: "CA",
-      leadType: LeadType.high_intent_iul,
       filterStates: CA_STATES,
+      filterSets: defaultFilterSet(CA_STATES, "high_intent_iul"),
       priority: 5,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -128,8 +139,8 @@ async function main() {
       lastName: "Balance",
       affiliation: "Test Agency",
       residenceState: "TX",
-      leadType: LeadType.high_intent_iul,
       filterStates: TX_STATES,
+      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul"),
       priority: 10,
       walletBalance: 5,
       status: PartnerStatus.active,
@@ -143,8 +154,8 @@ async function main() {
       lastName: "States",
       affiliation: "Test Agency",
       residenceState: "TX",
-      leadType: LeadType.high_intent_iul,
       filterStates: FEW_STATES,
+      filterSets: defaultFilterSet(FEW_STATES, "high_intent_iul"),
       priority: 10,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -158,8 +169,8 @@ async function main() {
       lastName: "Approval",
       affiliation: "Test Agency",
       residenceState: "TX",
-      leadType: LeadType.traditional_iul,
       filterStates: TX_STATES,
+      filterSets: defaultFilterSet(TX_STATES, "traditional_iul", false),
       priority: 5,
       walletBalance: 500,
       status: PartnerStatus.pending_approval,

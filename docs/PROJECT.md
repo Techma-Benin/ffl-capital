@@ -232,7 +232,7 @@ Transcript : `first review with client` — [enregistrement Fathom](https://fath
 agents (users)
   ├── affiliation (texte libre — nom agence partenaire)
   ├── wallet_balance
-  ├── filter_states[], lead_type, priority (1-10)
+  ├── filter_states[], priority (1-10) on filter sets (`partner_filter_sets.lead_type` per set)
   ├── price_override (nullable, ex. 20 au lieu de 25)
   └── crm_webhook_url (nullable)
 

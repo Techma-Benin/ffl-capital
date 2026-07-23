@@ -46,7 +46,6 @@ export function RefundPartnerDetailSheet({ partner, open, onOpenChange }: Props)
           <dl className="space-y-2.5 px-5 py-4 text-sm">
             {[
               { label: "Deliveries", value: partner.deliveryCount.toLocaleString() },
-              { label: "Lead type", value: partner.leadType },
               ...(partner.filterStates.length > 0
                 ? [{ label: "Filter states", value: statesPreview }]
                 : []),

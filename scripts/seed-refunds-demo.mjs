@@ -53,8 +53,15 @@ async function getOrCreatePartner() {
       lastName: "Demo",
       affiliation: "Demo",
       residenceState: "TX",
-      leadType: "high_intent_iul",
       filterStates: TX_STATES,
+      filterSets: {
+        create: {
+          name: "Default",
+          leadType: "high_intent_iul",
+          filterStates: TX_STATES,
+          active: true,
+        },
+      },
       priority: 5,
       walletBalance: 1000,
       status: "active",
