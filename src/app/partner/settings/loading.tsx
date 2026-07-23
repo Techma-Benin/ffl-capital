@@ -22,7 +22,7 @@ export default function PartnerSettingsLoading() {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="flex flex-col gap-6 border-b border-slate-100 p-6 sm:flex-row sm:items-start">
+        <div className="flex flex-col gap-6 border-b border-slate-100 p-6 sm:flex-row sm:items-center">
           <Skeleton className="h-20 w-20 shrink-0 rounded-full" />
           <div className="flex flex-1 flex-col gap-3">
             <div className="space-y-2">
