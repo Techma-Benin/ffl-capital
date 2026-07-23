@@ -332,21 +332,7 @@ export function PartnerAgedView({
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                        <span className="font-medium text-slate-900">{leadName}</span>
-                        <div className="flex flex-wrap items-center gap-1.5 self-center">
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                            {lead.state}
-                          </span>
-                          <Badge variant="blue">
-                            {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                          </Badge>
-                          <span className={ageChip.chip}>
-                            <Clock size={11} className={ageChip.icon} aria-hidden />
-                            {ageDays}d
-                          </span>
-                        </div>
-                      </div>
+                      <span className="font-medium text-slate-900">{leadName}</span>
                       {lead.address && (
                         <p className="mt-0.5 text-xs text-slate-400">{lead.address}</p>
                       )}
@@ -355,8 +341,21 @@ export function PartnerAgedView({
                       )}
                     </div>
 
+                    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
+                        {lead.state}
+                      </span>
+                      <Badge variant="blue">
+                        {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                      </Badge>
+                      <span className={ageChip.chip}>
+                        <Clock size={11} className={ageChip.icon} aria-hidden />
+                        {ageDays}d
+                      </span>
+                    </div>
+
                     <div
-                      className="ml-auto shrink-0 self-center"
+                      className="shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
