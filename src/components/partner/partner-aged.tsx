@@ -311,13 +311,13 @@ export function PartnerAgedView({
                   <div
                     role="button"
                     tabIndex={0}
-                    className="flex cursor-pointer items-start gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600 sm:items-center"
+                    className="flex cursor-pointer items-center gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600"
                     onClick={() => openPreview(lead)}
                     onKeyDown={onRowKeyDown}
                     aria-label={`Preview ${leadName}`}
                   >
                     <div
-                      className="flex shrink-0 items-center pt-0.5 sm:pt-0"
+                      className="flex shrink-0 items-center"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <input
@@ -331,8 +331,8 @@ export function PartnerAgedView({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                        <p className="font-medium text-slate-900">{leadName}</p>
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-medium text-slate-900">{leadName}</span>
+                        <div className="flex flex-wrap items-center gap-1.5 self-center">
                           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
                             {lead.state}
                           </span>
