@@ -34,8 +34,7 @@ export default function PartnerSettingsLoading() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2 lg:grid-cols-4">
-          <ProfileFieldSkeleton />
+        <div className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
           <ProfileFieldSkeleton />
           <ProfileFieldSkeleton />
           <ProfileFieldSkeleton />
