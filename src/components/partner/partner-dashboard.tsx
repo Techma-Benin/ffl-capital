@@ -9,7 +9,7 @@ import { usePartner } from "@/components/partner/partner-provider";
 import { isPartnerActive } from "@/lib/partner/active";
 import { Wallet, FileText, TrendUp, ShoppingBag, MapPin, WarningCircle } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
-import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyValueClassName } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyStatValueClassName } from "@/lib/format-money";
 
 type RecentDelivery = {
   id: string;
@@ -53,7 +53,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           icon={Wallet}
           accent={walletOk ? "emerald" : "red"}
           blobIndex={0}
-          valueClassName={moneyValueClassName}
+          valueClassName={moneyStatValueClassName}
         />
         <StatCard
           label="Leads Received"
@@ -75,7 +75,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
           icon={ShoppingBag}
           accent="cyan"
           blobIndex={3}
-          valueClassName={moneyValueClassName}
+          valueClassName={moneyStatValueClassName}
         />
       </div>
 
