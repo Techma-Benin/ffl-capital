@@ -12,7 +12,9 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 
-const agedActionColumnClassName = "w-32 min-w-[8rem] text-center";
+const agedPriceColumnWidth = "w-24 min-w-24 whitespace-nowrap";
+const agedPriceHeaderClassName = `${moneyHeaderClassName} ${agedPriceColumnWidth}`;
+const agedActionColumnClassName = "w-36 min-w-36 text-center";
 
 type AgedLead = {
   id: string;
@@ -200,7 +202,7 @@ export function PartnerAgedView({
                   <th>Have IUL</th>
                   <th>Intent</th>
                   <th>Age</th>
-                  <th className={moneyHeaderClassName}>Price</th>
+                  <th className={agedPriceHeaderClassName}>Price</th>
                   <th className={agedActionColumnClassName}>Action</th>
                 </tr>
               </thead>
@@ -256,7 +258,9 @@ export function PartnerAgedView({
                           <span className="font-medium">{ageDays}d</span>
                         </div>
                       </td>
-                      <td className={moneyCellClass("font-bold text-slate-900")}>{formatUsd(agedPrice)}</td>
+                      <td className={moneyCellClass(agedPriceColumnWidth, "font-bold text-slate-900")}>
+                        {formatUsd(agedPrice)}
+                      </td>
                       <td className={agedActionColumnClassName}>
                         <div className="flex justify-center">
                           <button
