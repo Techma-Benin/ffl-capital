@@ -39,6 +39,13 @@ type LeadRow = {
   price: string | null;
 };
 
+function adminLeadHasExtraRowActions(lead: LeadRow): boolean {
+  return (
+    !!lead.trustedformCertUrl ||
+    (lead.status === "unmatched" && lead.available)
+  );
+}
+
 function AdminLeadRowMenu({ lead }: { lead: LeadRow }) {
   const { push, router } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
@@ -275,7 +282,9 @@ export function AdminLeadsTable({
       case "actions":
         return (
           <td key={key} className={cellClass({ first, last })}>
-            <AdminLeadRowMenu lead={lead} />
+            {adminLeadHasExtraRowActions(lead) ? (
+              <AdminLeadRowMenu lead={lead} />
+            ) : null}
           </td>
         );
       default:

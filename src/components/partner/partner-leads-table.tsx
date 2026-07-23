@@ -355,7 +355,9 @@ export function PartnerLeadsTable({
       case "actions":
         return (
           <td key={key} className={cellClass({ first, last })}>
-            <RowMenu delivery={d} onRefund={() => setRefundDialogId(d.id)} />
+            {d.canRefund ? (
+              <RowMenu delivery={d} onRefund={() => setRefundDialogId(d.id)} />
+            ) : null}
           </td>
         );
       default:
