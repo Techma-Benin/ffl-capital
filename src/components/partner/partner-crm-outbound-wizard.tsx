@@ -263,6 +263,7 @@ export function PartnerCrmOutboundWizard({
 
   const validationErrors = useMemo(() => getValidationErrors(form), [form]);
   const canSave = validationErrors.length === 0;
+  const canGoNext = isStepComplete(step, form);
 
   async function saveConfig() {
     setError("");
@@ -786,6 +787,7 @@ export function PartnerCrmOutboundWizard({
           <button
             type="button"
             className="btn-secondary btn-sm"
+            disabled={!canGoNext}
             onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
           >
             Next
