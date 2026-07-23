@@ -26,13 +26,14 @@ const APP_SETTING_KEYS = {
 
 const prisma = new PrismaClient();
 
-function defaultFilterSet(filterStates, leadType, active = true) {
+function defaultFilterSet(filterStates, leadType, active = true, priority = 5) {
   return {
     create: {
       name: "Default",
       leadType,
       filterStates,
       active,
+      priority,
     },
   };
 }
@@ -78,7 +79,7 @@ async function main() {
       affiliation: "Test Agency",
       residenceState: "TX",
       filterStates: TX_STATES,
-      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul"),
+      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul", true, 8),
       priority: 8,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -94,7 +95,7 @@ async function main() {
       affiliation: "Test Agency",
       residenceState: "TX",
       filterStates: TX_STATES,
-      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul"),
+      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul", true, 8),
       priority: 8,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -110,7 +111,7 @@ async function main() {
       affiliation: "FFL Capital Test",
       residenceState: "TX",
       filterStates: TX_STATES,
-      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul"),
+      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul", true, 10),
       priority: 10,
       walletBalance: 500,
       status: PartnerStatus.active,

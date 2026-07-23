@@ -135,7 +135,7 @@ Refunds → Type A (rematch) / Type B (lead mort)
 
 1. Intake payload complet → match → events
 2. Rejet doublon
-3. Limite journalière filter set
+3. Limite hebdomadaire filter set
 4. Achat aged (lead backdaté)
 5. Refund A + B
 6. Recherche admin

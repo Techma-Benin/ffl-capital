@@ -377,6 +377,7 @@ resale_postings                   -- envois IntegrityCONNECT
 | **Feeding platform** | `/feeding-platform` | UI statique pour soumissions test |
 | **Fixture JSON** | Fichiers `fixtures/lead-payload-*.json` | Payloads conformes au format LeadConduit attendu |
 | **Script CLI** | `npm run seed:lead` ou curl | Injection en masse pour tester matching / aging |
+| **Checklist E2E** | `npm run verify` (+ serveur dev ; Replit : `API_BASE_URL=http://127.0.0.1:5000`) | Scénarios Phase 9 : intake, limites, refunds, recherche admin, cron Integrity, champs migration |
 | **Webhook mock** | `POST /api/leads/intake` | Endpoint identique à celui branché en prod |
 | **TrustedForm simulé** | URL factice `https://cert.trustedform.com/test-{uuid}` | Suffisant en dev ; champ string en BDD |
 

@@ -7,7 +7,7 @@ export function normalizeNavigationHref(href: string): string {
 
   const params = new URLSearchParams(query);
   const sorted = new URLSearchParams(
-    [...params.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    Array.from(params.entries()).sort(([a], [b]) => a.localeCompare(b)),
   );
   const qs = sorted.toString();
   return qs ? `${path}?${qs}` : path;

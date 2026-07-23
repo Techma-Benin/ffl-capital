@@ -60,8 +60,9 @@ curl http://localhost:3000/api/health
 # Tests logique matching (sans DB)
 npm run test:matching
 
-# Checklist backend E2E
-npm run verify
+# Checklist backend E2E (dev server must be running; Replit Run → port 5000)
+API_BASE_URL=http://127.0.0.1:5000 npm run verify   # Replit
+npm run verify                                      # local default http://127.0.0.1:3000
 
 # Simuler un lead (serveur dev requis)
 npm run seed:lead

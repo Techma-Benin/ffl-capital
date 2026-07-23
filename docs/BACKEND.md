@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 21 juillet 2026
+> Dernière mise à jour : 23 juillet 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -266,13 +266,13 @@ Transaction atomique à la livraison :
 | CRM webhook | par partner | `partners.crm_webhook_url` |
 | Ringy | ✅ | `partners.ringy_sid`, `ringy_auth_token`, `crm_provider=ringy` |
 | IntegrityCONNECT | mock / live | `INTEGRITY_PING_URL`, `INTEGRITY_POST_URL`, `integrations_mode` dans app_settings |
-| Cron jobs | routes prêtes | `CRON_SECRET` + `npm run verify:cron` (ajouter script) |
+| Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `npm run verify:cron` |
 
 ---
 
 ## Stratégie jobs planifiés
 
-Routes protégées par `Authorization: Bearer $CRON_SECRET` :
+Routes protégées par `Authorization: Bearer $CRON_SECRET` (en dev, le serveur accepte `dev-cron-secret` si `CRON_SECRET` est vide — voir `src/lib/cron/auth.ts`) :
 
 | Route | Fréquence suggérée | Rôle |
 |-------|-------------------|------|
@@ -319,11 +319,33 @@ npx prisma generate
 npx prisma migrate deploy
 npm run seed
 npm run dev
-npm run verify          # checklist backend
-node scripts/verify-cron.mjs  # smoke test cron routes
+npm run verify          # checklist backend Phase 9 (serveur dev requis)
+npm run verify:cron     # smoke test routes cron
 npm run seed:lead       # POST fixture intake
 stripe:listen           # webhook Stripe local
 ```
+
+---
+
+## Vérification backend (Phase 9)
+
+**Commandes :** `npm run verify` (`scripts/verify-backend.mjs`), `npm run verify:cron` (`scripts/verify-cron.mjs`). Les deux scripts résolvent l’URL API via `scripts/lib/api-base.mjs` : variable optionnelle **`API_BASE_URL`**, sinon `http://127.0.0.1:3000` en local ou `:5000` sur Replit (`REPL_ID` / `PORT`). Ils chargent **`.env`** pour `CRON_SECRET` (défaut script : `dev-cron-secret`, aligné sur le serveur en `NODE_ENV=development`).
+
+**Préflight verify :** `GET /api/health` + présence du partner seed `tx-priority10@ffl-test.local` (`npm run seed` après migrations).
+
+**Scénarios `verify` (sortie `[PASS]` + résumé final) :**
+
+| ID | Sujet |
+|----|--------|
+| p9-1 | Intake payload Boberdoo → match `tx-priority10` → events received / matched / delivered |
+| p9-2 | Rejet doublon email+téléphone ; idempotence `externalId` |
+| prd-ca / prd-wallet / prd-states / prd-fifo | Règles matching (état, solde, ≥15 états, FIFO) |
+| p9-3 | Limite **hebdomadaire** filter set → unmatched |
+| p9-4 | Éligibilité aged (seuil `aged_days_threshold`) |
+| p9-5 | Remboursement Type A (`wrong_filter` → unmatched) et Type B (`invalid_phone` → dead) |
+| p9-6 | Recherche admin par email et téléphone |
+| p9-7 | Cron `POST /api/cron/integrity-post` sur lead unmatched au-delà du délai |
+| p9-8 | Persistance champs lead étendus (import / migration) |
 
 ---
 
@@ -331,7 +353,7 @@ stripe:listen           # webhook Stripe local
 
 | Email | Rôle test |
 |-------|-----------|
-| `tx-priority10@ffl-test.local` | TX, priorité 10 — gagne le match |
+| `tx-priority10@ffl-test.local` | TX, filter set priorité 10 — gagne le match |
 | `fifo-older@ffl-test.local` | TX, priorité 8, créé en premier (FIFO) |
 | `fifo-newer@ffl-test.local` | TX, priorité 8, créé après |
 | `ca-partner@ffl-test.local` | CA uniquement |
@@ -362,3 +384,4 @@ stripe:listen           # webhook Stripe local
 | 2026-07-23 | Colonnes liste leads — persistance `columns` sur la vue (PATCH) ; plus de `admin-leads-visible-columns` |
 | 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |
 | 2026-07-22 | Admin aged — tableau tri URL + pagination + mark dead (UI) |
+| 2026-07-23 | Phase 9 — `verify-backend` scénarios complets, `api-base.mjs`, cron dev secret, seed filter set TX priorité 10 |
