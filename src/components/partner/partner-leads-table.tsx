@@ -7,7 +7,7 @@ import { useLeadColumnSettingsBridge } from "@/components/leads/lead-column-sett
 import { LeadTableColumnPickerButton } from "@/components/leads/lead-table-column-picker-button";
 import { Badge } from "@/components/ui/badge";
 import {
-  DotsThree,
+  DotsThreeVertical,
   Eye,
   ArrowCounterClockwise,
   ICON_WEIGHT_LINEAR,
@@ -102,13 +102,19 @@ function RowMenu({
   }, [open]);
 
   return (
-    <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>
+    <div
+      ref={ref}
+      className="relative flex justify-end"
+      onClick={(e) => e.stopPropagation()}
+    >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        aria-label="Lead actions"
+        aria-expanded={open}
       >
-        <DotsThree size={18} weight={ICON_WEIGHT_LINEAR} />
+        <DotsThreeVertical size={18} weight={ICON_WEIGHT_LINEAR} />
       </button>
 
       {open && (
