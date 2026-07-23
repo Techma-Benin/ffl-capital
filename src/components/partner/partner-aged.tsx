@@ -12,7 +12,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 
-const agedActionColumnClassName = "w-28 min-w-28 text-right";
+const agedActionColumnClassName = "w-32 min-w-[8rem] text-center";
 
 type AgedLead = {
   id: string;
@@ -258,7 +258,7 @@ export function PartnerAgedView({
                       </td>
                       <td className={moneyCellClass("font-bold text-slate-900")}>{formatUsd(agedPrice)}</td>
                       <td className={agedActionColumnClassName}>
-                        <div className="flex justify-end">
+                        <div className="flex justify-center">
                           <button
                             type="button"
                             disabled={!canBuy || pending}
