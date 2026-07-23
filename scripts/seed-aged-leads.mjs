@@ -4,7 +4,7 @@
  * full aged pool (no filter-set targeting). Does not delete unrelated data.
  * Re-run replaces rows whose external_id starts with aged-demo-.
  *
- * Usage: npm run seed:aged-leads
+ * Usage: pnpm run seed:aged-leads
  */
 import { PrismaClient, LeadStatus } from "@prisma/client";
 

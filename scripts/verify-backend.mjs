@@ -37,7 +37,7 @@ async function preflight() {
     health = await res.json();
   } catch (err) {
     console.error(
-      "Cannot reach the dev server. Start it first, then re-run npm run verify.\n" +
+      "Cannot reach the dev server. Start it first, then re-run pnpm run verify.\n" +
         `  Expected base URL: ${BASE}\n` +
         "  Override with API_BASE_URL (Replit Run uses http://127.0.0.1:5000).\n" +
         `  Error: ${err instanceof Error ? err.message : String(err)}`,
@@ -55,7 +55,7 @@ async function preflight() {
   });
   if (!testPartner) {
     console.error(
-      "Test partners missing. Run `npm run seed` after migrations, then re-run verify.",
+      "Test partners missing. Run `pnpm run seed` after migrations, then re-run verify.",
     );
     process.exit(1);
   }

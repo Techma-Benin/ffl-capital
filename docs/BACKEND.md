@@ -21,11 +21,11 @@
 | API `POST /api/leads/intake` | ✅ |
 | Moteur matching V1 (FIFO) | ✅ |
 | Wallet ledger append-only | ✅ |
-| Seed partners test | ✅ `npm run seed` |
+| Seed partners test | ✅ `pnpm run seed` |
 | Simulateur dev `/dev/lead-simulator` | ✅ |
 | Feeding platform `/feeding-platform` | ✅ |
 | Projet Supabase `wbzvyvtlopoghvdqltxm` | ✅ eu-west-3 |
-| Vérification E2E locale | ✅ `npm run verify` |
+| Vérification E2E locale | ✅ `pnpm run verify` |
 
 ### Portails + intégrations (juillet 2026 — fait)
 
@@ -266,7 +266,7 @@ Transaction atomique à la livraison :
 | CRM webhook | par partner | `partners.crm_webhook_url` |
 | Ringy | ✅ | `partners.ringy_sid`, `ringy_auth_token`, `crm_provider=ringy` |
 | IntegrityCONNECT | mock / live | `INTEGRITY_PING_URL`, `INTEGRITY_POST_URL`, `integrations_mode` dans app_settings |
-| Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `npm run verify:cron` |
+| Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
 
 ---
 
@@ -313,25 +313,25 @@ RLS activé sur toutes les tables, **sans policies** `anon`/`authenticated` — 
 ## Commandes dev
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env
-npx prisma generate
-npx prisma migrate deploy
-npm run seed
-npm run dev
-npm run verify          # checklist backend Phase 9 (serveur dev requis)
-npm run verify:cron     # smoke test routes cron
-npm run seed:lead       # POST fixture intake
-stripe:listen           # webhook Stripe local
+pnpm exec prisma generate
+pnpm exec prisma migrate deploy
+pnpm run seed
+pnpm dev
+pnpm run verify          # checklist backend Phase 9 (serveur dev requis)
+pnpm run verify:cron     # smoke test routes cron
+pnpm run seed:lead       # POST fixture intake
+pnpm stripe:listen       # webhook Stripe local
 ```
 
 ---
 
 ## Vérification backend (Phase 9)
 
-**Commandes :** `npm run verify` (`scripts/verify-backend.mjs`), `npm run verify:cron` (`scripts/verify-cron.mjs`). Les deux scripts résolvent l’URL API via `scripts/lib/api-base.mjs` : variable optionnelle **`API_BASE_URL`**, sinon `http://127.0.0.1:3000` en local ou `:5000` sur Replit (`REPL_ID` / `PORT`). Ils chargent **`.env`** pour `CRON_SECRET` (défaut script : `dev-cron-secret`, aligné sur le serveur en `NODE_ENV=development`).
+**Commandes :** `pnpm run verify` (`scripts/verify-backend.mjs`), `pnpm run verify:cron` (`scripts/verify-cron.mjs`). Les deux scripts résolvent l’URL API via `scripts/lib/api-base.mjs` : variable optionnelle **`API_BASE_URL`**, sinon `http://127.0.0.1:3000` en local ou `:5000` sur Replit (`REPL_ID` / `PORT`). Ils chargent **`.env`** pour `CRON_SECRET` (défaut script : `dev-cron-secret`, aligné sur le serveur en `NODE_ENV=development`).
 
-**Préflight verify :** `GET /api/health` + présence du partner seed `tx-priority10@ffl-test.local` (`npm run seed` après migrations).
+**Préflight verify :** `GET /api/health` + présence du partner seed `tx-priority10@ffl-test.local` (`pnpm run seed` après migrations).
 
 **Scénarios `verify` (sortie `[PASS]` + résumé final) :**
 

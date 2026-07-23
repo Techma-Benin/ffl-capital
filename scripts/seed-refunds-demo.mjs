@@ -2,7 +2,7 @@
  * Sample refund requests for admin /admin/refunds (type chips, pending + history).
  * Idempotent: re-run replaces demo refund rows tied to external_id refund-demo-* leads.
  *
- * Usage: npm run seed:refunds-demo
+ * Usage: pnpm run seed:refunds-demo
  */
 import { PrismaClient, LeadStatus } from "@prisma/client";
 
