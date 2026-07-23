@@ -39,6 +39,24 @@ const DASHBOARD_PERIODS = new Set<AdminDatePeriod>(
   ADMIN_DASHBOARD_PERIOD_OPTIONS.map((o) => o.value),
 );
 
+/** Default preset when the dashboard loads without an explicit period in the URL. */
+export const ADMIN_DASHBOARD_DEFAULT_PERIOD: AdminDatePeriod = "last_7_days";
+
+export function adminDashboardHasExplicitPeriod(searchParams: {
+  period?: string;
+  from?: string;
+  to?: string;
+}): boolean {
+  const period = searchParams.period;
+  if (period === "custom") {
+    return !!(searchParams.from || searchParams.to);
+  }
+  if (period && DASHBOARD_PERIODS.has(period as AdminDatePeriod)) {
+    return true;
+  }
+  return !!(searchParams.from || searchParams.to);
+}
+
 export function parseAdminDashboardPeriod(searchParams: {
   period?: string;
   from?: string;
@@ -49,6 +67,16 @@ export function parseAdminDashboardPeriod(searchParams: {
   to?: string;
 } {
   const period = searchParams.period;
+  if (period === "custom") {
+    if (searchParams.from || searchParams.to) {
+      return {
+        datePeriod: "custom",
+        from: searchParams.from,
+        to: searchParams.to,
+      };
+    }
+    return { datePeriod: ADMIN_DASHBOARD_DEFAULT_PERIOD };
+  }
   if (period && DASHBOARD_PERIODS.has(period as AdminDatePeriod)) {
     return {
       datePeriod: period as AdminDatePeriod,
@@ -63,7 +91,7 @@ export function parseAdminDashboardPeriod(searchParams: {
       to: searchParams.to,
     };
   }
-  return { datePeriod: "last_7_days" };
+  return { datePeriod: ADMIN_DASHBOARD_DEFAULT_PERIOD };
 }
 
 export function resolveAdminDashboardReceivedAtRange(
@@ -73,7 +101,10 @@ export function resolveAdminDashboardReceivedAtRange(
   const filters = parseAdminDashboardPeriod(searchParams);
   const range =
     resolveAdminReceivedAtRange(filters, now) ??
-    resolveAdminReceivedAtRange({ datePeriod: "last_7_days" }, now)!;
+    resolveAdminReceivedAtRange(
+      { datePeriod: ADMIN_DASHBOARD_DEFAULT_PERIOD },
+      now,
+    )!;
   return { gte: range.gte!, lte: range.lte! };
 }
 

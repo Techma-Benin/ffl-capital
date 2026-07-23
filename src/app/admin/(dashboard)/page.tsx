@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { PartnerStatus } from "@prisma/client";
@@ -6,6 +7,8 @@ import { getAdminDashboardChartData } from "@/lib/admin/dashboard-stats";
 import { AdminDashboardCharts } from "@/components/admin/admin-dashboard-charts";
 import { AdminDashboardPeriodFilter } from "@/components/admin/admin-dashboard-period-filter";
 import {
+  ADMIN_DASHBOARD_DEFAULT_PERIOD,
+  adminDashboardHasExplicitPeriod,
   adminDashboardPeriodDisplayLabel,
   parseAdminDashboardPeriod,
   resolveAdminDashboardReceivedAtRange,
@@ -20,6 +23,10 @@ export default async function AdminDashboardPage({
     to?: string;
   };
 }) {
+  if (!adminDashboardHasExplicitPeriod(searchParams)) {
+    redirect(`/admin?period=${ADMIN_DASHBOARD_DEFAULT_PERIOD}`);
+  }
+
   const periodFilters = parseAdminDashboardPeriod(searchParams);
   const receivedRange = resolveAdminDashboardReceivedAtRange(searchParams);
   const periodLabel = adminDashboardPeriodDisplayLabel(

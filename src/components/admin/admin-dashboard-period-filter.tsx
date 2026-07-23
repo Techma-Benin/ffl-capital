@@ -59,11 +59,12 @@ export function AdminDashboardPeriodFilter({
       <select
         id="admin-dashboard-period"
         className="form-select min-w-[160px] py-1.5 text-sm"
-        value={datePeriod}
+        value={
+          customPickerOpen && datePeriod !== "custom" ? "custom" : datePeriod
+        }
         onChange={(e) => {
           const value = e.target.value as AdminDatePeriod;
           if (value === "custom") {
-            navigate({ period: "custom", clearDates: false });
             setCustomPickerOpen(true);
             return;
           }
