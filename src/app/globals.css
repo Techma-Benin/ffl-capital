@@ -175,8 +175,8 @@
   }
 
   /* Shrink date/action/price trailing columns instead of absorbing table slack */
-  .data-table:not(.data-table-recent-leads) th:last-child,
-  .data-table:not(.data-table-recent-leads) td:last-child {
+  .data-table:not(.data-table-recent-leads):not(.data-table-wallet-transactions) th:last-child,
+  .data-table:not(.data-table-recent-leads):not(.data-table-wallet-transactions) td:last-child {
     @apply w-px whitespace-nowrap;
   }
 
@@ -222,6 +222,41 @@
   .data-table-recent-leads th:last-child,
   .data-table-recent-leads td:last-child {
     @apply px-5;
+  }
+
+  /* Partner wallet transaction history */
+  .data-table-wallet-transactions {
+    @apply w-full min-w-[36rem] table-fixed;
+  }
+
+  .data-table-wallet-transactions col:nth-child(1) {
+    width: 14%;
+  }
+
+  .data-table-wallet-transactions col:nth-child(2) {
+    width: 18%;
+  }
+
+  .data-table-wallet-transactions col:nth-child(3) {
+    width: 14%;
+  }
+
+  .data-table-wallet-transactions col:nth-child(4) {
+    width: 16%;
+  }
+
+  .data-table-wallet-transactions col:nth-child(5) {
+    width: 28%;
+  }
+
+  .data-table-wallet-transactions th:nth-child(2),
+  .data-table-wallet-transactions td:nth-child(2) {
+    @apply max-w-0 truncate;
+  }
+
+  .data-table-wallet-transactions th:last-child,
+  .data-table-wallet-transactions td:last-child {
+    @apply whitespace-nowrap;
   }
 
   .data-table thead {

@@ -8,7 +8,7 @@ import { usePartner } from "@/components/partner/partner-provider";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { Wallet, ArrowUpRight, ArrowsClockwise, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
-import { formatUsd, moneyValueClassName } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyValueClassName } from "@/lib/format-money";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -326,60 +326,77 @@ export function PartnerWalletView({
         </div>
 
         {/* ── RIGHT: Transaction History ── */}
-        <div className="self-start">
-          <h2 className="mb-3 px-1 text-base font-semibold text-slate-900">Transaction History</h2>
-
-          {transactions.length === 0 ? (
-            <div className="card group/empty flex flex-col items-center justify-center py-16 text-center">
-              <EmptyStateBlobIcon
-                icon={Wallet}
-                seed="No transactions yet"
-                accent="red"
-                className="mb-3"
-              />
-              <p className="text-sm font-medium text-slate-500">No transactions yet</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {transactions.slice(0, 6).map((t) => {
-                const isCredit = t.amount > 0;
-                return (
-                  <div key={t.id} className="relative rounded-2xl border border-slate-200/80 bg-white shadow-none transition-shadow hover:shadow-card-hover">
-                    {/* Top section */}
-                    <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
-                      <div className="min-w-0 flex-1">
-                        <TransactionTypeBadge type={t.type} />
-                        {t.description && (
-                          <p className="mt-1.5 truncate text-xs font-medium text-slate-700">{t.description}</p>
-                        )}
-                      </div>
-                      <p className={clsx("shrink-0 text-base font-bold", moneyValueClassName, isCredit ? "text-emerald-600" : "text-slate-900")}>
-                        {isCredit ? "+" : "−"}
-                        {formatUsd(Math.abs(t.amount))}
-                      </p>
-                    </div>
-
-                    {/* Dashed tear line with notch cutouts */}
-                    <div className="relative flex items-center">
-                      <div className="absolute -left-2.5 h-5 w-5 rounded-full bg-[#f4f7fb]" />
-                      <div className="mx-4 flex-1 border-t border-dashed border-slate-200" />
-                      <div className="absolute -right-2.5 h-5 w-5 rounded-full bg-[#f4f7fb]" />
-                    </div>
-
-                    {/* Bottom section */}
-                    <div className="flex items-center justify-between px-5 pt-2.5 pb-3.5">
-                      <p className="text-[11px] text-slate-400" suppressHydrationWarning>
-                        {formatDateTime(t.createdAt)}
-                      </p>
-                      <p className={clsx("text-[11px] font-medium text-slate-400", moneyValueClassName)}>
-                        bal. {formatUsd(t.balanceAfter)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <div className="card self-start overflow-hidden">
+          <div className="border-b border-slate-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-slate-900">Transaction History</h2>
+          </div>
+          <div className="overflow-x-auto">
+            {transactions.length === 0 ? (
+              <div className="group/empty flex flex-col items-center justify-center py-16 text-center">
+                <EmptyStateBlobIcon
+                  icon={Wallet}
+                  seed="No transactions yet"
+                  accent="red"
+                  className="mb-3"
+                />
+                <p className="text-sm font-medium text-slate-500">No transactions yet</p>
+              </div>
+            ) : (
+              <table className="data-table data-table-wallet-transactions">
+                <colgroup>
+                  <col />
+                  <col />
+                  <col />
+                  <col />
+                  <col />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th className={moneyHeaderClassName}>Amount</th>
+                    <th className={moneyHeaderClassName}>Balance After</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((t) => {
+                    const isCredit = t.amount > 0;
+                    return (
+                      <tr key={t.id}>
+                        <td>
+                          <TransactionTypeBadge type={t.type} />
+                        </td>
+                        <td
+                          className="text-slate-500"
+                          title={t.description ?? undefined}
+                        >
+                          {t.description ?? "—"}
+                        </td>
+                        <td className={moneyCellClass()}>
+                          <span
+                            className={clsx(
+                              "font-semibold",
+                              isCredit ? "text-emerald-600" : "text-slate-900",
+                            )}
+                          >
+                            {isCredit ? "+" : "−"}
+                            {formatUsd(Math.abs(t.amount))}
+                          </span>
+                        </td>
+                        <td className={moneyCellClass("font-medium")}>
+                          {formatUsd(t.balanceAfter)}
+                        </td>
+                        <td className="text-xs text-slate-400" suppressHydrationWarning>
+                          {formatDateTime(t.createdAt)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
 
       </div>
