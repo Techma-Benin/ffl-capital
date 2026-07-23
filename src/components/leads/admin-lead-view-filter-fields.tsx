@@ -1,11 +1,20 @@
 "use client";
 
-import { TargetStatesGrid } from "@/components/filter-sets/target-states-grid";
+import {
+  US_REGION_STATES,
+  US_STATE_CODES,
+} from "@/lib/constants/us-states";
 import type {
   AdminDatePeriod,
   AdminLeadViewFilters,
 } from "@/lib/leads/list-view-schema";
 import { ADMIN_DATE_PERIOD_OPTIONS } from "@/lib/admin/admin-date-period";
+import { FilterChipGroup } from "@/components/leads/filter-chip-group";
+
+const STATE_OPTIONS = US_STATE_CODES.map((code) => ({
+  value: code,
+  label: code,
+}));
 
 export function AdminLeadViewFilterFields({
   filters,
@@ -14,6 +23,19 @@ export function AdminLeadViewFilterFields({
   filters: AdminLeadViewFilters;
   onChange: (patch: Partial<AdminLeadViewFilters>) => void;
 }) {
+  const selectedStates = filters.states ?? [];
+
+  function setStates(states: string[]) {
+    onChange({ states: states.length ? states : undefined });
+  }
+
+  function toggleState(code: string) {
+    const next = new Set(selectedStates);
+    if (next.has(code)) next.delete(code);
+    else next.add(code);
+    setStates(Array.from(next).sort());
+  }
+
   return (
     <>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -37,15 +59,65 @@ export function AdminLeadViewFilterFields({
           <option value="aged_listed">Aged listed</option>
         </select>
       </div>
-      <div>
-        <label className="form-label text-[10px]">States</label>
-        <TargetStatesGrid
-          selected={filters.states ?? []}
-          onChange={(states) =>
-            onChange({ states: states.length ? states : undefined })
-          }
-        />
-      </div>
+      <FilterChipGroup
+        label="States"
+        options={STATE_OPTIONS}
+        selected={selectedStates}
+        onToggle={toggleState}
+        scrollable
+        header={
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[10px] font-medium text-slate-500">
+              {selectedStates.length} / {US_STATE_CODES.length} selected
+              {selectedStates.length === 0 ? " (all states)" : ""}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setStates([...US_STATE_CODES])}
+                className="btn-secondary btn-sm"
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setStates([])}
+                className="btn-secondary btn-sm"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => setStates([...US_REGION_STATES.southeast])}
+                className="btn-secondary btn-sm"
+              >
+                Southeast
+              </button>
+              <button
+                type="button"
+                onClick={() => setStates([...US_REGION_STATES.northeast])}
+                className="btn-secondary btn-sm"
+              >
+                Northeast
+              </button>
+              <button
+                type="button"
+                onClick={() => setStates([...US_REGION_STATES.midwest])}
+                className="btn-secondary btn-sm"
+              >
+                Midwest
+              </button>
+              <button
+                type="button"
+                onClick={() => setStates([...US_REGION_STATES.west])}
+                className="btn-secondary btn-sm"
+              >
+                West
+              </button>
+            </div>
+          </div>
+        }
+      />
       <div>
         <label className="form-label text-[10px]">Date period</label>
         <select

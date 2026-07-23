@@ -2,7 +2,7 @@
 
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import type { PartnerLeadViewFilters } from "@/lib/leads/list-view-schema";
-import { FilterCheckboxGroup } from "@/components/leads/filter-checkbox-group";
+import { FilterChipGroup } from "@/components/leads/filter-chip-group";
 
 const LOCATION_OPTIONS = US_STATE_CODES.map((code) => ({
   value: code,
@@ -69,26 +69,26 @@ export function PartnerLeadViewFilterFields({
           ))}
         </select>
       </div>
-      <FilterCheckboxGroup
+      <FilterChipGroup
         label="Locations"
         options={LOCATION_OPTIONS}
         selected={filters.locations ?? []}
         onToggle={(v) => toggleArray("locations", v)}
         scrollable
       />
-      <FilterCheckboxGroup
+      <FilterChipGroup
         label="Channel"
         options={[...CHANNEL_OPTIONS]}
         selected={filters.channels ?? []}
         onToggle={(v) => toggleArray("channels", v)}
       />
-      <FilterCheckboxGroup
+      <FilterChipGroup
         label="Type"
         options={[...TYPE_OPTIONS]}
         selected={filters.types ?? []}
         onToggle={(v) => toggleArray("types", v)}
       />
-      <FilterCheckboxGroup
+      <FilterChipGroup
         label="Status"
         options={[...STATUS_OPTIONS]}
         selected={filters.statuses ?? []}
