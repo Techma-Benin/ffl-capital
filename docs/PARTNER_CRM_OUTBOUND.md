@@ -16,7 +16,7 @@ Spécification produit et technique pour la livraison CRM optionnelle côté par
 | Auth | `none`, `bearer`, `api_key_header`, `basic`, `body_fields` (paires clé/valeur dans le JSON plat) |
 | Secrets | Stockés **en clair** en BDD (choix produit) |
 | Payload | **JSON plat uniquement** ; mapping source → clé destination |
-| Wizard UX | Route dédiée `/partner/settings/crm-outbound` ; endpoint + auth + mapping ; « coller un exemple JSON » pour pré-remplir les clés (top-level). Sur Settings : carte **Lead delivery** (email + CRM). **Configuré** (ligne BDD + URL) ≠ **activé** (`enabled`) : sans config → Connect CRM seul ; avec config → host + badge Ready/Off, toggle Power (GET puis PATCH `enabled`), Test, Delete ; clic ligne → wizard |
+| Wizard UX | Route dédiée `/partner/settings/crm-outbound` ; endpoint + auth + mapping ; « coller un exemple JSON » pour pré-remplir les clés (top-level). Sur Settings : carte **Lead delivery** (email + CRM). **Configuré** (ligne BDD + URL) ≠ **activé** (`enabled`) : sans config → Connect CRM seul ; avec config → host + badge Ready/Off, Power rouge = on (tooltip Disable), gris = off. **Désactiver** : `PATCH { enabled: false }` sans revalidation URL ni test. **Activer** : le serveur envoie d’abord un POST test ; succès → `enabled: true`, échec → reste off + erreur. Test / Delete séparés ; clic ligne → wizard |
 | Succès | Par défaut **HTTP 2xx** ; règle optionnelle : `bodyContains`, `bodyRegex`, `bodyKeyEquals` (clé top-level) |
 | Échec POST | **Pas de retry** ; email partner avec raison (status, réseau, règle) — **sans payload lead** |
 | SSRF | IP privées/loopback/metadata, DNS + re-check IP, `redirect: manual`, timeout ~15s, taille réponse max |

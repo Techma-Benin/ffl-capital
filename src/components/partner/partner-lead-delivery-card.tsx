@@ -13,16 +13,6 @@ const CRM_OUTBOUND_HREF = "/partner/settings/crm-outbound";
 
 type CrmSummary = PartnerCrmSummary;
 
-type CrmOutboundFullConfig = {
-  enabled: boolean;
-  endpointUrl: string;
-  httpMethod?: "POST";
-  authType: string;
-  authConfig?: Record<string, unknown>;
-  fieldMappings: { source: string; target: string }[];
-  successRule?: Record<string, unknown>;
-};
-
 type TestApiResult = {
   ok?: boolean;
   statusCode?: number | null;
@@ -382,32 +372,24 @@ export function PartnerLeadDeliveryCard({
 
   async function handleToggleEnabled() {
     if (!crm || toggling) return;
+    const nextEnabled = !crm.enabled;
     setToggling(true);
     setToggleError("");
     try {
-      const getRes = await fetch("/api/partners/me/crm-outbound");
-      if (!getRes.ok) {
-        setToggleError("Could not load CRM config");
-        return;
-      }
-      const config = (await getRes.json()) as CrmOutboundFullConfig;
+      // Disable: flip off only. Enable: server tests the endpoint first; stays off on failure.
       const patchRes = await fetch("/api/partners/me/crm-outbound", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enabled: !config.enabled,
-          endpointUrl: config.endpointUrl,
-          httpMethod: "POST" as const,
-          authType: config.authType,
-          authConfig: config.authConfig ?? {},
-          fieldMappings: config.fieldMappings,
-          successRule: config.successRule,
-        }),
+        body: JSON.stringify({ enabled: nextEnabled }),
       });
       if (!patchRes.ok) {
         const data = await patchRes.json().catch(() => ({}));
         setToggleError(
-          typeof data.error === "string" ? data.error : "Could not update CRM",
+          typeof data.error === "string"
+            ? data.error
+            : nextEnabled
+              ? "Could not enable CRM — connection test failed"
+              : "Could not disable CRM",
         );
         return;
       }
@@ -422,7 +404,11 @@ export function PartnerLeadDeliveryCard({
         authType: data.authType,
       });
     } catch {
-      setToggleError("Could not update CRM");
+      setToggleError(
+        nextEnabled
+          ? "Could not enable CRM — connection test failed"
+          : "Could not disable CRM",
+      );
     } finally {
       setToggling(false);
     }
@@ -494,18 +480,18 @@ export function PartnerLeadDeliveryCard({
                             type="button"
                             title={
                               crm?.enabled
-                                ? "CRM POST is on — click to turn off"
-                                : "CRM POST is off — click to turn on"
+                                ? "Disable CRM POST"
+                                : "Enable CRM POST — tests connection first"
                             }
                             aria-label={
                               crm?.enabled
-                                ? "CRM POST is on — click to turn off"
-                                : "CRM POST is off — click to turn on"
+                                ? "Disable CRM POST"
+                                : "Enable CRM POST — tests connection first"
                             }
                             disabled={toggling}
                             className={
                               crm?.enabled
-                                ? "rounded p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
+                                ? "rounded p-1.5 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                                 : "rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
                             }
                             onClick={(e) => {

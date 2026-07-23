@@ -75,7 +75,13 @@ export const crmOutboundConfigBodySchema = z
     }
   });
 
+/** Toggle CRM POST on/off without re-submitting the full wizard payload. */
+export const crmOutboundEnabledOnlySchema = z
+  .object({ enabled: z.boolean() })
+  .strict();
+
 export type CrmOutboundConfigInput = z.infer<typeof crmOutboundConfigBodySchema>;
+export type CrmOutboundEnabledOnly = z.infer<typeof crmOutboundEnabledOnlySchema>;
 export type CrmOutboundFieldMapping = z.infer<typeof fieldMappingSchema>;
 export type CrmOutboundSuccessRule = z.infer<typeof successRuleSchema>;
 
