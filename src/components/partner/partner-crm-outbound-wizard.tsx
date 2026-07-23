@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   LEAD_DELIVERY_SOURCE_FIELDS,
   parseTopLevelJsonKeys,
@@ -213,6 +214,7 @@ export function PartnerCrmOutboundWizard({
   /** When false, page supplies title/back; wizard body only. */
   showPageChrome?: boolean;
 }) {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<WizardForm>(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -257,7 +259,7 @@ export function PartnerCrmOutboundWizard({
   const canSave = validationErrors.length === 0;
   const canGoNext = isStepComplete(step, form);
 
-  async function saveConfig() {
+  async function saveConfig(): Promise<boolean> {
     setError("");
     setSuccess("");
     setSaving(true);
@@ -271,16 +273,24 @@ export function PartnerCrmOutboundWizard({
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Save failed");
-        return;
+        return false;
       }
       setConfigured(true);
       setForm(formFromApi(data));
       setSuccess("CRM outbound settings saved.");
+      return true;
     } catch {
       setError("Save failed");
+      return false;
     } finally {
       setSaving(false);
     }
+  }
+
+  async function finishWizard() {
+    if (!canSave || saving) return;
+    const saved = await saveConfig();
+    if (saved) router.push("/partner/settings");
   }
 
   async function runTest() {
@@ -740,9 +750,7 @@ export function PartnerCrmOutboundWizard({
       )}
 
       {error && <p className="mt-4 text-xs text-red-600">{error}</p>}
-      {success && step !== 4 && (
-        <p className="mt-4 text-xs text-green-700">{success}</p>
-      )}
+      {success && <p className="mt-4 text-xs text-green-700">{success}</p>}
 
       <div className="mt-6 flex justify-between border-t border-slate-100 pt-4">
         <button
@@ -759,11 +767,11 @@ export function PartnerCrmOutboundWizard({
             variant="primary"
             className="btn-sm"
             loading={saving}
-            success={Boolean(success) && !testing}
-            onClick={() => void saveConfig()}
+            loadingText="Saving…"
+            onClick={() => void finishWizard()}
             disabled={!canSave || saving}
           >
-            Save
+            Done
           </ActionButton>
         ) : (
           <button
