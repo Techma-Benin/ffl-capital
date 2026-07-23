@@ -36,14 +36,7 @@ export default function PartnerSettingsLoading() {
           <ProfileFieldSkeleton />
           <ProfileFieldSkeleton />
           <ProfileFieldSkeleton />
-        </div>
-      </div>
-
-      <div className="card p-5 space-y-4">
-        <Skeleton className="h-5 w-36" />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Skeleton className="h-20 rounded-lg" />
-          <Skeleton className="h-20 rounded-lg" />
+          <ProfileFieldSkeleton />
         </div>
       </div>
 

@@ -9,7 +9,6 @@ import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
 import { usePartner } from "@/components/partner/partner-provider";
 import {
-  Gear,
   PlugsConnected,
   Funnel,
   Plus,
@@ -44,7 +43,9 @@ type PartnerFilterSet = {
 const PARTNER_CATEGORIES = [
   { type: "traditional_iul", label: "Traditional IUL" },
   { type: "high_intent_iul", label: "High Intent IUL" },
-];
+] as const;
+
+type PartnerLeadType = (typeof PARTNER_CATEGORIES)[number]["type"];
 
 const DEFAULT_FORM: FilterSetFormData = {
   name: "",
@@ -308,6 +309,11 @@ function displayProfileValue(value: string | null | undefined) {
   return trimmed ? trimmed : "—";
 }
 
+function leadTypeLabel(value: string | null | undefined) {
+  const match = PARTNER_CATEGORIES.find((c) => c.type === value);
+  return match?.label ?? displayProfileValue(value);
+}
+
 function formatPartnerDisplayName(
   firstName: string | null | undefined,
   lastName: string | null | undefined,
@@ -348,6 +354,65 @@ function PartnerProfileSection({
   avatarUrl?: string;
 }) {
   const clerk = useClerk();
+  const { patchPartner } = usePartner();
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftLeadType, setDraftLeadType] = useState<PartnerLeadType>(
+    partner.leadType as PartnerLeadType,
+  );
+  const [leadTypeSaving, setLeadTypeSaving] = useState(false);
+  const [leadTypeSuccess, setLeadTypeSuccess] = useState(false);
+  const [leadTypeError, setLeadTypeError] = useState("");
+
+  useEffect(() => {
+    if (!isEditing) {
+      setDraftLeadType(partner.leadType as PartnerLeadType);
+    }
+  }, [partner.leadType, isEditing]);
+
+  const leadTypeDirty = draftLeadType !== partner.leadType;
+
+  function startEditing() {
+    setDraftLeadType(partner.leadType as PartnerLeadType);
+    setLeadTypeError("");
+    setLeadTypeSuccess(false);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setDraftLeadType(partner.leadType as PartnerLeadType);
+    setLeadTypeError("");
+    setLeadTypeSuccess(false);
+    setIsEditing(false);
+  }
+
+  async function saveProfile() {
+    if (!leadTypeDirty) {
+      setIsEditing(false);
+      return;
+    }
+    setLeadTypeError("");
+    setLeadTypeSuccess(false);
+    setLeadTypeSaving(true);
+    try {
+      const res = await fetch("/api/partners/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadType: draftLeadType }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLeadTypeError(data.error ?? "Failed to save lead type");
+        return;
+      }
+      patchPartner({ leadType: data.leadType });
+      setLeadTypeSuccess(true);
+      setIsEditing(false);
+    } catch {
+      setLeadTypeError("Request failed. Please try again.");
+    } finally {
+      setLeadTypeSaving(false);
+    }
+  }
 
   return (
     <section id="profile" className={settingsSectionClass}>
@@ -371,15 +436,35 @@ function PartnerProfileSection({
               >
                 {displayProfileValue(partner.email)}
               </p>
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={() => clerk.openUserProfile()}
+                  className="mt-2 text-xs font-medium text-brand-600 hover:text-brand-700"
+                >
+                  Update name, email, or photo
+                </button>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => clerk.openUserProfile()}
-              className="btn-secondary btn-sm inline-flex shrink-0 items-center gap-1.5 self-start"
-            >
-              <PencilSimple size={16} weight={ICON_WEIGHT_LINEAR} />
-              Edit profile
-            </button>
+            {isEditing ? (
+              <button
+                type="button"
+                onClick={cancelEditing}
+                disabled={leadTypeSaving}
+                className="btn-secondary btn-sm shrink-0 self-start"
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={startEditing}
+                className="btn-secondary btn-sm inline-flex shrink-0 items-center gap-1.5 self-start"
+              >
+                <PencilSimple size={16} weight={ICON_WEIGHT_LINEAR} />
+                Edit profile
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -393,11 +478,57 @@ function PartnerProfileSection({
           label="Affiliation (company)"
           value={partner.affiliation}
         />
+        {isEditing ? (
+          <div className="min-w-0">
+            <dt className="text-xs font-medium text-slate-500">Lead type</dt>
+            <dd className="mt-1">
+              <select
+                className="form-select max-w-xs"
+                value={draftLeadType}
+                onChange={(e) => {
+                  setDraftLeadType(e.target.value as PartnerLeadType);
+                  setLeadTypeSuccess(false);
+                  setLeadTypeError("");
+                }}
+              >
+                {PARTNER_CATEGORIES.map((c) => (
+                  <option key={c.type} value={c.type}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              {leadTypeError && (
+                <p className="mt-1 text-xs text-red-600">{leadTypeError}</p>
+              )}
+            </dd>
+          </div>
+        ) : (
+          <PartnerProfileField
+            label="Lead type"
+            value={leadTypeLabel(partner.leadType)}
+          />
+        )}
         <PartnerProfileField
           label="Member since"
           value={formatMemberSince(partner.createdAt)}
         />
       </dl>
+
+      {isEditing && (
+        <div className="flex justify-end border-t border-slate-100 px-6 py-4">
+          <ActionButton
+            type="button"
+            loading={leadTypeSaving}
+            loadingText="Saving…"
+            success={leadTypeSuccess}
+            successText="Saved"
+            disabled={!leadTypeDirty}
+            onClick={saveProfile}
+          >
+            Save changes
+          </ActionButton>
+        </div>
+      )}
     </section>
   );
 }
@@ -417,20 +548,12 @@ export function PartnerSettingsView() {
   }, []);
 
   const [webhookUrl, setWebhookUrl] = useState(partner.crmWebhookUrl ?? "");
-  const [leadType, setLeadType] = useState<"traditional_iul" | "high_intent_iul">(
-    partner.leadType as "traditional_iul" | "high_intent_iul",
-  );
 
   const [webhookSaving, setWebhookSaving] = useState(false);
   const [webhookSuccess, setWebhookSuccess] = useState(false);
   const [webhookError, setWebhookError] = useState("");
 
-  const [leadTypeSaving, setLeadTypeSaving] = useState(false);
-  const [leadTypeSuccess, setLeadTypeSuccess] = useState(false);
-  const [leadTypeError, setLeadTypeError] = useState("");
-
   const webhookDirty = webhookUrl !== (partner.crmWebhookUrl ?? "");
-  const leadTypeDirty = leadType !== partner.leadType;
 
   async function saveWebhook() {
     setWebhookError("");
@@ -457,30 +580,6 @@ export function PartnerSettingsView() {
     }
   }
 
-  async function saveLeadType() {
-    setLeadTypeError("");
-    setLeadTypeSuccess(false);
-    setLeadTypeSaving(true);
-    try {
-      const res = await fetch("/api/partners/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadType }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setLeadTypeError(data.error ?? "Failed to save lead type");
-        return;
-      }
-      patchPartner({ leadType: data.leadType });
-      setLeadTypeSuccess(true);
-    } catch {
-      setLeadTypeError("Request failed. Please try again.");
-    } finally {
-      setLeadTypeSaving(false);
-    }
-  }
-
   const statusBadge = partnerStatusBadge[partner.status] ?? "slate";
   const statusLabel = partnerStatusLabel[partner.status] ?? partner.status;
 
@@ -488,7 +587,7 @@ export function PartnerSettingsView() {
     <div>
       <PageHeader
         title="Settings"
-        subtitle="Your profile, account preferences, webhook integrations, and lead filter sets."
+        subtitle="Your profile, webhook integrations, and lead filter sets."
       />
 
       <div className="space-y-6">
@@ -498,51 +597,6 @@ export function PartnerSettingsView() {
           statusLabel={statusLabel}
           avatarUrl={user?.imageUrl}
         />
-
-        <section id="account" className={`${settingsSectionClass} p-6`}>
-          <div className="mb-6">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <Gear size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
-              Account preferences
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Lead type and delivery preferences you can change anytime.
-            </p>
-          </div>
-
-          <div className="max-w-md border-t border-slate-100 pt-6">
-            <label className="form-label">Lead type</label>
-            <select
-              className="form-select"
-              value={leadType}
-              onChange={(e) => {
-                setLeadType(e.target.value as typeof leadType);
-                setLeadTypeSuccess(false);
-                setLeadTypeError("");
-              }}
-            >
-              <option value="traditional_iul">Traditional IUL</option>
-              <option value="high_intent_iul">High Intent IUL</option>
-            </select>
-            {leadTypeError && (
-              <p className="mt-1 text-xs text-red-600">{leadTypeError}</p>
-            )}
-          </div>
-
-          <div className="mt-8 flex justify-end">
-            <ActionButton
-              type="button"
-              loading={leadTypeSaving}
-              loadingText="Saving…"
-              success={leadTypeSuccess}
-              successText="Saved"
-              disabled={!leadTypeDirty}
-              onClick={saveLeadType}
-            >
-              Save changes
-            </ActionButton>
-          </div>
-        </section>
 
         <section id="webhook" className={`${settingsSectionClass} p-6`}>
           <div className="mb-6">
