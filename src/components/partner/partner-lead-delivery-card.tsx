@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
@@ -27,19 +27,20 @@ function ChannelRow({
   name,
   detail,
   status,
+  action,
 }: {
   name: string;
   detail: string;
-  status: "on" | "ready" | "off";
+  status?: "on" | "ready";
+  action?: ReactNode;
 }) {
-  const badge =
-    status === "on" ? (
+  const trailing =
+    action ??
+    (status === "on" ? (
       <Badge variant="green">On</Badge>
     ) : status === "ready" ? (
       <Badge variant="blue">Ready</Badge>
-    ) : (
-      <Badge variant="slate">Off</Badge>
-    );
+    ) : null);
 
   return (
     <div className="flex items-center justify-between gap-3">
@@ -49,7 +50,7 @@ function ChannelRow({
           {detail}
         </p>
       </div>
-      {badge}
+      {trailing}
     </div>
   );
 }
@@ -385,24 +386,18 @@ export function PartnerLeadDeliveryCard({
                 {configured && host ? (
                   <ChannelRow name="CRM POST" detail={host} status="ready" />
                 ) : (
-                  <div className="space-y-3">
-                    <ChannelRow
-                      name="CRM POST"
-                      detail="Send a JSON POST to your CRM when a lead matches."
-                      status="off"
-                    />
-                    <div className="rounded-lg border border-slate-100 bg-slate-50 px-3.5 py-3">
-                      <p className="text-xs text-slate-500">
-                        Send a JSON POST to your CRM when a lead matches. Setup
-                        opens a short wizard on a separate page.
-                      </p>
-                      <div className="mt-3">
-                        <Link href={CRM_OUTBOUND_HREF} className="btn btn-sm">
-                          Connect CRM
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+                  <ChannelRow
+                    name="CRM POST"
+                    detail="Send a JSON POST to your CRM when a lead matches."
+                    action={
+                      <Link
+                        href={CRM_OUTBOUND_HREF}
+                        className="btn btn-sm shrink-0"
+                      >
+                        Connect CRM
+                      </Link>
+                    }
+                  />
                 )}
               </div>
 
