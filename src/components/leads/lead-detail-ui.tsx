@@ -130,13 +130,13 @@ export function LeadDetailFieldRow({
   return (
     <div className="flex justify-between gap-4 text-sm">
       <dt className="shrink-0 text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-900">
+      <dd className="text-right font-semibold text-slate-900">
         {href ? (
           <a
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-orange-600 hover:underline"
+            className="font-semibold text-orange-600 hover:underline"
           >
             {value}
           </a>
