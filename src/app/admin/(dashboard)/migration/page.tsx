@@ -357,7 +357,7 @@ export default function AdminMigrationPage() {
         }
       />
 
-      <div className="max-w-3xl">
+      <div className="w-full">
         <Stepper current={step} />
 
         {/* ---------------------------------------------------------------- */}
