@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   DotsThreeVertical,
   Eye,
-  ArrowCounterClockwise,
+  Wallet,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
@@ -142,10 +142,10 @@ function RowMenu({
                 onRefund();
               }}
             >
-              <ArrowCounterClockwise
+              <Wallet
                 size={14}
                 weight={ICON_WEIGHT_LINEAR}
-                className="text-amber-500"
+                className="shrink-0 text-amber-500"
               />
               Request refund
             </button>
@@ -228,9 +228,10 @@ export function PartnerLeadsTable({
                 aria-label={bulkRefundLabel}
                 title={bulkRefundLabel}
               >
-                <ArrowCounterClockwise
+                <Wallet
                   size={18}
                   weight={ICON_WEIGHT_LINEAR}
+                  className="shrink-0"
                   aria-hidden
                 />
               </button>
@@ -448,7 +449,9 @@ export function PartnerLeadsTable({
             <span className="text-amber-600">({refundableSelected.length})</span>
           }
           submitLabel={`Submit (${refundableSelected.length})`}
-          submitIcon={<ArrowCounterClockwise size={14} />}
+          submitIcon={
+            <Wallet size={14} weight={ICON_WEIGHT_LINEAR} className="shrink-0" />
+          }
           submitClassName="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
           isSubmitting={pending}
           onSubmit={({ refundType, reason }) => {

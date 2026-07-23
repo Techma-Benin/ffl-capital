@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowCounterClockwise, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { Wallet, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { RefundRequestModal } from "@/components/refunds/refund-request-modal";
 
 export function PartnerRefundButton({
@@ -20,7 +20,7 @@ export function PartnerRefundButton({
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
       >
-        <ArrowCounterClockwise size={11} weight={ICON_WEIGHT_LINEAR} />
+        <Wallet size={14} weight={ICON_WEIGHT_LINEAR} className="shrink-0" />
         Refund
       </button>
 
