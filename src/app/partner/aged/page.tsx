@@ -7,6 +7,7 @@ import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 import {
   buildAdminAgedLeadsWhere,
   parseAdminAgedLeadFilters,
+  parseAdminAgedLeadStates,
   PARTNER_AGED_CLIENT_LOAD_LIMIT,
 } from "@/lib/admin/admin-aged-leads-filters";
 
@@ -51,7 +52,7 @@ export default async function PartnerAgedPage({
         totalEligible={totalEligible}
         loadCapped={totalEligible > PARTNER_AGED_CLIENT_LOAD_LIMIT}
         initialFilters={{
-          state: searchParams.state ?? "",
+          states: parseAdminAgedLeadStates(searchParams.state),
           type: searchParams.type ?? "",
           age: searchParams.age ?? "",
         }}

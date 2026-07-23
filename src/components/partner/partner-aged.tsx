@@ -10,9 +10,11 @@ import { ShoppingBag, Funnel, Clock } from "@/lib/icons/client";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
+import { FilterSelectDropdown } from "@/components/admin/filter-select-dropdown";
 import {
   filterPartnerAgedLeadsInMemory,
   partnerAgedLeadAgeDays,
+  type PartnerAgedClientFilters,
 } from "@/lib/admin/admin-aged-leads-filters";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import {
@@ -26,11 +28,18 @@ const agedActionColumnClassName = "w-36 min-w-36 text-center";
 
 type AgedLead = PartnerAgedLeadPreview;
 
-type AgedFilters = { state: string; type: string; age: string };
+type AgedFilters = PartnerAgedClientFilters;
+
+const partnerAgedStateOptions = US_STATE_CODES.map((code) => ({
+  value: code,
+  label: code,
+}));
 
 function syncAgedFiltersToUrl(filters: AgedFilters) {
   const params = new URLSearchParams();
-  if (filters.state) params.set("state", filters.state);
+  if (filters.states.length > 0) {
+    params.set("state", filters.states.join(","));
+  }
   if (filters.type) params.set("type", filters.type);
   if (filters.age) params.set("age", filters.age);
   const qs = params.toString();
@@ -86,7 +95,10 @@ export function PartnerAgedView({
     return filteredLeads.slice(start, start + pageSize);
   }, [filteredLeads, safePage, pageSize]);
 
-  function updateFilter(key: keyof AgedFilters, value: string) {
+  function updateFilter<K extends keyof AgedFilters>(
+    key: K,
+    value: AgedFilters[K],
+  ) {
     setFilters((prev) => {
       const next = { ...prev, [key]: value };
       syncAgedFiltersToUrl(next);
@@ -167,18 +179,17 @@ export function PartnerAgedView({
             <Funnel size={13} />
             Filters:
           </div>
-          <select
-            value={filters.state}
-            onChange={(e) => updateFilter("state", e.target.value)}
-            className="form-select w-40 py-1.5 text-xs"
-          >
-            <option value="">All States</option>
-            {US_STATE_CODES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          <FilterSelectDropdown
+            id="partner-aged-filter-state"
+            dimensionLabel="State"
+            selectionMode="multi"
+            value={filters.states}
+            allValue="all"
+            options={partnerAgedStateOptions}
+            onChange={(states) => updateFilter("states", states)}
+            menuWidthClass="w-64"
+            searchable
+          />
           <select
             value={filters.type}
             onChange={(e) => updateFilter("type", e.target.value)}

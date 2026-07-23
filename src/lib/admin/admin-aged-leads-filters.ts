@@ -200,14 +200,19 @@ export function partnerAgedLeadMatchesAgeBucket(
   return ageDays >= 90;
 }
 
+export type PartnerAgedClientFilters = {
+  states: string[];
+  type: string;
+  age: string;
+};
+
 export function filterPartnerAgedLeadsInMemory<
   T extends { state: string; leadType: string; receivedAt: string | Date },
->(
-  leads: T[],
-  filters: { state: string; type: string; age: string },
-): T[] {
+>(leads: T[], filters: PartnerAgedClientFilters): T[] {
   return leads.filter((lead) => {
-    if (filters.state && lead.state !== filters.state) return false;
+    if (filters.states.length > 0 && !filters.states.includes(lead.state)) {
+      return false;
+    }
     if (filters.type && lead.leadType !== filters.type) return false;
     if (
       filters.age &&
