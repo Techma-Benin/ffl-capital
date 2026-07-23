@@ -544,18 +544,19 @@ export function PartnerCrmOutboundWizard({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-900">HTTP status</p>
+            <div className="flex items-center justify-between gap-4">
+              <label htmlFor="crm-success-require-2xx" className="text-sm font-medium text-slate-900">
+                Require HTTP 2xx
+              </label>
+              <Switch
+                id="crm-success-require-2xx"
+                checked={form.require2xx}
+                onCheckedChange={(require2xx) => setForm({ ...form, require2xx })}
+              />
+            </div>
             <p className="text-sm text-slate-600">
               Require a successful HTTP status code (200–299) from your CRM endpoint.
             </p>
-            <label className="flex items-center gap-2 text-sm text-slate-900">
-              <input
-                type="checkbox"
-                checked={form.require2xx}
-                onChange={(e) => setForm({ ...form, require2xx: e.target.checked })}
-              />
-              Require HTTP 2xx
-            </label>
           </div>
 
           <div className="space-y-2">
