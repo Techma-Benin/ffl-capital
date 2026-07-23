@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useUser } from "@clerk/nextjs";
 import { ActionButton } from "@/components/ui/action-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
+import { PartnerAvatar } from "@/components/admin/partner-avatar";
 import { usePartner } from "@/components/partner/partner-provider";
 import {
+  Users,
   Gear,
   PlugsConnected,
   Funnel,
@@ -276,10 +279,46 @@ function FilterSetsSection({ embedded = false }: { embedded?: boolean }) {
   );
 }
 
+const partnerStatusBadge: Record<string, "green" | "yellow" | "red" | "slate"> = {
+  active: "green",
+  pending_approval: "yellow",
+  rejected: "red",
+  disabled: "slate",
+};
+
+const partnerStatusLabel: Record<string, string> = {
+  active: "Active",
+  pending_approval: "Pending approval",
+  rejected: "Rejected",
+  disabled: "Disabled",
+};
+
+function formatMemberSince(value: string) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+const settingsSectionClass =
+  "card scroll-mt-6 overflow-hidden";
+
 // ---------------------------------------------------------------------------
 
 export function PartnerSettingsView() {
   const { partner, patchPartner } = usePartner();
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash) return;
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const [webhookUrl, setWebhookUrl] = useState(partner.crmWebhookUrl ?? "");
   const [leadType, setLeadType] = useState<"traditional_iul" | "high_intent_iul">(
@@ -346,61 +385,139 @@ export function PartnerSettingsView() {
     }
   }
 
+  const statusBadge = partnerStatusBadge[partner.status] ?? "slate";
+  const statusLabel = partnerStatusLabel[partner.status] ?? partner.status;
+
   return (
-    <div className="min-h-full">
+    <div>
       <PageHeader
         title="Settings"
-        subtitle="Manage your account preferences, webhook integrations, and lead filter sets."
+        subtitle="Your profile, account preferences, webhook integrations, and lead filter sets."
       />
 
-      <div className="mx-auto max-w-4xl space-y-8 px-8 py-10 pb-32">
-
-        {/* Account Settings */}
-        <section
-          id="account"
-          className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-8 shadow-sm scroll-mt-12"
-        >
-          <div className="mb-6">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <Gear size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
-              Account Settings
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Manage your basic profile and preferences.
-            </p>
+      <div className="space-y-6">
+        <section id="profile" className={settingsSectionClass}>
+          <div className="flex flex-col gap-6 border-b border-slate-100 p-6 sm:flex-row sm:items-center">
+            <PartnerAvatar
+              avatarUrl={user?.imageUrl}
+              firstName={partner.firstName}
+              lastName={partner.lastName}
+              size="lg"
+            />
+            <div className="min-w-0 flex-1">
+              <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
+                <Users
+                  size={18}
+                  className="text-brand-600"
+                  weight={ICON_WEIGHT_LINEAR}
+                />
+                Profile
+                <Badge variant={statusBadge}>{statusLabel}</Badge>
+              </h2>
+              <p className="mt-1 text-sm font-medium text-slate-900">
+                {partner.firstName} {partner.lastName}
+              </p>
+              <p className="text-sm text-slate-500">{partner.email}</p>
+              <p className="mt-2 text-xs text-slate-400">
+                Update your photo and sign-in details from the account menu in
+                the sidebar.
+              </p>
+            </div>
           </div>
 
-          <div className="grid gap-6 border-t border-slate-100 pt-6 sm:grid-cols-2">
+          <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <label className="form-label">Lead Type</label>
-              <select
-                className="form-select"
-                value={leadType}
-                onChange={(e) => {
-                  setLeadType(e.target.value as typeof leadType);
-                  setLeadTypeSuccess(false);
-                  setLeadTypeError("");
-                }}
-              >
-                <option value="traditional_iul">Traditional IUL</option>
-                <option value="high_intent_iul">High Intent IUL</option>
-              </select>
-              {leadTypeError && (
-                <p className="mt-1 text-xs text-red-600">{leadTypeError}</p>
-              )}
-            </div>
-            <div>
-              <label className="form-label">Affiliation (Company)</label>
+              <label className="form-label">First name</label>
               <input
                 className="form-input bg-slate-50"
-                defaultValue={partner.affiliation ?? ""}
-                placeholder="e.g. Family First Life"
+                value={partner.firstName}
                 disabled
+                readOnly
+              />
+            </div>
+            <div>
+              <label className="form-label">Last name</label>
+              <input
+                className="form-input bg-slate-50"
+                value={partner.lastName}
+                disabled
+                readOnly
+              />
+            </div>
+            <div>
+              <label className="form-label">Email</label>
+              <input
+                className="form-input bg-slate-50"
+                value={partner.email}
+                disabled
+                readOnly
+              />
+            </div>
+            <div>
+              <label className="form-label">Residence state</label>
+              <input
+                className="form-input bg-slate-50"
+                value={partner.residenceState}
+                disabled
+                readOnly
               />
               <p className="mt-1 text-xs text-slate-400">
                 Contact admin to update
               </p>
             </div>
+            <div>
+              <label className="form-label">Affiliation (company)</label>
+              <input
+                className="form-input bg-slate-50"
+                value={partner.affiliation ?? ""}
+                placeholder="—"
+                disabled
+                readOnly
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Contact admin to update
+              </p>
+            </div>
+            <div>
+              <label className="form-label">Member since</label>
+              <input
+                className="form-input bg-slate-50"
+                value={formatMemberSince(partner.createdAt)}
+                disabled
+                readOnly
+              />
+            </div>
+          </div>
+        </section>
+
+        <section id="account" className={`${settingsSectionClass} p-6`}>
+          <div className="mb-6">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <Gear size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
+              Account preferences
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Lead type and delivery preferences you can change anytime.
+            </p>
+          </div>
+
+          <div className="max-w-md border-t border-slate-100 pt-6">
+            <label className="form-label">Lead type</label>
+            <select
+              className="form-select"
+              value={leadType}
+              onChange={(e) => {
+                setLeadType(e.target.value as typeof leadType);
+                setLeadTypeSuccess(false);
+                setLeadTypeError("");
+              }}
+            >
+              <option value="traditional_iul">Traditional IUL</option>
+              <option value="high_intent_iul">High Intent IUL</option>
+            </select>
+            {leadTypeError && (
+              <p className="mt-1 text-xs text-red-600">{leadTypeError}</p>
+            )}
           </div>
 
           <div className="mt-8 flex justify-end">
@@ -413,25 +530,21 @@ export function PartnerSettingsView() {
               disabled={!leadTypeDirty}
               onClick={saveLeadType}
             >
-              Save Changes
+              Save changes
             </ActionButton>
           </div>
         </section>
 
-        {/* CRM Webhook */}
-        <section
-          id="webhook"
-          className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-8 shadow-sm scroll-mt-12"
-        >
+        <section id="webhook" className={`${settingsSectionClass} p-6`}>
           <div className="mb-6">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
               <PlugsConnected size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
-              CRM Delivery Webhook
+              CRM delivery webhook
               <span className="ml-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
                 Optional
               </span>
             </h2>
-            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500">
               We&apos;ll POST lead data (JSON) to this URL on each delivery.
               Compatible with GHL, Ringy, HubSpot, or any REST endpoint.
             </p>
@@ -441,7 +554,7 @@ export function PartnerSettingsView() {
             <label className="form-label">Webhook URL</label>
             <input
               type="url"
-              className="form-input"
+              className="form-input max-w-3xl"
               value={webhookUrl}
               onChange={(e) => {
                 setWebhookUrl(e.target.value);
@@ -465,21 +578,17 @@ export function PartnerSettingsView() {
               disabled={!webhookDirty}
               onClick={saveWebhook}
             >
-              Save Webhook
+              Save webhook
             </ActionButton>
           </div>
         </section>
 
-        {/* Filter Sets */}
-        <section
-          id="filters"
-          className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm scroll-mt-12"
-        >
-          <div className="flex items-start justify-between gap-4 px-8 pt-8 pb-6">
+        <section id="filters" className={settingsSectionClass}>
+          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
                 <Funnel size={18} className="text-brand-600" weight={ICON_WEIGHT_LINEAR} />
-                Filter Sets
+                Filter sets
               </h2>
               <p className="mt-1 text-sm text-slate-500">
                 Manage targeting rules for your lead delivery.
@@ -488,7 +597,6 @@ export function PartnerSettingsView() {
           </div>
           <FilterSetsSection embedded />
         </section>
-
       </div>
     </div>
   );

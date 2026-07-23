@@ -10,6 +10,15 @@ export default function PartnerSettingsLoading() {
       </div>
 
       <div className="card p-5 space-y-4">
+        <Skeleton className="h-24 w-full rounded-lg" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Skeleton className="h-16 rounded-lg" />
+          <Skeleton className="h-16 rounded-lg" />
+          <Skeleton className="h-16 rounded-lg" />
+        </div>
+      </div>
+
+      <div className="card p-5 space-y-4">
         <Skeleton className="h-5 w-36" />
         <div className="grid gap-4 sm:grid-cols-2">
           <Skeleton className="h-20 rounded-lg" />
