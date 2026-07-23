@@ -392,7 +392,7 @@ export function PartnerLeadDeliveryCard({
                     action={
                       <Link
                         href={CRM_OUTBOUND_HREF}
-                        className="btn btn-sm shrink-0"
+                        className="btn-secondary btn-sm shrink-0"
                       >
                         Connect CRM
                       </Link>
