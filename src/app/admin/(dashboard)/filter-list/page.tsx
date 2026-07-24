@@ -70,7 +70,6 @@ export default async function AdminFilterListPage() {
     return {
       id: item.id,
       name: item.name,
-      description: item.description,
       leadType: item.leadType,
       filterStates: item.filterStates,
     };

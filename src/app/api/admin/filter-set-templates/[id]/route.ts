@@ -24,7 +24,6 @@ const filterCriteriaSchema = z
 
 const templateUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  description: z.string().max(500).optional().nullable(),
   leadType: z.string().min(1).optional(),
   filterStates: z.array(z.string().length(2)).min(1).optional(),
   priority: z.number().int().min(1).max(10).optional(),
@@ -81,9 +80,6 @@ export async function PATCH(
     where: { id },
     data: {
       ...(parsed.data.name !== undefined && { name: parsed.data.name }),
-      ...(parsed.data.description !== undefined && {
-        description: parsed.data.description,
-      }),
       ...(parsed.data.leadType !== undefined && { leadType: parsed.data.leadType }),
       ...(parsed.data.filterStates !== undefined && {
         filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),

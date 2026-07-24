@@ -34,7 +34,6 @@ export default async function AdminFilterSetTemplateEditPage({
       initial={toFormData({
         id: template.id,
         name: template.name,
-        description: template.description,
         leadType: template.leadType,
         filterStates: template.filterStates,
         priority: template.priority,

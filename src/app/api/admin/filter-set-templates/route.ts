@@ -24,7 +24,6 @@ const filterCriteriaSchema = z
 
 const templateSchema = z.object({
   name: z.string().min(1).max(100),
-  description: z.string().max(500).optional().nullable(),
   leadType: z.string().min(1),
   filterStates: z.array(z.string().length(2)).min(1),
   priority: z.number().int().min(1).max(10).optional(),
@@ -69,7 +68,6 @@ export async function POST(request: NextRequest) {
       partnerId: null,
       isTemplate: true,
       name: parsed.data.name,
-      description: parsed.data.description ?? null,
       leadType: parsed.data.leadType,
       filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
       priority: parsed.data.priority ?? 5,

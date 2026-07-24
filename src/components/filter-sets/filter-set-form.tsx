@@ -295,7 +295,6 @@ export function FilterSetForm({
 
   const isEligible = form.filterStates.length >= 15;
   const showPricing = variant === "admin" || variant === "template";
-  const showDescription = variant === "template";
 
   useEffect(() => {
     onPendingChange?.(pending);
@@ -339,9 +338,6 @@ export function FilterSetForm({
       filterCriteria: criteria,
     };
 
-    if (showDescription) {
-      payload.description = form.description.trim() || null;
-    }
     if (showPricing) {
       payload.priority = form.priority;
       payload.priceOverride = form.priceOverride
@@ -420,19 +416,6 @@ export function FilterSetForm({
             )}
           </select>
         </div>
-        {showDescription && (
-          <div className="sm:col-span-2 lg:col-span-3">
-            <label className="form-label">Description (optional)</label>
-            <input
-              className="form-input"
-              value={form.description}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, description: e.target.value }))
-              }
-              placeholder="Brief description for partners"
-            />
-          </div>
-        )}
         {showPricing && (
           <>
             <div>

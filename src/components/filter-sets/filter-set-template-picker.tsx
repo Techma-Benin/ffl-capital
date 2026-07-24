@@ -6,7 +6,6 @@ import type { FilterCriteria } from "@/lib/matching/types";
 export type FilterSetTemplate = {
   id: string;
   name: string;
-  description: string | null;
   leadType: string;
   filterStates: string[];
   priority?: number;
@@ -80,11 +79,6 @@ export function FilterSetTemplatePicker({
                   {LEAD_TYPE_LABELS[template.leadType] ?? template.leadType}
                 </span>
               </div>
-              {template.description && (
-                <p className="mt-1 line-clamp-2 text-xs text-slate-500">
-                  {template.description}
-                </p>
-              )}
               <p className="mt-1.5 text-xs font-medium text-slate-400">
                 {template.filterStates.length} state
                 {template.filterStates.length !== 1 ? "s" : ""}
