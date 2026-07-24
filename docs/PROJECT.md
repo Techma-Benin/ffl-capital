@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 24 juillet 2026 (v7 — templates filter set unifiés dans `partner_filter_sets`)
+> Dernière mise à jour : 24 juillet 2026 (v8 — Intent/Have IUL multi-select + Attribution retirée de l’onboarding)
 
 ---
 
@@ -349,7 +349,7 @@ resale_postings                   -- envois IntegrityCONNECT
 - [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, colonnes visibles + ordre persistés sur la vue active (`lead_list_views.columns`, PATCH lead-views), toggle cartes/tableau seul en `localStorage` (`admin-leads-table-layout` ; partner : `partner-leads-table-layout`), détail lead **B3** (hero compact, onglets Contact/IUL/Compliance/Tracking/Events, livraisons partenaires + timeline) ; `?view=` (redirection legacy `?status=`)
 - [x] Partner leads : vues par partner (défaut « All deliveries »), mêmes primitives UI que l’admin côté liste (colonnes sur la vue, layout en localStorage)
 - [x] Admin partners : liste, approbation, détail **P5** (profil + conformité CRM : colonne résumé, stats, checklist, filter sets en lignes, activité unifiée ; édition compte (modal « Edit account » depuis l’en-tête ou Account & CRM ; avatar 96px sur la carte profil — photo Clerk si `Partner.clerkUserId` renseigné, sinon initiales du nom ; partenaires seed type « Dashboard Demo » sans compte Clerk lié)), filter sets (création/édition pages `/admin/partners/[id]/filter-sets/new` et `…/[filterSetId]/edit` ; retour filter list via `?returnTo=/admin/filter-list`) ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; toggle cartes/tableau + colonnes masquables (`localStorage` `admin-partners-table-layout`, `admin-partners-visible-columns`)
-- [x] Admin Filter List (`/admin/filter-list`) : sets live + templates SSR ; templates via `/admin/filter-sets/templates/new` et `…/[id]/edit` ; éditeur partagé `FilterSetEditorPage` / `FilterSetForm` (admin live, templates, partner) — plus de modal d’édition ; partner ne voit pas prix/priorité ; Attribution absente du formulaire filter set (clés stripées à la sauvegarde ; section Attribution onboarding inchangée)
+- [x] Admin Filter List (`/admin/filter-list`) : sets live + templates SSR ; templates via `/admin/filter-sets/templates/new` et `…/[id]/edit` ; éditeur partagé `FilterSetEditorPage` / `FilterSetForm` (admin live, templates, partner) — plus de modal d’édition ; partner ne voit pas prix/priorité ; Attribution absente du formulaire filter set **et** de l’onboarding (clés stripées à la sauvegarde) ; Intent / Have IUL = multi-select partagé (`AdvancedFiltersFields`) — options = valeurs distinctes leads + **Empty** (`"empty"`), préfetchées SSR via `getLeadFilterCriteriaOptions()` (pas de fetch à l’ouverture du dropdown)
 - [x] Admin refunds : file pending + historique
 - [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`), KPI Available + filtres URL (`state`, `type`, `status`, `age`), tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id`
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace

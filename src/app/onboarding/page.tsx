@@ -7,6 +7,7 @@ import { getRoleFromMetadata } from "@/lib/auth/roles";
 import { FormSkeleton } from "@/components/ui/form-skeleton";
 import { Lightning } from "@/lib/icons/ssr";
 import { AuthContinueRedirect } from "@/app/auth/continue/redirect";
+import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 
 // Skip SSR for the form: it is auth-gated and heavy with client state.
 // This prevents the Clerk/Next.js Suspense boundary from triggering an
@@ -29,7 +30,10 @@ export default async function OnboardingPage() {
   const role = getRoleFromMetadata(user?.publicMetadata as Record<string, unknown>);
   if (role === "admin") redirect("/admin");
 
-  const partner = await getCurrentPartner();
+  const [partner, criteriaOptions] = await Promise.all([
+    getCurrentPartner(),
+    getLeadFilterCriteriaOptions(),
+  ]);
   // Use client-side redirect to avoid throwing NEXT_REDIRECT in the RSC layer,
   // which triggers the dev-mode error overlay (non-issue in production but
   // confusing during development).
@@ -59,7 +63,10 @@ export default async function OnboardingPage() {
       </header>
 
       <div className="mx-auto max-w-2xl px-6 py-12">
-        <OnboardingWizard initialProfile={initialProfile} />
+        <OnboardingWizard
+          initialProfile={initialProfile}
+          criteriaOptions={criteriaOptions}
+        />
       </div>
     </div>
   );

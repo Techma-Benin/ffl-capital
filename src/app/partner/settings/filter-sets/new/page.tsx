@@ -4,6 +4,7 @@ import {
   listFilterSetTemplates,
   serializeTemplateRow,
 } from "@/lib/filter-sets/templates";
+import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 
 const DEFAULT_FORM = {
   name: "",
@@ -18,12 +19,13 @@ const DEFAULT_FORM = {
 };
 
 export default async function PartnerFilterSetNewPage() {
-  const [categories, templateRows] = await Promise.all([
+  const [categories, templateRows, criteriaOptions] = await Promise.all([
     prisma.leadCategory.findMany({
       orderBy: { createdAt: "asc" },
       select: { type: true, label: true },
     }),
     listFilterSetTemplates(),
+    getLeadFilterCriteriaOptions(),
   ]);
 
   const categoryOptions =
@@ -44,6 +46,7 @@ export default async function PartnerFilterSetNewPage() {
       subtitle="Define targeting rules for your lead delivery."
       initial={DEFAULT_FORM}
       categories={categoryOptions}
+      criteriaOptions={criteriaOptions}
       showTemplatePicker
       initialTemplates={templateRows.map(serializeTemplateRow)}
     />

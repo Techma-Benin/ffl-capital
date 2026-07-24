@@ -280,7 +280,7 @@ Transaction atomique à la livraison :
 - INSERT `transactions` (type `lead_purchase`)
 - UPDATE `leads` (`available=false`, `status=delivered`)
 
-**V2 (implémenté) :** éligibilité via `partner_filter_sets` actifs avec `isTemplate=false` + limites horaires/journalières ; les lignes template sont toujours exclues ; `filterSetId` sur `lead_deliveries`.
+**V2 (implémenté) :** éligibilité via `partner_filter_sets` actifs avec `isTemplate=false` + limites horaires/journalières ; les lignes template sont toujours exclues ; `filterSetId` sur `lead_deliveries`. `filterCriteria.intent` / `haveIul` : allow-list (vide/absent = any) ; sentinel `"empty"` matche lead null/blank (`matchesAllowListWithEmpty`).
 
 ---
 
@@ -297,7 +297,9 @@ Transaction atomique à la livraison :
 | GET | `/api/partner/filter-set-templates` | Partner (picker) |
 | GET | `/api/onboarding/filter-set-templates` | Onboarding |
 
-À l’écriture, `stripAttributionCriteria` retire les clés Attribution de `filterCriteria`. Helpers : `src/lib/filter-sets/templates.ts`, `sanitize-criteria.ts`.
+À l’écriture (filter sets + onboarding), `stripAttributionCriteria` retire les clés Attribution de `filterCriteria`. Le schéma `POST /api/partners/onboarding` n’accepte plus ces clés. Helpers : `src/lib/filter-sets/templates.ts`, `sanitize-criteria.ts`.
+
+**Critères Intent / Have IUL (UI)** : multi-select ; options = valeurs distinctes sur tous les `leads` + **Empty** (`"empty"`, même token que le filtre aged Have IUL), préfetchées SSR via `getLeadFilterCriteriaOptions()` — pas de route API publique ni fetch à l’ouverture du dropdown. Composant partagé : `advanced-filters-fields.tsx`.
 
 **Filter List** : `GET`/`PATCH` `/api/admin/filter-list` ; usage batch via `getFilterSetUsageBatch`.
 
@@ -441,3 +443,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-22 | Admin aged — tableau tri URL + pagination + mark dead (UI) |
 | 2026-07-23 | Phase 9 — `verify-backend` scénarios complets, `api-base.mjs`, cron dev secret, seed filter set TX priorité 10 |
 | 2026-07-24 | Templates filter set unifiés dans `partner_filter_sets` (`isTemplate`) ; matching exclut les templates ; APIs `/filter-set-templates` inchangées |
+| 2026-07-24 | Intent / Have IUL : multi-select + `"empty"` ; Attribution retirée de l’onboarding (aligné filter sets) ; options critères préfetch SSR |

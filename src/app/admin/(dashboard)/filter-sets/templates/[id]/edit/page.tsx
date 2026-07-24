@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
 import { toFormData } from "@/components/filter-sets/filter-set-types";
 import { findFilterSetTemplate } from "@/lib/filter-sets/templates";
+import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 import type { FilterCriteria } from "@/lib/matching/types";
 
 export default async function AdminFilterSetTemplateEditPage({
@@ -10,12 +11,13 @@ export default async function AdminFilterSetTemplateEditPage({
 }: {
   params: { id: string };
 }) {
-  const [template, categories] = await Promise.all([
+  const [template, categories, criteriaOptions] = await Promise.all([
     findFilterSetTemplate(params.id),
     prisma.leadCategory.findMany({
       orderBy: { createdAt: "asc" },
       select: { type: true, label: true },
     }),
+    getLeadFilterCriteriaOptions(),
   ]);
 
   if (!template) notFound();
@@ -45,6 +47,7 @@ export default async function AdminFilterSetTemplateEditPage({
         filterCriteria: (template.filterCriteria ?? {}) as FilterCriteria,
       })}
       categories={categories}
+      criteriaOptions={criteriaOptions}
     />
   );
 }
