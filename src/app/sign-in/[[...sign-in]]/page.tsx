@@ -52,12 +52,19 @@ export default async function SignInPage() {
           </div>
 
           <h2 className="mb-2 text-2xl font-bold text-slate-900">Partner sign in</h2>
-          <p className="mb-6 text-sm text-slate-500">
-            Sign in to access your partner portal.{" "}
-            <Link href="/sign-up" className="font-medium text-brand-600 hover:underline">
-              New partner? Sign up
-            </Link>
-          </p>
+          <div className="mb-6 space-y-1 text-sm text-slate-500">
+            <p>
+              Sign in to access your partner portal.{" "}
+              <Link href="/admin/sign-in" className="font-medium text-brand-600 hover:underline">
+                Admin? Sign in here
+              </Link>
+            </p>
+            <p>
+              <Link href="/sign-up" className="font-medium text-brand-600 hover:underline">
+                New partner? Sign up
+              </Link>
+            </p>
+          </div>
 
           <SignIn forceRedirectUrl={AUTH_CONTINUE_PARTNER} appearance={authClerkAppearance} />
         </div>
