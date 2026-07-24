@@ -1,6 +1,5 @@
 "use client";
 
-import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -108,32 +107,17 @@ export function PartnerEditForm({
           <label className="form-label" id="partner-edit-status-label">
             Status
           </label>
-          <div
-            role="group"
+          <select
+            id="partner-edit-status"
             aria-labelledby="partner-edit-status-label"
-            className="grid w-full grid-cols-2 gap-0.5 rounded-lg border border-slate-200 bg-slate-100 p-0.5"
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+            className="form-input"
           >
-            {STATUS_OPTIONS.map(({ value, label }) => {
-              const selected = form.status === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setForm({ ...form, status: value })}
-                  className={clsx(
-                    "rounded-md px-2 py-1.5 text-center text-xs font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1",
-                    selected
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "bg-transparent text-slate-500 hover:text-slate-700",
-                  )}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+            {STATUS_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
         </div>
       </div>
 
