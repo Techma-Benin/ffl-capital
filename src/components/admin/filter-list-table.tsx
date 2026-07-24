@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Funnel, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
-import { adminPartnerFilterSetEditPath } from "@/lib/filter-sets/routes";
+import { FilterSetEditModal } from "@/components/filter-sets/filter-set-edit-modal";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import type { FilterCriteria } from "@/lib/matching/types";
 
@@ -48,10 +48,13 @@ export function FilterListTable({
   initialRows: FilterListRow[];
   sources?: string[];
 }) {
-  const router = useRouter();
+  const [editing, setEditing] = useState<FilterListRow | null>(null);
 
   return (
     <div>
+      {editing && (
+        <FilterSetEditModal row={editing} onClose={() => setEditing(null)} />
+      )}
       <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900">
         <Funnel size={15} className="text-slate-400" weight={ICON_WEIGHT_LINEAR} />
         Partner Filter Sets
@@ -78,17 +81,12 @@ export function FilterListTable({
             ) : (
               initialRows.map((row) => {
                 const { fs, price } = row;
-                const editHref = adminPartnerFilterSetEditPath(
-                  fs.partnerId,
-                  fs.id,
-                  "/admin/filter-list",
-                );
 
                 return (
                   <tr
                     key={fs.id}
                     className="cursor-pointer transition-colors hover:bg-brand-50"
-                    onClick={() => router.push(editHref)}
+                    onClick={() => setEditing(row)}
                   >
                     <td>
                       <span className="flex items-center gap-1.5">
