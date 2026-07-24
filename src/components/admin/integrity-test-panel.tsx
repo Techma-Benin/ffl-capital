@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatDateTime } from "@/lib/format-datetime";
+import { IntegrityPostingsTable, type PostingRow } from "@/components/admin/integrity-postings-table";
 
 type Flow = "realtime" | "storefront";
 
@@ -61,15 +62,30 @@ const HARDCODED_DEFAULTS: ModalFields = {
 
 function formatDob(dob: string | null): string {
   if (!dob) return "";
-  // ISO yyyy-mm-dd → MM/DD/YYYY
   const m = dob.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return `${m[2]}/${m[3]}/${m[1]}`;
   return dob;
 }
 
-export function IntegrityTestPanel() {
+/* ─── shield icon ─────────────────────────────────────────────────────── */
+const IconShield = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3A974C" strokeWidth={2}>
+    <path d="M12 2l8 4v5c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V6z" />
+  </svg>
+);
+
+/* ─── component ───────────────────────────────────────────────────────── */
+
+export function IntegrityTestPanel({
+  mode,
+  onModeChange,
+}: {
+  mode: "mock" | "live";
+  onModeChange: (v: "mock" | "live") => void;
+}) {
   const [leads, setLeads] = useState<LeadOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [postings, setPostings] = useState<PostingRow[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string>("");
   const [modal, setModal] = useState<{ open: boolean; flow: Flow; fields: ModalFields } | null>(null);
   const [pending, setPending] = useState(false);
@@ -81,6 +97,11 @@ export function IntegrityTestPanel() {
       .then((d) => {
         setLeads(d.leads ?? []);
         setCategories(d.categories ?? []);
+      });
+    fetch("/api/admin/integrity/postings")
+      .then((r) => r.json())
+      .then((d) => {
+        setPostings(d.postings ?? []);
       });
   }, []);
 
@@ -147,80 +168,225 @@ export function IntegrityTestPanel() {
   const isSuccess = outcome === "success";
   const selectedLead = leads.find((l) => l.id === selectedLeadId) ?? null;
 
+  const modeHint =
+    mode === "live"
+      ? "Live sends real requests to email, CRM and Integrity."
+      : "Mock mode logs only — no real requests are sent.";
+
   return (
     <>
-      <div className="card p-6 space-y-5">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900">Connection test</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Fires an <code className="font-mono bg-slate-100 px-1 rounded">is_test=yes</code> payload
-            at the selected flow. Nothing is saved to the database or routed to an agent.
-          </p>
+      {/* ── Integrity Connect card ─────────────────────────────────────── */}
+      <div
+        className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)]"
+        style={{ padding: 0, display: "flex", flexDirection: "column" }}
+      >
+        {/* Card header: icon + title + spacer + Mode label + select */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 11,
+            padding: "15px 20px",
+            borderBottom: "1px solid #f4f3f8",
+          }}
+        >
+          <span
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 9,
+              background: "rgba(58,151,76,0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <IconShield />
+          </span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: "#030229" }}>
+            Integrity Connect
+          </span>
+          <span style={{ flex: 1 }} />
+          <label
+            style={{
+              fontSize: 14,
+              fontWeight: 800,
+              color: "#8b8a99",
+              margin: "0 8px 0 0",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Mode
+          </label>
+          <select
+            value={mode}
+            onChange={(e) => onModeChange(e.target.value as "mock" | "live")}
+            className="form-select"
+            style={{ width: 230, height: 34, fontSize: 13, borderRadius: 9 }}
+          >
+            <option value="mock">Mock (log only)</option>
+            <option value="live">Live (email, CRM, Integrity)</option>
+          </select>
         </div>
 
-        {/* Lead picker */}
-        <div className="space-y-2">
-          <label className="form-label">Payload</label>
-          <select
-            value={selectedLeadId}
-            onChange={(e) => setSelectedLeadId(e.target.value)}
-            className="form-select text-sm"
-          >
-            <option value="">Use test payload (Mike Jones)</option>
-            {leads.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.firstName} {l.lastName} — {l.leadType ?? "unknown"} · {l.state} ·{" "}
-                {formatDateTime(l.receivedAt)}
-              </option>
-            ))}
-          </select>
-          {selectedLead && (
-            <div className="flex gap-3 mt-1">
-              <Pill ok={!!selectedLead.trustedformCertUrl} label="TrustedForm cert" />
-              <Pill ok={!!selectedLead.dob} label="Date of birth" />
+        {/* Card body */}
+        <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Mode hint */}
+          <p style={{ fontSize: 13, color: "#8b8a99", margin: 0, lineHeight: 1.5 }}>
+            {modeHint} Connection tests fire an{" "}
+            <code
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 13,
+                background: "#f2f1f8",
+                padding: "1px 5px",
+                borderRadius: 4,
+              }}
+            >
+              is_test=yes
+            </code>{" "}
+            payload — nothing is saved or routed to an agent.
+          </p>
+
+          {/* Connection test row */}
+          <div>
+            <label
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: "#030229",
+                display: "block",
+                marginBottom: 6,
+              }}
+            >
+              Connection test
+            </label>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <select
+                value={selectedLeadId}
+                onChange={(e) => setSelectedLeadId(e.target.value)}
+                className="form-select"
+                style={{ flex: 1, minWidth: 260 }}
+              >
+                <option value="">Use test payload (Mike Jones)</option>
+                {leads.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.firstName} {l.lastName} — {l.leadType ?? "unknown"} · {l.state} ·{" "}
+                    {formatDateTime(l.receivedAt)}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => openModal("realtime")}
+                className="btn-primary btn-sm whitespace-nowrap"
+              >
+                Test RealTime
+              </button>
+              <button
+                type="button"
+                onClick={() => openModal("storefront")}
+                className="btn-sm border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap"
+              >
+                Test Storefront
+              </button>
+            </div>
+
+            {/* Quality pills for selected lead */}
+            {selectedLead && (
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                <Pill ok={!!selectedLead.trustedformCertUrl} label="TrustedForm cert" />
+                <Pill ok={!!selectedLead.dob} label="Date of birth" />
+              </div>
+            )}
+          </div>
+
+          {/* Test result */}
+          {result && (
+            <div
+              style={{
+                border: `1.5px solid ${isSuccess ? "#bbf7d0" : "#fecaca"}`,
+                background: isSuccess ? "rgba(240,253,244,1)" : "rgba(254,242,242,1)",
+                borderRadius: 12,
+                padding: 16,
+                display: "flex",
+                flexDirection: "column",
+                gap: 9,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                  style={
+                    isSuccess
+                      ? { background: "rgba(58,151,76,0.1)", color: "#3A974C" }
+                      : { background: "#fdecea", color: "#c0392b" }
+                  }
+                >
+                  {isSuccess ? "✓ Success" : "✗ Failed"}
+                </span>
+                <span style={{ fontSize: 13, color: "#8b8a99", fontWeight: 700 }}>
+                  {result.flow} · HTTP {result.httpStatus}
+                </span>
+              </div>
+              <pre
+                style={{
+                  background: "#fff",
+                  borderRadius: 9,
+                  padding: 12,
+                  fontFamily: "ui-monospace, monospace",
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  color: "#4a495c",
+                  whiteSpace: "pre-wrap",
+                  overflowX: "auto",
+                  border: "1px solid rgba(0,0,0,0.05)",
+                }}
+              >
+                {result.error ?? JSON.stringify(result.response, null, 2)}
+              </pre>
+              {result.payload && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-slate-500 hover:text-slate-700 font-medium">
+                    View payload sent
+                  </summary>
+                  <pre
+                    style={{
+                      marginTop: 8,
+                      background: "#fff",
+                      borderRadius: 9,
+                      padding: 12,
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: 13,
+                      lineHeight: 1.7,
+                      color: "#4a495c",
+                      whiteSpace: "pre-wrap",
+                      overflowX: "auto",
+                    }}
+                  >
+                    {JSON.stringify(result.payload, null, 2)}
+                  </pre>
+                </details>
+              )}
             </div>
           )}
         </div>
-
-        {/* Action buttons */}
-        <div className="flex gap-3">
-          <button type="button" onClick={() => openModal("realtime")} className="btn-primary btn-sm">
-            Test RealTime flow
-          </button>
-          <button
-            type="button"
-            onClick={() => openModal("storefront")}
-            className="btn-sm border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg px-3 py-1.5 text-sm font-medium"
-          >
-            Test Storefront flow
-          </button>
-        </div>
-
-        {/* Result */}
-        {result && (
-          <div className={`rounded-lg border p-4 space-y-2 ${isSuccess ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isSuccess ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                {isSuccess ? "✓ Success" : "✗ Failed"}
-              </span>
-              <span className="text-xs text-slate-500">{result.flow} · HTTP {result.httpStatus}</span>
-            </div>
-            <pre className="text-xs font-mono text-slate-700 bg-white/70 rounded p-3 overflow-x-auto whitespace-pre-wrap">
-              {result.error ?? JSON.stringify(result.response, null, 2)}
-            </pre>
-            {result.payload && (
-              <details className="text-xs">
-                <summary className="cursor-pointer text-slate-500 hover:text-slate-700 font-medium">View payload sent</summary>
-                <pre className="mt-2 font-mono text-slate-700 bg-white/70 rounded p-3 overflow-x-auto whitespace-pre-wrap">
-                  {JSON.stringify(result.payload, null, 2)}
-                </pre>
-              </details>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Edit modal */}
+      {/* ── Recent postings card ───────────────────────────────────────── */}
+      <div className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)] overflow-hidden">
+        <IntegrityPostingsTable postings={postings} />
+      </div>
+
+      {/* ── Edit payload modal ─────────────────────────────────────────── */}
       {modal?.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
@@ -228,15 +394,33 @@ export function IntegrityTestPanel() {
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Review payload</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Flow: <span className="font-medium capitalize">{modal.flow}</span> · Edit any field then send
+                  Flow: <span className="font-medium capitalize">{modal.flow}</span> · Edit any
+                  field then send
                 </p>
               </div>
-              <button onClick={() => setModal(null)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
+              <button
+                onClick={() => setModal(null)}
+                className="text-slate-400 hover:text-slate-600 text-lg leading-none"
+              >
+                ×
+              </button>
             </div>
 
             <div className="overflow-y-auto px-6 py-4 space-y-3 flex-1">
               <div className="grid grid-cols-2 gap-3">
-                {(["first_name", "last_name", "email", "phone_1", "state", "dob_mmddyyyy_thom", "has_iul_thom", "primary_goal_thom", "vendor_lead_id_thom"] as const).map((key) => (
+                {(
+                  [
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "phone_1",
+                    "state",
+                    "dob_mmddyyyy_thom",
+                    "has_iul_thom",
+                    "primary_goal_thom",
+                    "vendor_lead_id_thom",
+                  ] as const
+                ).map((key) => (
                   <div key={key} className="space-y-1">
                     <label className="form-label">{key}</label>
                     <input
@@ -249,7 +433,6 @@ export function IntegrityTestPanel() {
                 ))}
               </div>
 
-              {/* Lead type full-width */}
               <div className="space-y-1">
                 <label className="form-label">lead_type_thom</label>
                 <select
@@ -258,16 +441,21 @@ export function IntegrityTestPanel() {
                   onChange={(e) => setField("lead_type_thom", e.target.value)}
                 >
                   <option value="">— select —</option>
-                  {LEAD_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {LEAD_TYPE_OPTIONS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* TrustedForm cert — full width, prominent */}
               <div className="space-y-1">
                 <label className="form-label">
                   trustedform_cert_url
                   {!modal.fields.trustedform_cert_url && (
-                    <span className="ml-2 text-amber-600 font-normal">⚠ paste a fresh cert URL here</span>
+                    <span className="ml-2 text-amber-600 font-normal">
+                      ⚠ paste a fresh cert URL here
+                    </span>
                   )}
                 </label>
                 <input
@@ -281,7 +469,11 @@ export function IntegrityTestPanel() {
             </div>
 
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100">
-              <button type="button" onClick={() => setModal(null)} className="btn-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg px-4 py-1.5 text-sm">
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="btn-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg px-4 py-1.5 text-sm"
+              >
                 Cancel
               </button>
               <button
@@ -302,7 +494,14 @@ export function IntegrityTestPanel() {
 
 function Pill({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${ok ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+      style={
+        ok
+          ? { background: "rgba(58,151,76,0.1)", color: "#3A974C" }
+          : { background: "rgba(255,214,107,0.22)", color: "#a5842b" }
+      }
+    >
       {ok ? "✓" : "✗"} {label}
     </span>
   );

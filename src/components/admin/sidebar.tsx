@@ -21,13 +21,10 @@ const ManageAccountModal = dynamic(
 import {
   SquaresFour,
   Users,
-  UsersThree,
   FileText,
   ArrowCounterClockwise,
   Archive,
   Gear,
-  Shield,
-  DownloadSimple,
   Funnel,
   Wallet,
 } from "@/lib/icons/client";
@@ -49,9 +46,6 @@ const navItems: {
   { href: "/admin/transactions", label: "Transactions", icon: Wallet, accent: "mint" },
   { href: "/admin/aged", label: "Aged Leads", icon: Archive, accent: "mint" },
   { href: "/admin/filter-list", label: "Filter List", icon: Funnel, accent: "amber" },
-  { href: "/admin/integrity", label: "Integrity", icon: Shield, accent: "purple" },
-  { href: "/admin/migration", label: "Import", icon: DownloadSimple, accent: "cyan" },
-  { href: "/admin/administrators", label: "Administrators", icon: UsersThree, accent: "slate" },
   { href: "/admin/settings", label: "Settings", icon: Gear, accent: "slate" },
 ];
 

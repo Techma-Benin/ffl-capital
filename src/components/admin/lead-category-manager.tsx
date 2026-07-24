@@ -355,79 +355,153 @@ export function LeadCategoryManager() {
         />
       )}
 
-      <div className="space-y-3">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900">Lead categories</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Single source of truth for lead classification. Each category defines the
-            SRC mapping, pricing, matching rules, and Integrity Connect label.
-            The internal type is set once and cannot be renamed.
-          </p>
-        </div>
-
+      {/* Table card — matching mockup: overflow-hidden, no title above */}
+      <div
+        className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)] overflow-hidden"
+      >
         {loading ? (
-          <p className="text-xs text-slate-400 py-4">Loading…</p>
+          <p className="px-5 py-6 text-sm text-[#8b8a99]">Loading…</p>
         ) : (
-          <div className="rounded-lg border border-slate-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
-                <tr>
-                  <th className="px-4 py-2.5 text-left">Category</th>
-                  <th className="px-4 py-2.5 text-left">SRC</th>
-                  <th className={`px-4 py-2.5 ${moneyHeaderClassName}`}>Price</th>
-                  <th className="px-4 py-2.5 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {categories.map((cat) => (
-                  <tr
-                    key={cat.id}
-                    onClick={() => openEdit(cat)}
-                    className="cursor-pointer hover:bg-slate-50 transition-colors"
+          <table className="w-full" style={{ borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th className="px-3.5 py-2.5 text-left text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap">
+                  Category
+                </th>
+                <th className="px-3.5 py-2.5 text-left text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap">
+                  SRC
+                </th>
+                <th className={`px-3.5 py-2.5 text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap ${moneyHeaderClassName}`}>
+                  Price
+                </th>
+                <th className="px-3.5 py-2.5 text-left text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((cat, idx) => (
+                <tr
+                  key={cat.id}
+                  onClick={() => openEdit(cat)}
+                  className="cursor-pointer hover:bg-[#fbfbfe] transition-colors"
+                  style={{
+                    borderBottom:
+                      idx < categories.length - 1 ? "1px solid #f4f3f8" : "none",
+                  }}
+                >
+                  <td className="px-3.5 py-[11px]">
+                    <div
+                      style={{ fontWeight: 800, fontSize: 13, color: "#030229" }}
+                    >
+                      {cat.label}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: 12,
+                        color: "#b3b3bf",
+                        marginTop: 2,
+                      }}
+                    >
+                      {cat.type}
+                    </div>
+                  </td>
+                  <td
+                    className="px-3.5 py-[11px]"
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: 13,
+                      color: "#8b8a99",
+                    }}
                   >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-800 text-sm">{cat.label}</div>
-                      <div className="font-mono text-xs text-slate-400">{cat.type}</div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                      {cat.src ?? <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className={moneyCellClass("px-4 py-3 text-xs text-slate-600")}>
-                      {cat.defaultPrice != null
-                        ? formatUsdPlain(cat.defaultPrice)
-                        : <span className="text-slate-400">global</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        cat.enabled
-                          ? "bg-green-50 text-green-700"
-                          : "bg-slate-100 text-slate-500"
-                      }`}>
-                        {cat.enabled ? "Active" : "Inactive"}
+                    {cat.src ?? <span style={{ color: "#d7d6e0" }}>—</span>}
+                  </td>
+                  <td className={moneyCellClass("px-3.5 py-[11px]")}
+                    style={{ fontSize: 13, fontWeight: 800 }}
+                  >
+                    {cat.defaultPrice != null ? (
+                      <span style={{ color: "#030229" }}>
+                        {formatUsdPlain(cat.defaultPrice)}
                       </span>
-                    </td>
-                  </tr>
-                ))}
-                {categories.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-xs text-slate-400">
-                      No categories — click below to add one
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                    ) : (
+                      <span style={{ color: "#8b8a99" }}>global</span>
+                    )}
+                  </td>
+                  <td className="px-3.5 py-[11px]">
+                    <span
+                      className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-extrabold"
+                      style={
+                        cat.enabled
+                          ? { background: "rgba(58,151,76,0.1)", color: "#3A974C" }
+                          : { background: "#f2f1f8", color: "#8b8a99" }
+                      }
+                    >
+                      {cat.enabled ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {categories.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-3.5 py-8 text-center text-sm text-[#8b8a99]"
+                  >
+                    No categories yet
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         )}
-
-        <button
-          type="button"
-          onClick={openNew}
-          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-        >
-          + Add category
-        </button>
       </div>
+
+      {/* Hint text below the card — matches mockup */}
+      <p style={{ fontSize: 13, color: "#8b8a99", lineHeight: 1.5 }}>
+        Single source of truth for lead classification — SRC mapping, pricing,
+        matching rules and Integrity Connect label. The internal type is set once
+        and cannot be renamed.
+      </p>
+
+      {/* Floating action button — fixed bottom-right, matches mockup */}
+      <button
+        type="button"
+        onClick={openNew}
+        style={{
+          position: "fixed",
+          bottom: 28,
+          right: 28,
+          zIndex: 40,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 9,
+          height: 50,
+          padding: "0 22px",
+          borderRadius: 26,
+          border: "none",
+          background: "#605BFF",
+          color: "#fff",
+          fontFamily: "inherit",
+          fontSize: 14,
+          fontWeight: 800,
+          cursor: "pointer",
+          boxShadow: "0 8px 24px -4px rgba(96,91,255,0.45)",
+        }}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add category
+      </button>
     </>
   );
 }
