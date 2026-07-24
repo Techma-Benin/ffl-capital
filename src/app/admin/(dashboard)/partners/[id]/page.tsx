@@ -126,7 +126,7 @@ export default async function AdminPartnerDetailPage({
               value={formatUsd(walletBalance)}
               icon={Wallet}
               accent={walletLow ? "red" : "emerald"}
-              valueClassName={clsx(moneyValueClassName, walletLow ? "text-red-600" : undefined)}
+              valueClassName={clsx("tabular-nums text-left", walletLow ? "text-red-600" : "text-slate-900")}
               blobIndex={0}
             />
             <StatCard

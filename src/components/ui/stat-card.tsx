@@ -200,7 +200,7 @@ export function StatCard(props: StatCardProps) {
         />
       )}
       <div className={clsx("min-w-0 p-6", IconComponent && "pr-24")}>
-        <p className={clsx("text-3xl font-bold tracking-tight text-slate-900", valueClassName)}>
+        <p className={clsx("text-3xl font-bold tracking-tight", valueClassName)}>
           {value}
         </p>
         <p className="mt-1 text-sm text-slate-500">{label}</p>
