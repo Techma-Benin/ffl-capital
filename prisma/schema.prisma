@@ -207,24 +207,27 @@ model LeadListView {
 
 model PartnerFilterSet {
   id              String                   @id @default(uuid()) @db.Uuid
-  partnerId       String                   @map("partner_id") @db.Uuid
+  partnerId       String?                  @map("partner_id") @db.Uuid
   name            String                   @default("Default")
+  description     String?
   leadType        String                   @map("lead_type")
   filterStates    String[]                 @map("filter_states")
   priority        Int                      @default(5)
   priceOverride   Decimal?                 @map("price_override") @db.Decimal(10, 2)
   active          Boolean                  @default(true)
+  isTemplate      Boolean                  @default(false) @map("is_template")
   weeklyLimit     Int?                     @map("weekly_limit")
   monthlyLimit    Int?                     @map("monthly_limit")
   filterCriteria  Json                     @default("{}") @map("filter_criteria")
   createdAt       DateTime                 @default(now()) @map("created_at")
   updatedAt       DateTime                 @updatedAt @map("updated_at")
 
-  partner        Partner        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partner        Partner?       @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   leadDeliveries LeadDelivery[]
 
   @@index([partnerId, active])
   @@index([leadType])
+  @@index([isTemplate])
   @@map("partner_filter_sets")
 }
 
@@ -392,18 +395,6 @@ model AppSetting {
   value Json
 
   @@map("app_settings")
-}
-
-model FilterSetTemplate {
-  id           String   @id @default(uuid()) @db.Uuid
-  name         String
-  description  String?
-  leadType     String   @map("lead_type")
-  filterStates String[] @map("filter_states")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  @@map("filter_set_templates")
 }
 
 model MigrationJob {

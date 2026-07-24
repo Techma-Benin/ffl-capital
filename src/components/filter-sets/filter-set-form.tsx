@@ -8,19 +8,17 @@ import {
 } from "@/lib/constants/us-states";
 import { StateChipGrid } from "@/components/filter-sets/state-chip-grid";
 import type { FilterCriteria } from "@/lib/matching/types";
+import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
 import type {
   CategoryOption,
-  FilterSetRow,
   FilterSetFormData,
-} from "@/components/filter-sets/filter-set-types";
-import {
-  emptyForm,
-  toFormData,
+  FilterSetFormVariant,
 } from "@/components/filter-sets/filter-set-types";
 export type {
   CategoryOption,
   FilterSetRow,
   FilterSetFormData,
+  FilterSetFormVariant,
 } from "@/components/filter-sets/filter-set-types";
 export {
   emptyForm,
@@ -105,7 +103,7 @@ function AdvancedFiltersAccordion({
   const [open, setOpen] = useState(false);
 
   function update(patch: Partial<FilterCriteria>) {
-    onChange({ ...criteria, ...patch });
+    onChange(stripAttributionCriteria({ ...criteria, ...patch }));
   }
 
   return (
@@ -124,7 +122,6 @@ function AdvancedFiltersAccordion({
 
       {open && (
         <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-4">
-          {/* Lead Profile */}
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             Lead Profile
           </p>
@@ -173,50 +170,6 @@ function AdvancedFiltersAccordion({
             </div>
           </div>
 
-          {/* Attribution */}
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">
-            Attribution
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TagInput
-              label="Source (allow-list)"
-              values={criteria.source ?? []}
-              onChange={(v) => update({ source: v })}
-              placeholder="e.g. meta_leadconduit"
-            />
-            <TagInput
-              label="Source (block-list)"
-              values={criteria.excludeSource ?? []}
-              onChange={(v) => update({ excludeSource: v })}
-            />
-            <TagInput
-              label="Sub ID (allow-list)"
-              values={criteria.subId ?? []}
-              onChange={(v) => update({ subId: v })}
-            />
-            <TagInput
-              label="Sub ID (block-list)"
-              values={criteria.excludeSubId ?? []}
-              onChange={(v) => update({ excludeSubId: v })}
-            />
-            <TagInput
-              label="Pub ID (allow-list)"
-              values={criteria.pubId ?? []}
-              onChange={(v) => update({ pubId: v })}
-            />
-            <TagInput
-              label="Pub ID (block-list)"
-              values={criteria.excludePubId ?? []}
-              onChange={(v) => update({ excludePubId: v })}
-            />
-            <TagInput
-              label="Boberdoo Lead Type (allow-list)"
-              values={criteria.boberdooLeadType ?? []}
-              onChange={(v) => update({ boberdooLeadType: v })}
-            />
-          </div>
-
-          {/* Schedule */}
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">
             Schedule (Eastern Time)
           </p>
@@ -316,11 +269,11 @@ export function FilterSetForm({
   onSaved,
   buildUrl,
   onSavedWithData,
-  // modal-integration props
   formId,
   hideButtons = false,
   onPendingChange,
   onFormChange,
+  variant = "admin",
 }: {
   partnerId?: string;
   filterSetId?: string;
@@ -330,22 +283,20 @@ export function FilterSetForm({
   onSaved: () => void;
   buildUrl?: (filterSetId?: string) => string;
   onSavedWithData?: (data: unknown) => void;
-  /** HTML id applied to <form> so an external submit button can target it */
   formId?: string;
-  /** When true, the internal Cancel/Submit button row is not rendered */
   hideButtons?: boolean;
-  /** Called whenever the pending state changes so a parent footer can reflect it */
   onPendingChange?: (pending: boolean) => void;
-  /** Called whenever form values change (e.g. save-as-template from page footer) */
   onFormChange?: (form: FilterSetFormData) => void;
+  variant?: FilterSetFormVariant;
 }) {
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
   const isEligible = form.filterStates.length >= 15;
+  const showPricing = variant === "admin" || variant === "template";
+  const showDescription = variant === "template";
 
-  // Notify parent when pending changes
   useEffect(() => {
     onPendingChange?.(pending);
   }, [pending, onPendingChange]);
@@ -377,17 +328,26 @@ export function FilterSetForm({
     setPending(true);
     setError("");
 
-    const payload = {
+    const criteria = stripAttributionCriteria(form.filterCriteria);
+    const payload: Record<string, unknown> = {
       name: form.name.trim() || "Default",
       leadType: form.leadType,
       filterStates: form.filterStates,
-      priority: form.priority,
-      priceOverride: form.priceOverride ? Number(form.priceOverride) : null,
       active: form.active,
       weeklyLimit: form.weeklyLimit ? Number(form.weeklyLimit) : null,
       monthlyLimit: form.monthlyLimit ? Number(form.monthlyLimit) : null,
-      filterCriteria: form.filterCriteria,
+      filterCriteria: criteria,
     };
+
+    if (showDescription) {
+      payload.description = form.description.trim() || null;
+    }
+    if (showPricing) {
+      payload.priority = form.priority;
+      payload.priceOverride = form.priceOverride
+        ? Number(form.priceOverride)
+        : null;
+    }
 
     try {
       const url = buildUrl
@@ -423,7 +383,13 @@ export function FilterSetForm({
     >
       {!hideButtons && (
         <h3 className="text-sm font-semibold text-slate-900">
-          {filterSetId ? "Edit Filter Set" : "New Filter Set"}
+          {filterSetId
+            ? variant === "template"
+              ? "Edit Template"
+              : "Edit Filter Set"
+            : variant === "template"
+              ? "New Template"
+              : "New Filter Set"}
         </h3>
       )}
 
@@ -454,33 +420,50 @@ export function FilterSetForm({
             )}
           </select>
         </div>
-        <div>
-          <label className="form-label">Priority (1–10)</label>
-          <input
-            type="number"
-            min={1}
-            max={10}
-            className="form-input"
-            value={form.priority}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, priority: Number(e.target.value) }))
-            }
-          />
-        </div>
-        <div>
-          <label className="form-label">Price Override ($)</label>
-          <input
-            type="number"
-            min={1}
-            step={0.01}
-            placeholder="Use default"
-            className="form-input"
-            value={form.priceOverride}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, priceOverride: e.target.value }))
-            }
-          />
-        </div>
+        {showDescription && (
+          <div className="sm:col-span-2 lg:col-span-3">
+            <label className="form-label">Description (optional)</label>
+            <input
+              className="form-input"
+              value={form.description}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, description: e.target.value }))
+              }
+              placeholder="Brief description for partners"
+            />
+          </div>
+        )}
+        {showPricing && (
+          <>
+            <div>
+              <label className="form-label">Priority (1–10)</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                className="form-input"
+                value={form.priority}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, priority: Number(e.target.value) }))
+                }
+              />
+            </div>
+            <div>
+              <label className="form-label">Price Override ($)</label>
+              <input
+                type="number"
+                min={1}
+                step={0.01}
+                placeholder="Use default"
+                className="form-input"
+                value={form.priceOverride}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, priceOverride: e.target.value }))
+                }
+              />
+            </div>
+          </>
+        )}
         <div>
           <label className="form-label">Weekly Limit</label>
           <input
@@ -522,7 +505,6 @@ export function FilterSetForm({
         </div>
       </div>
 
-      {/* State picker */}
       <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <label className="form-label mb-0">
@@ -588,7 +570,12 @@ export function FilterSetForm({
 
       <AdvancedFiltersAccordion
         criteria={form.filterCriteria}
-        onChange={(c) => setForm((p) => ({ ...p, filterCriteria: c }))}
+        onChange={(c) =>
+          setForm((p) => ({
+            ...p,
+            filterCriteria: stripAttributionCriteria(c),
+          }))
+        }
       />
 
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -600,7 +587,13 @@ export function FilterSetForm({
             disabled={pending || !isEligible}
             className="btn-primary btn-sm"
           >
-            {pending ? "Saving…" : filterSetId ? "Save Changes" : "Create Filter Set"}
+            {pending
+              ? "Saving…"
+              : filterSetId
+                ? "Save Changes"
+                : variant === "template"
+                  ? "Create Template"
+                  : "Create Filter Set"}
           </button>
           <button type="button" onClick={onCancel} className="btn-secondary btn-sm">
             Cancel

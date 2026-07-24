@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import {
+  listFilterSetTemplates,
+  serializeTemplatePickerItem,
+} from "@/lib/filter-sets/templates";
 
 /**
  * Public-ish endpoint for fetching filter set templates during onboarding.
@@ -12,16 +15,6 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
 
-  const templates = await prisma.filterSetTemplate.findMany({
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      leadType: true,
-      filterStates: true,
-    },
-  });
-
-  return NextResponse.json(templates);
+  const templates = await listFilterSetTemplates();
+  return NextResponse.json(templates.map(serializeTemplatePickerItem));
 }

@@ -8,22 +8,23 @@ export default async function AdminPartnerFilterSetNewPage({
 }: {
   params: { id: string };
 }) {
-  const partner = await prisma.partner.findUnique({
-    where: { id: params.id },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      filterStates: true,
-    },
-  });
+  const [partner, categories] = await Promise.all([
+    prisma.partner.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        filterStates: true,
+      },
+    }),
+    prisma.leadCategory.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { type: true, label: true },
+    }),
+  ]);
 
   if (!partner) notFound();
-
-  const categories = await prisma.leadCategory.findMany({
-    orderBy: { createdAt: "asc" },
-    select: { type: true, label: true },
-  });
 
   const backHref = `/admin/partners/${partner.id}`;
   const displayName = `${partner.firstName} ${partner.lastName}`.trim();
@@ -31,6 +32,7 @@ export default async function AdminPartnerFilterSetNewPage({
   return (
     <FilterSetEditorPage
       mode="create"
+      variant="admin"
       partnerId={partner.id}
       backHref={backHref}
       backLabel="Back to partner"

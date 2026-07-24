@@ -1,10 +1,14 @@
 import type { FilterCriteria } from "@/lib/matching/types";
+import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
 
 export type CategoryOption = { type: string; label: string };
+
+export type FilterSetFormVariant = "admin" | "partner" | "template";
 
 export type FilterSetRow = {
   id: string;
   name: string;
+  description?: string | null;
   leadType: string;
   filterStates: string[];
   priority: number;
@@ -17,6 +21,7 @@ export type FilterSetRow = {
 
 export type FilterSetFormData = {
   name: string;
+  description: string;
   leadType: string;
   filterStates: string[];
   priority: number;
@@ -30,6 +35,7 @@ export type FilterSetFormData = {
 export function emptyForm(defaultStates: string[]): FilterSetFormData {
   return {
     name: "Default",
+    description: "",
     leadType: "traditional_iul",
     filterStates: defaultStates.length >= 15 ? [...defaultStates] : [],
     priority: 5,
@@ -44,6 +50,7 @@ export function emptyForm(defaultStates: string[]): FilterSetFormData {
 export function toFormData(fs: FilterSetRow): FilterSetFormData {
   return {
     name: fs.name,
+    description: fs.description ?? "",
     leadType: fs.leadType,
     filterStates: [...fs.filterStates],
     priority: fs.priority,
@@ -51,6 +58,6 @@ export function toFormData(fs: FilterSetRow): FilterSetFormData {
     active: fs.active,
     weeklyLimit: fs.weeklyLimit != null ? String(fs.weeklyLimit) : "",
     monthlyLimit: fs.monthlyLimit != null ? String(fs.monthlyLimit) : "",
-    filterCriteria: fs.filterCriteria ?? {},
+    filterCriteria: stripAttributionCriteria(fs.filterCriteria ?? {}),
   };
 }

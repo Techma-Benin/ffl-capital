@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 21 juillet 2026 (v7 — implémentation V1 largement complète)
+> Dernière mise à jour : 24 juillet 2026 (v7 — templates filter set unifiés dans `partner_filter_sets`)
 
 ---
 
@@ -38,7 +38,8 @@
 | **Ping/Post** | Protocole API pour vendre un lead à un acheteur tiers (IntegrityCONNECT) |
 | **Storefront** | Mode revente différé avec réconciliation journalière |
 | **Wallet** | Solde prépayé Stripe débité à chaque livraison/achat de lead |
-| **Filter set** | Profil de **matching** partner : états, type IUL, priorité, limites H/J, prix — plusieurs par partner ; pilote la distribution temps réel, pas l’affichage de la liste leads |
+| **Filter set** | Profil de **matching** partner : états, type IUL, priorité, limites H/J, prix — plusieurs par partner (`partner_filter_sets`, `isTemplate=false`) ; pilote la distribution temps réel, pas l’affichage de la liste leads |
+| **Filter set template** | Même table `partner_filter_sets` avec `isTemplate=true` et `partnerId` null — modèles admin (Filter List / onboarding / picker) ; **exclus** du matching |
 | **Vue leads (lead list view)** | Configuration **persistée** de liste : filtres d’affichage, tri, colonnes visibles ; scope **admin** (global) ou **partner** (par compte). URL portail : `?view=<uuid>`. Distinct d’un filter set |
 
 ---
@@ -232,8 +233,8 @@ Transcript : `first review with client` — [enregistrement Fathom](https://fath
 agents (users)
   ├── affiliation (texte libre — nom agence partenaire)
   ├── wallet_balance
-  ├── filter_states[], priority (1-10) on filter sets (`partner_filter_sets.lead_type` per set)
-  ├── price_override (nullable, ex. 20 au lieu de 25)
+  ├── partner_filter_sets[] (live : partnerId + isTemplate=false ; templates globaux : partnerId null + isTemplate=true)
+  ├── filter_states[], priority (1-10), price_override, lead_type — par filter set (pas sur le compte)
   └── partner_crm_outbound_configs (optionnel — Lead delivery / wizard crm-outbound, voir PARTNER_CRM_OUTBOUND.md)
 
 leads
@@ -303,17 +304,17 @@ resale_postings                   -- envois IntegrityCONNECT
 | Onboarding partner (≥15 états) + approbation admin | ✅ |
 | `POST /api/leads/intake` (format Boberdoo, CORS, public) | ✅ |
 | Pipeline intake : validate, normalize, doublons, TrustedForm, match, deliver | ✅ |
-| Moteur matching v2 (filter sets, limites H/J, FIFO) | ✅ |
+| Moteur matching v2 (filter sets, limites H/J, FIFO ; exclut templates) | ✅ |
 | Wallet Stripe (top-up + abonnement hebdo) + ledger | ✅ |
 | Emails livraison (Resend), CRM outbound POST (wizard) | ✅ |
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue), partners, refunds, **aged browse** (tri URL + pagination), settings, migration, filter list | ✅ |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue), partners, refunds, **aged browse** (tri URL + pagination), settings, migration, filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées), wallet, aged, settings, contact, refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
-| Tables `lead_events`, `partner_filter_sets`, champs Boberdoo étendus | ✅ |
+| Tables `lead_events`, `partner_filter_sets` (live + `isTemplate`), champs Boberdoo étendus | ✅ |
 
 ### ⏳ Restant / bloqué client
 
@@ -348,10 +349,11 @@ resale_postings                   -- envois IntegrityCONNECT
 - [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, colonnes visibles + ordre persistés sur la vue active (`lead_list_views.columns`, PATCH lead-views), toggle cartes/tableau seul en `localStorage` (`admin-leads-table-layout` ; partner : `partner-leads-table-layout`), détail lead **B3** (hero compact, onglets Contact/IUL/Compliance/Tracking/Events, livraisons partenaires + timeline) ; `?view=` (redirection legacy `?status=`)
 - [x] Partner leads : vues par partner (défaut « All deliveries »), mêmes primitives UI que l’admin côté liste (colonnes sur la vue, layout en localStorage)
 - [x] Admin partners : liste, approbation, détail **P5** (profil + conformité CRM : colonne résumé, stats, checklist, filter sets en lignes, activité unifiée ; édition compte (modal « Edit account » depuis l’en-tête ou Account & CRM ; avatar 96px sur la carte profil — photo Clerk si `Partner.clerkUserId` renseigné, sinon initiales du nom ; partenaires seed type « Dashboard Demo » sans compte Clerk lié)), filter sets (création/édition pages `/admin/partners/[id]/filter-sets/new` et `…/[filterSetId]/edit` ; retour filter list via `?returnTo=/admin/filter-list`) ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; toggle cartes/tableau + colonnes masquables (`localStorage` `admin-partners-table-layout`, `admin-partners-visible-columns`)
+- [x] Admin Filter List (`/admin/filter-list`) : sets live + templates SSR ; templates via `/admin/filter-sets/templates/new` et `…/[id]/edit` ; éditeur partagé `FilterSetEditorPage` / `FilterSetForm` (admin live, templates, partner) — plus de modal d’édition ; partner ne voit pas prix/priorité ; Attribution absente du formulaire filter set (clés stripées à la sauvegarde ; section Attribution onboarding inchangée)
 - [x] Admin refunds : file pending + historique
 - [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`), KPI Available + filtres URL (`state`, `type`, `status`, `age`), tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id`
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
-- [x] Partner settings (Profile + Lead delivery half/half ; wizard CRM `/partner/settings/crm-outbound`) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner, plus de modal
+- [x] Partner settings (Profile + Lead delivery half/half ; wizard CRM `/partner/settings/crm-outbound`) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner/templates, plus de modal
 
 ### Stripe (**test — terminé**)
 
@@ -528,6 +530,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 |-------|----------|
 | Priorité build | **Backend core d'abord**, UI/design ensuite |
 | Filter sets | **Multiples par partner** (parité Boberdoo), pas un seul profil |
+| Filter set templates | **Même table** `partner_filter_sets` (`isTemplate=true`, `partnerId` null) — plus de table `filter_set_templates` ; exclus du matching |
 | Auto-recharge solde | **Reportée** — abonnement Stripe hebdomadaire conservé |
 | Admin vs partner | **Comptes séparés** — pas de promotion partner → admin |
 | IntegrityCONNECT live | Code mock prêt ; **specs/API client** requises pour live |

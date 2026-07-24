@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 import type { FilterCriteria } from "@/lib/matching/types";
+import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
 import { ActionButton } from "@/components/ui/action-button";
 import { StatusStrip } from "@/components/ui/status-strip";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,6 +64,9 @@ type FilterSetTemplate = {
   description: string | null;
   leadType: LeadType;
   filterStates: string[];
+  weeklyLimit?: number | null;
+  monthlyLimit?: number | null;
+  filterCriteria?: FilterCriteria;
 };
 
 type InitialProfile = Partial<ProfileFields> & { email?: string };
@@ -376,6 +380,11 @@ export default function OnboardingForm({
       setSelectedTemplateId(template.id);
       setLeadType(template.leadType);
       setSelectedStates([...template.filterStates]);
+      if (template.weeklyLimit != null) setWeeklyLimit(String(template.weeklyLimit));
+      if (template.monthlyLimit != null) setMonthlyLimit(String(template.monthlyLimit));
+      if (template.filterCriteria) {
+        setFilterCriteria(stripAttributionCriteria(template.filterCriteria));
+      }
     }
   }
 

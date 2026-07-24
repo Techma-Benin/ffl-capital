@@ -1,13 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { FilterCriteria } from "@/lib/matching/types";
 
 export type FilterSetTemplate = {
   id: string;
   name: string;
   description: string | null;
-  leadType: "traditional_iul" | "high_intent_iul";
+  leadType: string;
   filterStates: string[];
+  priority?: number;
+  priceOverride?: number | null;
+  weeklyLimit?: number | null;
+  monthlyLimit?: number | null;
+  filterCriteria?: FilterCriteria;
 };
 
 const LEAD_TYPE_LABELS: Record<string, string> = {
@@ -18,19 +24,28 @@ const LEAD_TYPE_LABELS: Record<string, string> = {
 export function FilterSetTemplatePicker({
   onSelect,
   onSkip,
+  initialTemplates,
 }: {
   onSelect: (template: FilterSetTemplate) => void;
   onSkip: () => void;
+  /** Prefer SSR data; falls back to partner templates API when omitted */
+  initialTemplates?: FilterSetTemplate[];
 }) {
-  const [templates, setTemplates] = useState<FilterSetTemplate[] | null>(null);
+  const [templates, setTemplates] = useState<FilterSetTemplate[] | null>(
+    initialTemplates ?? null,
+  );
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
+    if (initialTemplates !== undefined) {
+      setTemplates(initialTemplates);
+      return;
+    }
     fetch("/api/partner/filter-set-templates")
       .then((r) => r.json())
       .then((data) => setTemplates(Array.isArray(data) ? data : []))
       .catch(() => setLoadError("Could not load templates."));
-  }, []);
+  }, [initialTemplates]);
 
   return (
     <div className="space-y-4">
@@ -62,7 +77,7 @@ export function FilterSetTemplatePicker({
                   {template.name}
                 </span>
                 <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
-                  {LEAD_TYPE_LABELS[template.leadType]}
+                  {LEAD_TYPE_LABELS[template.leadType] ?? template.leadType}
                 </span>
               </div>
               {template.description && (

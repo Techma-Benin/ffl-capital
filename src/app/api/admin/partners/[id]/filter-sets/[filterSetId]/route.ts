@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
+import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import type { FilterCriteria } from "@/lib/matching/types";
 
 const filterCriteriaSchema = z
   .object({
@@ -9,17 +11,11 @@ const filterCriteriaSchema = z
     haveIul: z.array(z.string()).optional(),
     ageMin: z.number().int().min(0).optional(),
     ageMax: z.number().int().min(0).optional(),
-    source: z.array(z.string()).optional(),
-    excludeSource: z.array(z.string()).optional(),
-    subId: z.array(z.string()).optional(),
-    excludeSubId: z.array(z.string()).optional(),
-    pubId: z.array(z.string()).optional(),
-    excludePubId: z.array(z.string()).optional(),
-    boberdooLeadType: z.array(z.string()).optional(),
     acceptDays: z.array(z.string()).optional(),
     acceptHoursStart: z.number().int().min(0).max(23).optional(),
     acceptHoursEnd: z.number().int().min(0).max(23).optional(),
   })
+  .passthrough()
   .optional();
 
 const patchSchema = z.object({
@@ -44,7 +40,11 @@ export async function GET(
   }
 
   const filterSet = await prisma.partnerFilterSet.findFirst({
-    where: { id: params.filterSetId, partnerId: params.id },
+    where: {
+      id: params.filterSetId,
+      partnerId: params.id,
+      isTemplate: false,
+    },
   });
 
   if (!filterSet) {
@@ -64,13 +64,27 @@ export async function PATCH(
   }
 
   const existing = await prisma.partnerFilterSet.findFirst({
-    where: { id: params.filterSetId, partnerId: params.id },
+    where: {
+      id: params.filterSetId,
+      partnerId: params.id,
+      isTemplate: false,
+    },
   });
   if (!existing) {
     return NextResponse.json({ error: "Filter set not found" }, { status: 404 });
   }
 
   const body = await request.json();
+  if (body?.isTemplate === true) {
+    return NextResponse.json(
+      {
+        error:
+          "Cannot convert a partner filter set into a template via this endpoint",
+      },
+      { status: 400 },
+    );
+  }
+
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -80,11 +94,15 @@ export async function PATCH(
     where: { id: params.filterSetId },
     data: {
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
-      ...(parsed.data.leadType !== undefined ? { leadType: parsed.data.leadType } : {}),
+      ...(parsed.data.leadType !== undefined
+        ? { leadType: parsed.data.leadType }
+        : {}),
       ...(parsed.data.filterStates !== undefined
         ? { filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()) }
         : {}),
-      ...(parsed.data.priority !== undefined ? { priority: parsed.data.priority } : {}),
+      ...(parsed.data.priority !== undefined
+        ? { priority: parsed.data.priority }
+        : {}),
       ...(parsed.data.priceOverride !== undefined
         ? { priceOverride: parsed.data.priceOverride }
         : {}),
@@ -96,7 +114,11 @@ export async function PATCH(
         ? { monthlyLimit: parsed.data.monthlyLimit }
         : {}),
       ...(parsed.data.filterCriteria !== undefined
-        ? { filterCriteria: parsed.data.filterCriteria ?? {} }
+        ? {
+            filterCriteria: stripAttributionCriteria(
+              (parsed.data.filterCriteria ?? {}) as FilterCriteria,
+            ),
+          }
         : {}),
     },
   });
@@ -114,14 +136,18 @@ export async function DELETE(
   }
 
   const existing = await prisma.partnerFilterSet.findFirst({
-    where: { id: params.filterSetId, partnerId: params.id },
+    where: {
+      id: params.filterSetId,
+      partnerId: params.id,
+      isTemplate: false,
+    },
   });
   if (!existing) {
     return NextResponse.json({ error: "Filter set not found" }, { status: 404 });
   }
 
   const count = await prisma.partnerFilterSet.count({
-    where: { partnerId: params.id },
+    where: { partnerId: params.id, isTemplate: false },
   });
   if (count <= 1) {
     return NextResponse.json(

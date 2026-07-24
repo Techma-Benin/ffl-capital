@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
+import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import type { FilterCriteria } from "@/lib/matching/types";
 
 const filterCriteriaSchema = z
   .object({
@@ -9,17 +11,11 @@ const filterCriteriaSchema = z
     haveIul: z.array(z.string()).optional(),
     ageMin: z.number().int().min(0).optional(),
     ageMax: z.number().int().min(0).optional(),
-    source: z.array(z.string()).optional(),
-    excludeSource: z.array(z.string()).optional(),
-    subId: z.array(z.string()).optional(),
-    excludeSubId: z.array(z.string()).optional(),
-    pubId: z.array(z.string()).optional(),
-    excludePubId: z.array(z.string()).optional(),
-    boberdooLeadType: z.array(z.string()).optional(),
     acceptDays: z.array(z.string()).optional(),
     acceptHoursStart: z.number().int().min(0).max(23).optional(),
     acceptHoursEnd: z.number().int().min(0).max(23).optional(),
   })
+  .passthrough()
   .optional();
 
 const filterSetSchema = z.object({
@@ -44,7 +40,7 @@ export async function GET(
   }
 
   const filterSets = await prisma.partnerFilterSet.findMany({
-    where: { partnerId: params.id },
+    where: { partnerId: params.id, isTemplate: false },
     orderBy: { createdAt: "asc" },
   });
 
@@ -66,6 +62,13 @@ export async function POST(
   }
 
   const body = await request.json();
+  if (body?.isTemplate === true) {
+    return NextResponse.json(
+      { error: "Use template endpoints to create templates" },
+      { status: 400 },
+    );
+  }
+
   const parsed = filterSetSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -74,6 +77,7 @@ export async function POST(
   const filterSet = await prisma.partnerFilterSet.create({
     data: {
       partnerId: params.id,
+      isTemplate: false,
       name: parsed.data.name,
       leadType: parsed.data.leadType,
       filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
@@ -82,7 +86,9 @@ export async function POST(
       active: parsed.data.active ?? true,
       weeklyLimit: parsed.data.weeklyLimit,
       monthlyLimit: parsed.data.monthlyLimit,
-      filterCriteria: parsed.data.filterCriteria ?? {},
+      filterCriteria: stripAttributionCriteria(
+        (parsed.data.filterCriteria ?? {}) as FilterCriteria,
+      ),
     },
   });
 

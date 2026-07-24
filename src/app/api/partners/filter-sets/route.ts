@@ -5,6 +5,8 @@ import { getPartnerId } from "@/lib/partner/session";
 import { listPartnerFilterSets } from "@/lib/partner/default-filter-set";
 import { MIN_FILTER_STATES } from "@/lib/partner/constants";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
+import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import type { FilterCriteria } from "@/lib/matching/types";
 
 const stateCodeSchema = z.enum(
   US_STATE_CODES as unknown as [string, ...string[]],
@@ -16,17 +18,11 @@ const filterCriteriaSchema = z
     haveIul: z.array(z.string()).optional(),
     ageMin: z.number().int().min(0).optional(),
     ageMax: z.number().int().min(0).optional(),
-    source: z.array(z.string()).optional(),
-    excludeSource: z.array(z.string()).optional(),
-    subId: z.array(z.string()).optional(),
-    excludeSubId: z.array(z.string()).optional(),
-    pubId: z.array(z.string()).optional(),
-    excludePubId: z.array(z.string()).optional(),
-    boberdooLeadType: z.array(z.string()).optional(),
     acceptDays: z.array(z.string()).optional(),
     acceptHoursStart: z.number().int().min(0).max(23).optional(),
     acceptHoursEnd: z.number().int().min(0).max(23).optional(),
   })
+  .passthrough()
   .optional();
 
 const createSchema = z.object({
@@ -58,7 +54,9 @@ export async function GET() {
       active: fs.active,
       weeklyLimit: fs.weeklyLimit,
       monthlyLimit: fs.monthlyLimit,
-      filterCriteria: fs.filterCriteria,
+      filterCriteria: stripAttributionCriteria(
+        (fs.filterCriteria ?? {}) as FilterCriteria,
+      ),
     })),
   );
 }
@@ -76,6 +74,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  if (
+    body &&
+    typeof body === "object" &&
+    "isTemplate" in body &&
+    (body as { isTemplate?: unknown }).isTemplate === true
+  ) {
+    return NextResponse.json(
+      { error: "Partners cannot create templates" },
+      { status: 403 },
+    );
+  }
+
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -84,7 +94,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, leadType, filterStates: rawStates, priority, active, weeklyLimit, monthlyLimit, filterCriteria } = parsed.data;
+  const {
+    name,
+    leadType,
+    filterStates: rawStates,
+    priority,
+    active,
+    weeklyLimit,
+    monthlyLimit,
+    filterCriteria,
+  } = parsed.data;
   const filterStates = Array.from(new Set(rawStates.map((s) => s.toUpperCase())));
 
   // Enforce 15-state minimum for active sets
@@ -100,6 +119,7 @@ export async function POST(request: NextRequest) {
   const created = await prisma.partnerFilterSet.create({
     data: {
       partnerId,
+      isTemplate: false,
       name: name.trim(),
       leadType,
       filterStates,
@@ -107,7 +127,9 @@ export async function POST(request: NextRequest) {
       active,
       weeklyLimit: weeklyLimit ?? null,
       monthlyLimit: monthlyLimit ?? null,
-      filterCriteria: filterCriteria ?? {},
+      filterCriteria: stripAttributionCriteria(
+        (filterCriteria ?? {}) as FilterCriteria,
+      ),
     },
   });
 

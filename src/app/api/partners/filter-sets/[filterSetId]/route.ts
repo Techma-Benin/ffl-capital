@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { MIN_FILTER_STATES } from "@/lib/partner/constants";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
+import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import type { FilterCriteria } from "@/lib/matching/types";
 
 const stateCodeSchema = z.enum(
   US_STATE_CODES as unknown as [string, ...string[]],
@@ -15,17 +17,11 @@ const filterCriteriaSchema = z
     haveIul: z.array(z.string()).optional(),
     ageMin: z.number().int().min(0).optional(),
     ageMax: z.number().int().min(0).optional(),
-    source: z.array(z.string()).optional(),
-    excludeSource: z.array(z.string()).optional(),
-    subId: z.array(z.string()).optional(),
-    excludeSubId: z.array(z.string()).optional(),
-    pubId: z.array(z.string()).optional(),
-    excludePubId: z.array(z.string()).optional(),
-    boberdooLeadType: z.array(z.string()).optional(),
     acceptDays: z.array(z.string()).optional(),
     acceptHoursStart: z.number().int().min(0).max(23).optional(),
     acceptHoursEnd: z.number().int().min(0).max(23).optional(),
   })
+  .passthrough()
   .optional();
 
 const patchSchema = z.object({
@@ -54,7 +50,7 @@ export async function PATCH(
 
   // Verify this filter set belongs to the authenticated partner
   const existing = await prisma.partnerFilterSet.findFirst({
-    where: { id: params.filterSetId, partnerId },
+    where: { id: params.filterSetId, partnerId, isTemplate: false },
   });
   if (!existing) {
     return NextResponse.json({ error: "Filter set not found" }, { status: 404 });
@@ -67,6 +63,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  if (
+    body &&
+    typeof body === "object" &&
+    "isTemplate" in body &&
+    (body as { isTemplate?: unknown }).isTemplate === true
+  ) {
+    return NextResponse.json(
+      { error: "Partners cannot create templates" },
+      { status: 403 },
+    );
+  }
+
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -75,7 +83,16 @@ export async function PATCH(
     );
   }
 
-  const { name, leadType, filterStates: rawStates, priority, active, weeklyLimit, monthlyLimit, filterCriteria } = parsed.data;
+  const {
+    name,
+    leadType,
+    filterStates: rawStates,
+    priority,
+    active,
+    weeklyLimit,
+    monthlyLimit,
+    filterCriteria,
+  } = parsed.data;
 
   // Deduplicate states if provided
   const filterStates = rawStates
@@ -98,11 +115,16 @@ export async function PATCH(
   if (name !== undefined) data.name = name.trim() || existing.name;
   if (leadType !== undefined) data.leadType = leadType;
   if (filterStates !== undefined) data.filterStates = filterStates;
-  if (priority !== undefined) data.priority = priority;
+  // Partners may send priority but it is ignored (admin-only field).
+  void priority;
   if (active !== undefined) data.active = active;
   if (weeklyLimit !== undefined) data.weeklyLimit = weeklyLimit;
   if (monthlyLimit !== undefined) data.monthlyLimit = monthlyLimit;
-  if (filterCriteria !== undefined) data.filterCriteria = filterCriteria ?? {};
+  if (filterCriteria !== undefined) {
+    data.filterCriteria = stripAttributionCriteria(
+      (filterCriteria ?? {}) as FilterCriteria,
+    );
+  }
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
@@ -137,7 +159,7 @@ export async function DELETE(
 
   // Verify this filter set belongs to the authenticated partner
   const existing = await prisma.partnerFilterSet.findFirst({
-    where: { id: params.filterSetId, partnerId },
+    where: { id: params.filterSetId, partnerId, isTemplate: false },
   });
   if (!existing) {
     return NextResponse.json({ error: "Filter set not found" }, { status: 404 });
