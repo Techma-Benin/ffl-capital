@@ -9,6 +9,30 @@ const subscribeSchema = z.object({
   amount: z.number().min(25).max(5000),
 });
 
+export async function GET() {
+  const authResult = await requirePartner();
+  if ("error" in authResult) {
+    return NextResponse.json({ error: authResult.error }, { status: 403 });
+  }
+
+  const subscription = await prisma.billingRecurrence.findFirst({
+    where: { partnerId: authResult.partner.id, active: true },
+    orderBy: { createdAt: "desc" },
+    select: { active: true, amount: true, interval: true, nextChargeAt: true },
+  });
+
+  if (!subscription) {
+    return NextResponse.json(null);
+  }
+
+  return NextResponse.json({
+    active: subscription.active,
+    amount: Number(subscription.amount),
+    interval: subscription.interval,
+    nextChargeAt: subscription.nextChargeAt?.toISOString() ?? null,
+  });
+}
+
 export async function POST(request: NextRequest) {
   const authResult = await requirePartner();
   if ("error" in authResult) {
