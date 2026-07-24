@@ -62,7 +62,7 @@ export default async function AdminSignInPage() {
           </p>
 
           <SignIn
-            forceRedirectUrl={AUTH_CONTINUE_ADMIN}
+            afterSignInUrl={AUTH_CONTINUE_ADMIN}
             appearance={adminClerkAppearance}
           />
         </div>

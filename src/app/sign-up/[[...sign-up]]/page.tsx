@@ -58,7 +58,7 @@ export default async function SignUpPage() {
             Join FFL Capital and start purchasing qualified IUL leads.
           </p>
 
-          <SignUp forceRedirectUrl={AUTH_CONTINUE_PARTNER} appearance={authClerkAppearance} />
+          <SignUp afterSignUpUrl={AUTH_CONTINUE_PARTNER} appearance={authClerkAppearance} />
         </div>
       </div>
     </div>

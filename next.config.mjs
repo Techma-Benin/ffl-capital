@@ -2,7 +2,7 @@
 const nextConfig = {
   // Enable the instrumentation hook (src/instrumentation.ts) for in-process cron jobs
   experimental: { instrumentationHook: true },
-  reactStrictMode: true,
+  reactStrictMode: false,
 
   // Expose Replit-managed secrets under the names Next.js and Clerk expect.
   // CLERK_PUBLISHABLE_KEY is set by Replit's managed Clerk integration;
