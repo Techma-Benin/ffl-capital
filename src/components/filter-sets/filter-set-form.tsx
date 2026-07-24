@@ -107,11 +107,11 @@ function AdvancedFiltersAccordion({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white">
+    <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors rounded-lg"
+        className="flex w-full items-center justify-between text-sm font-medium text-slate-700"
       >
         <span>
           Advanced Filters{" "}
@@ -121,7 +121,7 @@ function AdvancedFiltersAccordion({
       </button>
 
       {open && (
-        <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-4">
+        <>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             Lead Profile
           </p>
@@ -250,7 +250,7 @@ function AdvancedFiltersAccordion({
               />
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
