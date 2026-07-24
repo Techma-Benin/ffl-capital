@@ -20,7 +20,10 @@ export default async function AdminPartnerDetailPage({
   const partner = await prisma.partner.findUnique({
     where: { id: params.id },
     include: {
-      filterSets: { orderBy: { createdAt: "asc" } },
+      filterSets: {
+        where: { isTemplate: false },
+        orderBy: { createdAt: "asc" },
+      },
       crmOutboundConfig: true,
       transactions: { orderBy: { createdAt: "desc" }, take: 10 },
       leadDeliveries: {
@@ -31,7 +34,7 @@ export default async function AdminPartnerDetailPage({
       _count: {
         select: {
           leadDeliveries: true,
-          filterSets: { where: { active: true } },
+          filterSets: { where: { active: true, isTemplate: false } },
         },
       },
     },

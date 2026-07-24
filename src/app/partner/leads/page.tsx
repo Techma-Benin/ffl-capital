@@ -98,7 +98,7 @@ export default async function PartnerLeadsPage({
       take: pageSize,
     }),
     prisma.partnerFilterSet.findMany({
-      where: { partnerId },
+      where: { partnerId, isTemplate: false },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true },
     }),

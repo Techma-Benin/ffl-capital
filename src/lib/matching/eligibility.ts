@@ -117,6 +117,7 @@ export function isFilterSetEligibleForLead(
   lead?: Lead,
 ): boolean {
   if (!filterSet.active) return false;
+  if (filterSet.isTemplate) return false;
   if (partner.status !== PartnerStatus.active) return false;
   if (filterSet.filterStates.length < MIN_FILTER_STATES) return false;
   if (!filterSet.filterStates.includes(leadState)) return false;
@@ -189,6 +190,7 @@ export async function findEligibleFilterSets(
 
   const filterSets = await prisma.partnerFilterSet.findMany({
     where: {
+      isTemplate: false,
       active: true,
       leadType,
       filterStates: { has: leadState },
@@ -208,11 +210,13 @@ export async function findEligibleFilterSets(
   const eligible: FilterSetWithPartner[] = [];
 
   for (const filterSet of filterSets) {
+    if (!filterSet.partner) continue;
+    const partner = filterSet.partner;
     const effectivePrice = getEffectivePrice(filterSet, defaultPrice);
     if (
       !isFilterSetEligibleForLead(
         filterSet,
-        filterSet.partner,
+        partner,
         leadState,
         leadType,
         effectivePrice,
@@ -222,7 +226,7 @@ export async function findEligibleFilterSets(
       continue;
     }
     if (!(await isWithinLimits(filterSet))) continue;
-    eligible.push({ ...filterSet, effectivePrice });
+    eligible.push({ ...filterSet, partner, effectivePrice });
   }
 
   return eligible;
@@ -250,14 +254,57 @@ export async function getPartnerById(
 }
 
 export async function getFilterSetUsage(filterSetId: string) {
+  const map = await getFilterSetUsageBatch([filterSetId]);
+  return map.get(filterSetId) ?? { weekly: 0, monthly: 0 };
+}
+
+/** Batch delivery usage for many filter sets (avoids Filter List N+1). */
+export async function getFilterSetUsageBatch(
+  filterSetIds: string[],
+): Promise<Map<string, { weekly: number; monthly: number }>> {
+  const result = new Map<string, { weekly: number; monthly: number }>();
+  for (const id of filterSetIds) {
+    result.set(id, { weekly: 0, monthly: 0 });
+  }
+  if (filterSetIds.length === 0) return result;
+
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const [weekly, monthly] = await Promise.all([
-    countDeliveriesInWindow(filterSetId, sevenDaysAgo),
-    countDeliveriesInWindow(filterSetId, thirtyDaysAgo),
+  const [weeklyRows, monthlyRows] = await Promise.all([
+    prisma.leadDelivery.groupBy({
+      by: ["filterSetId"],
+      where: {
+        filterSetId: { in: filterSetIds },
+        deliveredAt: { gte: sevenDaysAgo },
+        refundedAt: null,
+      },
+      _count: { _all: true },
+    }),
+    prisma.leadDelivery.groupBy({
+      by: ["filterSetId"],
+      where: {
+        filterSetId: { in: filterSetIds },
+        deliveredAt: { gte: thirtyDaysAgo },
+        refundedAt: null,
+      },
+      _count: { _all: true },
+    }),
   ]);
 
-  return { weekly, monthly };
+  for (const row of weeklyRows) {
+    if (!row.filterSetId) continue;
+    const entry = result.get(row.filterSetId) ?? { weekly: 0, monthly: 0 };
+    entry.weekly = row._count._all;
+    result.set(row.filterSetId, entry);
+  }
+  for (const row of monthlyRows) {
+    if (!row.filterSetId) continue;
+    const entry = result.get(row.filterSetId) ?? { weekly: 0, monthly: 0 };
+    entry.monthly = row._count._all;
+    result.set(row.filterSetId, entry);
+  }
+
+  return result;
 }

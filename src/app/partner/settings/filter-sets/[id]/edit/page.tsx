@@ -3,13 +3,7 @@ import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
 import { toFormData } from "@/components/filter-sets/filter-set-types";
-import type { CategoryOption } from "@/components/filter-sets/filter-set-form";
 import type { FilterCriteria } from "@/lib/matching/types";
-
-const PARTNER_CATEGORIES: CategoryOption[] = [
-  { type: "traditional_iul", label: "Traditional IUL" },
-  { type: "high_intent_iul", label: "High Intent IUL" },
-];
 
 export default async function PartnerFilterSetEditPage({
   params,
@@ -19,16 +13,31 @@ export default async function PartnerFilterSetEditPage({
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
-  const filterSet = await prisma.partnerFilterSet.findFirst({
-    where: { id: params.id, partnerId },
-  });
+  const [filterSet, categories] = await Promise.all([
+    prisma.partnerFilterSet.findFirst({
+      where: { id: params.id, partnerId, isTemplate: false },
+    }),
+    prisma.leadCategory.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { type: true, label: true },
+    }),
+  ]);
 
   if (!filterSet) notFound();
+
+  const categoryOptions =
+    categories.length > 0
+      ? categories
+      : [
+          { type: "traditional_iul", label: "Traditional IUL" },
+          { type: "high_intent_iul", label: "High Intent IUL" },
+        ];
 
   return (
     <FilterSetEditorPage
       mode="edit"
       apiScope="partner"
+      variant="partner"
       filterSetId={filterSet.id}
       filterSetName={filterSet.name}
       filterSetActive={filterSet.active}
@@ -38,16 +47,19 @@ export default async function PartnerFilterSetEditPage({
       initial={toFormData({
         id: filterSet.id,
         name: filterSet.name,
+        description: filterSet.description,
         leadType: filterSet.leadType,
         filterStates: filterSet.filterStates,
         priority: filterSet.priority,
-        priceOverride: filterSet.priceOverride ? Number(filterSet.priceOverride) : null,
+        priceOverride: filterSet.priceOverride
+          ? Number(filterSet.priceOverride)
+          : null,
         active: filterSet.active,
         weeklyLimit: filterSet.weeklyLimit,
         monthlyLimit: filterSet.monthlyLimit,
         filterCriteria: (filterSet.filterCriteria ?? {}) as FilterCriteria,
       })}
-      categories={PARTNER_CATEGORIES}
+      categories={categoryOptions}
     />
   );
 }

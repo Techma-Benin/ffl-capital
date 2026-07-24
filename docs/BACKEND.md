@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 23 juillet 2026
+> Dernière mise à jour : 24 juillet 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -50,6 +50,7 @@
 | Champs lead Boberdoo étendus (~25 champs) | ✅ migration `20250706190000` |
 | Table `lead_events` (audit log) | ✅ |
 | Table `partner_filter_sets` + backfill | ✅ migration `20250710140000` |
+| Templates filter set unifiés dans `partner_filter_sets` (`isTemplate`) | ✅ migration `20260724200000` |
 | Table `partner_crm_outbound_configs` | ✅ migration `20250723190000` |
 | Clés `app_settings` étendues | ✅ |
 | Détection doublons + idempotence intake | ✅ |
@@ -110,12 +111,15 @@ POST /api/leads/intake
 
 **Tables actuelles :** `partners`, `partner_filter_sets`, `lead_list_views`, `leads`, `lead_events`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
 
+**`partner_filter_sets` :** sets live (`partnerId` requis, `isTemplate=false`) et templates admin (`partnerId` null, `isTemplate=true`, `description` optionnel). Ancienne table `filter_set_templates` migrée puis droppée (`20260724200000_unify_filter_set_templates`).
+
 **Migrations :**
 - `20250629190000_init` — schéma complet + index
 - `20250629190100_enable_rls` — GIN sur `filter_states` + RLS
 - `20250706190000_lead_boberdoo_fields` — champs lead étendus
 - `20250710140000_core_backend_schema` — `lead_events`, `partner_filter_sets`, credentials, TrustedForm
 - `20260721120000_lead_list_views` — vues liste leads (seed admin, défaut par partner), RLS
+- `20260724200000_unify_filter_set_templates` — templates → `partner_filter_sets.is_template` ; drop `filter_set_templates`
 
 ---
 
@@ -178,7 +182,7 @@ Module `src/lib/client-store` (pas de dépendance Zustand/SWR) : cache mémoire 
 |------|----------|--------------|
 | `/admin` dashboard | Charge 90 j + filtre client + store | — |
 | `/admin/partners` | Charge jusqu’à 2000 partners + filtre/tri/page client + store | Cap `ADMIN_PARTNERS_CLIENT_LOAD_LIMIT` |
-| `/admin/filter-list` | SSR all filter sets + store ; patch à l’édition | — |
+| `/admin/filter-list` | SSR sets live + templates ; store ; édition via pages dédiées (pas de modal) | — |
 | `/admin/refunds` | SSR pending + 30 history + store ; filtres déjà client | — |
 | `/partner/aged` | Cap 2500 + filtre client + store | — |
 | `/admin/leads`, `/partner/leads` | Pagination / search serveur | Volumes unbounded |
@@ -275,7 +279,26 @@ Transaction atomique à la livraison :
 - INSERT `transactions` (type `lead_purchase`)
 - UPDATE `leads` (`available=false`, `status=delivered`)
 
-**V2 (implémenté) :** éligibilité via `partner_filter_sets` actifs + limites horaires/journalières ; `filterSetId` sur `lead_deliveries`.
+**V2 (implémenté) :** éligibilité via `partner_filter_sets` actifs avec `isTemplate=false` + limites horaires/journalières ; les lignes template sont toujours exclues ; `filterSetId` sur `lead_deliveries`.
+
+---
+
+## Filter sets & templates
+
+**CRUD partner (live sets)** : `/api/admin/partners/[id]/filter-sets` (+ `[filterSetId]`), `/api/partners/filter-sets` (+ `[filterSetId]`). Les partners ne peuvent pas poser `isTemplate`.
+
+**Templates** (chemins inchangés ; stockage = `partner_filter_sets` où `isTemplate=true`) :
+
+| Méthode | Route | Scope |
+|---------|-------|--------|
+| GET / POST | `/api/admin/filter-set-templates` | Admin |
+| GET / PATCH / DELETE | `/api/admin/filter-set-templates/[id]` | Admin |
+| GET | `/api/partner/filter-set-templates` | Partner (picker) |
+| GET | `/api/onboarding/filter-set-templates` | Onboarding |
+
+À l’écriture, `stripAttributionCriteria` retire les clés Attribution de `filterCriteria`. Helpers : `src/lib/filter-sets/templates.ts`, `sanitize-criteria.ts`.
+
+**Filter List** : `GET`/`PATCH` `/api/admin/filter-list` ; usage batch via `getFilterSetUsageBatch`.
 
 ---
 
@@ -416,3 +439,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |
 | 2026-07-22 | Admin aged — tableau tri URL + pagination + mark dead (UI) |
 | 2026-07-23 | Phase 9 — `verify-backend` scénarios complets, `api-base.mjs`, cron dev secret, seed filter set TX priorité 10 |
+| 2026-07-24 | Templates filter set unifiés dans `partner_filter_sets` (`isTemplate`) ; matching exclut les templates ; APIs `/filter-set-templates` inchangées |

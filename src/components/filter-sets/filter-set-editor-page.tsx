@@ -11,8 +11,13 @@ import {
   FilterSetForm,
   type CategoryOption,
   type FilterSetFormData,
+  type FilterSetFormVariant,
 } from "@/components/filter-sets/filter-set-form";
-import { FilterSetTemplatePicker } from "@/components/filter-sets/filter-set-template-picker";
+import {
+  FilterSetTemplatePicker,
+  type FilterSetTemplate,
+} from "@/components/filter-sets/filter-set-template-picker";
+import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
 
 export type FilterSetEditorPageProps = {
   mode: "create" | "edit";
@@ -24,19 +29,27 @@ export type FilterSetEditorPageProps = {
   initial: FilterSetFormData;
   categories: CategoryOption[];
   /** Partner API uses `/api/partners/filter-sets`; admin uses partner-scoped admin routes */
-  apiScope?: "admin" | "partner";
+  apiScope?: "admin" | "partner" | "template";
+  variant?: FilterSetFormVariant;
   showTemplatePicker?: boolean;
   showSaveAsTemplate?: boolean;
   templateDescription?: string;
   filterSetName?: string;
   filterSetActive?: boolean;
+  /** SSR templates for picker — avoids client waterfall */
+  initialTemplates?: FilterSetTemplate[];
 };
 
 function buildFilterSetUrl(
-  apiScope: "admin" | "partner",
+  apiScope: "admin" | "partner" | "template",
   partnerId: string | undefined,
   filterSetId?: string,
 ) {
+  if (apiScope === "template") {
+    return filterSetId
+      ? `/api/admin/filter-set-templates/${filterSetId}`
+      : "/api/admin/filter-set-templates";
+  }
   if (apiScope === "partner") {
     return filterSetId
       ? `/api/partners/filter-sets/${filterSetId}`
@@ -45,6 +58,16 @@ function buildFilterSetUrl(
   return filterSetId
     ? `/api/admin/partners/${partnerId}/filter-sets/${filterSetId}`
     : `/api/admin/partners/${partnerId}/filter-sets`;
+}
+
+function formVariantFromScope(
+  apiScope: "admin" | "partner" | "template",
+  variant?: FilterSetFormVariant,
+): FilterSetFormVariant {
+  if (variant) return variant;
+  if (apiScope === "partner") return "partner";
+  if (apiScope === "template") return "template";
+  return "admin";
 }
 
 export function FilterSetEditorPage({
@@ -57,11 +80,13 @@ export function FilterSetEditorPage({
   initial,
   categories,
   apiScope = "admin",
+  variant,
   showTemplatePicker = false,
   showSaveAsTemplate = false,
   templateDescription,
   filterSetName,
   filterSetActive,
+  initialTemplates,
 }: FilterSetEditorPageProps) {
   const router = useRouter();
   const formId = useId();
@@ -73,11 +98,14 @@ export function FilterSetEditorPage({
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateMsg, setTemplateMsg] = useState("");
 
+  const formVariant = formVariantFromScope(apiScope, variant);
   const title =
-    mode === "edit"
-      ? "Edit filter set"
-      : step === "picker"
-        ? "Create filter set"
+    apiScope === "template"
+      ? mode === "edit"
+        ? "Edit template"
+        : "Create template"
+      : mode === "edit"
+        ? "Edit filter set"
         : "Create filter set";
 
   function handleSaved() {
@@ -99,6 +127,16 @@ export function FilterSetEditorPage({
             `From ${filterSetName ?? "partner"} filter set`,
           leadType: prefill.leadType,
           filterStates: prefill.filterStates,
+          priority: prefill.priority,
+          priceOverride: prefill.priceOverride
+            ? Number(prefill.priceOverride)
+            : null,
+          active: prefill.active,
+          weeklyLimit: prefill.weeklyLimit ? Number(prefill.weeklyLimit) : null,
+          monthlyLimit: prefill.monthlyLimit
+            ? Number(prefill.monthlyLimit)
+            : null,
+          filterCriteria: stripAttributionCriteria(prefill.filterCriteria),
         }),
       });
       const data = await res.json();
@@ -142,12 +180,33 @@ export function FilterSetEditorPage({
           <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
             {step === "picker" ? (
               <FilterSetTemplatePicker
+                initialTemplates={initialTemplates}
                 onSelect={(template) => {
                   setPrefill((current) => ({
                     ...current,
                     name: template.name,
+                    description: template.description ?? "",
                     leadType: template.leadType,
                     filterStates: [...template.filterStates],
+                    weeklyLimit:
+                      template.weeklyLimit != null
+                        ? String(template.weeklyLimit)
+                        : current.weeklyLimit,
+                    monthlyLimit:
+                      template.monthlyLimit != null
+                        ? String(template.monthlyLimit)
+                        : current.monthlyLimit,
+                    filterCriteria: stripAttributionCriteria(
+                      template.filterCriteria ?? {},
+                    ),
+                    priority:
+                      template.priority != null
+                        ? template.priority
+                        : current.priority,
+                    priceOverride:
+                      template.priceOverride != null
+                        ? String(template.priceOverride)
+                        : current.priceOverride,
                   }));
                   setStep("editor");
                 }}
@@ -157,6 +216,7 @@ export function FilterSetEditorPage({
               <FilterSetForm
                 formId={formId}
                 hideButtons
+                variant={formVariant}
                 onPendingChange={setPending}
                 filterSetId={filterSetId}
                 partnerId={partnerId}
@@ -214,7 +274,9 @@ export function FilterSetEditorPage({
                     ? "Saving…"
                     : mode === "edit"
                       ? "Save changes"
-                      : "Create filter set"}
+                      : apiScope === "template"
+                        ? "Create template"
+                        : "Create filter set"}
                 </button>
               </div>
             </div>

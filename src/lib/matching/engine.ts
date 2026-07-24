@@ -63,8 +63,9 @@ export async function matchLead(
       return null;
     }
 
+    const partnerId = winner.partnerId ?? winner.partner.id;
     const freshPartner = await tx.partner.findUniqueOrThrow({
-      where: { id: winner.partnerId },
+      where: { id: partnerId },
     });
 
     const price = winner.effectivePrice;

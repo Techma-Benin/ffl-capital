@@ -39,7 +39,7 @@ export async function listPartnerFilterSets(
   client: DbClient = prisma,
 ): Promise<PartnerFilterSet[]> {
   return client.partnerFilterSet.findMany({
-    where: { partnerId },
+    where: { partnerId, isTemplate: false },
     orderBy: { createdAt: "asc" },
   });
 }
@@ -73,6 +73,7 @@ export async function syncDefaultFilterSetStates(params: {
   return client.partnerFilterSet.create({
     data: {
       partnerId: params.partnerId,
+      isTemplate: false,
       name: DEFAULT_FILTER_SET_NAME,
       leadType: "traditional_iul",
       filterStates: params.filterStates,
@@ -95,7 +96,7 @@ export async function syncFilterSetsActiveWithPartnerStatus(
     // Only activate sets that meet the matching min-states bar. Sets below the
     // threshold (or ones an admin deliberately deactivated) stay inactive.
     const eligible = await client.partnerFilterSet.findMany({
-      where: { partnerId },
+      where: { partnerId, isTemplate: false },
       select: { id: true, filterStates: true },
     });
     const eligibleIds = eligible
@@ -113,7 +114,7 @@ export async function syncFilterSetsActiveWithPartnerStatus(
 
   // Any non-active partner status deactivates all filter sets.
   await client.partnerFilterSet.updateMany({
-    where: { partnerId },
+    where: { partnerId, isTemplate: false },
     data: { active: false },
   });
 }
