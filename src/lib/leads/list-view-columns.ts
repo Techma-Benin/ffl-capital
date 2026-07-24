@@ -38,7 +38,7 @@ export const PARTNER_LEAD_COLUMNS: LeadColumnDef[] = [
 ];
 
 export function defaultAdminColumns(): LeadViewColumn[] {
-  return ADMIN_LEAD_COLUMNS.map((c) => ({ key: c.key, visible: true }));
+  return ADMIN_LEAD_COLUMNS.map((c) => ({ key: c.key, visible: c.key !== "id" }));
 }
 
 export function defaultPartnerColumns(): LeadViewColumn[] {

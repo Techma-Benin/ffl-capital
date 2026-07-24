@@ -108,7 +108,7 @@ export default async function PartnerReportsPage() {
                         {t.description ?? "—"}
                       </td>
                       <td className={moneyCellClass()}>
-                        <span className={`font-semibold ${isCredit ? "text-emerald-600" : "text-slate-900"}`}>
+                        <span className={`font-semibold ${isCredit ? "text-emerald-600" : "text-red-600"}`}>
                           {isCredit ? "+" : ""}
                           {formatUsd(Math.abs(amount))}
                         </span>

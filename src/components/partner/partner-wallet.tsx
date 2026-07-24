@@ -353,7 +353,7 @@ export function PartnerWalletView({
                           <p className="mt-1.5 truncate text-xs font-medium text-slate-700">{t.description}</p>
                         )}
                       </div>
-                      <p className={clsx("shrink-0 text-base font-bold", moneyValueClassName, isCredit ? "text-emerald-600" : "text-slate-900")}>
+                      <p className={clsx("shrink-0 text-base font-bold", moneyValueClassName, isCredit ? "text-emerald-600" : "text-red-600")}>
                         {isCredit ? "+" : "−"}
                         {formatUsd(Math.abs(t.amount))}
                       </p>
