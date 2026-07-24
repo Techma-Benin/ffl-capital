@@ -1,7 +1,9 @@
 export type FilterCriteria = {
   // Lead profile
-  intent?: string[]; // allowed values; empty/absent = any
-  haveIul?: string[]; // allowed values; empty/absent = any
+  /** Allowed values; empty/absent = any. Use `"empty"` for null/blank leads. */
+  intent?: string[];
+  /** Allowed values; empty/absent = any. Use `"empty"` for null/blank leads. */
+  haveIul?: string[];
   ageMin?: number; // minimum age (parsed from lead.age); absent = no min
   ageMax?: number; // maximum age; absent = no max
 

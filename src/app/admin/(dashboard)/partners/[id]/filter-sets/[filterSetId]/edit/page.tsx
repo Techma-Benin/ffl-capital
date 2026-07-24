@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
 import { toFormData } from "@/components/filter-sets/filter-set-types";
 import { isSafeReturnTo } from "@/lib/filter-sets/routes";
+import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 import type { FilterCriteria } from "@/lib/matching/types";
 
 export default async function AdminPartnerFilterSetEditPage({
@@ -12,7 +13,7 @@ export default async function AdminPartnerFilterSetEditPage({
   params: { id: string; filterSetId: string };
   searchParams: { returnTo?: string };
 }) {
-  const [partner, filterSet, categories] = await Promise.all([
+  const [partner, filterSet, categories, criteriaOptions] = await Promise.all([
     prisma.partner.findUnique({
       where: { id: params.id },
       select: {
@@ -32,6 +33,7 @@ export default async function AdminPartnerFilterSetEditPage({
       orderBy: { createdAt: "asc" },
       select: { type: true, label: true },
     }),
+    getLeadFilterCriteriaOptions(),
   ]);
 
   if (!partner || !filterSet) notFound();
@@ -69,6 +71,7 @@ export default async function AdminPartnerFilterSetEditPage({
         filterCriteria: (filterSet.filterCriteria ?? {}) as FilterCriteria,
       })}
       categories={categories}
+      criteriaOptions={criteriaOptions}
       showSaveAsTemplate
     />
   );

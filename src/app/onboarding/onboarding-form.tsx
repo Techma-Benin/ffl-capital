@@ -6,6 +6,8 @@ import { useUser } from "@clerk/nextjs";
 import { US_STATE_CODES, US_REGION_STATES } from "@/lib/constants/us-states";
 import type { FilterCriteria } from "@/lib/matching/types";
 import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import type { LeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
+import { AdvancedFiltersFields } from "@/components/filter-sets/advanced-filters-fields";
 import { ActionButton } from "@/components/ui/action-button";
 import { StatusStrip } from "@/components/ui/status-strip";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,147 +80,11 @@ export type OnboardingSkipControl = {
 
 type Props = {
   initialProfile?: InitialProfile;
+  criteriaOptions: LeadFilterCriteriaOptions;
   step: 1 | 2 | 3;
   onStepChange: (step: 1 | 2 | 3) => void;
   onSkipControlChange?: (control: OnboardingSkipControl) => void;
 };
-
-// ---------------------------------------------------------------------------
-// Tag input
-// ---------------------------------------------------------------------------
-
-function TagInput({
-  label,
-  values,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  values: string[];
-  onChange: (vals: string[]) => void;
-  placeholder?: string;
-}) {
-  const [input, setInput] = useState("");
-
-  function commit() {
-    const trimmed = input.trim();
-    if (trimmed && !values.includes(trimmed)) {
-      onChange([...values, trimmed]);
-    }
-    setInput("");
-  }
-
-  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      commit();
-    } else if (e.key === "Backspace" && !input && values.length > 0) {
-      onChange(values.slice(0, -1));
-    }
-  }
-
-  return (
-    <div>
-      <label className="form-label">{label}</label>
-      <div className="flex flex-wrap gap-1 rounded-md border border-slate-300 bg-white p-1.5 min-h-[36px]">
-        {values.map((v) => (
-          <span
-            key={v}
-            className="inline-flex items-center gap-1 rounded bg-brand-100 px-1.5 py-0.5 text-[11px] font-medium text-brand-700"
-          >
-            {v}
-            <button
-              type="button"
-              onClick={() => onChange(values.filter((x) => x !== v))}
-              className="hover:text-brand-900"
-            >
-              ×
-            </button>
-          </span>
-        ))}
-        <input
-          className="flex-1 min-w-[100px] text-xs outline-none bg-transparent"
-          value={input}
-          placeholder={values.length === 0 ? (placeholder ?? "Type and press Enter") : ""}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKey}
-          onBlur={commit}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Advanced Filters (step 3)
-// ---------------------------------------------------------------------------
-
-function AdvancedFiltersFields({
-  criteria,
-  onChange,
-}: {
-  criteria: FilterCriteria;
-  onChange: (c: FilterCriteria) => void;
-}) {
-  function update(patch: Partial<FilterCriteria>) {
-    onChange({ ...criteria, ...patch });
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Lead Profile</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <TagInput label="Intent (allow-list)" values={criteria.intent ?? []} onChange={(v) => update({ intent: v })} placeholder="e.g. buy_now" />
-        <TagInput label="Have IUL (allow-list)" values={criteria.haveIul ?? []} onChange={(v) => update({ haveIul: v })} placeholder="e.g. yes" />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="form-label">Age Min</label>
-          <input type="number" min={0} max={120} placeholder="No min" className="form-input" value={criteria.ageMin ?? ""} onChange={(e) => update({ ageMin: e.target.value ? Number(e.target.value) : undefined })} />
-        </div>
-        <div>
-          <label className="form-label">Age Max</label>
-          <input type="number" min={0} max={120} placeholder="No max" className="form-input" value={criteria.ageMax ?? ""} onChange={(e) => update({ ageMax: e.target.value ? Number(e.target.value) : undefined })} />
-        </div>
-      </div>
-
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Attribution</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <TagInput label="Source (allow-list)" values={criteria.source ?? []} onChange={(v) => update({ source: v })} placeholder="e.g. meta_leadconduit" />
-        <TagInput label="Source (block-list)" values={criteria.excludeSource ?? []} onChange={(v) => update({ excludeSource: v })} />
-        <TagInput label="Sub ID (allow-list)" values={criteria.subId ?? []} onChange={(v) => update({ subId: v })} />
-        <TagInput label="Sub ID (block-list)" values={criteria.excludeSubId ?? []} onChange={(v) => update({ excludeSubId: v })} />
-        <TagInput label="Pub ID (allow-list)" values={criteria.pubId ?? []} onChange={(v) => update({ pubId: v })} />
-        <TagInput label="Pub ID (block-list)" values={criteria.excludePubId ?? []} onChange={(v) => update({ excludePubId: v })} />
-        <TagInput label="Boberdoo Lead Type (allow-list)" values={criteria.boberdooLeadType ?? []} onChange={(v) => update({ boberdooLeadType: v })} />
-      </div>
-
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 pt-1">Schedule (Eastern Time)</p>
-      <div>
-        <label className="form-label">Days you accept leads</label>
-        <div className="flex flex-wrap gap-3 mt-1">
-          {(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const).map((day) => (
-            <label key={day} className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
-              <input type="checkbox" checked={(criteria.acceptDays ?? []).includes(day)} onChange={(e) => { const days = criteria.acceptDays ?? []; update({ acceptDays: e.target.checked ? [...days, day] : days.filter((d) => d !== day) }); }} className="rounded border-slate-300" />
-              {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-            </label>
-          ))}
-        </div>
-        <p className="mt-1 text-xs text-slate-400">Leave all unchecked to accept any day</p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="form-label">From hour (ET, 0–23)</label>
-          <input type="number" min={0} max={23} placeholder="No start" className="form-input" value={criteria.acceptHoursStart ?? ""} onChange={(e) => update({ acceptHoursStart: e.target.value ? Number(e.target.value) : undefined })} />
-        </div>
-        <div>
-          <label className="form-label">To hour (ET, 0–23, exclusive)</label>
-          <input type="number" min={0} max={23} placeholder="No end" className="form-input" value={criteria.acceptHoursEnd ?? ""} onChange={(e) => update({ acceptHoursEnd: e.target.value ? Number(e.target.value) : undefined })} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Filter set setup skeleton (header + template grid)
@@ -292,6 +158,7 @@ function TemplateCard({
 
 export default function OnboardingForm({
   initialProfile,
+  criteriaOptions,
   step,
   onStepChange,
   onSkipControlChange,
@@ -433,7 +300,7 @@ export default function OnboardingForm({
           ...profile,
           leadType,
           filterStates: selectedStates,
-          filterCriteria,
+          filterCriteria: stripAttributionCriteria(filterCriteria),
           weeklyLimit: weeklyLimit ? Number(weeklyLimit) : null,
           monthlyLimit: monthlyLimit ? Number(monthlyLimit) : null,
         }),
@@ -796,7 +663,8 @@ export default function OnboardingForm({
 
             <AdvancedFiltersFields
               criteria={filterCriteria}
-              onChange={setFilterCriteria}
+              criteriaOptions={criteriaOptions}
+              onChange={(c) => setFilterCriteria(stripAttributionCriteria(c))}
             />
 
             <div className="flex flex-wrap gap-3 pt-2">

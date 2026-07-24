@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getDefaultRealtimePrice } from "@/lib/settings/app-settings";
+import { matchesAllowListWithEmpty } from "@/lib/filter-sets/criteria-options";
 import { FilterCriteria } from "./types";
 
 const MIN_FILTER_STATES = 15;
@@ -38,13 +39,9 @@ function matchesFilterCriteria(
   lead: Lead,
   filterStates: string[],
 ): boolean {
-  // Allow-list checks (empty array = any)
-  if (criteria.intent && criteria.intent.length > 0) {
-    if (!lead.intent || !criteria.intent.includes(lead.intent)) return false;
-  }
-  if (criteria.haveIul && criteria.haveIul.length > 0) {
-    if (!lead.haveIul || !criteria.haveIul.includes(lead.haveIul)) return false;
-  }
+  // Allow-list checks (empty array = any; "empty" matches null/blank)
+  if (!matchesAllowListWithEmpty(criteria.intent, lead.intent)) return false;
+  if (!matchesAllowListWithEmpty(criteria.haveIul, lead.haveIul)) return false;
   if (criteria.boberdooLeadType && criteria.boberdooLeadType.length > 0) {
     if (
       !lead.boberdooLeadType ||

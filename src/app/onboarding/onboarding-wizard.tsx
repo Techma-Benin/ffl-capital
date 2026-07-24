@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import OnboardingForm, { type OnboardingSkipControl } from "./onboarding-form";
 import { OnboardingProgress } from "./onboarding-progress";
+import type { LeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 
 type InitialProfile = {
   firstName?: string;
@@ -12,9 +13,15 @@ type InitialProfile = {
   residenceState?: string;
 };
 
-type Props = { initialProfile: InitialProfile };
+type Props = {
+  initialProfile: InitialProfile;
+  criteriaOptions: LeadFilterCriteriaOptions;
+};
 
-export default function OnboardingWizard({ initialProfile }: Props) {
+export default function OnboardingWizard({
+  initialProfile,
+  criteriaOptions,
+}: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [skipControl, setSkipControl] = useState<OnboardingSkipControl | null>(null);
   const handleSkipControlChange = useCallback((control: OnboardingSkipControl) => {
@@ -46,6 +53,7 @@ export default function OnboardingWizard({ initialProfile }: Props) {
         </div>
         <OnboardingForm
           initialProfile={initialProfile}
+          criteriaOptions={criteriaOptions}
           step={step}
           onStepChange={setStep}
           onSkipControlChange={handleSkipControlChange}

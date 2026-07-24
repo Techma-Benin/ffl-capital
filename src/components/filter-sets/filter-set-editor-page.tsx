@@ -18,6 +18,7 @@ import {
   type FilterSetTemplate,
 } from "@/components/filter-sets/filter-set-template-picker";
 import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import type { LeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 
 export type FilterSetEditorPageProps = {
   mode: "create" | "edit";
@@ -28,6 +29,8 @@ export type FilterSetEditorPageProps = {
   partnerId?: string;
   initial: FilterSetFormData;
   categories: CategoryOption[];
+  /** Prefetched distinct intent / haveIul values (+ Empty). */
+  criteriaOptions: LeadFilterCriteriaOptions;
   /** Partner API uses `/api/partners/filter-sets`; admin uses partner-scoped admin routes */
   apiScope?: "admin" | "partner" | "template";
   variant?: FilterSetFormVariant;
@@ -78,6 +81,7 @@ export function FilterSetEditorPage({
   partnerId,
   initial,
   categories,
+  criteriaOptions,
   apiScope = "admin",
   variant,
   showTemplatePicker = false,
@@ -216,6 +220,7 @@ export function FilterSetEditorPage({
                 partnerId={partnerId}
                 initial={prefill}
                 categories={categories}
+                criteriaOptions={criteriaOptions}
                 buildUrl={(id) => buildFilterSetUrl(apiScope, partnerId, id)}
                 onCancel={() => router.push(backHref)}
                 onSaved={handleSaved}
