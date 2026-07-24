@@ -125,6 +125,17 @@ model LeadCategory {
   @@map("lead_categories")
 }
 
+model AdminProfile {
+  clerkUserId String   @id @map("clerk_user_id")
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  avatarUrl   String?  @map("avatar_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_profiles")
+}
+
 model Partner {
   id               String        @id @default(uuid()) @db.Uuid
   clerkUserId      String?       @unique @map("clerk_user_id")
@@ -132,6 +143,7 @@ model Partner {
   firstName        String        @map("first_name")
   lastName         String        @map("last_name")
   affiliation      String?
+  avatarUrl        String?       @map("avatar_url")
   residenceState   String        @map("residence_state")
   filterStates     String[]      @map("filter_states")
   priority         Int           @default(5)

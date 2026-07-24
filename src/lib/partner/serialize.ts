@@ -44,6 +44,7 @@ export function serializePartner(
     firstName: partner.firstName,
     lastName: partner.lastName,
     affiliation: partner.affiliation,
+    avatarUrl: partner.avatarUrl ?? null,
     residenceState: partner.residenceState,
     filterStates,
     hasEligibleFilterSet: hasEligibleFilterSet(filterSets),

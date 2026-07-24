@@ -21,6 +21,7 @@ export type PartnerSession = {
   firstName: string;
   lastName: string;
   affiliation: string | null;
+  avatarUrl: string | null;
   residenceState: string;
   filterStates: string[];
   /** True when an active filter set meets matching min-states eligibility. */

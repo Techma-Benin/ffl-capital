@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { clsx } from "clsx";
 import { usePortal } from "@/components/layout/portal-provider";
 import { usePartner } from "@/components/partner/partner-provider";
@@ -12,6 +13,10 @@ import {
 import dynamic from "next/dynamic";
 const SidebarUserButton = dynamic(
   () => import("@/components/ui/sidebar-user-button").then((m) => m.SidebarUserButton),
+  { ssr: false }
+);
+const ManageAccountModal = dynamic(
+  () => import("@/components/partner/manage-account-modal").then((m) => m.ManageAccountModal),
   { ssr: false }
 );
 import {
@@ -43,11 +48,12 @@ const navItems: {
 ];
 
 export function PartnerSidebar() {
-  const { partner } = usePartner();
+  const { partner, patchPartner } = usePartner();
   const { sidebarCollapsed } = usePortal();
   const handleEmptyAreaClick = useSidebarEmptyAreaClick();
   const partnerName = `${partner.firstName} ${partner.lastName}`;
   const isActiveBuyer = isPartnerActive(partner);
+  const [manageAccountOpen, setManageAccountOpen] = useState(false);
 
   return (
     <aside
@@ -64,13 +70,11 @@ export function PartnerSidebar() {
           sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-4",
         )}
       >
-        {/* Logo — always visible; centered when collapsed */}
         <div className="flex flex-shrink-0 items-center gap-1">
           <span className="h-2.5 w-2.5 rounded-full bg-brand-700" />
           <span className="h-2.5 w-2.5 rounded-full bg-brand-100" />
         </div>
 
-        {/* Title + collapse button — only when expanded */}
         <div
           className={clsx(
             "flex min-w-0 items-center overflow-hidden transition-all duration-300",
@@ -110,8 +114,30 @@ export function PartnerSidebar() {
           sidebarCollapsed ? "px-2" : "px-4",
         )}
       >
-        <SidebarUserButton displayName={partnerName} isActive={isActiveBuyer} />
+        <SidebarUserButton
+          displayName={partnerName}
+          avatarUrl={partner.avatarUrl}
+          isActive={isActiveBuyer}
+          onManageAccount={() => setManageAccountOpen(true)}
+        />
       </div>
+
+      <ManageAccountModal
+        open={manageAccountOpen}
+        onOpenChange={setManageAccountOpen}
+        initialFirstName={partner.firstName}
+        initialLastName={partner.lastName}
+        initialAvatarUrl={partner.avatarUrl}
+        initialAffiliation={partner.affiliation ?? ""}
+        onSaved={({ firstName, lastName, avatarUrl, affiliation }) =>
+          patchPartner({
+            firstName,
+            lastName,
+            avatarUrl: avatarUrl ?? null,
+            ...(affiliation !== undefined && { affiliation }),
+          })
+        }
+      />
     </aside>
   );
 }

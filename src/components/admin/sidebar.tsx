@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { clsx } from "clsx";
 import { usePortal } from "@/components/layout/portal-provider";
+import { useAdminProfile } from "@/hooks/use-admin-profile";
 import { SidebarNavLink } from "@/components/ui/sidebar-nav-link";
 import {
   SidebarCollapseButton,
@@ -10,6 +12,10 @@ import {
 import dynamic from "next/dynamic";
 const SidebarUserButton = dynamic(
   () => import("@/components/ui/sidebar-user-button").then((m) => m.SidebarUserButton),
+  { ssr: false }
+);
+const ManageAccountModal = dynamic(
+  () => import("@/components/partner/manage-account-modal").then((m) => m.ManageAccountModal),
   { ssr: false }
 );
 import {
@@ -50,6 +56,15 @@ const navItems: {
 export function AdminSidebar() {
   const { sidebarCollapsed } = usePortal();
   const handleEmptyAreaClick = useSidebarEmptyAreaClick();
+  const [manageAccountOpen, setManageAccountOpen] = useState(false);
+
+  // Profile from DB (admin_profiles table). Falls back to Clerk on first load.
+  const { profile, patchProfile } = useAdminProfile();
+
+  const displayName =
+    profile
+      ? `${profile.firstName} ${profile.lastName}`.trim()
+      : undefined; // undefined → SidebarUserButton falls back to Clerk
 
   return (
     <aside
@@ -66,13 +81,13 @@ export function AdminSidebar() {
           sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-4",
         )}
       >
-        {/* Logo — always visible; centered when collapsed */}
+        {/* Logo */}
         <div className="flex flex-shrink-0 items-center gap-1">
           <span className="h-2.5 w-2.5 rounded-full bg-brand-700" />
           <span className="h-2.5 w-2.5 rounded-full bg-brand-100" />
         </div>
 
-        {/* Title + collapse button — only when expanded */}
+        {/* Title + collapse button */}
         <div
           className={clsx(
             "flex min-w-0 items-center overflow-hidden transition-all duration-300",
@@ -112,8 +127,26 @@ export function AdminSidebar() {
           sidebarCollapsed ? "px-2" : "px-4",
         )}
       >
-        <SidebarUserButton afterSignOutUrl="/admin/sign-in" />
+        <SidebarUserButton
+          afterSignOutUrl="/admin/sign-in"
+          displayName={displayName}
+          avatarUrl={profile?.avatarUrl}
+          onManageAccount={() => setManageAccountOpen(true)}
+        />
       </div>
+
+      <ManageAccountModal
+        open={manageAccountOpen}
+        onOpenChange={setManageAccountOpen}
+        initialFirstName={profile?.firstName ?? ""}
+        initialLastName={profile?.lastName ?? ""}
+        initialAvatarUrl={profile?.avatarUrl ?? null}
+        syncToDb={false}
+        showAffiliation={false}
+        onSaved={({ firstName, lastName, avatarUrl }) =>
+          patchProfile({ firstName, lastName, avatarUrl: avatarUrl ?? null })
+        }
+      />
     </aside>
   );
 }

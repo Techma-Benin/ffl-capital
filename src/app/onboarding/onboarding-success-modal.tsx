@@ -8,6 +8,7 @@ import { ActionButton } from "@/components/ui/action-button";
 type Props = {
   open: boolean;
   onGoToDashboard: () => void;
+  loading?: boolean;
 };
 
 const SPARKLE_POSITIONS = [
@@ -19,7 +20,7 @@ const SPARKLE_POSITIONS = [
   { top: "38%", right: "16%", delay: "0.55s", color: "bg-brand-500/70" },
 ] as const;
 
-export function OnboardingSuccessModal({ open, onGoToDashboard }: Props) {
+export function OnboardingSuccessModal({ open, onGoToDashboard, loading }: Props) {
   const titleId = useId();
   const descId = useId();
   const ctaId = useId();
@@ -105,10 +106,17 @@ export function OnboardingSuccessModal({ open, onGoToDashboard }: Props) {
               type="button"
               className="w-full justify-center"
               onClick={onGoToDashboard}
-              icon={<ArrowRight size={15} weight={ICON_WEIGHT_LINEAR} />}
-              slideIconOnHover
+              disabled={loading}
+              icon={
+                loading ? (
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <ArrowRight size={15} weight={ICON_WEIGHT_LINEAR} />
+                )
+              }
+              slideIconOnHover={!loading}
             >
-              Go to dashboard
+              {loading ? "Loading…" : "Go to dashboard"}
             </ActionButton>
           </div>
         </div>

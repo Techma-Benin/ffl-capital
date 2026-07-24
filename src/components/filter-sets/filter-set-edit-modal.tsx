@@ -147,7 +147,7 @@ export function FilterSetEditModal({ row, onClose }: FilterSetEditModalProps) {
             type="submit"
             form={formId}
             variant="primary"
-            size="sm"
+            className="btn-sm"
             loading={pending}
             loadingText="Saving…"
           >

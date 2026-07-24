@@ -64,6 +64,7 @@ export function buildCrmOutboundTestSourcePayload(partnerId: string, partnerEmai
     firstName: "Test",
     lastName: "Partner",
     affiliation: null,
+    avatarUrl: null,
     residenceState: "TX",
     filterStates: [],
     priority: 5,

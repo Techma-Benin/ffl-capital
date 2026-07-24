@@ -471,7 +471,9 @@ export default function OnboardingForm({
   const templatesLoading = step === 2 && templates === null;
   const showFilterSetSetup = !templatesLoading && (templates?.length ?? 0) > 0;
 
+  const [navigating, setNavigating] = useState(false);
   function goToDashboard() {
+    setNavigating(true);
     router.push("/partner");
   }
 
@@ -817,7 +819,7 @@ export default function OnboardingForm({
           </div>
       )}
     </form>
-    <OnboardingSuccessModal open={success} onGoToDashboard={goToDashboard} />
+    <OnboardingSuccessModal open={success} onGoToDashboard={goToDashboard} loading={navigating} />
     </>
   );
 }

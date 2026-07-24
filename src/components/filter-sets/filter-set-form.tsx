@@ -8,6 +8,15 @@ import {
 } from "@/lib/constants/us-states";
 import { StateChipGrid } from "@/components/filter-sets/state-chip-grid";
 import type { FilterCriteria } from "@/lib/matching/types";
+import type {
+  CategoryOption,
+  FilterSetRow,
+  FilterSetFormData,
+} from "@/components/filter-sets/filter-set-types";
+import {
+  emptyForm,
+  toFormData,
+} from "@/components/filter-sets/filter-set-types";
 export type {
   CategoryOption,
   FilterSetRow,

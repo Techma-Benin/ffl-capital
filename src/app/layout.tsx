@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import { AppDotSpotlight } from "@/components/layout/app-dot-spotlight";
 import { SolarIconsProvider } from "@/components/providers/solar-icons-provider";
@@ -26,6 +27,7 @@ export default function RootLayout({
   const body = (
     <html lang="en" className={plusJakarta.variable}>
       <body className="relative font-sans antialiased">
+        <NextTopLoader color="#1d4ed8" height={3} showSpinner={false} />
         <AppDotSpotlight />
         <div className="relative z-[1]">
           <SolarIconsProvider>{children}</SolarIconsProvider>

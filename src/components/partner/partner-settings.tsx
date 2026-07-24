@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useClerk, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
@@ -21,6 +21,7 @@ import {
 } from "@/lib/filter-sets/routes";
 import { PartnerLeadDeliveryCard } from "@/components/partner/partner-lead-delivery-card";
 import { PartnerWalletSummaryCard } from "@/components/partner/partner-wallet-summary-card";
+import { ManageAccountModal } from "@/components/partner/manage-account-modal";
 import type { PartnerCrmSummary } from "@/lib/partner/types";
 
 // ---------------------------------------------------------------------------
@@ -325,10 +326,10 @@ export function PartnerSettingsView({
   initialBalance?: number;
   initialSubscription?: { active: boolean; amount: number } | null;
 }) {
-  const { partner } = usePartner();
+  const { partner, patchPartner } = usePartner();
   const { user } = useUser();
-  const { openUserProfile } = useClerk();
   const router = useRouter();
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.location.hash) return;
@@ -346,12 +347,28 @@ export function PartnerSettingsView({
 
   return (
     <div className="space-y-5">
+      <ManageAccountModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        initialFirstName={partner.firstName}
+        initialLastName={partner.lastName}
+        initialAvatarUrl={partner.avatarUrl}
+        initialAffiliation={partner.affiliation ?? ""}
+        onSaved={({ firstName, lastName, avatarUrl, affiliation }) => {
+          patchPartner({
+            firstName,
+            lastName,
+            avatarUrl: avatarUrl ?? null,
+            ...(affiliation !== undefined && { affiliation }),
+          });
+        }}
+      />
       {/* Profile banner */}
       <ProfileBanner
         partner={partner}
-        avatarUrl={user?.imageUrl}
+        avatarUrl={partner.avatarUrl ?? user?.imageUrl ?? undefined}
         walletBalance={balance}
-        onEditProfile={() => openUserProfile()}
+        onEditProfile={() => setEditModalOpen(true)}
       />
 
       {/* Two-column: Lead delivery + Wallet & billing — equal height */}
