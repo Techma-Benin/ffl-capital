@@ -15,6 +15,7 @@ const SidebarUserButton = dynamic(
 import {
   SquaresFour,
   Users,
+  UsersThree,
   FileText,
   ArrowCounterClockwise,
   Archive,
@@ -42,6 +43,7 @@ const navItems: {
   { href: "/admin/filter-list", label: "Filter List", icon: Funnel, accent: "amber" },
   { href: "/admin/integrity", label: "Integrity", icon: Shield, accent: "purple" },
   { href: "/admin/migration", label: "Import", icon: DownloadSimple, accent: "cyan" },
+  { href: "/admin/administrators", label: "Administrators", icon: UsersThree, accent: "slate" },
   { href: "/admin/settings", label: "Settings", icon: Gear, accent: "slate" },
 ];
 
