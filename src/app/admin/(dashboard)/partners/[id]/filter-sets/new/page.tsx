@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
-import { emptyForm } from "@/components/filter-sets/filter-set-form";
+import { emptyForm } from "@/components/filter-sets/filter-set-types";
 
 export default async function AdminPartnerFilterSetNewPage({
   params,
