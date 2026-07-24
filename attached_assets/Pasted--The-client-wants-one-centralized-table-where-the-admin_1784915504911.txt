@@ -1,0 +1,169 @@
+
+
+The client wants one centralized table where the admin can see **all financial activity across every partner**. 
+
+
+
+## What needs to be built
+
+
+
+Add a new navigation item called **Billing** or **Transactions** in the Admin portal.
+
+
+
+The page must show every wallet-related transaction, including:
+
+
+
+* Partner wallet top-ups
+
+* Manual credit additions
+
+* Auto-recharges
+
+* Regular lead purchases
+
+* Aged lead purchases
+
+* High-intent lead purchases
+
+* Approved refunds
+
+* Credits returned to wallets
+
+* Manual wallet adjustments
+
+* Failed or pending payments, when applicable
+
+
+
+## Required table columns
+
+
+
+| Column           | Description                                            |
+
+| ---------------- | ------------------------------------------------------ |
+
+| Date and time    | When the transaction occurred                          |
+
+| Partner          | Partner name or company                                |
+
+| Transaction type | Wallet top-up, lead purchase, refund, adjustment, etc. |
+
+| Description      | Human-readable transaction details                     |
+
+| Lead             | Lead name or ID, when relevant                         |
+
+| Amount           | Transaction value                                      |
+
+| Direction        | Credit or debit                                        |
+
+| Payment method   | Stripe, manual credit, refund, auto-recharge, etc.     |
+
+| Status           | Completed, pending, failed, refunded                   |
+
+| Wallet balance   | Partner’s balance after the transaction                |
+
+| Reference        | Stripe payment ID, lead ID or internal transaction ID  |
+
+
+
+## Filters
+
+
+
+The admin should be able to filter by:
+
+
+
+* Partner
+
+* Date range
+
+* Transaction type
+
+* Credit or debit
+
+* Status
+
+* Lead type
+
+* Payment method
+
+
+
+A search field should also support searching by partner name, lead reference or transaction reference.
+
+
+
+## Core behavior
+
+
+
+The most important requirement from the call is that the admin can clearly identify:
+
+
+
+* **Who added money**
+
+* **How much they added**
+
+* **When they added it**
+
+* **What they later spent it on**
+
+* **Which leads were purchased**
+
+* **Which refunds or credits were issued**
+
+
+
+The client also confirmed that all transactions can live in one table, as long as they can be filtered by type. 
+
+
+
+## Recommended summary cards
+
+
+
+At the top of the page, add:
+
+
+
+* Total wallet funding
+
+* Total lead revenue
+
+* Total refunds
+
+* Net revenue
+
+* Number of transactions
+
+
+
+These should update according to the selected date range.
+
+
+
+## What is not required
+
+
+
+This does not need to be:
+
+
+
+* A partner performance report
+
+* A lead analytics dashboard
+
+* An accounting or invoice management system
+
+* A separate page for each transaction category
+
+
+
+It should primarily be a **centralized, filterable financial ledger for all partners**.
