@@ -29,6 +29,7 @@ import {
   Shield,
   DownloadSimple,
   Funnel,
+  Wallet,
 } from "@/lib/icons/client";
 import type { Icon } from "@/lib/icons/client";
 import type { SidebarNavAccent } from "@/components/ui/sidebar-nav-accent";
@@ -45,6 +46,7 @@ const navItems: {
   { href: "/admin/partners", label: "Partners", icon: Users, accent: "rose" },
   { href: "/admin/leads", label: "Leads", icon: FileText, accent: "orange" },
   { href: "/admin/refunds", label: "Refunds", icon: ArrowCounterClockwise, accent: "orange" },
+  { href: "/admin/transactions", label: "Transactions", icon: Wallet, accent: "mint" },
   { href: "/admin/aged", label: "Aged Leads", icon: Archive, accent: "mint" },
   { href: "/admin/filter-list", label: "Filter List", icon: Funnel, accent: "amber" },
   { href: "/admin/integrity", label: "Integrity", icon: Shield, accent: "purple" },
