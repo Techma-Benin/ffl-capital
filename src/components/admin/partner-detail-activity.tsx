@@ -132,7 +132,7 @@ export function PartnerDetailActivity({
                   </p>
                 </div>
                 <span className={activityAmountClassName(item)}>
-                  {item.amount}
+                  {item.kind === "delivery" || (item.kind === "transaction" && !item.positive) ? "-" : ""}{item.amount}
                 </span>
               </li>
             ))}
