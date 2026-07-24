@@ -487,6 +487,25 @@ export default function OnboardingForm({
 
   return (
     <>
+    {error && !loading && (
+      <div className="fixed left-1/2 top-4 z-50 w-full max-w-md -translate-x-1/2 px-4">
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 shadow-lg">
+          <WarningCircle size={16} className="mt-0.5 flex-shrink-0 text-red-600" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-red-900">Onboarding failed</p>
+            <p className="mt-0.5 text-sm text-red-800 opacity-80">{error}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setError("")}
+            className="flex-shrink-0 rounded p-0.5 text-red-400 transition-colors hover:bg-red-100 hover:text-red-600"
+            aria-label="Dismiss"
+          >
+            <X size={15} weight={ICON_WEIGHT_LINEAR} />
+          </button>
+        </div>
+      </div>
+    )}
     <form onSubmit={formSubmitHandler}>
       {/* ================================================================ */}
       {/* Step 1 — Profile                                                  */}
@@ -772,10 +791,6 @@ export default function OnboardingForm({
               criteria={filterCriteria}
               onChange={setFilterCriteria}
             />
-
-            {error && !loading && (
-              <StatusStrip status="error" title="Onboarding failed" message={error} />
-            )}
 
             <div className="flex flex-wrap gap-3 pt-2">
               <button
