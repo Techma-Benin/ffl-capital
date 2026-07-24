@@ -7,7 +7,6 @@ import {
 
 const DEFAULT_FORM = {
   name: "",
-  description: "",
   leadType: "traditional_iul",
   filterStates: [] as string[],
   priority: 5,

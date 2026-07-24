@@ -61,7 +61,6 @@ type LeadTypeSelection = LeadType | "";
 type FilterSetTemplate = {
   id: string;
   name: string;
-  description: string | null;
   leadType: LeadType;
   filterStates: string[];
   weeklyLimit?: number | null;
@@ -277,9 +276,6 @@ function TemplateCard({
           </span>
         )}
       </div>
-      {template.description && (
-        <p className="text-xs text-slate-500 mb-2 line-clamp-2">{template.description}</p>
-      )}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 uppercase">
           {LEAD_TYPE_LABELS[template.leadType]}

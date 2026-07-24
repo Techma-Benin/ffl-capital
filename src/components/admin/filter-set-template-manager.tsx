@@ -18,7 +18,6 @@ import {
 type FilterSetTemplate = {
   id: string;
   name: string;
-  description: string | null;
   leadType: string;
   filterStates: string[];
 };
@@ -139,11 +138,6 @@ export function FilterSetTemplateManager({
                     {t.filterStates.length} states
                   </span>
                 </div>
-                {t.description && (
-                  <p className="mt-0.5 truncate text-xs text-slate-500">
-                    {t.description}
-                  </p>
-                )}
               </Link>
               <button
                 type="button"

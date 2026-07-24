@@ -6,7 +6,6 @@ import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
 export type FilterSetTemplateListItem = {
   id: string;
   name: string;
-  description: string | null;
   leadType: string;
   filterStates: string[];
   priority: number;
@@ -25,7 +24,6 @@ export function serializeTemplateRow(
   return {
     id: row.id,
     name: row.name,
-    description: row.description ?? null,
     leadType: row.leadType,
     filterStates: row.filterStates,
     priority: row.priority,
@@ -44,7 +42,6 @@ export function serializeTemplatePickerItem(row: PartnerFilterSet) {
   return {
     id: row.id,
     name: row.name,
-    description: row.description ?? null,
     leadType: row.leadType,
     filterStates: row.filterStates,
     weeklyLimit: row.weeklyLimit,

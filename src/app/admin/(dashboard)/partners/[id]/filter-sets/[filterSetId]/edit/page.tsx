@@ -57,7 +57,6 @@ export default async function AdminPartnerFilterSetEditPage({
       initial={toFormData({
         id: filterSet.id,
         name: filterSet.name,
-        description: filterSet.description,
         leadType: filterSet.leadType,
         filterStates: filterSet.filterStates,
         priority: filterSet.priority,
@@ -71,7 +70,6 @@ export default async function AdminPartnerFilterSetEditPage({
       })}
       categories={categories}
       showSaveAsTemplate
-      templateDescription={`From ${displayName}'s filter set`}
     />
   );
 }

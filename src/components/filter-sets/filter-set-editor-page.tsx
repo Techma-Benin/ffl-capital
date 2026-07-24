@@ -33,7 +33,6 @@ export type FilterSetEditorPageProps = {
   variant?: FilterSetFormVariant;
   showTemplatePicker?: boolean;
   showSaveAsTemplate?: boolean;
-  templateDescription?: string;
   filterSetName?: string;
   filterSetActive?: boolean;
   /** SSR templates for picker — avoids client waterfall */
@@ -83,7 +82,6 @@ export function FilterSetEditorPage({
   variant,
   showTemplatePicker = false,
   showSaveAsTemplate = false,
-  templateDescription,
   filterSetName,
   filterSetActive,
   initialTemplates,
@@ -122,9 +120,6 @@ export function FilterSetEditorPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: prefill.name.trim() || filterSetName || "Filter set",
-          description:
-            templateDescription ??
-            `From ${filterSetName ?? "partner"} filter set`,
           leadType: prefill.leadType,
           filterStates: prefill.filterStates,
           priority: prefill.priority,
@@ -175,7 +170,7 @@ export function FilterSetEditorPage({
         }
       />
 
-      <div className="mx-auto max-w-2xl">
+      <div className="w-full">
         <div className="card flex flex-col overflow-hidden rounded-2xl">
           <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
             {step === "picker" ? (
@@ -185,7 +180,6 @@ export function FilterSetEditorPage({
                   setPrefill((current) => ({
                     ...current,
                     name: template.name,
-                    description: template.description ?? "",
                     leadType: template.leadType,
                     filterStates: [...template.filterStates],
                     weeklyLimit:

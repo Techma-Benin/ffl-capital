@@ -111,7 +111,7 @@ POST /api/leads/intake
 
 **Tables actuelles :** `partners`, `partner_filter_sets`, `lead_list_views`, `leads`, `lead_events`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
 
-**`partner_filter_sets` :** sets live (`partnerId` requis, `isTemplate=false`) et templates admin (`partnerId` null, `isTemplate=true`, `description` optionnel). Ancienne table `filter_set_templates` migrée puis droppée (`20260724200000_unify_filter_set_templates`).
+**`partner_filter_sets` :** sets live (`partnerId` requis, `isTemplate=false`) et templates admin (`partnerId` null, `isTemplate=true`). Ancienne table `filter_set_templates` migrée puis droppée (`20260724200000_unify_filter_set_templates`). Colonne `description` retirée (`20260724210000_drop_partner_filter_set_description`).
 
 **Migrations :**
 - `20250629190000_init` — schéma complet + index
@@ -120,6 +120,7 @@ POST /api/leads/intake
 - `20250710140000_core_backend_schema` — `lead_events`, `partner_filter_sets`, credentials, TrustedForm
 - `20260721120000_lead_list_views` — vues liste leads (seed admin, défaut par partner), RLS
 - `20260724200000_unify_filter_set_templates` — templates → `partner_filter_sets.is_template` ; drop `filter_set_templates`
+- `20260724210000_drop_partner_filter_set_description` — drop `partner_filter_sets.description`
 
 ---
 

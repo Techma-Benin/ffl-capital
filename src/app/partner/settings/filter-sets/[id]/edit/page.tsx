@@ -47,7 +47,6 @@ export default async function PartnerFilterSetEditPage({
       initial={toFormData({
         id: filterSet.id,
         name: filterSet.name,
-        description: filterSet.description,
         leadType: filterSet.leadType,
         filterStates: filterSet.filterStates,
         priority: filterSet.priority,

@@ -209,7 +209,6 @@ model PartnerFilterSet {
   id              String                   @id @default(uuid()) @db.Uuid
   partnerId       String?                  @map("partner_id") @db.Uuid
   name            String                   @default("Default")
-  description     String?
   leadType        String                   @map("lead_type")
   filterStates    String[]                 @map("filter_states")
   priority        Int                      @default(5)
