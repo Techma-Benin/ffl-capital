@@ -11,7 +11,7 @@ export function PendingApprovalBanner() {
   }
 
   return (
-    <div className="flex items-center gap-3 border-b border-amber-200 bg-page/90 px-6 py-3 backdrop-blur-sm">
+    <div className="flex items-center gap-3 border-b border-amber-200/70 bg-amber-50/40 px-6 py-3 backdrop-blur-sm">
       <WarningCircle size={15} className="flex-shrink-0 text-amber-700" weight={ICON_WEIGHT} />
       <p className="flex-1 text-sm text-slate-800">
         <span className="font-semibold">Account pending approval.</span>{" "}
