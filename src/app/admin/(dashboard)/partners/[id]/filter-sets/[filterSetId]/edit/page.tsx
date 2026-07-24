@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
-import { toFormData } from "@/components/filter-sets/filter-set-form";
+import { toFormData } from "@/components/filter-sets/filter-set-types";
 import { isSafeReturnTo } from "@/lib/filter-sets/routes";
 import type { FilterCriteria } from "@/lib/matching/types";
 

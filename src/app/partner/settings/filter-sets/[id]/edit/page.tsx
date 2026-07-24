@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
-import { toFormData } from "@/components/filter-sets/filter-set-form";
+import { toFormData } from "@/components/filter-sets/filter-set-types";
 import type { CategoryOption } from "@/components/filter-sets/filter-set-form";
 import type { FilterCriteria } from "@/lib/matching/types";
 
