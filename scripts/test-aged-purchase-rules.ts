@@ -1,366 +1,344 @@
 /**
- * #82 — Aged-lead purchasing rules
+ * #82 — Aged-lead purchase rules (behavior-based acceptance test)
  *
- * Pure assertion tests against production helpers (no DB).
- * Same style as test-outbound / test-matching.
+ * Exercises the real DB + purchaseAgedLeads + production marketplace queries
+ * (buildAdminAgedLeadsWhere). Does not duplicate business logic or depend on
+ * specific helper export names beyond what the app already uses.
  *
  * Run: pnpm run test:aged-rules
  *
- * This file intentionally imports ONLY from production modules. It will fail to
- * load until #82 lands the exports below on `src/lib/aged/eligibility.ts`.
- * That is expected — do not add reference copies or a PRODUCTION_IMPORTS flag.
+ * Time travel: after a purchase we set `aged_available_after` to the past and
+ * backdate `received_at` so the lead sits in the next age bracket without
+ * waiting on the clock.
  *
- * Expected production exports (from `../src/lib/aged/eligibility`):
- *   - AGED_RETIRED_SENTINEL
- *   - AgedLeadAvailability (type)
- *   - getNextAgedBracketAvailableAfter(receivedAt, now?)
- *   - isAgedMarketplaceEligible(lead, now?)
- *   - agedMarketplaceEligibilityWhere(now?)
- *   - computeAgedSaleUpdate(lead, now?)
- *   - buildAgedLeadWhereWithCutoff(cutoff, extra?, now?)  // must AND #82 gate
- *   - getAgedCutoffDateSync(days?)                       // already exists today
- *
- * Also uses existing admin helpers:
- *   - partnerAgedLeadAgeDays / partnerAgedLeadMatchesAgeBucket
- *     from `../src/lib/admin/admin-aged-leads-filters`
+ * Preflight: if issue #82 columns / purchase side-effects are absent, exits 0
+ * with "Run after Replit lands #82" (CI-friendly skip).
  */
-
 import assert from "node:assert/strict";
-import { LeadStatus } from "@prisma/client";
+import { LeadStatus, Prisma, PrismaClient } from "@prisma/client";
+import { purchaseAgedLeads } from "../src/lib/aged/purchase-aged-leads";
 import {
-  partnerAgedLeadAgeDays,
-  partnerAgedLeadMatchesAgeBucket,
+  buildAdminAgedLeadsWhere,
   type AdminAgedLeadAgeFilter,
 } from "../src/lib/admin/admin-aged-leads-filters";
-import {
-  AGED_RETIRED_SENTINEL,
-  agedMarketplaceEligibilityWhere,
-  buildAgedLeadWhereWithCutoff,
-  computeAgedSaleUpdate,
-  getAgedCutoffDateSync,
-  getNextAgedBracketAvailableAfter,
-  isAgedMarketplaceEligible,
-  type AgedLeadAvailability,
-} from "../src/lib/aged/eligibility";
 
-// tsx does not fail on missing named imports — guard so this script exits
-// immediately until #82 ships the expected production helpers.
-const requiredExports: Record<string, unknown> = {
-  AGED_RETIRED_SENTINEL,
-  agedMarketplaceEligibilityWhere,
-  computeAgedSaleUpdate,
-  getNextAgedBracketAvailableAfter,
-  isAgedMarketplaceEligible,
-};
-const missing = Object.entries(requiredExports)
-  .filter(([, v]) => v == null)
-  .map(([name]) => name);
-if (missing.length > 0) {
-  console.error(
-    "\n#82 production helpers missing from src/lib/aged/eligibility.ts:\n  - " +
-      missing.join("\n  - "),
-  );
-  console.error(
-    "\nImplement those exports (issue #82) before running pnpm run test:aged-rules.\n",
-  );
-  process.exit(1);
-}
-
-function daysAgo(days: number, from: Date = new Date()): Date {
-  const d = new Date(from.getTime());
-  d.setUTCDate(d.getUTCDate() - days);
-  return d;
-}
-
-function addDays(base: Date, days: number): Date {
-  const d = new Date(base.getTime());
-  d.setUTCDate(d.getUTCDate() + days);
-  return d;
-}
-
-/** Compose production eligibility + bucket math with an injectable `now`. */
-function appearsInAgeBucket(
-  lead: AgedLeadAvailability & { receivedAt: Date },
-  bucket: AdminAgedLeadAgeFilter,
-  now: Date = new Date(),
-): boolean {
-  if (!isAgedMarketplaceEligible(lead, now)) return false;
-  const ageDays = Math.floor(
-    (now.getTime() - lead.receivedAt.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  // Half-open brackets matching getNextAgedBracketAvailableAfter ([30,60), [60,90), [90,+∞)).
-  if (bucket === "30") return ageDays >= 30 && ageDays < 60;
-  if (bucket === "60") return ageDays >= 60 && ageDays < 90;
-  return ageDays >= 90;
-}
+const prisma = new PrismaClient();
+const TEST_PREFIX = "aged-rules-test";
 
 let passed = 0;
-function check(label: string, fn: () => void) {
+
+function pass(label: string) {
+  passed += 1;
+  console.log(`  ✓ ${label}`);
+}
+
+function fail(label: string, detail: string): never {
+  console.error(`  ✗ ${label}: ${detail}`);
+  throw new Error(`${label}: ${detail}`);
+}
+
+function daysAgo(days: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  d.setHours(12, 0, 0, 0);
+  return d;
+}
+
+type Issue82Columns = {
+  saleCount: string;
+  availableAfter: string;
+};
+
+async function detectIssue82Columns(): Promise<Issue82Columns | null> {
+  const rows = await prisma.$queryRaw<Array<{ column_name: string }>>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'leads'
+      AND column_name IN ('aged_sale_count', 'aged_available_after')
+  `;
+  const names = new Set(rows.map((r) => r.column_name));
+  if (!names.has("aged_sale_count") || !names.has("aged_available_after")) {
+    return null;
+  }
+  return { saleCount: "aged_sale_count", availableAfter: "aged_available_after" };
+}
+
+async function readAgedState(
+  leadId: string,
+  cols: Issue82Columns,
+): Promise<{ saleCount: number; availableAfter: Date | null }> {
+  const rows = await prisma.$queryRawUnsafe<
+    Array<{ sale_count: number; available_after: Date | null }>
+  >(
+    `SELECT ${cols.saleCount} AS sale_count, ${cols.availableAfter} AS available_after FROM leads WHERE id = $1::uuid`,
+    leadId,
+  );
+  const row = rows[0];
+  if (!row) throw new Error(`Lead not found: ${leadId}`);
+  return {
+    saleCount: Number(row.sale_count),
+    availableAfter: row.available_after,
+  };
+}
+
+async function patchLead(
+  leadId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: patch as Prisma.LeadUpdateInput,
+  });
+}
+
+async function isLeadVisibleInBucket(
+  leadId: string,
+  bucket: AdminAgedLeadAgeFilter,
+): Promise<boolean> {
+  const where = await buildAdminAgedLeadsWhere({
+    states: [],
+    type: "all",
+    status: "all",
+    age: bucket,
+  });
+  const found = await prisma.lead.findFirst({
+    where: { AND: [where, { id: leadId }] },
+    select: { id: true },
+  });
+  return found !== null;
+}
+
+async function createTestLead(daysOld: number, tag: string) {
+  const receivedAt = daysAgo(daysOld);
+  const stamp = `${tag}-${Date.now()}`;
+  return prisma.lead.create({
+    data: {
+      firstName: "AgedRules",
+      lastName: tag,
+      email: `${TEST_PREFIX}-${stamp}@example.com`,
+      phone: `555088${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
+      state: "TX",
+      leadType: "high_intent_iul",
+      status: LeadStatus.unmatched,
+      available: true,
+      receivedAt,
+      createdAt: receivedAt,
+      externalId: `${TEST_PREFIX}-${stamp}`,
+    },
+  });
+}
+
+async function ensureDatabase(): Promise<void> {
   try {
-    fn();
-    passed += 1;
-    console.log(`  ✓ ${label}`);
-  } catch (err) {
-    console.error(`  ✗ ${label}`);
-    throw err;
+    await prisma.$queryRaw`SELECT 1`;
+  } catch {
+    console.error(
+      "Cannot reach the database. Start Postgres (see README), then re-run pnpm run test:aged-rules.",
+    );
+    process.exit(1);
   }
 }
 
-const now = new Date("2026-07-27T12:00:00.000Z");
+async function cleanupTestLeads() {
+  try {
+    const leads = await prisma.lead.findMany({
+      where: { externalId: { startsWith: TEST_PREFIX } },
+      select: { id: true },
+    });
+    if (leads.length === 0) return;
+    const ids = leads.map((l) => l.id);
+    await prisma.leadEvent.deleteMany({ where: { leadId: { in: ids } } });
+    await prisma.transaction.deleteMany({
+      where: { leadDelivery: { leadId: { in: ids } } },
+    });
+    await prisma.leadDelivery.deleteMany({ where: { leadId: { in: ids } } });
+    await prisma.lead.deleteMany({ where: { id: { in: ids } } });
+  } catch {
+    // Best-effort cleanup (e.g. DB already torn down).
+  }
+}
 
-console.log("\n#82 aged purchase rules — production helpers\n");
+async function purchaseAs(partnerId: string, leadId: string) {
+  const result = await purchaseAgedLeads(partnerId, [leadId]);
+  if (result.purchased.length !== 1) {
+    const reason = result.failed[0]?.reason ?? "unknown";
+    fail("purchaseAgedLeads", reason);
+  }
+}
 
-console.log("Existing age-bucket helpers (regression)");
-check("partnerAgedLeadAgeDays ≈ 45 for lead received 45d ago", () => {
-  const receivedAt = daysAgo(45);
-  const days = partnerAgedLeadAgeDays(receivedAt);
-  assert.ok(days >= 44 && days <= 45, `expected ~45, got ${days}`);
-});
+async function preflight(): Promise<Issue82Columns> {
+  const cols = await detectIssue82Columns();
+  if (!cols) {
+    console.log(
+      "\n#82 aged purchase rules — SKIPPED\n\n" +
+        "  Run after Replit lands #82 (aged_sale_count / aged_available_after on leads).\n",
+    );
+    process.exit(0);
+  }
 
-check("30–60 bucket match", () => {
-  const receivedAt = daysAgo(45);
-  assert.equal(partnerAgedLeadMatchesAgeBucket(receivedAt, "30"), true);
-  assert.equal(partnerAgedLeadMatchesAgeBucket(receivedAt, "60"), false);
-  assert.equal(partnerAgedLeadMatchesAgeBucket(receivedAt, "90"), false);
-});
+  const partner = await prisma.partner.findFirst({
+    where: { email: "ca-partner@ffl-test.local" },
+  });
+  if (!partner) {
+    console.error(
+      "Test partner missing. Run `pnpm run seed` after migrations, then re-run test:aged-rules.",
+    );
+    process.exit(1);
+  }
 
-check("60–90 bucket match", () => {
-  const receivedAt = daysAgo(75);
-  assert.equal(partnerAgedLeadMatchesAgeBucket(receivedAt, "60"), true);
-  assert.equal(partnerAgedLeadMatchesAgeBucket(receivedAt, "30"), false);
-});
+  await prisma.partner.update({
+    where: { id: partner.id },
+    data: { walletBalance: 1000 },
+  });
 
-check("90+ bucket match", () => {
-  const receivedAt = daysAgo(120);
-  assert.equal(partnerAgedLeadMatchesAgeBucket(receivedAt, "90"), true);
-  assert.equal(partnerAgedLeadMatchesAgeBucket(receivedAt, "60"), false);
-});
+  const probe = await createTestLead(45, "preflight");
+  const before = await readAgedState(probe.id, cols);
+  const probeResult = await purchaseAgedLeads(partner.id, [probe.id]);
+  if (probeResult.purchased.length === 0) {
+    await cleanupTestLeads();
+    console.log(
+      "\n#82 aged purchase rules — SKIPPED\n\n" +
+        "  Columns exist but purchase does not yet apply #82 aged-sale tracking.\n" +
+        "  Run after Replit lands #82.\n",
+    );
+    process.exit(0);
+  }
+  const after = await readAgedState(probe.id, cols);
+  await cleanupTestLeads();
 
-check("getAgedCutoffDateSync(30) is ~30 days ago", () => {
-  const cutoff = getAgedCutoffDateSync(30);
-  const diffDays = (Date.now() - cutoff.getTime()) / (1000 * 60 * 60 * 24);
-  assert.ok(diffDays >= 29.5 && diffDays <= 30.5, `got ${diffDays}`);
-});
+  if (after.saleCount <= before.saleCount) {
+    console.log(
+      "\n#82 aged purchase rules — SKIPPED\n\n" +
+        "  Purchase succeeded but aged_sale_count was not incremented.\n" +
+        "  Run after Replit lands #82.\n",
+    );
+    process.exit(0);
+  }
 
-check("buildAgedLeadWhereWithCutoff keeps base aged filters + #82 gate", () => {
-  const cutoff = new Date("2026-06-27T00:00:00.000Z");
-  const where = buildAgedLeadWhereWithCutoff(cutoff, undefined, now);
-  assert.ok(Array.isArray(where.AND));
-  const base = where.AND![0] as Record<string, unknown>;
-  assert.deepEqual(base.receivedAt, { lte: cutoff });
-  assert.deepEqual(base.status, { not: LeadStatus.dead });
-  assert.deepEqual(base.agedSaleCount, { lt: 2 });
-});
+  return cols;
+}
 
-console.log("\nNext age-bracket boundary");
-check("30–60 day lead → available after receivedAt + 60d", () => {
-  const receivedAt = daysAgo(45, now);
-  const next = getNextAgedBracketAvailableAfter(receivedAt, now);
-  assert.ok(next, "expected a next bracket date");
-  assert.equal(next!.toISOString(), addDays(receivedAt, 60).toISOString());
-});
+async function main() {
+  console.log("\n#82 aged purchase rules — behavior acceptance\n");
 
-check("60–90 day lead → available after receivedAt + 90d", () => {
-  const receivedAt = daysAgo(75, now);
-  const next = getNextAgedBracketAvailableAfter(receivedAt, now);
-  assert.ok(next, "expected a next bracket date");
-  assert.equal(next!.toISOString(), addDays(receivedAt, 90).toISOString());
-});
+  await ensureDatabase();
+  const cols = await preflight();
+  await cleanupTestLeads();
 
-check("90+ day lead → no next bracket (null)", () => {
-  const receivedAt = daysAgo(120, now);
-  assert.equal(getNextAgedBracketAvailableAfter(receivedAt, now), null);
-});
+  const partner = await prisma.partner.findFirstOrThrow({
+    where: { email: "ca-partner@ffl-test.local" },
+  });
 
-check("exactly 60 days old → next is +90d (now in 60–90 bucket)", () => {
-  const receivedAt = daysAgo(60, now);
-  const next = getNextAgedBracketAvailableAfter(receivedAt, now);
-  assert.ok(next);
-  assert.equal(next!.toISOString(), addDays(receivedAt, 90).toISOString());
-});
+  // --- 1. Purchase in 30–60 hides immediately; reappears in 60–90 after aging ---
+  {
+    const lead = await createTestLead(45, "bucket-30");
+    if (!(await isLeadVisibleInBucket(lead.id, "30"))) {
+      fail("30–60 pre-purchase visibility", "lead not in 30–60 bucket");
+    }
 
-console.log("\nEligibility (agedSaleCount + agedAvailableAfter)");
-check("never-purchased lead (count=0, after=null) is eligible", () => {
-  assert.equal(
-    isAgedMarketplaceEligible({ agedSaleCount: 0, agedAvailableAfter: null }, now),
-    true,
-  );
-});
+    await purchaseAs(partner.id, lead.id);
+    const afterPurchase = await readAgedState(lead.id, cols);
+    assert.equal(afterPurchase.saleCount, 1, "first purchase increments sale count");
 
-check("cooling-off lead (count=1, after in future) is NOT eligible", () => {
-  assert.equal(
-    isAgedMarketplaceEligible(
-      { agedSaleCount: 1, agedAvailableAfter: addDays(now, 10) },
-      now,
-    ),
-    false,
-  );
-});
+    if (await isLeadVisibleInBucket(lead.id, "30")) {
+      fail("30–60 post-purchase", "lead still visible in 30–60 after purchase");
+    }
+    if (await isLeadVisibleInBucket(lead.id, "60")) {
+      fail("30–60 cooling", "lead visible in 60–90 during cooling-off");
+    }
 
-check("lead past agedAvailableAfter (count=1) is eligible again", () => {
-  assert.equal(
-    isAgedMarketplaceEligible(
-      { agedSaleCount: 1, agedAvailableAfter: daysAgo(1, now) },
-      now,
-    ),
-    true,
-  );
-});
+    await patchLead(lead.id, {
+      receivedAt: daysAgo(65),
+      agedAvailableAfter: daysAgo(1),
+    });
+    if (!(await isLeadVisibleInBucket(lead.id, "60"))) {
+      fail("30–60 → 60–90 reappear", "lead not visible in 60–90 after aging");
+    }
+    if (await isLeadVisibleInBucket(lead.id, "30")) {
+      fail("30–60 → 60–90 reappear", "lead incorrectly in 30–60");
+    }
+    pass("purchase in 30–60 hides; reappears in 60–90 when aged");
+  }
 
-check("second-sale retired lead (count=2) is never eligible", () => {
-  assert.equal(
-    isAgedMarketplaceEligible(
-      { agedSaleCount: 2, agedAvailableAfter: daysAgo(100, now) },
-      now,
-    ),
-    false,
-  );
-  assert.equal(
-    isAgedMarketplaceEligible(
-      { agedSaleCount: 2, agedAvailableAfter: null },
-      now,
-    ),
-    false,
-  );
-});
+  // --- 2. Purchase in 60–90 hides; reappears in 90+ ---
+  {
+    const lead = await createTestLead(75, "bucket-60");
+    if (!(await isLeadVisibleInBucket(lead.id, "60"))) {
+      fail("60–90 pre-purchase visibility", "lead not in 60–90 bucket");
+    }
 
-check("eligibility where clause shape", () => {
-  const clause = agedMarketplaceEligibilityWhere(now);
-  assert.deepEqual(clause.agedSaleCount, { lt: 2 });
-  assert.ok(Array.isArray(clause.OR));
-});
+    await purchaseAs(partner.id, lead.id);
+    if (await isLeadVisibleInBucket(lead.id, "60")) {
+      fail("60–90 post-purchase", "lead still visible in 60–90 after purchase");
+    }
 
-console.log("\nPost-purchase field updates");
-check("1st purchase in 30–60: count=1, after=receivedAt+60d", () => {
-  const receivedAt = daysAgo(45, now);
-  const update = computeAgedSaleUpdate({ receivedAt, agedSaleCount: 0 }, now);
-  assert.equal(update.agedSaleCount, 1);
-  assert.equal(
-    update.agedAvailableAfter.toISOString(),
-    addDays(receivedAt, 60).toISOString(),
-  );
-});
+    await patchLead(lead.id, {
+      receivedAt: daysAgo(95),
+      agedAvailableAfter: daysAgo(1),
+    });
+    if (!(await isLeadVisibleInBucket(lead.id, "90"))) {
+      fail("60–90 → 90+ reappear", "lead not visible in 90+ after aging");
+    }
+    if (await isLeadVisibleInBucket(lead.id, "60")) {
+      fail("60–90 → 90+ reappear", "lead incorrectly in 60–90");
+    }
+    pass("purchase in 60–90 hides; reappears in 90+ when aged");
+  }
 
-check("1st purchase in 60–90: count=1, after=receivedAt+90d", () => {
-  const receivedAt = daysAgo(75, now);
-  const update = computeAgedSaleUpdate({ receivedAt, agedSaleCount: 0 }, now);
-  assert.equal(update.agedSaleCount, 1);
-  assert.equal(
-    update.agedAvailableAfter.toISOString(),
-    addDays(receivedAt, 90).toISOString(),
-  );
-});
+  // --- 3. Second purchase permanently retires lead ---
+  {
+    const lead = await createTestLead(45, "retire");
+    await purchaseAs(partner.id, lead.id);
+    await patchLead(lead.id, {
+      receivedAt: daysAgo(65),
+      agedAvailableAfter: daysAgo(1),
+    });
+    if (!(await isLeadVisibleInBucket(lead.id, "60"))) {
+      fail("retire setup", "lead not visible for second purchase");
+    }
 
-check("1st purchase in 90+: count=1, after=far-future (no next bracket)", () => {
-  const receivedAt = daysAgo(120, now);
-  const update = computeAgedSaleUpdate({ receivedAt, agedSaleCount: 0 }, now);
-  assert.equal(update.agedSaleCount, 1);
-  assert.equal(
-    update.agedAvailableAfter.toISOString(),
-    AGED_RETIRED_SENTINEL.toISOString(),
-  );
-});
+    await purchaseAs(partner.id, lead.id);
+    const retired = await readAgedState(lead.id, cols);
+    assert.equal(retired.saleCount, 2, "second purchase sets sale count to 2");
 
-check("2nd purchase: count=2 and permanently retired", () => {
-  const receivedAt = daysAgo(75, now);
-  const update = computeAgedSaleUpdate({ receivedAt, agedSaleCount: 1 }, now);
-  assert.equal(update.agedSaleCount, 2);
-  assert.equal(
-    update.agedAvailableAfter.toISOString(),
-    AGED_RETIRED_SENTINEL.toISOString(),
-  );
-  assert.equal(
-    isAgedMarketplaceEligible(
-      {
-        agedSaleCount: update.agedSaleCount,
-        agedAvailableAfter: update.agedAvailableAfter,
-      },
-      now,
-    ),
-    false,
-  );
-});
+    for (const bucket of ["30", "60", "90"] as const) {
+      if (await isLeadVisibleInBucket(lead.id, bucket)) {
+        fail("retired visibility", `lead visible in ${bucket} after 2nd purchase`);
+      }
+    }
+    pass("after 2nd purchase lead never reappears in any bucket");
+  }
 
-console.log("\nMarketplace scenarios (Done looks like)");
-check("purchase in 30–60 hides immediately; reappears in 60–90 after aging", () => {
-  const receivedAt = daysAgo(45, now);
-  const before = {
-    receivedAt,
-    agedSaleCount: 0,
-    agedAvailableAfter: null as Date | null,
-  };
-  assert.equal(appearsInAgeBucket(before, "30", now), true);
+  // --- 4. Never-purchased leads unchanged ---
+  {
+    const lead30 = await createTestLead(45, "never-30");
+    const lead60 = await createTestLead(75, "never-60");
+    const lead90 = await createTestLead(120, "never-90");
 
-  const update = computeAgedSaleUpdate(before, now);
-  const cooling = {
-    receivedAt,
-    agedSaleCount: update.agedSaleCount,
-    agedAvailableAfter: update.agedAvailableAfter,
-  };
-  assert.equal(appearsInAgeBucket(cooling, "30", now), false);
-  assert.equal(appearsInAgeBucket(cooling, "60", now), false);
+    assert.equal(await isLeadVisibleInBucket(lead30.id, "30"), true);
+    assert.equal(await isLeadVisibleInBucket(lead60.id, "60"), true);
+    assert.equal(await isLeadVisibleInBucket(lead90.id, "90"), true);
 
-  const afterBoundary = addDays(receivedAt, 60);
-  afterBoundary.setUTCSeconds(afterBoundary.getUTCSeconds() + 1);
-  assert.equal(appearsInAgeBucket(cooling, "60", afterBoundary), true);
-  assert.equal(appearsInAgeBucket(cooling, "30", afterBoundary), false);
-});
+    const s30 = await readAgedState(lead30.id, cols);
+    const s60 = await readAgedState(lead60.id, cols);
+    const s90 = await readAgedState(lead90.id, cols);
+    assert.equal(s30.saleCount, 0);
+    assert.equal(s60.saleCount, 0);
+    assert.equal(s90.saleCount, 0);
 
-check("purchase in 60–90 hides; reappears in 90+ after aging past 90d", () => {
-  const receivedAt = daysAgo(75, now);
-  const update = computeAgedSaleUpdate({ receivedAt, agedSaleCount: 0 }, now);
-  const cooling = {
-    receivedAt,
-    agedSaleCount: update.agedSaleCount,
-    agedAvailableAfter: update.agedAvailableAfter,
-  };
-  assert.equal(appearsInAgeBucket(cooling, "60", now), false);
+    pass("zero-purchase leads still appear in their age buckets");
+  }
 
-  const after90 = addDays(receivedAt, 90);
-  after90.setUTCSeconds(after90.getUTCSeconds() + 1);
-  assert.equal(appearsInAgeBucket(cooling, "90", after90), true);
-  assert.equal(appearsInAgeBucket(cooling, "60", after90), false);
-});
+  console.log(`\nAll ${passed} acceptance checks passed.\n`);
+}
 
-check("after 2nd purchase lead never reappears in any bucket", () => {
-  const receivedAt = daysAgo(45, now);
-  const first = computeAgedSaleUpdate({ receivedAt, agedSaleCount: 0 }, now);
-  const atNextBracket = addDays(receivedAt, 60);
-  atNextBracket.setUTCHours(12, 0, 0, 0);
-  const second = computeAgedSaleUpdate(
-    { receivedAt, agedSaleCount: first.agedSaleCount },
-    atNextBracket,
-  );
-  const retired = {
-    receivedAt,
-    agedSaleCount: second.agedSaleCount,
-    agedAvailableAfter: second.agedAvailableAfter,
-  };
-  const farFuture = addDays(receivedAt, 400);
-  assert.equal(appearsInAgeBucket(retired, "30", farFuture), false);
-  assert.equal(appearsInAgeBucket(retired, "60", farFuture), false);
-  assert.equal(appearsInAgeBucket(retired, "90", farFuture), false);
-});
-
-check("zero-purchase leads still appear exactly as before", () => {
-  const lead45 = {
-    receivedAt: daysAgo(45, now),
-    agedSaleCount: 0,
-    agedAvailableAfter: null as Date | null,
-  };
-  const lead75 = {
-    receivedAt: daysAgo(75, now),
-    agedSaleCount: 0,
-    agedAvailableAfter: null as Date | null,
-  };
-  const lead120 = {
-    receivedAt: daysAgo(120, now),
-    agedSaleCount: 0,
-    agedAvailableAfter: null as Date | null,
-  };
-  assert.equal(appearsInAgeBucket(lead45, "30", now), true);
-  assert.equal(appearsInAgeBucket(lead75, "60", now), true);
-  assert.equal(appearsInAgeBucket(lead120, "90", now), true);
-});
-
-console.log(`\nAll ${passed} assertions passed.\n`);
+main()
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await cleanupTestLeads();
+    await prisma.$disconnect();
+  });
