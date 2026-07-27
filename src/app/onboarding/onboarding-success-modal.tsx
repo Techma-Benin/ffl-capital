@@ -94,11 +94,11 @@ export function OnboardingSuccessModal({ open, onGoToDashboard, loading }: Props
 
         <div className="px-6 pb-8 pt-4 text-center">
           <h2 id={titleId} className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-            Account created successfully
+            Welcome aboard!
           </h2>
           <p id={descId} className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
-            Your partner profile is ready. Head to your dashboard to view leads, manage filters, and
-            track your wallet.
+            Your account is set up. An admin will review it shortly—you&apos;ll
+            start receiving leads once approved and your wallet is funded.
           </p>
           <div className="mt-8">
             <ActionButton

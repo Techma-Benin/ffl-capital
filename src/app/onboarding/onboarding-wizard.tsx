@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import OnboardingForm, { type OnboardingSkipControl } from "./onboarding-form";
+import { useState } from "react";
+import OnboardingForm from "./onboarding-form";
 import { OnboardingProgress } from "./onboarding-progress";
 import type { LeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 
@@ -23,42 +23,36 @@ export default function OnboardingWizard({
   criteriaOptions,
 }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [skipControl, setSkipControl] = useState<OnboardingSkipControl | null>(null);
-  const handleSkipControlChange = useCallback((control: OnboardingSkipControl) => {
-    setSkipControl(control);
-  }, []);
 
   return (
-    <>
-      <OnboardingProgress step={step} />
-      <div className="card p-6 sm:p-8">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="mb-2 text-xs font-medium text-emerald-600">Account created</p>
-            <h1 className="text-2xl font-bold text-slate-900">Complete your partner profile</h1>
-            <p className="mt-1.5 text-sm text-slate-500">
-              Tell us about yourself and set up where you want to receive IUL leads.
-            </p>
-          </div>
-          {skipControl?.visible && (
-            <button
-              type="button"
-              onClick={skipControl.onSkip}
-              disabled={skipControl.disabled}
-              className="btn-secondary btn-sm shrink-0 text-slate-500"
-            >
-              Skip this step
-            </button>
-          )}
+    <div>
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div>
+          <p className="text-xs font-semibold text-accent-600">Account created</p>
+          <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+            Complete your partner profile
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Tell us about yourself and configure how you want to receive leads.
+          </p>
         </div>
-        <OnboardingForm
-          initialProfile={initialProfile}
-          criteriaOptions={criteriaOptions}
-          step={step}
-          onStepChange={setStep}
-          onSkipControlChange={handleSkipControlChange}
-        />
+        <span className="flex-1" />
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500">
+          Step {step} of 3
+        </span>
+        <p className="w-full text-xs text-slate-400 sm:w-auto">
+          An admin reviews your account before you receive leads.
+        </p>
       </div>
-    </>
+
+      <OnboardingProgress step={step} />
+
+      <OnboardingForm
+        initialProfile={initialProfile}
+        criteriaOptions={criteriaOptions}
+        step={step}
+        onStepChange={setStep}
+      />
+    </div>
   );
 }

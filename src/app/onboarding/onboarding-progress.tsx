@@ -17,7 +17,7 @@ type Step = 1 | 2 | 3;
 
 export function OnboardingProgress({ step }: { step: Step }) {
   return (
-    <div className="mb-8">
+    <div className="mb-4">
       <nav aria-label="Onboarding progress">
         <ol className="flex items-start">
           {STEPS.map((stepDef, i) => {
@@ -79,9 +79,6 @@ export function OnboardingProgress({ step }: { step: Step }) {
           })}
         </ol>
       </nav>
-      <p className="border-t border-slate-200/80 pt-4 text-center text-xs leading-relaxed text-slate-500">
-        After you submit, an admin reviews your account before you receive leads.
-      </p>
     </div>
   );
 }

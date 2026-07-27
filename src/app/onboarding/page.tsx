@@ -62,7 +62,7 @@ export default async function OnboardingPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl px-6 py-12">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
         <OnboardingWizard
           initialProfile={initialProfile}
           criteriaOptions={criteriaOptions}
