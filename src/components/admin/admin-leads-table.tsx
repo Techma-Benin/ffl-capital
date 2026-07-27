@@ -41,26 +41,29 @@ type LeadRow = {
   price: string | null;
 };
 
+function isEligibleForReprocess(lead: LeadRow): boolean {
+  return lead.status === "unmatched" && lead.available;
+}
+
 function adminLeadHasExtraRowActions(lead: LeadRow): boolean {
-  return (
-    !!lead.trustedformCertUrl ||
-    (lead.status === "unmatched" && lead.available)
-  );
+  return !!lead.trustedformCertUrl || isEligibleForReprocess(lead);
 }
 
 function AdminLeadRowMenu({
   lead,
   layout,
+  onReprocessed,
 }: {
   lead: LeadRow;
   layout: PortalDataTableLayout;
+  onReprocessed?: () => void;
 }) {
   const { push, router } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
   const [reprocessPending, setReprocessPending] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const canReprocess = lead.status === "unmatched" && lead.available;
+  const canReprocess = isEligibleForReprocess(lead);
 
   useEffect(() => {
     if (!open) return;
@@ -79,7 +82,8 @@ function AdminLeadRowMenu({
       });
       if (!res.ok) throw new Error("Request failed");
       setOpen(false);
-      router.refresh();
+      if (onReprocessed) onReprocessed();
+      else router.refresh();
     } catch {
       // allow retry
     } finally {
@@ -163,7 +167,89 @@ export function AdminLeadsTable({
   layout?: PortalDataTableLayout;
   tableFooter?: React.ReactNode;
 }) {
-  const displayColumns = columns;
+  const { router } = useNavigateWithPending();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPending, setBulkPending] = useState(false);
+  const [bulkFeedback, setBulkFeedback] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const eligibleLeads = leads.filter(isEligibleForReprocess);
+  const eligibleIds = new Set(eligibleLeads.map((l) => l.id));
+
+  const allEligibleSelected =
+    eligibleLeads.length > 0 &&
+    eligibleLeads.every((l) => selectedIds.has(l.id));
+  const someSelected = selectedIds.size > 0;
+
+  function toggleAll() {
+    if (allEligibleSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(eligibleLeads.map((l) => l.id)));
+    }
+  }
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  async function handleBulkReprocess() {
+    if (bulkPending || selectedIds.size === 0) return;
+    setBulkPending(true);
+    setBulkFeedback(null);
+    try {
+      const res = await fetch("/api/admin/leads/bulk-reprocess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds: Array.from(selectedIds) }),
+      });
+      if (!res.ok) throw new Error("Bulk reprocess failed");
+      const data = (await res.json()) as { processed: number; errors: number };
+      setSelectedIds(new Set());
+      setBulkFeedback({
+        kind: data.errors === 0 ? "success" : "error",
+        message:
+          data.errors === 0
+            ? `${data.processed} lead${data.processed === 1 ? "" : "s"} queued for reprocessing.`
+            : `${data.processed} queued, ${data.errors} failed.`,
+      });
+      router.refresh();
+    } catch {
+      setBulkFeedback({ kind: "error", message: "Bulk reprocess failed. Please try again." });
+    } finally {
+      setBulkPending(false);
+    }
+  }
+
+  // Build the checkbox column with header content
+  const checkboxHeaderContent =
+    eligibleLeads.length > 0 ? (
+      <input
+        type="checkbox"
+        aria-label="Select all eligible leads"
+        checked={allEligibleSelected}
+        onChange={toggleAll}
+        className="h-4 w-4 rounded border-slate-300 text-brand-600 accent-brand-600 cursor-pointer"
+      />
+    ) : null;
+
+  // Prepend a checkbox column to the display columns
+  const checkboxCol: PortalDataTableColumn = {
+    key: "_checkbox",
+    label: "",
+    headerContent: checkboxHeaderContent,
+  };
+  const displayColumns = [checkboxCol, ...columns];
 
   function cellClass(
     options: { first?: boolean; last?: boolean; className?: string } = {},
@@ -179,6 +265,26 @@ export function AdminLeadsTable({
     const first = index === 0;
     const last = index === total - 1;
     switch (key) {
+      case "_checkbox": {
+        const eligible = isEligibleForReprocess(lead);
+        return (
+          <td
+            key={key}
+            className={cellClass({ first, last, className: "w-8" })}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {eligible && (
+              <input
+                type="checkbox"
+                aria-label="Select lead"
+                checked={selectedIds.has(lead.id)}
+                onChange={() => toggleRow(lead.id)}
+                className="h-4 w-4 rounded border-slate-300 text-brand-600 accent-brand-600 cursor-pointer"
+              />
+            )}
+          </td>
+        );
+      }
       case "id":
         return (
           <td
@@ -297,7 +403,11 @@ export function AdminLeadsTable({
             onClick={(e) => e.stopPropagation()}
           >
             {adminLeadHasExtraRowActions(lead) ? (
-              <AdminLeadRowMenu lead={lead} layout={layout} />
+              <AdminLeadRowMenu
+                lead={lead}
+                layout={layout}
+                onReprocessed={() => router.refresh()}
+              />
             ) : null}
           </td>
         );
@@ -307,26 +417,78 @@ export function AdminLeadsTable({
   }
 
   return (
-    <PortalDataTable
-      columns={displayColumns}
-      sort={sort}
-      layout={layout}
-      footer={tableFooter}
-    >
-      {leads.map((lead) => (
-        <tr
-          key={lead.id}
-          className={`cursor-pointer ${portalTableRowClassName(undefined, layout)}`}
-          onClick={() => {
-            window.location.href = `/admin/leads/${lead.id}`;
-          }}
+    <div className="flex flex-col gap-2">
+      {/* Bulk action toolbar */}
+      {someSelected && (
+        <div className="flex items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5">
+          <span className="text-sm font-medium text-brand-800">
+            {selectedIds.size} lead{selectedIds.size === 1 ? "" : "s"} selected
+          </span>
+          <button
+            type="button"
+            disabled={bulkPending}
+            onClick={handleBulkReprocess}
+            className="flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60"
+          >
+            <ArrowsClockwise
+              size={14}
+              className={bulkPending ? "animate-spin" : ""}
+            />
+            {bulkPending
+              ? "Processing…"
+              : `Reprocess Selected (${selectedIds.size})`}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="text-sm text-brand-600 hover:text-brand-800 transition-colors"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
+      {/* Feedback banner */}
+      {bulkFeedback && (
+        <div
+          className={`flex items-center justify-between rounded-lg border px-4 py-2.5 text-sm ${
+            bulkFeedback.kind === "success"
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
         >
-          {displayColumns.map((c, i) =>
-            cell(c.key, lead, i, displayColumns.length),
-          )}
-        </tr>
-      ))}
-    </PortalDataTable>
+          <span>{bulkFeedback.message}</span>
+          <button
+            type="button"
+            onClick={() => setBulkFeedback(null)}
+            className="ml-4 text-xs opacity-60 hover:opacity-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <PortalDataTable
+        columns={displayColumns}
+        sort={sort}
+        layout={layout}
+        footer={tableFooter}
+      >
+        {leads.map((lead) => (
+          <tr
+            key={lead.id}
+            className={`cursor-pointer ${portalTableRowClassName(undefined, layout)}`}
+            onClick={() => {
+              window.location.href = `/admin/leads/${lead.id}`;
+            }}
+          >
+            {displayColumns.map((c, i) =>
+              cell(c.key, lead, i, displayColumns.length),
+            )}
+          </tr>
+        ))}
+      </PortalDataTable>
+    </div>
   );
 }
 
