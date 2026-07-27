@@ -2,11 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import { clsx } from "clsx";
 import { ActionButton } from "@/components/ui/action-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CopySimple, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import {
+  ArrowLeft,
+  CopySimple,
+  Warning,
+  ICON_WEIGHT_LINEAR,
+} from "@/lib/icons/client";
 import {
   FilterSetForm,
   type CategoryOption,
@@ -19,6 +25,10 @@ import {
 } from "@/components/filter-sets/filter-set-template-picker";
 import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
 import type { LeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
+import {
+  formatEasternHourForTimeZone,
+  useClientTimeZone,
+} from "@/lib/client-time-zone";
 
 export type FilterSetEditorPageProps = {
   mode: "create" | "edit";
@@ -29,18 +39,18 @@ export type FilterSetEditorPageProps = {
   partnerId?: string;
   initial: FilterSetFormData;
   categories: CategoryOption[];
-  /** Prefetched distinct intent / haveIul values (+ Empty). */
   criteriaOptions: LeadFilterCriteriaOptions;
-  /** Partner API uses `/api/partners/filter-sets`; admin uses partner-scoped admin routes */
   apiScope?: "admin" | "partner" | "template";
   variant?: FilterSetFormVariant;
   showTemplatePicker?: boolean;
   showSaveAsTemplate?: boolean;
   filterSetName?: string;
   filterSetActive?: boolean;
-  /** SSR templates for picker — avoids client waterfall */
   initialTemplates?: FilterSetTemplate[];
 };
+
+const MIN_FILTER_STATES = 15;
+const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"];
 
 function buildFilterSetUrl(
   apiScope: "admin" | "partner" | "template",
@@ -72,6 +82,32 @@ function formVariantFromScope(
   return "admin";
 }
 
+function optionLabels(
+  values: string[] | undefined,
+  options: Array<{ value: string; label: string }>,
+) {
+  return (values ?? []).map(
+    (value) => options.find((option) => option.value === value)?.label ?? value,
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-3 last:border-0">
+      <dt className="shrink-0 text-xs font-semibold text-slate-400">{label}</dt>
+      <dd className="text-right text-xs font-bold leading-5 text-slate-700">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 export function FilterSetEditorPage({
   mode,
   backHref,
@@ -87,7 +123,6 @@ export function FilterSetEditorPage({
   showTemplatePicker = false,
   showSaveAsTemplate = false,
   filterSetName,
-  filterSetActive,
   initialTemplates,
 }: FilterSetEditorPageProps) {
   const router = useRouter();
@@ -99,8 +134,12 @@ export function FilterSetEditorPage({
   const [pending, setPending] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateMsg, setTemplateMsg] = useState("");
+  const clientTime = useClientTimeZone();
 
   const formVariant = formVariantFromScope(apiScope, variant);
+  const showPricing = formVariant === "admin" || formVariant === "template";
+  const isEligible = prefill.filterStates.length >= MIN_FILTER_STATES;
+  const isDirty = JSON.stringify(prefill) !== JSON.stringify(initial);
   const title =
     apiScope === "template"
       ? mode === "edit"
@@ -109,6 +148,102 @@ export function FilterSetEditorPage({
       : mode === "edit"
         ? "Edit filter set"
         : "Create filter set";
+
+  const summary = useMemo(() => {
+    const criteria = prefill.filterCriteria;
+    const leadType =
+      categories.find((category) => category.type === prefill.leadType)?.label ??
+      prefill.leadType;
+
+    const profileParts: string[] = [];
+    const intent = optionLabels(criteria.intent, criteriaOptions.intent);
+    const haveIul = optionLabels(criteria.haveIul, criteriaOptions.haveIul);
+    if (intent.length) profileParts.push(`${intent.join("/")} intent`);
+    if (haveIul.length) profileParts.push(`Have IUL: ${haveIul.join("/")}`);
+    if (criteria.ageMin !== undefined && criteria.ageMax !== undefined) {
+      profileParts.push(`Ages ${criteria.ageMin}–${criteria.ageMax}`);
+    } else if (criteria.ageMin !== undefined) {
+      profileParts.push(`Age ${criteria.ageMin}+`);
+    } else if (criteria.ageMax !== undefined) {
+      profileParts.push(`Up to age ${criteria.ageMax}`);
+    }
+
+    const days = criteria.acceptDays ?? [];
+    const weekdaysOnly =
+      days.length === WEEKDAYS.length &&
+      WEEKDAYS.every((day) => days.includes(day));
+    const dayText =
+      days.length === 0 || days.length === 7
+        ? "Any day"
+        : weekdaysOnly
+          ? "Weekdays"
+          : `${days.length} selected days`;
+
+    const start = criteria.acceptHoursStart;
+    const end = criteria.acceptHoursEnd;
+    const localHour = (hour: number) =>
+      formatEasternHourForTimeZone(hour, clientTime.timeZone);
+    const hourText =
+      start !== undefined && end !== undefined
+        ? `${localHour(start)}–${localHour(end)}`
+        : start !== undefined
+          ? `From ${localHour(start)}`
+          : end !== undefined
+            ? `Until ${localHour(end)}`
+            : "Any hour";
+    const schedule =
+      hourText === "Any hour"
+        ? `${dayText} · ${hourText}`
+        : `${dayText} · ${hourText} · ${clientTime.displayName}`;
+
+    const capParts: string[] = [];
+    if (prefill.weeklyLimit) capParts.push(`${prefill.weeklyLimit}/wk`);
+    if (prefill.monthlyLimit) capParts.push(`${prefill.monthlyLimit}/mo`);
+
+    const profile = profileParts.length ? profileParts.join(" · ") : "Any";
+    const price = prefill.priceOverride
+      ? `$${Number(prefill.priceOverride).toFixed(2)}`
+      : "Default price";
+
+    let matchingRule = `Send ${leadType} leads from ${prefill.filterStates.length} state${
+      prefill.filterStates.length === 1 ? "" : "s"
+    }`;
+    if (profileParts.length) matchingRule += `, matching ${profileParts.join(" · ")}`;
+    matchingRule += `, on ${dayText.toLowerCase()} ${hourText.toLowerCase()}`;
+    if (hourText !== "Any hour") {
+      matchingRule += ` in ${clientTime.displayName}`;
+    }
+    if (capParts.length) matchingRule += `, capped at ${capParts.join(" and ")}`;
+    if (showPricing) {
+      matchingRule += `, at ${price.toLowerCase()} with priority ${prefill.priority}`;
+    }
+    matchingRule += ".";
+
+    if (!isEligible) {
+      matchingRule = `This set is not eligible yet — ${
+        MIN_FILTER_STATES - prefill.filterStates.length
+      } more state${
+        MIN_FILTER_STATES - prefill.filterStates.length === 1 ? "" : "s"
+      } needed before leads can be routed.`;
+    }
+
+    return {
+      leadType,
+      profile,
+      schedule,
+      caps: capParts.length ? capParts.join(" · ") : "No limit",
+      price,
+      matchingRule,
+    };
+  }, [
+    categories,
+    clientTime.displayName,
+    clientTime.timeZone,
+    criteriaOptions,
+    isEligible,
+    prefill,
+    showPricing,
+  ]);
 
   function handleSaved() {
     router.push(backHref);
@@ -119,7 +254,7 @@ export function FilterSetEditorPage({
     setSavingTemplate(true);
     setTemplateMsg("");
     try {
-      const res = await fetch("/api/admin/filter-set-templates", {
+      const response = await fetch("/api/admin/filter-set-templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -138,8 +273,8 @@ export function FilterSetEditorPage({
           filterCriteria: stripAttributionCriteria(prefill.filterCriteria),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
+      const data = await response.json();
+      if (!response.ok) {
         setTemplateMsg(data.error ?? "Failed to create template");
         return;
       }
@@ -157,9 +292,9 @@ export function FilterSetEditorPage({
         title={title}
         subtitle={subtitle}
         badge={
-          mode === "edit" && filterSetActive !== undefined ? (
-            <Badge variant={filterSetActive ? "green" : "slate"}>
-              {filterSetActive ? "Active" : "Inactive"}
+          mode === "edit" ? (
+            <Badge variant={prefill.active ? "green" : "slate"}>
+              {prefill.active ? "Active" : "Inactive"}
             </Badge>
           ) : undefined
         }
@@ -174,10 +309,10 @@ export function FilterSetEditorPage({
         }
       />
 
-      <div className="w-full">
-        <div className="card flex flex-col overflow-hidden rounded-2xl">
-          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-            {step === "picker" ? (
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80">
+        {step === "picker" ? (
+          <div className="px-4 py-6 sm:px-6 sm:py-8">
+            <div className="mx-auto max-w-3xl">
               <FilterSetTemplatePicker
                 initialTemplates={initialTemplates}
                 onSelect={(template) => {
@@ -197,10 +332,7 @@ export function FilterSetEditorPage({
                     filterCriteria: stripAttributionCriteria(
                       template.filterCriteria ?? {},
                     ),
-                    priority:
-                      template.priority != null
-                        ? template.priority
-                        : current.priority,
+                    priority: template.priority ?? current.priority,
                     priceOverride:
                       template.priceOverride != null
                         ? String(template.priceOverride)
@@ -210,7 +342,11 @@ export function FilterSetEditorPage({
                 }}
                 onSkip={() => setStep("editor")}
               />
-            ) : (
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="grid items-start gap-5 px-3 py-4 sm:px-5 sm:py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
               <FilterSetForm
                 formId={formId}
                 hideButtons
@@ -226,11 +362,70 @@ export function FilterSetEditorPage({
                 onSaved={handleSaved}
                 onFormChange={setPrefill}
               />
-            )}
-          </div>
 
-          {step === "editor" && (
-            <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+              <aside className="space-y-4 xl:sticky xl:top-5">
+                <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
+                  <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5">
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Matching rule
+                    </h2>
+                    <span className="flex-1" />
+                    <Badge variant={isEligible ? "green" : "yellow"}>
+                      {isEligible ? "Eligible" : "Not eligible"}
+                    </Badge>
+                  </div>
+                  <p className="px-4 py-4 text-sm font-medium leading-6 text-slate-600">
+                    {summary.matchingRule}
+                  </p>
+                </section>
+
+                <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
+                  <div className="border-b border-slate-100 px-4 py-3.5">
+                    <h2 className="text-sm font-bold text-slate-900">Summary</h2>
+                  </div>
+                  <dl className="px-4 pb-1">
+                    <SummaryRow label="Name" value={prefill.name || "Default"} />
+                    <SummaryRow label="Lead type" value={summary.leadType} />
+                    <SummaryRow
+                      label="States"
+                      value={`${prefill.filterStates.length} of 50`}
+                    />
+                    {showPricing && (
+                      <>
+                        <SummaryRow
+                          label="Priority"
+                          value={`P${prefill.priority}`}
+                        />
+                        <SummaryRow label="Price" value={summary.price} />
+                      </>
+                    )}
+                    <SummaryRow label="Caps" value={summary.caps} />
+                    <SummaryRow label="Profile" value={summary.profile} />
+                    <SummaryRow label="Schedule" value={summary.schedule} />
+                  </dl>
+                </section>
+
+                {!isEligible && (
+                  <div
+                    role="status"
+                    className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-800"
+                  >
+                    <Warning
+                      size={17}
+                      weight={ICON_WEIGHT_LINEAR}
+                      className="mt-0.5 shrink-0"
+                    />
+                    <span>
+                      Select at least {MIN_FILTER_STATES} states —{" "}
+                      {MIN_FILTER_STATES - prefill.filterStates.length} more to
+                      go.
+                    </span>
+                  </div>
+                )}
+              </aside>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 rounded-b-2xl border-t border-slate-200 bg-white px-4 py-3.5 sm:px-6">
               {showSaveAsTemplate ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <ActionButton
@@ -238,49 +433,55 @@ export function FilterSetEditorPage({
                     variant="secondary"
                     loading={savingTemplate}
                     loadingText="Saving template…"
+                    disabled={!isEligible}
                     icon={<CopySimple size={14} weight={ICON_WEIGHT_LINEAR} />}
                     onClick={handleSaveAsTemplate}
+                    className="btn-sm"
                   >
                     Save as template
                   </ActionButton>
                   {templateMsg && (
                     <span
-                      className={`text-xs ${
+                      role={templateMsg === "Saved as template" ? "status" : "alert"}
+                      className={clsx(
+                        "text-xs font-semibold",
                         templateMsg === "Saved as template"
                           ? "text-emerald-600"
-                          : "text-red-600"
-                      }`}
+                          : "text-red-600",
+                      )}
                     >
                       {templateMsg}
                     </span>
                   )}
                 </div>
-              ) : (
-                <span />
-              )}
+              ) : null}
 
-              <div className="flex items-center gap-2">
-                <Link href={backHref} className="btn-secondary btn-sm">
-                  Cancel
-                </Link>
-                <button
-                  type="submit"
-                  form={formId}
-                  disabled={pending}
-                  className="btn-primary btn-sm"
-                >
-                  {pending
-                    ? "Saving…"
-                    : mode === "edit"
-                      ? "Save changes"
-                      : apiScope === "template"
-                        ? "Create template"
-                        : "Create filter set"}
-                </button>
-              </div>
+              <span className="min-w-2 flex-1" />
+              {isDirty && (
+                <span className="text-xs font-semibold text-slate-400">
+                  Unsaved changes
+                </span>
+              )}
+              <Link href={backHref} className="btn-secondary btn-sm">
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                form={formId}
+                disabled={pending || !isEligible}
+                className="btn-primary btn-sm"
+              >
+                {pending
+                  ? "Saving…"
+                  : mode === "edit"
+                    ? "Save changes"
+                    : apiScope === "template"
+                      ? "Create template"
+                      : "Create filter set"}
+              </button>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
