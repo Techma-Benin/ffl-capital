@@ -68,7 +68,6 @@ enum TransactionType {
   reprocessing_fee
 }
 
-
 enum RefundStatus {
   pending
   approved
@@ -108,15 +107,15 @@ enum LeadListViewScope {
 /// `src` is the LeadConduit SRC field value that maps to this category.
 /// `integrityLabel` is the exact string Integrity Connect requires for lead_type_thom.
 model LeadCategory {
-  id              String   @id @default(uuid()) @db.Uuid
-  type            String   @unique
-  src             String?
-  label           String
-  defaultPrice    Decimal? @map("default_price") @db.Decimal(10, 2)
-  enabled         Boolean  @default(true)
-  integrityLabel  String?  @map("integrity_label")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  type           String   @unique
+  src            String?
+  label          String
+  defaultPrice   Decimal? @map("default_price") @db.Decimal(10, 2)
+  enabled        Boolean  @default(true)
+  integrityLabel String?  @map("integrity_label")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("lead_categories")
 }
@@ -154,7 +153,7 @@ model Partner {
   refundRequests       RefundRequest[]
   transactions         Transaction[]
   billingRecurrences   BillingRecurrence[]
-  reviewedRefunds      RefundRequest[]     @relation("ReviewedBy")
+  reviewedRefunds      RefundRequest[]           @relation("ReviewedBy")
   createdMigrationJobs MigrationJob[]
   filterSets           PartnerFilterSet[]
   leadListViews        LeadListView[]
@@ -198,24 +197,25 @@ model LeadListView {
   partner Partner? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([scope, partnerId])
+  @@index([scope, partnerId, isDefault])
   @@map("lead_list_views")
 }
 
 model PartnerFilterSet {
-  id              String                   @id @default(uuid()) @db.Uuid
-  partnerId       String?                  @map("partner_id") @db.Uuid
-  name            String                   @default("Default")
-  leadType        String                   @map("lead_type")
-  filterStates    String[]                 @map("filter_states")
-  priority        Int                      @default(5)
-  priceOverride   Decimal?                 @map("price_override") @db.Decimal(10, 2)
-  active          Boolean                  @default(true)
-  isTemplate      Boolean                  @default(false) @map("is_template")
-  weeklyLimit     Int?                     @map("weekly_limit")
-  monthlyLimit    Int?                     @map("monthly_limit")
-  filterCriteria  Json                     @default("{}") @map("filter_criteria")
-  createdAt       DateTime                 @default(now()) @map("created_at")
-  updatedAt       DateTime                 @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  partnerId      String?  @map("partner_id") @db.Uuid
+  name           String   @default("Default")
+  leadType       String   @map("lead_type")
+  filterStates   String[] @map("filter_states")
+  priority       Int      @default(5)
+  priceOverride  Decimal? @map("price_override") @db.Decimal(10, 2)
+  active         Boolean  @default(true)
+  isTemplate     Boolean  @default(false) @map("is_template")
+  weeklyLimit    Int?     @map("weekly_limit")
+  monthlyLimit   Int?     @map("monthly_limit")
+  filterCriteria Json     @default("{}") @map("filter_criteria")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   partner        Partner?       @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   leadDeliveries LeadDelivery[]
@@ -305,34 +305,38 @@ model LeadDelivery {
   lastDeliveryError String?         @map("last_delivery_error")
   createdAt         DateTime        @default(now()) @map("created_at")
 
-  lead            Lead              @relation(fields: [leadId], references: [id])
-  partner         Partner           @relation(fields: [partnerId], references: [id])
-  filterSet       PartnerFilterSet? @relation(fields: [filterSetId], references: [id])
-  refundRequests  RefundRequest[]
-  transactions    Transaction[]
+  lead           Lead              @relation(fields: [leadId], references: [id])
+  partner        Partner           @relation(fields: [partnerId], references: [id])
+  filterSet      PartnerFilterSet? @relation(fields: [filterSetId], references: [id])
+  refundRequests RefundRequest[]
+  transactions   Transaction[]
 
   @@index([partnerId])
+  @@index([partnerId, deliveredAt])
   @@index([leadId])
   @@index([filterSetId])
+  @@index([filterSetId, deliveredAt, refundedAt])
   @@index([refundedAt])
   @@map("lead_deliveries")
 }
 
 model RefundRequest {
-  id              String       @id @default(uuid()) @db.Uuid
-  leadDeliveryId  String       @map("lead_delivery_id") @db.Uuid
-  partnerId       String       @map("partner_id") @db.Uuid
-  reason          String?
-  refundType      String       @map("refund_type")
-  status          RefundStatus @default(pending)
-  reviewedById    String?      @map("reviewed_by") @db.Uuid
-  reviewedAt      DateTime?    @map("reviewed_at")
-  createdAt       DateTime     @default(now()) @map("created_at")
+  id             String       @id @default(uuid()) @db.Uuid
+  leadDeliveryId String       @map("lead_delivery_id") @db.Uuid
+  partnerId      String       @map("partner_id") @db.Uuid
+  reason         String?
+  refundType     String       @map("refund_type")
+  status         RefundStatus @default(pending)
+  reviewedById   String?      @map("reviewed_by") @db.Uuid
+  reviewedAt     DateTime?    @map("reviewed_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
 
   leadDelivery LeadDelivery @relation(fields: [leadDeliveryId], references: [id])
   partner      Partner      @relation(fields: [partnerId], references: [id])
   reviewedBy   Partner?     @relation("ReviewedBy", fields: [reviewedById], references: [id])
 
+  @@index([status, createdAt])
+  @@index([status, reviewedAt])
   @@map("refund_requests")
 }
 
@@ -351,6 +355,9 @@ model Transaction {
   leadDelivery LeadDelivery? @relation(fields: [leadDeliveryId], references: [id])
 
   @@index([partnerId])
+  @@index([partnerId, createdAt])
+  @@index([createdAt])
+  @@index([type])
   @@map("transactions")
 }
 
@@ -367,6 +374,7 @@ model BillingRecurrence {
 
   partner Partner @relation(fields: [partnerId], references: [id])
 
+  @@index([partnerId, active, createdAt])
   @@map("billing_recurrence")
 }
 
@@ -395,16 +403,16 @@ model AppSetting {
 }
 
 model MigrationJob {
-  id           String             @id @default(uuid()) @db.Uuid
-  status       MigrationJobStatus @default(pending)
-  fileName     String             @map("file_name")
-  totalRows    Int                @default(0) @map("total_rows")
-  successRows  Int                @default(0) @map("success_rows")
-  errorRows    Int                @default(0) @map("error_rows")
-  errorLog     Json?              @map("error_log")
-  createdById  String?            @map("created_by") @db.Uuid
-  createdAt    DateTime           @default(now()) @map("created_at")
-  completedAt  DateTime?          @map("completed_at")
+  id          String             @id @default(uuid()) @db.Uuid
+  status      MigrationJobStatus @default(pending)
+  fileName    String             @map("file_name")
+  totalRows   Int                @default(0) @map("total_rows")
+  successRows Int                @default(0) @map("success_rows")
+  errorRows   Int                @default(0) @map("error_rows")
+  errorLog    Json?              @map("error_log")
+  createdById String?            @map("created_by") @db.Uuid
+  createdAt   DateTime           @default(now()) @map("created_at")
+  completedAt DateTime?          @map("completed_at")
 
   createdBy Partner? @relation(fields: [createdById], references: [id])
 

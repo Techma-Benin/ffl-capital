@@ -21,6 +21,14 @@ export const APP_SETTING_KEYS = {
   integrityPostDelayHours: "integrity_post_delay_hours",
 } as const;
 
+export async function getAppSettingsMap(): Promise<Record<string, unknown>> {
+  const rows = await prisma.appSetting.findMany({
+    where: { key: { in: Object.values(APP_SETTING_KEYS) } },
+    select: { key: true, value: true },
+  });
+  return Object.fromEntries(rows.map((row) => [row.key, row.value]));
+}
+
 async function getSetting<T>(key: string, fallback: T): Promise<T> {
   const row = await prisma.appSetting.findUnique({ where: { key } });
   if (!row) return fallback;

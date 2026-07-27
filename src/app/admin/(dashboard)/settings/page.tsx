@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AdminSettingsForm } from "@/components/admin/admin-settings-form";
 import { AdminsTable, type AdminRow } from "@/components/admin/admins-table";
 import { AdminImportWizard } from "@/components/admin/admin-import-wizard";
+import { getAppSettingsMap } from "@/lib/settings/app-settings";
 
 // ---------------------------------------------------------------------------
 // Tab definitions
@@ -81,11 +82,17 @@ export default async function AdminSettingsPage({
   }
 
   const isFormTab = FORM_TABS.has(activeTab);
+  const initialSettings =
+    activeTab === "general" || activeTab === "integrations"
+      ? await getAppSettingsMap()
+      : isFormTab
+        ? {}
+        : undefined;
 
   return (
     <div className="flex flex-col">
 
-      {/* ── Tab bar + Save button — transparent, sits on page background ── */}
+      {/* ── Tab bar ───────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-stretch px-0 mb-6 border-b border-slate-200">
         {TABS.map((t) => (
           <Link
@@ -102,19 +109,6 @@ export default async function AdminSettingsPage({
             {t.label}
           </Link>
         ))}
-
-        {/* spacer pushes save button to the right */}
-        <span className="flex-1" />
-
-        <div className="flex items-center gap-2.5 py-2 pr-1">
-          <button
-            type="submit"
-            form="admin-settings-form"
-            className="btn-primary btn-sm"
-          >
-            Save all changes
-          </button>
-        </div>
       </div>
 
       {/* ── Content — cards sit directly on page background ─────────────── */}
@@ -124,6 +118,7 @@ export default async function AdminSettingsPage({
         {isFormTab && (
           <AdminSettingsForm
             tab={activeTab as "general" | "lead-categories" | "integrations"}
+            initialSettings={initialSettings}
           />
         )}
 

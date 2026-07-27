@@ -7,6 +7,7 @@ import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
 import { FileText, CalendarCheck, UsersThree, Warning } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 
 type RecentLead = {
   id: string;
@@ -38,6 +39,7 @@ export function AdminDashboardCharts({
   recentLeads: RecentLead[];
 }) {
   const hasDeliveries = deliveringDonut.length > 0;
+  const { push } = useNavigateWithPending();
 
   return (
     <>
@@ -115,7 +117,7 @@ export function AdminDashboardCharts({
                   <tr
                     key={lead.id}
                     className="cursor-pointer hover:bg-brand-50 transition-colors"
-                    onClick={() => window.location.href = `/admin/leads/${lead.id}`}
+                    onClick={() => push(`/admin/leads/${lead.id}`)}
                   >
                     <td className="font-medium text-slate-900">
                       {lead.firstName} {lead.lastName}
@@ -157,4 +159,3 @@ function LeadStatusBadge({ status }: { status: string }) {
   const c = config[status] ?? { variant: "slate" as const, label: status };
   return <Badge variant={c.variant}>{c.label}</Badge>;
 }
-

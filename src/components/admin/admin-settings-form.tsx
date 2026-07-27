@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { LeadCategoryManager } from "@/components/admin/lead-category-manager";
 import { IntegrityTestPanel } from "@/components/admin/integrity-test-panel";
 import { DEFAULT_RESALE_VENDOR_CONFIGS } from "@/lib/settings/resale-vendor-defaults";
+import { ActionButton } from "@/components/ui/action-button";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -41,6 +43,42 @@ function resaleToPayload(rows: ResaleVendorRow[]) {
     };
   }
   return resaleVendorConfigs;
+}
+
+type SettingsRecord = Record<string, unknown>;
+
+function formFromSettings(settings: SettingsRecord) {
+  return {
+    defaultRealtimePrice: Number(settings.default_realtime_price ?? 25),
+    defaultAgedPrice: Number(settings.default_aged_price ?? 5),
+    adminApprovalRequired: Boolean(
+      settings.admin_approval_required ?? true,
+    ),
+    integrationsMode:
+      (settings.integrations_mode as "mock" | "live") ?? "mock",
+    agedDaysThreshold: Number(settings.aged_days_threshold ?? 30),
+    trustedformValidationEnabled: Boolean(
+      settings.trustedform_validation_enabled ?? false,
+    ),
+    duplicateCheckEnabled: Boolean(
+      settings.duplicate_check_enabled ?? true,
+    ),
+    duplicateCheckWindowDays: Number(
+      settings.duplicate_check_window_days ?? 30,
+    ),
+    integrityPostDelayHours: Number(
+      settings.integrity_post_delay_hours ?? 24,
+    ),
+  };
+}
+
+function resaleRowsFromSettings(settings: SettingsRecord) {
+  return buildResaleRows(
+    (settings.resale_vendor_configs as Record<
+      string,
+      { enabled?: boolean; pingUrl?: string; postUrl?: string }
+    > | undefined) ?? DEFAULT_RESALE_VENDOR_CONFIGS,
+  );
 }
 
 /* ─── shared primitives ─────────────────────────────────────────────────── */
@@ -347,25 +385,25 @@ const IconTrash = () => (
 
 /* ─── main form ─────────────────────────────────────────────────────────── */
 
-export function AdminSettingsForm({ tab }: { tab: FormTab }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
+export function AdminSettingsForm({
+  tab,
+  initialSettings,
+}: {
+  tab: FormTab;
+  initialSettings?: SettingsRecord;
+}) {
+  const [loading, setLoading] = useState(!initialSettings);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const { notify } = useActionFeedback();
 
-  const [form, setForm] = useState({
-    defaultRealtimePrice: 25,
-    defaultAgedPrice: 5,
-    adminApprovalRequired: true,
-    integrationsMode: "mock" as "mock" | "live",
-    agedDaysThreshold: 30,
-    trustedformValidationEnabled: false,
-    duplicateCheckEnabled: true,
-    duplicateCheckWindowDays: 30,
-    integrityPostDelayHours: 24,
-  });
+  const [form, setForm] = useState(() =>
+    formFromSettings(initialSettings ?? {}),
+  );
 
-  const [resaleVendors, setResaleVendors] = useState<ResaleVendorRow[]>([]);
+  const [resaleVendors, setResaleVendors] = useState<ResaleVendorRow[]>(() =>
+    resaleRowsFromSettings(initialSettings ?? {}),
+  );
 
   const [resaleModal, setResaleModal] = useState<{
     row: ResaleVendorRow;
@@ -374,32 +412,16 @@ export function AdminSettingsForm({ tab }: { tab: FormTab }) {
 
   /* load */
   useEffect(() => {
+    if (initialSettings) return;
     fetch("/api/admin/settings")
       .then((r) => r.json())
       .then((data) => {
-        const s = data.settings ?? {};
-        setForm({
-          defaultRealtimePrice: Number(s.default_realtime_price ?? 25),
-          defaultAgedPrice: Number(s.default_aged_price ?? 5),
-          adminApprovalRequired: Boolean(s.admin_approval_required ?? true),
-          integrationsMode: (s.integrations_mode as "mock" | "live") ?? "mock",
-          agedDaysThreshold: Number(s.aged_days_threshold ?? 30),
-          trustedformValidationEnabled: Boolean(s.trustedform_validation_enabled ?? false),
-          duplicateCheckEnabled: Boolean(s.duplicate_check_enabled ?? true),
-          duplicateCheckWindowDays: Number(s.duplicate_check_window_days ?? 30),
-          integrityPostDelayHours: Number(s.integrity_post_delay_hours ?? 24),
-        });
-        setResaleVendors(
-          buildResaleRows(
-            (s.resale_vendor_configs as Record<
-              string,
-              { enabled?: boolean; pingUrl?: string; postUrl?: string }
-            > | undefined) ?? DEFAULT_RESALE_VENDOR_CONFIGS,
-          ),
-        );
+        const settings = (data.settings ?? {}) as SettingsRecord;
+        setForm(formFromSettings(settings));
+        setResaleVendors(resaleRowsFromSettings(settings));
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [initialSettings]);
 
   /* save */
   async function handleSave(e: React.FormEvent) {
@@ -424,11 +446,22 @@ export function AdminSettingsForm({ tab }: { tab: FormTab }) {
           integrityPostDelayHours: form.integrityPostDelayHours,
         }),
       });
-      if (!res.ok) throw new Error("Save failed");
+      if (!res.ok) {
+        throw new Error(
+          await getApiErrorMessage(res, "Could not save settings."),
+        );
+      }
       setMessage("Settings saved");
-      router.refresh();
-    } catch {
-      setMessage("Failed to save");
+      notify({ kind: "success", title: "Settings saved" });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Please try again.";
+      setMessage(errorMessage);
+      notify({
+        kind: "error",
+        title: "Settings were not saved",
+        message: errorMessage,
+      });
     } finally {
       setPending(false);
     }
@@ -484,6 +517,30 @@ export function AdminSettingsForm({ tab }: { tab: FormTab }) {
       )}
 
       <form id="admin-settings-form" onSubmit={handleSave}>
+        {tab !== "lead-categories" ? (
+          <div className="mb-4 flex min-h-9 items-center justify-end gap-3">
+            {message && !pending ? (
+              <span
+                className={`text-xs ${
+                  message === "Settings saved"
+                    ? "text-emerald-700"
+                    : "text-red-600"
+                }`}
+                role="status"
+              >
+                {message}
+              </span>
+            ) : null}
+            <ActionButton
+              type="submit"
+              loading={pending}
+              loadingText="Saving changes…"
+              className="btn-sm"
+            >
+              Save changes
+            </ActionButton>
+          </div>
+        ) : null}
 
         {/* ── GENERAL TAB ────────────────────────────────────────────────── */}
         {tab === "general" && (
@@ -836,23 +893,6 @@ export function AdminSettingsForm({ tab }: { tab: FormTab }) {
         )}
 
         {/* ── status feedback ────────────────────────────────────────────── */}
-        {(pending || message) && (
-          <div className="flex items-center gap-3">
-            {pending && (
-              <span className="text-xs text-slate-400">Saving…</span>
-            )}
-            {message && !pending && (
-              <span
-                className={`text-xs ${
-                  message === "Settings saved" ? "text-green-600" : "text-red-500"
-                }`}
-              >
-                {message}
-              </span>
-            )}
-          </div>
-        )}
-
       </form>
 
       {/* Integrity Connect + Recent postings — outside the form, integrations tab only */}

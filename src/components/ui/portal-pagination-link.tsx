@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { clsx } from "clsx";
 import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
-import { Spinner } from "@/components/ui/spinner";
 
 export function PortalPaginationLink({
   href,
@@ -34,7 +33,6 @@ export function PortalPaginationLink({
         pending && "pointer-events-none opacity-70",
       )}
     >
-      {pending && <Spinner size="xs" />}
       {label}
     </Link>
   );

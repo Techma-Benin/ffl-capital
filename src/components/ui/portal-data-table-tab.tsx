@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { clsx } from "clsx";
 import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
-import { Spinner } from "@/components/ui/spinner";
 
 const tabAccentStyles = {
   orange: {
@@ -84,7 +83,6 @@ export function PortalDataTableTab({
       aria-busy={pending}
       className={className}
     >
-      {pending && <Spinner size="xs" />}
       {children}
       {badge}
     </Link>

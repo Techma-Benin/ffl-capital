@@ -24,6 +24,8 @@ import {
   Eye,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 type LeadRow = {
   id: string;
@@ -61,6 +63,7 @@ function AdminLeadRowMenu({
   const { push, router } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
   const [reprocessPending, setReprocessPending] = useState(false);
+  const { notify } = useActionFeedback();
   const ref = useRef<HTMLDivElement>(null);
 
   const canReprocess = isEligibleForReprocess(lead);
@@ -80,12 +83,25 @@ function AdminLeadRowMenu({
       const res = await fetch(`/api/admin/leads/${lead.id}/reprocess`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error("Request failed");
+      if (!res.ok) {
+        throw new Error(
+          await getApiErrorMessage(res, "Could not reprocess lead."),
+        );
+      }
       setOpen(false);
+      notify({
+        kind: "success",
+        title: "Lead queued for reprocessing",
+      });
       if (onReprocessed) onReprocessed();
       else router.refresh();
-    } catch {
-      // allow retry
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Reprocessing failed",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setReprocessPending(false);
     }
@@ -175,7 +191,7 @@ export function AdminLeadsTable({
   bulkFeedback?: { kind: "success" | "error"; message: string } | null;
   onDismissFeedback?: () => void;
 }) {
-  const { router } = useNavigateWithPending();
+  const { push, router } = useNavigateWithPending();
 
   const eligibleLeads = leads.filter(isEligibleForReprocess);
   const eligibleIds = new Set(eligibleLeads.map((l) => l.id));
@@ -420,9 +436,7 @@ export function AdminLeadsTable({
           <tr
             key={lead.id}
             className={`cursor-pointer ${portalTableRowClassName(undefined, layout)}`}
-            onClick={() => {
-              window.location.href = `/admin/leads/${lead.id}`;
-            }}
+            onClick={() => push(`/admin/leads/${lead.id}`)}
           >
             {displayColumns.map((c, i) =>
               cell(c.key, lead, i, displayColumns.length),

@@ -11,6 +11,8 @@ import {
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 import { ClientStoreKeys, clientStore } from "@/lib/client-store";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 type ActionKey = "approve" | "reject";
 
@@ -44,7 +46,7 @@ function RefundReviewMenu({
   onAction,
 }: {
   pending: ActionKey | null;
-  onAction: (key: ActionKey) => void;
+  onAction: (key: ActionKey) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(
@@ -140,8 +142,7 @@ function RefundReviewMenu({
                   disabled={pending !== null}
                   className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors disabled:opacity-60 ${a.menuClass}`}
                   onClick={() => {
-                    setOpen(false);
-                    onAction(a.key);
+                    void onAction(a.key).finally(() => setOpen(false));
                   }}
                 >
                   {isThisLoading ? (
@@ -163,6 +164,7 @@ function RefundReviewMenu({
 export function RefundReviewActions({ refundId }: { refundId: string }) {
   const router = useRouter();
   const [pending, setPending] = useState<ActionKey | null>(null);
+  const { notify } = useActionFeedback();
 
   async function handleAction(action: ActionKey) {
     setPending(action);
@@ -172,11 +174,22 @@ export function RefundReviewActions({ refundId }: { refundId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      if (!res.ok) throw new Error("Request failed");
+      if (!res.ok) {
+        throw new Error(await getApiErrorMessage(res, "Could not review refund."));
+      }
       clientStore.invalidate(ClientStoreKeys.adminRefunds);
+      notify({
+        kind: "success",
+        title: action === "approve" ? "Refund approved" : "Refund rejected",
+      });
       router.refresh();
-    } catch {
-      // allow retry
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Refund was not updated",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setPending(null);
     }

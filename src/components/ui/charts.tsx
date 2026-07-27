@@ -396,7 +396,9 @@ function DonutChartGauge({
 
   useEffect(() => {
     if (reducedMotion || !revealed || entranceDoneRef.current) return;
-    const totalMs = gaugeEntranceCompleteMs(segmentDegs);
+    const totalMs = gaugeEntranceCompleteMs(
+      segmentAngles(dataWithFill, total),
+    );
     const timer = window.setTimeout(() => {
       if (!entranceDoneRef.current) {
         entranceDoneRef.current = true;
@@ -404,7 +406,14 @@ function DonutChartGauge({
       }
     }, totalMs);
     return () => window.clearTimeout(timer);
-  }, [revealed, reducedMotion, dataKey, onEntranceComplete]);
+  }, [
+    revealed,
+    reducedMotion,
+    dataKey,
+    total,
+    dataWithFill,
+    onEntranceComplete,
+  ]);
 
   if (!ready) return null;
 

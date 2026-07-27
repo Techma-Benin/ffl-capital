@@ -1,13 +1,10 @@
 import { prisma } from "@/lib/db";
 import { refundLeadSnapshotFromDelivery } from "@/lib/admin/refund-lead-snapshot";
 import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
-import { getClerkPartnerImageUrlMap } from "@/lib/auth/clerk-profile";
 import {
   AdminRefundsView,
   type AdminRefundsStorePayload,
 } from "@/components/admin/admin-refunds-view";
-
-const PARTNER_SHEET_AVATAR_PX = 48;
 
 const refundPartnerInclude = {
   include: {
@@ -36,18 +33,12 @@ export default async function AdminRefundsPage() {
     }),
   ]);
 
-  const avatarByClerkId = await getClerkPartnerImageUrlMap(
-    [...pending, ...history].map((r) => r.partner.clerkUserId),
-    PARTNER_SHEET_AVATAR_PX,
-  );
-
   function partnerSnapshot(
     partner: (typeof pending)[number]["partner"],
   ) {
-    const avatarUrl = partner.clerkUserId
-      ? (avatarByClerkId.get(partner.clerkUserId) ?? null)
-      : null;
-    return refundPartnerSnapshotFromRow(partner, { avatarUrl });
+    return refundPartnerSnapshotFromRow(partner, {
+      avatarUrl: partner.avatarUrl,
+    });
   }
 
   const initial: AdminRefundsStorePayload = {

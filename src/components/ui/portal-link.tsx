@@ -4,7 +4,6 @@ import Link from "next/link";
 import { clsx } from "clsx";
 import type { ComponentProps } from "react";
 import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
-import { Spinner } from "@/components/ui/spinner";
 
 type PortalLinkProps = ComponentProps<typeof Link>;
 
@@ -34,11 +33,6 @@ export function PortalLink({ href, onClick, className, children, ...props }: Por
       )}
       {...props}
     >
-      {pending && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2">
-          <Spinner size="xs" />
-        </span>
-      )}
       {children}
     </Link>
   );

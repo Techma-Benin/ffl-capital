@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Wallet, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 import { RefundRequestModal } from "@/components/refunds/refund-request-modal";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 export function AdminLeadRefundButton({
   leadId,
@@ -15,6 +17,7 @@ export function AdminLeadRefundButton({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const { notify } = useActionFeedback();
   const noDelivery = !leadDeliveryId;
 
   return (
@@ -51,8 +54,13 @@ export function AdminLeadRefundButton({
               autoApprove: true,
             }),
           });
-          if (!res.ok) throw new Error("Request failed");
+          if (!res.ok) {
+            throw new Error(
+              await getApiErrorMessage(res, "Could not issue refund."),
+            );
+          }
           setOpen(false);
+          notify({ kind: "success", title: "Refund issued" });
           router.refresh();
         }}
       />

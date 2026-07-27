@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition, forwardRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState, forwardRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusStrip } from "@/components/ui/status-strip";
 import {
   Wallet,
   ArrowCounterClockwise,
@@ -146,9 +147,7 @@ export function AdminTransactionsView({
   initialPagination: { page: number; pageSize: number; total: number; totalPages: number };
   partners: PartnerOption[];
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [, startTransition] = useTransition();
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
@@ -165,13 +164,18 @@ export function AdminTransactionsView({
   const [paymentMethod, setPaymentMethod] = useState(
     searchParams.get("paymentMethod") ?? "all",
   );
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(
+    Math.max(1, Number(searchParams.get("page") ?? 1) || 1),
+  );
 
   // Data state
   const [rows, setRows] = useState<TransactionRow[]>(initialRows);
   const [summary, setSummary] = useState<TransactionSummary>(initialSummary);
   const [totalPages, setTotalPages] = useState(initialPagination.totalPages);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const initialFilteredFetchRef = useRef(false);
 
   const sortedRows = useMemo(() => {
     const multiplier = sortDir === "asc" ? 1 : -1;
@@ -236,7 +240,11 @@ export function AdminTransactionsView({
 
   const fetchData = useCallback(
     async (overrides: Record<string, string> = {}, pageNum = 1) => {
+      requestControllerRef.current?.abort();
+      const controller = new AbortController();
+      requestControllerRef.current = controller;
       setIsLoading(true);
+      setLoadError("");
       try {
         const filters: Record<string, string> = {
           search,
@@ -251,15 +259,27 @@ export function AdminTransactionsView({
           ...overrides,
         };
         const params = buildParams(filters);
-        const res = await fetch(`/api/admin/transactions?${params.toString()}`);
-        if (!res.ok) return;
+        const res = await fetch(`/api/admin/transactions?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error("Could not load transactions.");
         const data = await res.json();
         setRows(data.rows);
         setSummary(data.summary);
         setTotalPages(data.pagination.totalPages);
         setPage(pageNum);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Could not load transactions.",
+        );
       } finally {
-        setIsLoading(false);
+        if (requestControllerRef.current === controller) {
+          requestControllerRef.current = null;
+          setIsLoading(false);
+        }
       }
     },
     [
@@ -271,6 +291,21 @@ export function AdminTransactionsView({
       direction,
       paymentMethod,
     ],
+  );
+
+  useEffect(() => {
+    if (initialFilteredFetchRef.current) return;
+    initialFilteredFetchRef.current = true;
+    if (searchParams.toString()) {
+      void fetchData({}, page);
+    }
+  }, [fetchData, page, searchParams]);
+
+  useEffect(
+    () => () => {
+      requestControllerRef.current?.abort();
+    },
+    [],
   );
 
   const applyFilters = useCallback(
@@ -286,11 +321,13 @@ export function AdminTransactionsView({
         ...overrides,
       };
       const params = buildParams(filters);
-      startTransition(() => {
-        router.replace(`/admin/transactions?${params.toString()}`, {
-          scroll: false,
-        });
-      });
+      if (pageNum > 1) params.set("page", String(pageNum));
+      const qs = params.toString();
+      window.history.replaceState(
+        window.history.state,
+        "",
+        qs ? `/admin/transactions?${qs}` : "/admin/transactions",
+      );
       fetchData(overrides, pageNum);
     },
     [
@@ -301,7 +338,6 @@ export function AdminTransactionsView({
       selectedTypes,
       direction,
       paymentMethod,
-      router,
       fetchData,
     ],
   );
@@ -353,9 +389,11 @@ export function AdminTransactionsView({
     setSelectedTypes([]);
     setDirection("all");
     setPaymentMethod("all");
-    startTransition(() => {
-      router.replace("/admin/transactions", { scroll: false });
-    });
+    window.history.replaceState(
+      window.history.state,
+      "",
+      "/admin/transactions",
+    );
     fetchData(
       {
         search: "",
@@ -526,6 +564,14 @@ export function AdminTransactionsView({
         )}
 
         {/* Table */}
+        {loadError ? (
+          <StatusStrip
+            status="error"
+            title="Transactions could not be refreshed"
+            message={loadError}
+            className="mb-4"
+          />
+        ) : null}
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             {isLoading ? (

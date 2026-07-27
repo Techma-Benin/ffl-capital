@@ -29,6 +29,8 @@ import {
 } from "@/components/partner/aged-lead-preview-sheet";
 import { getPartnerAgedLeadAgeChipClassNames } from "@/lib/partner/aged-lead-age-chip";
 import { ClientStoreKeys, useClientResource } from "@/lib/client-store";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 type AgedLead = PartnerAgedLeadPreview;
 
@@ -79,6 +81,7 @@ export function PartnerAgedView({
 }) {
   const { partner } = usePartner();
   const { router } = useNavigateWithPending();
+  const { notify } = useActionFeedback();
   const canBuy = partner.status === "active" && partner.walletBalance >= agedPrice;
 
   const initialPayload: PartnerAgedStorePayload = useMemo(
@@ -170,7 +173,11 @@ export function PartnerAgedView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ leadIds }),
       });
-      if (!res.ok) throw new Error("Purchase failed");
+      if (!res.ok) {
+        throw new Error(
+          await getApiErrorMessage(res, "Could not complete purchase."),
+        );
+      }
       const purchased = new Set(leadIds);
       mutate((prev) => {
         const base = prev ?? initialPayload;
@@ -185,9 +192,22 @@ export function PartnerAgedView({
         for (const id of leadIds) next.delete(id);
         return next;
       });
+      notify({
+        kind: "success",
+        title:
+          leadIds.length === 1
+            ? "Lead purchased"
+            : `${leadIds.length} leads purchased`,
+        message: "Purchased leads are now available in My Leads.",
+      });
       router.refresh();
-    } catch {
-      // allow retry
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Purchase failed",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setPending(false);
     }

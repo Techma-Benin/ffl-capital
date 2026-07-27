@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { clsx } from "clsx";
 import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
-import { Spinner } from "@/components/ui/spinner";
 
 const activeAccentClasses = {
   brand: "bg-brand-50 text-brand-700",
@@ -36,7 +35,6 @@ export function FilterTabLink({
         pending && "pointer-events-none opacity-70",
       )}
     >
-      {pending && <Spinner size="xs" />}
       {children}
     </Link>
   );

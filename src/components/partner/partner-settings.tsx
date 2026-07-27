@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
@@ -163,24 +163,12 @@ function ProfileBanner({
 
 function FilterSetsSection() {
   const router = useRouter();
-  const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(null);
-  const [loadError, setLoadError] = useState("");
+  const { partner, patchPartner } = usePartner();
+  const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(
+    () => partner.filterSets as PartnerFilterSet[],
+  );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
-
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/partners/filter-sets");
-      if (!res.ok) throw new Error("Failed to load");
-      setFilterSets(await res.json());
-    } catch {
-      setLoadError("Could not load filter sets.");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this filter set? It cannot be undone.")) return;
@@ -196,6 +184,9 @@ function FilterSetsSection() {
         return;
       }
       setFilterSets((prev) => prev?.filter((fs) => fs.id !== id) ?? null);
+      patchPartner({
+        filterSets: partner.filterSets.filter((filterSet) => filterSet.id !== id),
+      });
     } catch {
       setDeleteError("Request failed. Please try again.");
     } finally {
@@ -227,11 +218,7 @@ function FilterSetsSection() {
         )}
       </div>
 
-      {loadError && (
-        <p className="px-5 py-4 text-sm text-red-600">{loadError}</p>
-      )}
-
-      {!loaded && !loadError && (
+      {!loaded && (
         <p className="px-5 py-4 text-sm text-slate-400">Loading…</p>
       )}
 

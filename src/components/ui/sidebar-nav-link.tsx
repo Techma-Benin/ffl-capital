@@ -6,7 +6,6 @@ import { clsx } from "clsx";
 import type { Icon } from "@/lib/icons/client";
 import { ICON_WEIGHT } from "@/lib/icons/client";
 import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
-import { Spinner } from "@/components/ui/spinner";
 import {
   sidebarNavAccentStyles,
   type SidebarNavAccent,
@@ -56,11 +55,7 @@ export function SidebarNavLink({
             : "text-sidebar-text group-hover:text-slate-700",
         )}
       >
-        {pending ? (
-          <Spinner size="xs" variant={styles.spinner} />
-        ) : (
-          <IconComponent size={22} weight={ICON_WEIGHT} />
-        )}
+        <IconComponent size={22} weight={ICON_WEIGHT} />
       </span>
 
       {!sidebarCollapsed && <span className="truncate">{label}</span>}

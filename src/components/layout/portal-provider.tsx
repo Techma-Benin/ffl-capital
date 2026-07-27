@@ -71,13 +71,10 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     locationRef.current.fullPath = pathname;
   }, [pathname]);
 
-  const onLocationChange = useCallback((fullPath: string) => {
-    setPendingPath((pending) => {
-      if (!pending) return pending;
-      return normalizeNavigationHref(pending) === normalizeNavigationHref(fullPath)
-        ? null
-        : pending;
-    });
+  const onLocationChange = useCallback((_fullPath: string) => {
+    // The destination may redirect (for example to a default list view), so
+    // any completed location change ends the originating navigation.
+    setPendingPath(null);
   }, []);
 
   const startNavigation = useCallback(

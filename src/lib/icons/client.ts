@@ -3,61 +3,61 @@ export { ICON_WEIGHT, ICON_WEIGHT_LINEAR, ICON_WEIGHT_BOLD } from "./types";
 export { Plus } from "./plus";
 export { DotsThreeVertical } from "./dots-three-vertical";
 
-export {
-  Widget as SquaresFour,
-  UsersGroupTwoRounded as Users,
-  FileText,
-  RefreshCircle as ArrowCounterClockwise,
-  Archive,
-  Settings as Gear,
-  Shield,
-  Upload as UploadSimple,
-  Filter as Funnel,
-  Lightning,
-  ArrowLeft,
-  ArrowRight,
-  CheckRead as Check,
-  CloseCircle as X,
-  AltArrowDown as CaretDown,
-  AltArrowUp as CaretUp,
-  Wallet,
-  SquareTopDown as ArrowUpRight,
-  Restart as ArrowsClockwise,
-  Letter as EnvelopeSimple,
-  Plain as PaperPlaneTilt,
-  Bag as ShoppingBag,
-  ClockCircle as Clock,
-  ShieldCheck,
-  ShieldWarning,
-  Eye,
-  Download as DownloadSimple,
-  Ghost as Skull,
-  Confetti,
-  Like as ThumbsUp,
-  Chart2 as ChartBar,
-  CodeFile as TerminalWindow,
-  SidebarMinimalistic as SidebarSimple,
-  Copy as CopySimple,
-  MapPoint as MapPin,
-  DangerCircle as WarningCircle,
-  CloseCircle as XCircle,
-  DangerTriangle as Warning,
-  UsersGroupRounded as UsersThree,
-  CalendarMark as CalendarCheck,
-  Pen as PencilSimple,
-  AddSquare,
-  AddCircle as PlusCircle,
-  TrashBinTrash as Trash,
-  MenuDots as DotsThree,
-  SortVertical as ArrowsDownUp,
-  GraphUp as TrendUp,
-  GraphDown as TrendDown,
-  ForbiddenCircle as Prohibit,
-  CheckCircle,
-  PlugCircle as PlugsConnected,
-  Power,
-  ArrowUp,
-  ArrowDown,
-  Phone,
-  List,
-} from "@solar-icons/react";
+// Keep these as direct module exports. The package root contains the complete
+// icon catalog and Next cannot reliably tree-shake it across client boundaries.
+export { default as SquaresFour } from "@solar-icons/react/csr/settings/Widget";
+export { default as Users } from "@solar-icons/react/csr/users/UsersGroupTwoRounded";
+export { default as FileText } from "@solar-icons/react/csr/files/FileText";
+export { default as ArrowCounterClockwise } from "@solar-icons/react/csr/arrows/RefreshCircle";
+export { default as Archive } from "@solar-icons/react/csr/notes/Archive";
+export { default as Gear } from "@solar-icons/react/csr/settings/Settings";
+export { default as Shield } from "@solar-icons/react/csr/security/Shield";
+export { default as UploadSimple } from "@solar-icons/react/csr/arrows-action/Upload";
+export { default as Funnel } from "@solar-icons/react/csr/ui/Filter";
+export { default as Lightning } from "@solar-icons/react/csr/devices/Lightning";
+export { default as ArrowLeft } from "@solar-icons/react/csr/arrows/ArrowLeft";
+export { default as ArrowRight } from "@solar-icons/react/csr/arrows/ArrowRight";
+export { default as Check } from "@solar-icons/react/csr/messages/CheckRead";
+export { default as X } from "@solar-icons/react/csr/ui/CloseCircle";
+export { default as CaretDown } from "@solar-icons/react/csr/arrows/AltArrowDown";
+export { default as CaretUp } from "@solar-icons/react/csr/arrows/AltArrowUp";
+export { default as Wallet } from "@solar-icons/react/csr/money/Wallet";
+export { default as ArrowUpRight } from "@solar-icons/react/csr/arrows-action/SquareTopDown";
+export { default as ArrowsClockwise } from "@solar-icons/react/csr/arrows/Restart";
+export { default as EnvelopeSimple } from "@solar-icons/react/csr/messages/Letter";
+export { default as PaperPlaneTilt } from "@solar-icons/react/csr/messages/Plain";
+export { default as ShoppingBag } from "@solar-icons/react/csr/shopping/Bag";
+export { default as Clock } from "@solar-icons/react/csr/time/ClockCircle";
+export { default as ShieldCheck } from "@solar-icons/react/csr/security/ShieldCheck";
+export { default as ShieldWarning } from "@solar-icons/react/csr/security/ShieldWarning";
+export { default as Eye } from "@solar-icons/react/csr/security/Eye";
+export { default as DownloadSimple } from "@solar-icons/react/csr/arrows-action/Download";
+export { default as Skull } from "@solar-icons/react/csr/ui/Ghost";
+export { default as Confetti } from "@solar-icons/react/csr/ui/Confetti";
+export { default as ThumbsUp } from "@solar-icons/react/csr/like/Like";
+export { default as ChartBar } from "@solar-icons/react/csr/business/Chart2";
+export { default as TerminalWindow } from "@solar-icons/react/csr/files/CodeFile";
+export { default as SidebarSimple } from "@solar-icons/react/csr/it/SidebarMinimalistic";
+export { default as CopySimple } from "@solar-icons/react/csr/ui/Copy";
+export { default as MapPin } from "@solar-icons/react/csr/map/MapPoint";
+export { default as WarningCircle } from "@solar-icons/react/csr/ui/DangerCircle";
+export { default as XCircle } from "@solar-icons/react/csr/ui/CloseCircle";
+export { default as Warning } from "@solar-icons/react/csr/ui/DangerTriangle";
+export { default as UsersThree } from "@solar-icons/react/csr/users/UsersGroupRounded";
+export { default as CalendarCheck } from "@solar-icons/react/csr/time/CalendarMark";
+export { default as PencilSimple } from "@solar-icons/react/csr/messages/Pen";
+export { default as AddSquare } from "@solar-icons/react/csr/ui/AddSquare";
+export { default as PlusCircle } from "@solar-icons/react/csr/ui/AddCircle";
+export { default as Trash } from "@solar-icons/react/csr/ui/TrashBinTrash";
+export { default as DotsThree } from "@solar-icons/react/csr/ui/MenuDots";
+export { default as ArrowsDownUp } from "@solar-icons/react/csr/arrows/SortVertical";
+export { default as TrendUp } from "@solar-icons/react/csr/business/GraphUp";
+export { default as TrendDown } from "@solar-icons/react/csr/business/GraphDown";
+export { default as Prohibit } from "@solar-icons/react/csr/ui/ForbiddenCircle";
+export { default as CheckCircle } from "@solar-icons/react/csr/ui/CheckCircle";
+export { default as PlugsConnected } from "@solar-icons/react/csr/devices/PlugCircle";
+export { default as Power } from "@solar-icons/react/csr/ui/Power";
+export { default as ArrowUp } from "@solar-icons/react/csr/arrows/ArrowUp";
+export { default as ArrowDown } from "@solar-icons/react/csr/arrows/ArrowDown";
+export { default as Phone } from "@solar-icons/react/csr/call/Phone";
+export { default as List } from "@solar-icons/react/csr/list/List";

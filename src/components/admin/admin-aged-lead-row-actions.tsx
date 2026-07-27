@@ -5,10 +5,13 @@ import { useState } from "react";
 import { clsx } from "clsx";
 import { Spinner } from "@/components/ui/spinner";
 import { Skull, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 export function AdminAgedLeadRowActions({ leadId }: { leadId: string }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
+  const { notify } = useActionFeedback();
 
   async function markDead() {
     if (
@@ -21,10 +24,21 @@ export function AdminAgedLeadRowActions({ leadId }: { leadId: string }) {
     setIsPending(true);
     try {
       const res = await fetch(`/api/admin/leads/${leadId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        throw new Error(await getApiErrorMessage(res, "Could not remove the lead."));
+      }
+      notify({
+        kind: "success",
+        title: "Lead removed from the aged marketplace",
+      });
       router.refresh();
-    } catch {
-      // allow retry
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Lead was not updated",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setIsPending(false);
     }

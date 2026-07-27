@@ -9,6 +9,7 @@ import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { Wallet, ArrowUpRight, ArrowsClockwise, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
 import { formatUsd, moneyValueClassName } from "@/lib/format-money";
+import { useActionFeedback } from "@/components/ui/action-feedback";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -32,7 +33,7 @@ export function PartnerWalletView({
   transactions,
   totalTopUp,
   totalSpent,
-  subscription,
+  subscription: initialSubscription,
 }: {
   transactions: Transaction[];
   totalTopUp: number;
@@ -40,6 +41,7 @@ export function PartnerWalletView({
   subscription: Subscription | null;
 }) {
   const { partner } = usePartner();
+  const { notify } = useActionFeedback();
   const balance = partner.walletBalance;
   const walletOk = balance >= 25;
 
@@ -50,6 +52,7 @@ export function PartnerWalletView({
   const [cancelPending, setCancelPending] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [weeklyAmount, setWeeklyAmount] = useState("500");
+  const [subscription, setSubscription] = useState(initialSubscription);
 
   const checkoutAmount = customAmount ? Number(customAmount) : selectedAmount;
   const checkoutValid =
@@ -68,9 +71,15 @@ export function PartnerWalletView({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Checkout failed");
-      if (data.url) window.location.href = data.url;
-    } catch {
-      // allow retry
+      if (!data.url) throw new Error("Payment page was not returned.");
+      window.location.href = data.url;
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Could not start payment",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setCheckoutPending(false);
     }
@@ -84,10 +93,22 @@ export function PartnerWalletView({
         const data = await res.json();
         throw new Error(data.error ?? "Cancel failed");
       }
-      window.location.reload();
-    } catch {
-      setCancelPending(false);
+      setSubscription(null);
       setCancelConfirm(false);
+      notify({
+        kind: "success",
+        title: "Auto-recharge cancelled",
+        message: "No further weekly charges will be made.",
+      });
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Could not cancel auto-recharge",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setCancelPending(false);
     }
   }
 
@@ -103,9 +124,15 @@ export function PartnerWalletView({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Subscribe failed");
-      if (data.url) window.location.href = data.url;
-    } catch {
-      // allow retry
+      if (!data.url) throw new Error("Payment page was not returned.");
+      window.location.href = data.url;
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Could not start auto-recharge",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setSubscribePending(false);
     }

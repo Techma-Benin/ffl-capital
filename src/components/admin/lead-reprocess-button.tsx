@@ -3,10 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowCounterClockwise, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 export function LeadReprocessButton({ leadId }: { leadId: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const { notify } = useActionFeedback();
 
   async function handleReprocess() {
     setPending(true);
@@ -14,10 +17,22 @@ export function LeadReprocessButton({ leadId }: { leadId: string }) {
       const res = await fetch(`/api/admin/leads/${leadId}/reprocess`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error("Request failed");
+      if (!res.ok) {
+        throw new Error(await getApiErrorMessage(res, "Could not reprocess lead."));
+      }
+      notify({
+        kind: "success",
+        title: "Lead queued for reprocessing",
+        message: "The lead status will update when processing completes.",
+      });
       router.refresh();
-    } catch {
-      // allow retry
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Reprocessing failed",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setPending(false);
     }

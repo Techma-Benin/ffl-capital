@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Wallet, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { RefundRequestModal } from "@/components/refunds/refund-request-modal";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 export function PartnerRefundButton({
   leadDeliveryId,
@@ -12,6 +14,7 @@ export function PartnerRefundButton({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const { notify } = useActionFeedback();
 
   return (
     <>
@@ -39,8 +42,17 @@ export function PartnerRefundButton({
               reason: reason || undefined,
             }),
           });
-          if (!res.ok) throw new Error("Request failed");
+          if (!res.ok) {
+            throw new Error(
+              await getApiErrorMessage(res, "Could not submit refund request."),
+            );
+          }
           setOpen(false);
+          notify({
+            kind: "success",
+            title: "Refund request submitted",
+            message: "You can follow its status from My Leads.",
+          });
           router.refresh();
         }}
       />

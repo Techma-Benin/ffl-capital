@@ -33,6 +33,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 type PendingRefund = {
   id: string;
@@ -75,6 +77,7 @@ export function AdminRefundsPendingTable({
 }: {
   refunds: PendingRefund[];
 }) {
+  const { notify } = useActionFeedback();
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
@@ -216,11 +219,24 @@ export function AdminRefundsPendingTable({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refundRequestIds: Array.from(selected) }),
       });
-      if (!res.ok) throw new Error("Bulk approve failed");
+      if (!res.ok) {
+        throw new Error(
+          await getApiErrorMessage(res, "Could not approve selected refunds."),
+        );
+      }
+      const approvedCount = selected.size;
       setSelected(new Set());
+      notify({
+        kind: "success",
+        title: `${approvedCount} refund${approvedCount === 1 ? "" : "s"} approved`,
+      });
       router.refresh();
-    } catch {
-      // allow retry
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Bulk refund approval failed",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setPending(false);
     }
@@ -395,4 +411,3 @@ function RefundReasonCell({ reason }: { reason: string | null }) {
     </td>
   );
 }
-

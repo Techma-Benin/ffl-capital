@@ -1,12 +1,9 @@
 import { prisma } from "@/lib/db";
-import { getClerkPartnerImageUrlMap } from "@/lib/auth/clerk-profile";
 import { computeLeadBuying } from "@/lib/admin/partner-list-sort";
 import type {
   AdminPartnersRawData,
   AdminPartnersRawRow,
 } from "@/lib/admin/partners-view";
-
-const TABLE_AVATAR_DISPLAY_PX = 40;
 
 /** Soft cap — partners are a bounded admin set; skip full client load above this. */
 export const ADMIN_PARTNERS_CLIENT_LOAD_LIMIT = 2000;
@@ -30,17 +27,24 @@ export async function fetchAdminPartnersRawData(): Promise<AdminPartnersRawData>
     prisma.partner.findMany({
       take: ADMIN_PARTNERS_CLIENT_LOAD_LIMIT,
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-      include: {
-        filterSets: true,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        affiliation: true,
+        status: true,
+        priority: true,
+        walletBalance: true,
+        avatarUrl: true,
+        filterSets: {
+          where: { isTemplate: false },
+          select: { active: true, filterStates: true },
+        },
         _count: { select: { leadDeliveries: true } },
       },
     }),
   ]);
-
-  const avatarByClerkId = await getClerkPartnerImageUrlMap(
-    partners.map((p) => p.clerkUserId),
-    TABLE_AVATAR_DISPLAY_PX,
-  );
 
   const rows: AdminPartnersRawRow[] = partners.map((p) => {
     const leadBuying = computeLeadBuying(p);
@@ -57,9 +61,7 @@ export async function fetchAdminPartnersRawData(): Promise<AdminPartnersRawData>
       leadBuying,
       walletOk: walletBalance >= 25,
       leadsCount: p._count.leadDeliveries,
-      avatarUrl: p.clerkUserId
-        ? (avatarByClerkId.get(p.clerkUserId) ?? null)
-        : null,
+      avatarUrl: p.avatarUrl,
     };
   });
 

@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { clsx } from "clsx";
 import { PartnerProfileSummaryCard } from "@/components/admin/partner-profile-summary-card";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 type PartnerProfileCardProps = {
   partnerId: string;
@@ -32,6 +34,7 @@ export function PartnerProfileCard({
 }: PartnerProfileCardProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const { notify } = useActionFeedback();
 
   async function handleApprove() {
     setPending(true);
@@ -41,10 +44,18 @@ export function PartnerProfileCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ partnerId, action: "approve" }),
       });
-      if (!res.ok) throw new Error("Request failed");
+      if (!res.ok) {
+        throw new Error(await getApiErrorMessage(res, "Could not approve partner."));
+      }
+      notify({ kind: "success", title: "Partner approved" });
       router.refresh();
-    } catch {
-      // allow retry
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Approval failed",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setPending(false);
     }

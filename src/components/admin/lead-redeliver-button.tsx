@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PaperPlaneTilt, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 export function LeadRedeliverButton({
   leadId,
@@ -14,6 +16,7 @@ export function LeadRedeliverButton({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const { notify } = useActionFeedback();
 
   async function handleRedeliver() {
     setPending(true);
@@ -25,10 +28,22 @@ export function LeadRedeliverButton({
           excludePartnerId ? { partnerId: excludePartnerId } : {},
         ),
       });
-      if (!res.ok) throw new Error("Request failed");
+      if (!res.ok) {
+        throw new Error(await getApiErrorMessage(res, "Could not redeliver lead."));
+      }
+      notify({
+        kind: "success",
+        title: "Lead redelivery started",
+        message: "Delivery results will appear in the activity timeline.",
+      });
       router.refresh();
-    } catch {
-      // allow retry
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Redelivery failed",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setPending(false);
     }

@@ -1,9 +1,6 @@
 "use client";
 
 import { clsx } from "clsx";
-import { usePortal } from "@/components/layout/portal-provider";
-import { NavProgress } from "@/components/ui/nav-progress";
-import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 export function MainContent({
   children,
@@ -12,8 +9,6 @@ export function MainContent({
   children: React.ReactNode;
   className?: string;
 }) {
-  const { isNavigating } = usePortal();
-
   return (
     <main
       className={clsx(
@@ -21,8 +16,7 @@ export function MainContent({
         className,
       )}
     >
-      <NavProgress />
-      {isNavigating ? <PageSkeleton /> : children}
+      {children}
     </main>
   );
 }

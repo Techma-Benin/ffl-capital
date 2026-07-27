@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PencilSimple, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 type LeadFields = {
   firstName: string;
@@ -31,6 +33,7 @@ export function AdminLeadEditForm({
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const { notify } = useActionFeedback();
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -42,11 +45,21 @@ export function AdminLeadEditForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error("Save failed");
+      if (!res.ok) {
+        throw new Error(await getApiErrorMessage(res, "Could not save lead."));
+      }
+      notify({ kind: "success", title: "Lead changes saved" });
       router.refresh();
       onClose?.();
-    } catch {
-      setMessage("Failed to save");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Please try again.";
+      setMessage(errorMessage);
+      notify({
+        kind: "error",
+        title: "Lead changes were not saved",
+        message: errorMessage,
+      });
       setPending(false);
     }
   }

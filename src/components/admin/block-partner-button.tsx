@@ -3,6 +3,8 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Lightning, Prohibit, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 export function BlockPartnerButton({
   partnerId,
@@ -13,6 +15,7 @@ export function BlockPartnerButton({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { notify } = useActionFeedback();
 
   const canBlock = status === "active" || status === "pending_approval";
   const canActivate = status === "disabled" || status === "rejected";
@@ -35,10 +38,20 @@ export function BlockPartnerButton({
         body: JSON.stringify({ status: nextStatus }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error ?? "Could not update partner status");
+        notify({
+          kind: "error",
+          title: "Partner was not updated",
+          message: await getApiErrorMessage(
+            res,
+            "Could not update partner status.",
+          ),
+        });
         return;
       }
+      notify({
+        kind: "success",
+        title: canBlock ? "Partner blocked" : "Partner activated",
+      });
       router.refresh();
     });
   }

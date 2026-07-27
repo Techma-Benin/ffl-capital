@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 export type PartnerEditFormInitial = {
   priority: number;
@@ -35,6 +37,7 @@ export function PartnerEditForm({
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const { notify } = useActionFeedback();
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -51,11 +54,21 @@ export function PartnerEditForm({
           status: form.status,
         }),
       });
-      if (!res.ok) throw new Error("Save failed");
+      if (!res.ok) {
+        throw new Error(await getApiErrorMessage(res, "Could not save partner."));
+      }
+      notify({ kind: "success", title: "Partner changes saved" });
       router.refresh();
       onSaved?.();
-    } catch {
-      setMessage("Failed to save — try again");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Please try again.";
+      setMessage(errorMessage);
+      notify({
+        kind: "error",
+        title: "Partner changes were not saved",
+        message: errorMessage,
+      });
     } finally {
       setPending(false);
     }

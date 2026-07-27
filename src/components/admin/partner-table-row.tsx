@@ -28,6 +28,8 @@ import {
 } from "@/lib/icons/client";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
 import { ClientStoreKeys, clientStore } from "@/lib/client-store";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 type Partner = {
   id: string;
@@ -138,7 +140,7 @@ function PartnerRowMenu({
   actions: ActionDef[];
   pending: ActionKey | null;
   confirmDelete: boolean;
-  onAction: (key: ActionKey) => void;
+  onAction: (key: ActionKey) => Promise<boolean>;
   layout: PortalDataTableLayout;
 }) {
   const [open, setOpen] = useState(false);
@@ -235,8 +237,9 @@ function PartnerRowMenu({
                   disabled={pending !== null}
                   className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors disabled:opacity-60 ${itemClass}`}
                   onClick={() => {
-                    if (a.key !== "delete" || confirmDelete) setOpen(false);
-                    onAction(a.key);
+                    void onAction(a.key).then((shouldClose) => {
+                      if (shouldClose) setOpen(false);
+                    });
                   }}
                 >
                   {isThisLoading ? (
@@ -267,26 +270,47 @@ export function PartnerTableRow({
   const { push, router } = useNavigateWithPending();
   const [pending, setPending] = useState<ActionKey | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { notify } = useActionFeedback();
 
   const actions = actionMap[partner.status] ?? [];
   const badgeVariant = statusBadgeVariant[partner.status] ?? "slate";
   const badgeLabel = statusLabel[partner.status] ?? partner.status;
 
-  async function handleAction(key: ActionKey) {
+  async function handleAction(key: ActionKey): Promise<boolean> {
     if (key === "delete") {
       if (!confirmDelete) {
         setConfirmDelete(true);
-        return;
+        return false;
       }
       setPending("delete");
-      await fetch(`/api/admin/partners/${partner.id}`, { method: "DELETE" });
-      clientStore.invalidate([
-        ClientStoreKeys.adminPartners,
-        ClientStoreKeys.adminFilterList,
-        ClientStoreKeys.adminDashboard,
-      ]);
-      router.refresh();
-      return;
+      try {
+        const response = await fetch(`/api/admin/partners/${partner.id}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          throw new Error(
+            await getApiErrorMessage(response, "Could not delete partner."),
+          );
+        }
+        clientStore.invalidate([
+          ClientStoreKeys.adminPartners,
+          ClientStoreKeys.adminFilterList,
+          ClientStoreKeys.adminDashboard,
+        ]);
+        notify({ kind: "success", title: "Partner deleted" });
+        router.refresh();
+      } catch (error) {
+        notify({
+          kind: "error",
+          title: "Partner was not deleted",
+          message:
+            error instanceof Error ? error.message : "Please try again.",
+        });
+      } finally {
+        setPending(null);
+        setConfirmDelete(false);
+      }
+      return true;
     }
 
     setConfirmDelete(false);
@@ -298,27 +322,53 @@ export function PartnerTableRow({
       activate: "active",
     };
 
-    if (key === "approve") {
-      await fetch("/api/admin/partners/approve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partnerId: partner.id, action: "approve" }),
+    try {
+      const response =
+        key === "approve"
+          ? await fetch("/api/admin/partners/approve", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                partnerId: partner.id,
+                action: "approve",
+              }),
+            })
+          : await fetch(`/api/admin/partners/${partner.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: statusMap[key] }),
+            });
+      if (!response.ok) {
+        throw new Error(
+          await getApiErrorMessage(response, "Could not update partner."),
+        );
+      }
+      clientStore.invalidate([
+        ClientStoreKeys.adminPartners,
+        ClientStoreKeys.adminFilterList,
+        ClientStoreKeys.adminDashboard,
+      ]);
+      notify({
+        kind: "success",
+        title:
+          key === "approve"
+            ? "Partner approved"
+            : key === "block"
+              ? "Partner blocked"
+              : "Partner activated",
       });
-    } else {
-      await fetch(`/api/admin/partners/${partner.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: statusMap[key] }),
+      router.refresh();
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Partner was not updated",
+        message:
+          error instanceof Error ? error.message : "Please try again.",
       });
+    } finally {
+      setPending(null);
     }
-
-    setPending(null);
-    clientStore.invalidate([
-      ClientStoreKeys.adminPartners,
-      ClientStoreKeys.adminFilterList,
-      ClientStoreKeys.adminDashboard,
-    ]);
-    router.refresh();
+    return true;
   }
 
   return (

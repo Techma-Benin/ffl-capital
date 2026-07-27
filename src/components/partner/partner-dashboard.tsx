@@ -10,6 +10,7 @@ import { isPartnerActive } from "@/lib/partner/active";
 import { Wallet, FileText, TrendUp, ShoppingBag, MapPin, WarningCircle } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
 import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyStatValueClassName } from "@/lib/format-money";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 
 type RecentDelivery = {
   id: string;
@@ -34,6 +35,7 @@ type DashboardStats = {
 
 export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
   const { partner } = usePartner();
+  const { push } = useNavigateWithPending();
   const active = isPartnerActive(partner);
   const balance = partner.walletBalance;
   const statesOk = partner.hasEligibleFilterSet;
@@ -117,7 +119,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
               </thead>
               <tbody>
                 {stats.recentDeliveries.map((d) => (
-                  <tr key={d.id} className="cursor-pointer hover:bg-brand-50 transition-colors" onClick={() => { window.location.href = `/partner/leads/${d.id}`; }}>
+                  <tr key={d.id} className="cursor-pointer hover:bg-brand-50 transition-colors" onClick={() => push(`/partner/leads/${d.id}`)}>
                     <td
                       className="font-medium text-slate-900"
                       title={`${d.lead.firstName} ${d.lead.lastName}`}

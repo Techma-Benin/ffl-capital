@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
-import { APP_SETTING_KEYS } from "@/lib/settings/app-settings";
+import {
+  APP_SETTING_KEYS,
+  getAppSettingsMap,
+} from "@/lib/settings/app-settings";
 
 const settingsSchema = z.object({
   defaultRealtimePrice: z.number().positive().optional(),
@@ -40,11 +43,7 @@ export async function GET() {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
-  const rows = await prisma.appSetting.findMany({
-    where: { key: { in: Object.values(APP_SETTING_KEYS) } },
-  });
-
-  const settings = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const settings = await getAppSettingsMap();
   return NextResponse.json({ settings });
 }
 

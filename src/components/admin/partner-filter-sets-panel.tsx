@@ -11,6 +11,8 @@ import {
   adminPartnerFilterSetNewPath,
 } from "@/lib/filter-sets/routes";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 // Re-export shared types so existing importers keep working
 export type {
@@ -45,6 +47,7 @@ export function PartnerFilterSetsPanel({
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const { notify } = useActionFeedback();
 
   useEffect(() => {
     fetch("/api/admin/lead-categories")
@@ -69,10 +72,19 @@ export function PartnerFilterSetsPanel({
         `/api/admin/partners/${partnerId}/filter-sets/${filterSetId}`,
         { method: "DELETE" },
       );
-      if (!res.ok) throw new Error("Delete failed");
+      if (!res.ok) {
+        throw new Error(
+          await getApiErrorMessage(res, "Could not delete filter set."),
+        );
+      }
+      notify({ kind: "success", title: "Filter set deleted" });
       router.refresh();
-    } catch {
-      // allow retry
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Filter set deletion failed",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setDeletingId(null);
     }

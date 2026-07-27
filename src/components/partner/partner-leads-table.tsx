@@ -23,6 +23,8 @@ import {
   type PortalDataTableLayout,
 } from "@/components/ui/portal-data-table";
 import { RefundRequestModal } from "@/components/refunds/refund-request-modal";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { getApiErrorMessage } from "@/lib/client-api-error";
 
 type DeliveryRow = {
   id: string;
@@ -56,6 +58,7 @@ function PartnerLeadRefundDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { notify } = useActionFeedback();
 
   return (
     <RefundRequestModal
@@ -73,8 +76,13 @@ function PartnerLeadRefundDialog({
             reason: reason || undefined,
           }),
         });
-        if (!res.ok) throw new Error("Request failed");
+        if (!res.ok) {
+          throw new Error(
+            await getApiErrorMessage(res, "Could not submit refund request."),
+          );
+        }
         onClose();
+        notify({ kind: "success", title: "Refund request submitted" });
         router.refresh();
       }}
     />
@@ -174,6 +182,7 @@ export function PartnerLeadsTable({
   tableFooter?: React.ReactNode;
 }) {
   const { push, router } = useNavigateWithPending();
+  const { notify } = useActionFeedback();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
   const [bulkRefundOpen, setBulkRefundOpen] = useState(false);
@@ -280,12 +289,28 @@ export function PartnerLeadsTable({
           })),
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        throw new Error(
+          await getApiErrorMessage(
+            res,
+            "Could not submit the selected refund requests.",
+          ),
+        );
+      }
+      const submittedCount = refundableSelected.length;
       setSelected(new Set());
       setBulkRefundOpen(false);
+      notify({
+        kind: "success",
+        title: `${submittedCount} refund request${submittedCount === 1 ? "" : "s"} submitted`,
+      });
       router.refresh();
-    } catch {
-      /* allow retry */
+    } catch (error) {
+      notify({
+        kind: "error",
+        title: "Refund requests failed",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
     } finally {
       setPending(false);
     }

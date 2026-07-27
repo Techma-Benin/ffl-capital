@@ -63,9 +63,20 @@ export async function fetchAdminDashboardRawData(
           receivedAt: { gte: window.gte, lte: window.lte },
         },
         orderBy: { receivedAt: "desc" },
-        include: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          state: true,
+          leadType: true,
+          status: true,
+          receivedAt: true,
           leadDeliveries: {
-            include: { partner: true },
+            select: {
+              partner: {
+                select: { firstName: true, lastName: true },
+              },
+            },
             orderBy: { deliveredAt: "desc" },
             take: 1,
           },

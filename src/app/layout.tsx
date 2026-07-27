@@ -5,6 +5,7 @@ import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import { AppDotSpotlight } from "@/components/layout/app-dot-spotlight";
 import { SolarIconsProvider } from "@/components/providers/solar-icons-provider";
+import { ActionFeedbackProvider } from "@/components/ui/action-feedback";
 import { clerkAppearance } from "@/lib/auth/clerk-appearance";
 import { isClerkConfigured } from "@/lib/auth/roles";
 
@@ -30,7 +31,9 @@ export default function RootLayout({
         <NextTopLoader color="#1d4ed8" height={3} showSpinner={false} />
         <AppDotSpotlight />
         <div className="relative z-[1]">
-          <SolarIconsProvider>{children}</SolarIconsProvider>
+          <SolarIconsProvider>
+            <ActionFeedbackProvider>{children}</ActionFeedbackProvider>
+          </SolarIconsProvider>
         </div>
       </body>
     </html>
