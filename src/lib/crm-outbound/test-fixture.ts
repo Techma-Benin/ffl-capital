@@ -53,6 +53,8 @@ export function buildCrmOutboundTestSourcePayload(partnerId: string, partnerEmai
     status: LeadStatus.delivered,
     externalId: "TEST-LEAD-001",
     rawPayload: null,
+    agedSaleCount: 0,
+    agedAvailableAfter: null,
     createdAt: now,
     updatedAt: now,
   };

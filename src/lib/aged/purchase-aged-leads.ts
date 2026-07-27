@@ -6,7 +6,11 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
-import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
+import {
+  buildAgedLeadWhere,
+  getNextAgedBracketStart,
+  AGED_RETIRED_SENTINEL,
+} from "@/lib/aged/eligibility";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { debitWallet } from "@/lib/wallet/ledger";
@@ -86,6 +90,32 @@ async function purchaseSingleAgedLead(
       tx,
       leadDeliveryId: delivery.id,
       description: `Aged lead purchase: ${lead.state}`,
+    });
+
+    // Increment aged sale count and determine next availability
+    const newSaleCount = lead.agedSaleCount + 1;
+    let agedAvailableAfter: Date | null = null;
+
+    if (newSaleCount >= 2) {
+      // Lead has been sold twice — permanently retire it from the marketplace
+      agedAvailableAfter = AGED_RETIRED_SENTINEL;
+    } else {
+      // First sale — hide it until it ages into the next bracket
+      const nextBracket = getNextAgedBracketStart(lead.receivedAt);
+      if (nextBracket) {
+        agedAvailableAfter = nextBracket;
+      } else {
+        // Already in the final (90+) bracket; retire after first purchase too
+        agedAvailableAfter = AGED_RETIRED_SENTINEL;
+      }
+    }
+
+    await tx.lead.update({
+      where: { id: lead.id },
+      data: {
+        agedSaleCount: newSaleCount,
+        agedAvailableAfter,
+      },
     });
 
     return delivery.id;
