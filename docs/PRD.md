@@ -392,21 +392,19 @@ Phase D — Migration Replit (livraison client)
 **Éligibilité listing (séparée de `available` et des filter sets temps réel) :**
 - `now - received_at ≥ 30 jours` (seuil admin configurable)
 - `status != dead`
-- **Gate #82** : `aged_sale_count < 2` et (`aged_available_after` null ou `≤ now`)
 - **Pas de condition `available = true`** — un lead déjà vendu en temps réel (`available=false`) peut être listé
 - **Pas d’application des `partner_filter_sets`** sur le browse : le partenaire voit l’inventaire aged global et filtre via l’UI (état, type, âge)
 
 **Achat partner :**
 - Manuel (unitaire ou checkboxes) ; débit wallet (prix aged config admin, défaut 5 $)
 - Compte `active` + solde wallet suffisant
-- Lead toujours éligible aged au moment de l’achat (âge / hors `dead` / gate #82)
+- Lead toujours éligible aged au moment de l’achat (même règles d’âge / hors `dead`)
 - **Pas** de contrôle état ∈ filter set ni égalité `lead_type` compte (distinct du matching temps réel)
 - Créer `lead_delivery` channel=`aged`
-- Mettre à jour `aged_sale_count` (+1) et `aged_available_after` (prochaine tranche 60/90 j, ou sentinel de retrait si 2ᵉ vente / plus de tranche)
 - `available` **reste `false`** (déjà vendu ou non — inchangé)
 - Email + CRM
 
-**Plafond aged (#82) :** max **2** ventes aged par lead ; cooldown entre tranches d’âge **30 / 60 / 90** j. Un lead = un acheteur aged à la fois (verrou via transaction).
+**Pas de plafond** de ventes aged par lead (décision équipe). Un lead = un acheteur aged à la fois (verrou via transaction ou flag dédié si besoin).
 
 ### 5.8 Remboursements
 
@@ -588,25 +586,22 @@ Connexion → Dashboard (lecture seule si tout va bien)
 | Événement | `available` (temps réel) | Aged marketplace |
 |-----------|--------------------------|------------------|
 | Création | `true` | non éligible (< 30 j) |
-| Vente temps réel | `false` | — |
-| Achat aged (1ʳᵉ) | `false` | cooldown tranche suivante |
-| Achat aged (2ᵉ) | `false` | retiré (sentinel) |
-| Remboursement type A approuvé | `true` (rematch, même si > 30 j) | selon âge + gate #82 |
+| Vente temps réel ou aged | `false` | — |
+| Remboursement type A approuvé | `true` (rematch, même si > 30 j) | inchangé |
 | Remboursement type B approuvé | `false` (lead mort) | exclu |
-| J+30, lead vendu (cycle normal) | **`false`** (reste vendu) | **éligible** si gate #82 OK |
-| Revente après remboursement type A | `false` après vente | selon âge / statut / #82 |
+| J+30, lead vendu (cycle normal) | **`false`** (reste vendu) | **éligible** via critère âge, pas via `available` |
+| Revente après remboursement type A | `false` après vente | selon âge / statut |
 
 ### Aged leads — critères (séparés de `available`)
 
 Un lead peut apparaître en marketplace aged quand :
 - `now - received_at ≥ 30 jours`
 - `status != dead`
-- `aged_sale_count < 2` et (`aged_available_after` null ou `≤ now`) — ticket #82
 - **sans** exiger `available = true` (un lead déjà vendu en temps réel reste `available=false` mais peut être proposé en aged à 5 $)
 
-Requête indicative : âge + hors `dead` + gate #82 + filtres UI (état, type, âge) — **pas** le booléen `available`, **pas** les filter sets partner.
+Requête indicative : âge + état + type IUL + filtres partner — **pas** le booléen `available`.
 
-Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste `false` ; `aged_sale_count` / `aged_available_after` mis à jour (cooldown tranche suivante ou retrait à 2 ventes).
+Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste `false`.
 
 ### Filtres agent
 
@@ -619,9 +614,9 @@ Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste 
 
 - Âge = `now - received_at`
 - Lead **vendu** en temps réel : `available` reste **`false`**
-- À **J+30** : le lead devient listable en **marketplace aged** (5 $) via critère d’âge + gate #82 — **sans** repasser `available` à `true`
-- Listing aged : ≥ **30 jours** ; buckets UI **30 / 60 / 90** j ; revente gated sur les mêmes seuils après achat
-- Tranches d’âge affichées plus fines (ex. 15–30 j) : **V2**
+- À **J+30** : le lead devient listable en **marketplace aged** (5 $) via critère d’âge — **sans** repasser `available` à `true`
+- Listing aged : ≥ **30 jours**
+- Tranches d’âge affichées (15–30 j, etc.) : **V2**
 
 ### Remboursement type A et âge du lead
 
@@ -703,14 +698,12 @@ migration_jobs                    │
 | received_at | timestamp | **Référence aging** |
 | available | boolean | Défaut true |
 | refundable | boolean | Défaut true |
-| aged_sale_count | int | Défaut 0 — ventes aged (max 2, #82) |
-| aged_available_after | timestamp nullable | null = OK ; futur = cooldown ; sentinel = retiré |
 | status | enum | unmatched \| delivered \| integrity_posted \| aged_listed |
 | external_id | string nullable | ID LeadConduit / Boberdoo migration |
 | raw_payload | jsonb nullable | Payload webhook brut (debug) |
 | created_at, updated_at | timestamp | |
 
-**Index :** state, status, available, received_at, (available, received_at), (aged_sale_count, aged_available_after)
+**Index :** state, status, available, received_at, (available, received_at) pour aged query
 
 ### Table `lead_deliveries`
 
@@ -847,9 +840,8 @@ Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo u
 - [ ] Lead entre → match agent CA priorité 10
 - [ ] Wallet insuffisant → pas de livraison
 - [ ] Unmatched 24 h → Integrity mock
-- [ ] J+30 → aged listing **sans** `available=true` (gate #82 OK)
-- [ ] Achat aged checkboxes → débit wallet + update `aged_sale_count` / `aged_available_after`
-- [ ] 2ᵉ achat aged → lead retiré ; cooldown entre tranches 30/60/90
+- [ ] J+30 → aged listing **sans** `available=true`
+- [ ] Achat aged checkboxes → débit wallet
 - [ ] Remboursement type A → rematch priorité suivante, prix d’origine
 - [ ] Remboursement type B → crédit wallet, lead mort (pas de redistribution)
 - [ ] Signup → portail non actif → onboarding → admin approve → ≥ 15 états → active
@@ -910,7 +902,6 @@ Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo u
 
 - Seuil aged configurable (défaut J+30)
 - Marketplace aged (unitaire + checkboxes)
-- Règles achat #82 : max 2 ventes + cooldown tranches 30/60/90
 - Workflow remboursement in-app (Type A/B)
 - Routage post-remboursement
 
@@ -936,8 +927,9 @@ Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo u
 - Frais de retraitement (montant à définir plus tard)
 - Factures PDF
 - Panier aged leads persistant
-- Tranches d'âge aged affinées dans les filtres (au-delà des buckets 30/60/90)
+- Tranches d'âge aged affinées dans les filtres
 - Filtres matching au-delà état + type IUL
+- Plafond ventes aged
 - Accès Meta Ads Manager
 - App mobile native
 - Multi-langue
@@ -958,7 +950,7 @@ Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo u
 | D8 | Remboursement in-app obligatoire ; admin vérifie (appel si numéro invalide) |
 | D9 | **Deux types remboursement** : A = rematch prix origine ; B = lead mort, pas redistribution |
 | D10 | Aged : achat unitaire + checkboxes V1 |
-| D11 | Aged : **max 2 ventes** + cooldown tranches 30/60/90 (`aged_sale_count` / `aged_available_after`, #82) |
+| D11 | Pas de plafond ventes aged |
 | D12 | Recharge wallet manuelle + récurrente |
 | D13 | Payload/champs/API : sourcer via Boberdoo — pas demander à cliente |
 | D14 | Dev Cursor → deploy Netlify+Supabase → migration Replit |

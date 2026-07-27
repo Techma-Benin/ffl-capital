@@ -5,6 +5,24 @@
  * Same style as test-outbound / test-matching.
  *
  * Run: pnpm run test:aged-rules
+ *
+ * This file intentionally imports ONLY from production modules. It will fail to
+ * load until #82 lands the exports below on `src/lib/aged/eligibility.ts`.
+ * That is expected — do not add reference copies or a PRODUCTION_IMPORTS flag.
+ *
+ * Expected production exports (from `../src/lib/aged/eligibility`):
+ *   - AGED_RETIRED_SENTINEL
+ *   - AgedLeadAvailability (type)
+ *   - getNextAgedBracketAvailableAfter(receivedAt, now?)
+ *   - isAgedMarketplaceEligible(lead, now?)
+ *   - agedMarketplaceEligibilityWhere(now?)
+ *   - computeAgedSaleUpdate(lead, now?)
+ *   - buildAgedLeadWhereWithCutoff(cutoff, extra?, now?)  // must AND #82 gate
+ *   - getAgedCutoffDateSync(days?)                       // already exists today
+ *
+ * Also uses existing admin helpers:
+ *   - partnerAgedLeadAgeDays / partnerAgedLeadMatchesAgeBucket
+ *     from `../src/lib/admin/admin-aged-leads-filters`
  */
 
 import assert from "node:assert/strict";
@@ -24,6 +42,29 @@ import {
   isAgedMarketplaceEligible,
   type AgedLeadAvailability,
 } from "../src/lib/aged/eligibility";
+
+// tsx does not fail on missing named imports — guard so this script exits
+// immediately until #82 ships the expected production helpers.
+const requiredExports: Record<string, unknown> = {
+  AGED_RETIRED_SENTINEL,
+  agedMarketplaceEligibilityWhere,
+  computeAgedSaleUpdate,
+  getNextAgedBracketAvailableAfter,
+  isAgedMarketplaceEligible,
+};
+const missing = Object.entries(requiredExports)
+  .filter(([, v]) => v == null)
+  .map(([name]) => name);
+if (missing.length > 0) {
+  console.error(
+    "\n#82 production helpers missing from src/lib/aged/eligibility.ts:\n  - " +
+      missing.join("\n  - "),
+  );
+  console.error(
+    "\nImplement those exports (issue #82) before running pnpm run test:aged-rules.\n",
+  );
+  process.exit(1);
+}
 
 function daysAgo(days: number, from: Date = new Date()): Date {
   const d = new Date(from.getTime());

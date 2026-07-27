@@ -31,7 +31,7 @@
 | **Partner** | Acheteur de leads — **terme UI et métier** (parité Boberdoo). Une personne = un compte. |
 | **Company** | Nom d’agence / affiliation (champ texte sur le profil partner) |
 | **Lead temps réel** | Lead frais (~25 $) distribué automatiquement à un agent actif |
-| **Aged lead** | Lead présent dans le système depuis **30+ jours**, revendu à **5 $** ; max **2** ventes aged, avec cooldown entre tranches 30 / 60 / 90 j (#82) |
+| **Aged lead** | Lead présent dans le système depuis **30+ jours**, revendu à **5 $** |
 | **Actif** | Agent dont le wallet couvre au moins le prix d’un lead |
 | **Priorité (1–10)** | Poids de routage ; priorité 10 bat priorité 8 pour le même état |
 | **TrustedForm** | Certificat de consentement légal généré lors du remplissage du formulaire |
@@ -109,9 +109,9 @@ Un lead est **vendu** quand il est assigné à un agent :
 - Le lead **ne réapparaît pas** dans la file temps réel
 - Il **reste en base** (important pour aged leads)
 - Après **30 jours** : peut être proposé comme **aged lead** à 5 $ (même s’il avait déjà été vendu une fois — le client le confirme explicitement)
-- Après un achat aged : cooldown jusqu’à la tranche suivante (60 j puis 90 j) ; **retrait définitif** après **2** ventes aged (voir §4.1)
 - Possibilité de **rembourser** + **revendre** avec frais de retraitement
-- En temps normal : **1 seul propriétaire** par livraison temps réel (règle fixe, pas une config admin globale)
+- En temps normal : **1 seul propriétaire** par livraison (règle fixe, pas une config admin globale)
+- Exception : l’admin peut augmenter le plafond de ventes **sur un lead précis** lors d’un remboursement/revente (voir §4.1 et §7)
 
 Références Loom :
 - Matching automatique : **16:43 – 17:08**
@@ -122,28 +122,27 @@ Références Loom :
 
 **Règle métier retenue :**
 
-> **`available` = matching temps réel uniquement.** La marketplace aged utilise l’**âge du lead (J+30)**, les champs `aged_sale_count` / `aged_available_after` (#82), et **n’applique pas** les filter sets partenaire — filtres browse = UI (`state`, `type`, `age`) uniquement.
+> **`available` = matching temps réel uniquement.** La marketplace aged utilise l’**âge du lead (J+30)** et **n’applique pas** les filter sets partenaire — filtres browse = UI (`state`, `type`, `age`) uniquement.
 
 | Événement | `available` (temps réel) | Marketplace aged |
 |-----------|--------------------------|------------------|
 | Lead entre dans le système | `true` | non (< 30 j) |
-| Vendu temps réel | `false` | éligible à J+30 si pas `dead` et gate #82 |
-| Remboursement type A | `true` (rematch) | selon âge + gate #82 |
+| Vendu temps réel ou aged | `false` | aged : éligible à J+30 si pas `dead` |
+| Remboursement type A | `true` (rematch) | selon âge |
 | Remboursement type B | `false` (lead mort) | exclu |
-| J+30, lead déjà vendu (temps réel) | **`false`** (inchangé) | **listable** si gate #82 OK |
-| Achat aged (1ʳᵉ vente) | `false` (inchangé) | delivery channel=`aged` ; cooldown jusqu’à tranche suivante (60 / 90 j) |
-| Achat aged (2ᵉ vente) | `false` (inchangé) | **retiré** du marketplace (`aged_available_after` sentinel) |
+| J+30, lead déjà vendu | **`false`** (inchangé) | **listable** (critère âge) |
+| Achat aged | `false` (inchangé) | delivery channel=`aged` |
 
-**Plafond aged (#82) :** max **2** ventes aged par lead. Après une vente encore sous le plafond, `aged_available_after` = début de la tranche suivante (seuils **30 / 60 / 90** j depuis `received_at`) ; si plus de tranche ou 2 ventes → sentinel `9999-12-31` (retiré).
+**Pas de plafond** sur le nombre de ventes aged (décision équipe v3).
 
-**Historique** (`lead_deliveries`) : savoir **à qui** le lead a été vendu, tracer wallet/transactions, lier les remboursements. Le compteur marketplace aged est sur le lead (`aged_sale_count`), pas dérivé des deliveries.
+**Pas de compteur** `sales_count` sur la table `leads` — le booléen `available` pilote l’achat.
+
+**Historique obligatoire** (table `lead_deliveries` ou `purchases`) : pas pour compter sur le lead, mais pour savoir **à qui** le lead a été vendu, tracer wallet/transactions, et lier les remboursements. L’agent voit « ses » lignes ; l’admin voit tout.
 
 ```
 leads
-  ├── available: boolean           -- matching temps réel uniquement
-  ├── refundable: boolean          -- false après 1er remboursement+revente
-  ├── aged_sale_count              -- ventes aged (max 2)
-  ├── aged_available_after         -- null = OK ; futur = cooldown ; sentinel = retiré
+  ├── available: boolean      -- peut-on encore vendre ce lead ?
+  ├── refundable: boolean     -- false après 1er remboursement+revente
   ├── received_at
   └── ...
 
@@ -310,7 +309,6 @@ resale_postings                   -- envois IntegrityCONNECT
 | Emails livraison (Resend), CRM outbound POST (wizard) | ✅ |
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
-| Règles achat aged #82 (max 2 + tranches) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
 | Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue), partners, refunds, **aged browse** (tri URL + pagination), settings, migration, filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées), wallet, aged, settings, contact, refunds | ✅ |
@@ -342,7 +340,7 @@ resale_postings                   -- envois IntegrityCONNECT
 - [x] Moteur de matching (filter sets + priorité + wallet actif)
 - [x] Statuts lead + file unmatched + retraitement 24 h (cron)
 - [x] Débit wallet + ledger
-- [x] Marketplace aged (seuil configurable + règles #82 max 2 ventes / tranches)
+- [x] Marketplace aged (seuil configurable)
 - [x] Emails (Resend si clé configurée)
 
 ### UI fonctionnelle (**terminé — polish partiel**)
@@ -353,7 +351,7 @@ resale_postings                   -- envois IntegrityCONNECT
 - [x] Admin partners : liste, approbation, détail **P5** (profil + conformité CRM : colonne résumé, stats, checklist, filter sets en lignes, activité unifiée ; édition compte (modal « Edit account » depuis l’en-tête ou Account & CRM ; avatar 96px sur la carte profil — photo Clerk si `Partner.clerkUserId` renseigné, sinon initiales du nom ; partenaires seed type « Dashboard Demo » sans compte Clerk lié)), filter sets (création/édition pages `/admin/partners/[id]/filter-sets/new` et `…/[filterSetId]/edit` ; retour filter list via `?returnTo=/admin/filter-list`) ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; toggle cartes/tableau + colonnes masquables (`localStorage` `admin-partners-table-layout`, `admin-partners-visible-columns`)
 - [x] Admin Filter List (`/admin/filter-list`) : sets live + templates SSR ; templates via `/admin/filter-sets/templates/new` et `…/[id]/edit` ; éditeur partagé `FilterSetEditorPage` / `FilterSetForm` (admin live, templates, partner) — plus de modal d’édition ; partner ne voit pas prix/priorité ; Attribution absente du formulaire filter set **et** de l’onboarding (clés stripées à la sauvegarde) ; Intent / Have IUL = multi-select partagé (`AdvancedFiltersFields`) — options = valeurs distinctes leads + **Empty** (`"empty"`), préfetchées SSR via `getLeadFilterCriteriaOptions()` (pas de fetch à l’ouverture du dropdown)
 - [x] Admin refunds : file pending + historique
-- [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`, gate #82 `aged_sale_count` / `aged_available_after`), KPI Available + filtres URL (`state`, `type`, `status`, `age`), tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id`
+- [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`), KPI Available + filtres URL (`state`, `type`, `status`, `age`), tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id`
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
 - [x] Partner settings (Profile + Lead delivery half/half ; wizard CRM `/partner/settings/crm-outbound`) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner/templates, plus de modal
 
@@ -501,11 +499,11 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | Format CRM custom delivery | Écrans **Boberdoo** (config agent) |
 | Égalité de priorité | **FIFO** — partner inscrit le plus tôt en premier |
 | Filtres matching V1 | **État + type IUL** uniquement ; **min 15 états** ; pas de filtre horaire |
-| Plafond ventes aged | **Max 2** + cooldown tranches 30/60/90 (#82, juil. 2026) |
+| Plafond ventes aged | **Aucun** pour l’instant |
 | Domaine | **Mono-domaine** pour tous |
 | Email identifiants signup | **Non** — Clerk gère l’auth |
 | Aged UX V1 | **Achat unitaire + checkboxes** ; panier plus tard |
-| Tranches d’âge aged | Buckets UI 30/60/90 + **gate revente** post-achat (#82) |
+| Tranches d’âge aged | **Plus tard** |
 | Factures PDF | **Pas obligatoire** V1 |
 | Recharge wallet | **Manuelle + récurrente** toutes les deux |
 
