@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RefundType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
@@ -7,7 +6,7 @@ import { processRefundApproval } from "@/lib/refunds/process-refund";
 import { getPartnerId } from "@/lib/partner/session";
 
 const refundSchema = z.object({
-  refundType: z.enum(["wrong_filter", "invalid_phone"]),
+  refundType: z.literal("invalid_phone"),
   reason: z.string().max(500).optional(),
   leadDeliveryId: z.string().uuid().optional(),
   autoApprove: z.boolean().optional(),
@@ -62,7 +61,7 @@ export async function POST(
     data: {
       leadDeliveryId: delivery.id,
       partnerId: delivery.partnerId,
-      refundType: parsed.data.refundType as RefundType,
+      refundType: parsed.data.refundType,
       reason: parsed.data.reason ?? "Admin-initiated refund",
     },
   });

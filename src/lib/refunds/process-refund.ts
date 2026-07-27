@@ -64,19 +64,6 @@ export async function processRefundApproval(
     amount: price,
   });
 
-  if (request.refundType === "wrong_filter") {
-    const matchResult = await matchLead(leadDelivery.leadId, {
-      excludePartnerIds: [partner.id],
-    });
-    if (matchResult.matched && matchResult.deliveryId) {
-      await deliverLead(matchResult.deliveryId);
-      await prisma.lead.update({
-        where: { id: leadDelivery.leadId },
-        data: { refundable: false },
-      });
-    }
-  }
-
   return { refundRequestId, status: "approved" as const };
 }
 

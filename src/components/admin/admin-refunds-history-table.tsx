@@ -37,11 +37,9 @@ type HistoryRefund = {
 };
 
 function refundTypeCounts(refunds: HistoryRefund[]) {
-  const wrong_filter = refunds.filter((r) => r.refundType === "wrong_filter").length;
   const invalid_phone = refunds.filter((r) => r.refundType === "invalid_phone").length;
   return {
     all: refunds.length,
-    wrong_filter,
     invalid_phone,
   };
 }

@@ -1,6 +1,8 @@
 "use client";
 
-import { FileText } from "@/lib/icons/client";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { FileText, ArrowsClockwise } from "@/lib/icons/client";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import { LeadListTableShell } from "@/components/leads/lead-list-table-shell";
@@ -65,6 +67,71 @@ export function AdminLeadsListClient({
   pagination?: React.ReactNode;
 }) {
   const { layout, setLayout } = useAdminLeadsTableLayout();
+  const router = useRouter();
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPending, setBulkPending] = useState(false);
+  const [bulkFeedback, setBulkFeedback] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const handleSelectedChange = useCallback((ids: Set<string>) => {
+    setSelectedIds(ids);
+  }, []);
+
+  async function handleBulkReprocess() {
+    if (bulkPending || selectedIds.size === 0) return;
+    setBulkPending(true);
+    setBulkFeedback(null);
+    try {
+      const res = await fetch("/api/admin/leads/bulk-reprocess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds: Array.from(selectedIds) }),
+      });
+      if (!res.ok) throw new Error("Bulk reprocess failed");
+      const data = (await res.json()) as { processed: number; errors: number };
+      setSelectedIds(new Set());
+      setBulkFeedback({
+        kind: data.errors === 0 ? "success" : "error",
+        message:
+          data.errors === 0
+            ? `${data.processed} lead${data.processed === 1 ? "" : "s"} queued for reprocessing.`
+            : `${data.processed} queued, ${data.errors} failed.`,
+      });
+      router.refresh();
+    } catch {
+      setBulkFeedback({ kind: "error", message: "Bulk reprocess failed. Please try again." });
+    } finally {
+      setBulkPending(false);
+    }
+  }
+
+  const selectionAction =
+    selectedIds.size > 0 ? (
+      <div className="flex items-center gap-2">
+        <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand-700">
+          {selectedIds.size} selected
+        </span>
+        <button
+          type="button"
+          disabled={bulkPending}
+          onClick={() => void handleBulkReprocess()}
+          className="flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60"
+        >
+          <ArrowsClockwise size={13} className={bulkPending ? "animate-spin" : ""} />
+          {bulkPending ? "Processing…" : `Reprocess (${selectedIds.size})`}
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectedIds(new Set())}
+          className="text-xs text-slate-500 hover:text-slate-700 transition-colors"
+        >
+          Clear
+        </button>
+      </div>
+    ) : null;
 
   const viewControls = (
     <>
@@ -83,7 +150,7 @@ export function AdminLeadsListClient({
           <EmptyState
             icon={FileText}
             title="No leads found"
-            description="Try editing this view’s filters or create a new view."
+            description="Try editing this view's filters or create a new view."
             accent="orange"
           />
         }
@@ -98,6 +165,7 @@ export function AdminLeadsListClient({
             filterSummary={filterSummary}
             exportSlot={exportSlot}
             displayControls={viewControls}
+            selectionAction={selectionAction}
           />
         }
       >
@@ -107,6 +175,10 @@ export function AdminLeadsListClient({
           sort={sort}
           layout={layout}
           tableFooter={layout === "table" ? pagination : undefined}
+          selectedIds={selectedIds}
+          onSelectedChange={handleSelectedChange}
+          bulkFeedback={bulkFeedback}
+          onDismissFeedback={() => setBulkFeedback(null)}
         />
       </LeadListTableShell>
     </LeadColumnSettingsBridge>

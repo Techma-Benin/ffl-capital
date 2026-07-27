@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AdminRefundsPendingTable } from "@/components/admin/admin-refunds-pending-table";
 import { AdminRefundsHistoryTable } from "@/components/admin/admin-refunds-history-table";
-import { ArrowCounterClockwise, Clock, Funnel, Phone } from "@/lib/icons/client";
+import { ArrowCounterClockwise, Clock, Phone } from "@/lib/icons/client";
 import { StatCard } from "@/components/ui/stat-card";
 import { ClientStoreKeys, useClientResource } from "@/lib/client-store";
 import type { RefundLeadSnapshot } from "@/lib/admin/refund-lead-snapshot";
@@ -46,7 +46,6 @@ export function AdminRefundsView({
   );
   const pending = data?.pending ?? initial.pending;
   const history = data?.history ?? initial.history;
-  const typeACount = pending.filter((r) => r.refundType === "wrong_filter").length;
   const typeBCount = pending.filter((r) => r.refundType === "invalid_phone").length;
 
   return (
@@ -56,15 +55,8 @@ export function AdminRefundsView({
         subtitle="Review and approve partner refund requests"
       />
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+      <div className="mb-5 grid gap-4 sm:grid-cols-2">
         <StatCard label="Pending" value={pending.length} icon={Clock} accent="orange" />
-        <StatCard
-          label="Wrong Filter"
-          value={typeACount}
-          icon={Funnel}
-          accent="amber"
-          valueClassName="text-amber-700"
-        />
         <StatCard
           label="Invalid Phone"
           value={typeBCount}

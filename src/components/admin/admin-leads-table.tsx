@@ -156,6 +156,10 @@ export function AdminLeadsTable({
   sort,
   layout = "cards",
   tableFooter,
+  selectedIds,
+  onSelectedChange,
+  bulkFeedback,
+  onDismissFeedback,
 }: {
   leads: LeadRow[];
   columns: PortalDataTableColumn[];
@@ -166,14 +170,12 @@ export function AdminLeadsTable({
   };
   layout?: PortalDataTableLayout;
   tableFooter?: React.ReactNode;
+  selectedIds: Set<string>;
+  onSelectedChange: (ids: Set<string>) => void;
+  bulkFeedback?: { kind: "success" | "error"; message: string } | null;
+  onDismissFeedback?: () => void;
 }) {
   const { router } = useNavigateWithPending();
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkPending, setBulkPending] = useState(false);
-  const [bulkFeedback, setBulkFeedback] = useState<{
-    kind: "success" | "error";
-    message: string;
-  } | null>(null);
 
   const eligibleLeads = leads.filter(isEligibleForReprocess);
   const eligibleIds = new Set(eligibleLeads.map((l) => l.id));
@@ -181,54 +183,23 @@ export function AdminLeadsTable({
   const allEligibleSelected =
     eligibleLeads.length > 0 &&
     eligibleLeads.every((l) => selectedIds.has(l.id));
-  const someSelected = selectedIds.size > 0;
 
   function toggleAll() {
     if (allEligibleSelected) {
-      setSelectedIds(new Set());
+      onSelectedChange(new Set());
     } else {
-      setSelectedIds(new Set(eligibleLeads.map((l) => l.id)));
+      onSelectedChange(new Set(eligibleLeads.map((l) => l.id)));
     }
   }
 
   function toggleRow(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  async function handleBulkReprocess() {
-    if (bulkPending || selectedIds.size === 0) return;
-    setBulkPending(true);
-    setBulkFeedback(null);
-    try {
-      const res = await fetch("/api/admin/leads/bulk-reprocess", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: Array.from(selectedIds) }),
-      });
-      if (!res.ok) throw new Error("Bulk reprocess failed");
-      const data = (await res.json()) as { processed: number; errors: number };
-      setSelectedIds(new Set());
-      setBulkFeedback({
-        kind: data.errors === 0 ? "success" : "error",
-        message:
-          data.errors === 0
-            ? `${data.processed} lead${data.processed === 1 ? "" : "s"} queued for reprocessing.`
-            : `${data.processed} queued, ${data.errors} failed.`,
-      });
-      router.refresh();
-    } catch {
-      setBulkFeedback({ kind: "error", message: "Bulk reprocess failed. Please try again." });
-    } finally {
-      setBulkPending(false);
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
     }
+    onSelectedChange(next);
   }
 
   // Build the checkbox column with header content
@@ -418,35 +389,6 @@ export function AdminLeadsTable({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Bulk action toolbar */}
-      {someSelected && (
-        <div className="flex items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5">
-          <span className="text-sm font-medium text-brand-800">
-            {selectedIds.size} lead{selectedIds.size === 1 ? "" : "s"} selected
-          </span>
-          <button
-            type="button"
-            disabled={bulkPending}
-            onClick={handleBulkReprocess}
-            className="flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60"
-          >
-            <ArrowsClockwise
-              size={14}
-              className={bulkPending ? "animate-spin" : ""}
-            />
-            {bulkPending
-              ? "Processing…"
-              : `Reprocess Selected (${selectedIds.size})`}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedIds(new Set())}
-            className="text-sm text-brand-600 hover:text-brand-800 transition-colors"
-          >
-            Clear selection
-          </button>
-        </div>
-      )}
 
       {/* Feedback banner */}
       {bulkFeedback && (
@@ -460,7 +402,7 @@ export function AdminLeadsTable({
           <span>{bulkFeedback.message}</span>
           <button
             type="button"
-            onClick={() => setBulkFeedback(null)}
+            onClick={() => onDismissFeedback?.()}
             className="ml-4 text-xs opacity-60 hover:opacity-100"
           >
             ✕

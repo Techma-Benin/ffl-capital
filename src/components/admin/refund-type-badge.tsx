@@ -8,10 +8,6 @@ import {
   type RefundTypeValue,
 } from "@/lib/refunds/constants";
 
-function variantForType(type: string): "yellow" | "red" {
-  return type === "wrong_filter" ? "yellow" : "red";
-}
-
 export function RefundTypeBadge({
   type,
   filterActive,
@@ -21,14 +17,13 @@ export function RefundTypeBadge({
   filterActive?: boolean;
   onFilterClick?: (type: RefundTypeValue) => void;
 }) {
-  const variant = variantForType(type);
   const label = refundTypeLabel(type);
   const canFilter =
     onFilterClick != null &&
     REFUND_TYPES.includes(type as RefundTypeValue);
 
   if (!canFilter) {
-    return <Badge variant={variant}>{label}</Badge>;
+    return <Badge variant="red">{label}</Badge>;
   }
 
   const refundType = type as RefundTypeValue;
@@ -49,7 +44,7 @@ export function RefundTypeBadge({
         "cursor-pointer hover:opacity-90",
       )}
     >
-      <Badge variant={variant} className="pointer-events-none">
+      <Badge variant="red" className="pointer-events-none">
         {label}
       </Badge>
     </button>

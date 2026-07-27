@@ -63,11 +63,9 @@ function refundStateFilterOptions(states: string[]) {
 }
 
 function refundTypeCounts(refunds: PendingRefund[]) {
-  const wrong_filter = refunds.filter((r) => r.refundType === "wrong_filter").length;
   const invalid_phone = refunds.filter((r) => r.refundType === "invalid_phone").length;
   return {
     all: refunds.length,
-    wrong_filter,
     invalid_phone,
   };
 }
@@ -242,19 +240,19 @@ export function AdminRefundsPendingTable({
         onStateChange={handleStateFilterChange}
         stateOptions={stateOptions}
         stateCounts={stateCounts}
+        action={
+          selected.size > 0 ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={bulkApprove}
+              className="btn-primary btn-sm"
+            >
+              {pending ? "Approving…" : `Approve Selected (${selected.size})`}
+            </button>
+          ) : undefined
+        }
       />
-      {selected.size > 0 && (
-        <div className="flex items-center justify-end gap-2 border-b border-slate-100 px-5 py-2">
-          <button
-            type="button"
-            disabled={pending}
-            onClick={bulkApprove}
-            className="btn-primary btn-sm"
-          >
-            {pending ? "Approving…" : `Approve Selected (${selected.size})`}
-          </button>
-        </div>
-      )}
       {filteredRefunds.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm text-slate-500">
           No pending requests match these filters.{" "}

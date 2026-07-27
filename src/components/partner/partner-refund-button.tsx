@@ -21,13 +21,13 @@ export function PartnerRefundButton({
         className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
       >
         <Wallet size={14} weight={ICON_WEIGHT_LINEAR} className="shrink-0" />
-        Refund
+        Invalid number
       </button>
 
       <RefundRequestModal
         open={open}
         onClose={() => setOpen(false)}
-        title="Request Refund"
+        title="Report an invalid number"
         submitLabel="Submit"
         onSubmit={async ({ refundType, reason }) => {
           const res = await fetch("/api/refunds", {

@@ -68,10 +68,6 @@ enum TransactionType {
   reprocessing_fee
 }
 
-enum RefundType {
-  wrong_filter
-  invalid_phone
-}
 
 enum RefundStatus {
   pending
@@ -327,7 +323,7 @@ model RefundRequest {
   leadDeliveryId  String       @map("lead_delivery_id") @db.Uuid
   partnerId       String       @map("partner_id") @db.Uuid
   reason          String?
-  refundType      RefundType   @map("refund_type")
+  refundType      String       @map("refund_type")
   status          RefundStatus @default(pending)
   reviewedById    String?      @map("reviewed_by") @db.Uuid
   reviewedAt      DateTime?    @map("reviewed_at")

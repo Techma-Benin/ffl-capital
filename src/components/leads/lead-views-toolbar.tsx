@@ -47,6 +47,7 @@ export function LeadViewsToolbar({
   filterSummary,
   exportSlot,
   displayControls,
+  selectionAction,
 }: {
   scope: "admin" | "partner";
   apiBase: string;
@@ -62,6 +63,8 @@ export function LeadViewsToolbar({
   exportSlot?: React.ReactNode;
   /** Cards/table layout and column visibility (admin leads parity with partners list). */
   displayControls?: React.ReactNode;
+  /** Bulk selection chip + action buttons rendered in the toolbar row when rows are selected. */
+  selectionAction?: React.ReactNode;
 }) {
   const { push, router } = useNavigateWithPending();
   const columnSettingsBridge = useLeadColumnSettingsBridge();
@@ -231,7 +234,10 @@ export function LeadViewsToolbar({
             onDelete: deleteView,
           }}
         />
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        {selectionAction && (
+        <div className="ml-4 flex items-center">{selectionAction}</div>
+      )}
+      <div className="ml-auto flex shrink-0 items-center gap-2">
           {exportSlot ? (
             <div className="flex items-center gap-1">{exportSlot}</div>
           ) : null}

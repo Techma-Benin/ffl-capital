@@ -51,10 +51,7 @@ export default async function PartnerLeadDetailPage({
           {
             at: refundReq.createdAt.toISOString(),
             label: `Refund ${refundReq.status}`,
-            detail:
-              refundReq.refundType === "wrong_filter"
-                ? "Wrong filter"
-                : "Invalid phone",
+            detail: "Invalid phone",
           },
         ]
       : []),
@@ -78,11 +75,7 @@ export default async function PartnerLeadDetailPage({
       ? formatDateTimeLong(delivery.refundedAt)
       : null,
     refundTypeLabel:
-      refundReq && !isRefunded
-        ? refundReq.refundType === "wrong_filter"
-          ? "Wrong Filter"
-          : "Invalid Phone"
-        : null,
+      refundReq && !isRefunded ? "Invalid Phone" : null,
     refundStatusLabel:
       refundReq && !isRefunded
         ? refundReq.status.charAt(0).toUpperCase() + refundReq.status.slice(1)

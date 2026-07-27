@@ -87,6 +87,7 @@ export function RefundTableFilters({
   onStateChange,
   stateOptions,
   stateCounts,
+  action,
 }: {
   /** `pending`: Type + State category bar. `history`: Type + Decision category bar. */
   mode?: "pending" | "history";
@@ -101,6 +102,8 @@ export function RefundTableFilters({
   onStateChange?: (next: RefundStateFilter) => void;
   stateOptions?: { value: "all" | string; label: string }[];
   stateCounts?: FilterCounts<string>;
+  /** Optional element rendered at the trailing end of the filter row (e.g. bulk action button). */
+  action?: React.ReactNode;
 }) {
   const isHistoryMode = mode === "history" || (mode === undefined && showDecision);
   const isPendingMode = mode === "pending";
@@ -129,7 +132,7 @@ export function RefundTableFilters({
 
   if (!isCategoryBarMode) {
     return (
-      <div className="border-b border-slate-100 px-5 py-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-3">
         <RefundFilterChipRow
           options={REFUND_TYPE_FILTER_OPTIONS}
           value={typeValue}
@@ -137,6 +140,7 @@ export function RefundTableFilters({
           counts={typeCounts}
           ariaLabel="Filter by refund type"
         />
+        {action && <div className="ml-auto">{action}</div>}
       </div>
     );
   }
@@ -188,12 +192,13 @@ export function RefundTableFilters({
         <button
           type="button"
           onClick={clearFilters}
-          className="ml-auto inline-flex items-center gap-1 rounded-sm text-xs text-slate-400 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-1 rounded-sm text-xs text-slate-400 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
         >
           <X size={12} weight={ICON_WEIGHT_LINEAR} aria-hidden />
           Clear
         </button>
       )}
+      {action && <div className="ml-auto">{action}</div>}
     </div>
   );
 }

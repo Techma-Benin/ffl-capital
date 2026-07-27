@@ -31,7 +31,6 @@ export function RefundRequestModal({
     payload: { refundType: RefundTypeValue; reason: string },
   ) => void | Promise<void>;
 }) {
-  const [refundType, setRefundType] = useState<RefundTypeValue>("wrong_filter");
   const [reason, setReason] = useState("");
   const [internalSubmitting, setInternalSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +39,6 @@ export function RefundRequestModal({
 
   useEffect(() => {
     if (!open) return;
-    setRefundType("wrong_filter");
     setReason("");
     setError(null);
     setInternalSubmitting(false);
@@ -54,7 +52,7 @@ export function RefundRequestModal({
     const trackInternal = externalSubmitting === undefined;
     if (trackInternal) setInternalSubmitting(true);
     try {
-      await onSubmit({ refundType, reason });
+      await onSubmit({ refundType: "invalid_phone", reason });
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -89,21 +87,6 @@ export function RefundRequestModal({
           <p className="text-sm text-slate-600">{blockedMessage}</p>
         ) : (
           <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">
-                Refund Type
-              </label>
-              <select
-                value={refundType}
-                onChange={(e) =>
-                  setRefundType(e.target.value as RefundTypeValue)
-                }
-                className="form-select w-full text-sm"
-              >
-                <option value="wrong_filter">Wrong Filter</option>
-                <option value="invalid_phone">Invalid Phone</option>
-              </select>
-            </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
                 Reason (optional)
