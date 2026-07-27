@@ -6,7 +6,10 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
-import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
+import {
+  buildAgedLeadWhere,
+  computeAgedSaleUpdate,
+} from "@/lib/aged/eligibility";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { debitWallet } from "@/lib/wallet/ledger";
@@ -86,6 +89,15 @@ async function purchaseSingleAgedLead(
       tx,
       leadDeliveryId: delivery.id,
       description: `Aged lead purchase: ${lead.state}`,
+    });
+
+    const saleUpdate = computeAgedSaleUpdate({
+      receivedAt: lead.receivedAt,
+      agedSaleCount: lead.agedSaleCount,
+    });
+    await tx.lead.update({
+      where: { id: lead.id },
+      data: saleUpdate,
     });
 
     return delivery.id;

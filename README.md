@@ -62,6 +62,9 @@ curl http://localhost:3000/api/health
 # Tests logique matching (sans DB)
 pnpm run test:matching
 
+# Tests règles achat aged #82 (sans DB)
+pnpm run test:aged-rules
+
 # Tests CRM outbound (SSRF, mapping, success rules — sans DB)
 pnpm run test:outbound
 

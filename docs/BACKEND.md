@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 24 juillet 2026
+> Dernière mise à jour : 27 juillet 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -39,6 +39,7 @@
 | CRM outbound partner (POST self-service) | ✅ — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | Remboursements Type A / Type B | ✅ |
 | Marketplace aged (achat + débit wallet) | ✅ |
+| Règles achat aged #82 (max 2 ventes + tranches) | ✅ `aged_sale_count` / `aged_available_after` |
 | Migration import CSV Boberdoo | ✅ |
 | Cron reprocess unmatched + Integrity post | ✅ (routes ; scheduler prod à configurer) |
 | IntegrityCONNECT ping/post | ✅ mode mock ; live en attente specs client |
@@ -121,6 +122,7 @@ POST /api/leads/intake
 - `20260721120000_lead_list_views` — vues liste leads (seed admin, défaut par partner), RLS
 - `20260724200000_unify_filter_set_templates` — templates → `partner_filter_sets.is_template` ; drop `filter_set_templates`
 - `20260724210000_drop_partner_filter_set_description` — drop `partner_filter_sets.description`
+- `20260727100000_aged_sale_purchase_rules` — `aged_sale_count` / `aged_available_after` + index (#82)
 
 ---
 
@@ -203,9 +205,27 @@ Invalidate typique : actions partner (approve/block/delete), review refund, acha
 | `sort` / `dir` | tri client |
 | `page` | pagination client |
 
+### Éligibilité aged (#82)
+
+Helpers : `src/lib/aged/eligibility.ts`.
+
+| Constante / helper | Rôle |
+|--------------------|------|
+| `AGED_BRACKET_DAYS` | Seuils **30 / 60 / 90** j |
+| `MAX_AGED_SALES` | **2** |
+| `AGED_RETIRED_SENTINEL` | `9999-12-31T00:00:00.000Z` — lead retiré du marketplace |
+| `isAgedMarketplaceEligible` / `agedMarketplaceEligibilityWhere` | `agedSaleCount < 2` ET (`agedAvailableAfter` null ou `<= now`) |
+| `getNextAgedBracketAvailableAfter` | Date d’unlock de la tranche suivante depuis `receivedAt` |
+| `computeAgedSaleUpdate` | Post-achat : incrémente le count ; prochaine dispo ou sentinel |
+| `buildAgedLeadWhereWithCutoff` | Âge ≤ cutoff + hors `dead` + gate #82 ci-dessus |
+
+Schéma lead : `agedSaleCount` (`aged_sale_count`, défaut 0), `agedAvailableAfter` (`aged_available_after`, nullable) ; index `(agedSaleCount, agedAvailableAfter)`. Migration `20260727100000_aged_sale_purchase_rules`.
+
+Tests unitaires (sans DB) : `pnpm run test:aged-rules` → `scripts/test-aged-purchase-rules.ts` (importe les exports prod uniquement).
+
 ### Admin aged browse (`/admin/aged`)
 
-Pas d’API dédiée — page SSR : `buildAdminAgedLeadsWhere()` (`src/lib/admin/admin-aged-leads-filters.ts` → `buildAgedLeadWhereWithCutoff`, seuil `aged_days_threshold`, exclut `status=dead`), prix affiché via `getDefaultAgedPrice()`.
+Pas d’API dédiée — page SSR : `buildAdminAgedLeadsWhere()` (`src/lib/admin/admin-aged-leads-filters.ts` → `buildAgedLeadWhereWithCutoff`, seuil `aged_days_threshold`, exclut `status=dead`, **gate #82**), prix affiché via `getDefaultAgedPrice()`.
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|
@@ -223,7 +243,7 @@ Tri : `src/lib/admin/admin-aged-leads-sort.ts` (`buildAdminAgedLeadOrderBy` — 
 
 ### Partner aged marketplace (`/partner/aged`)
 
-Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `aged_days_threshold`, hors `dead`). **Les filter sets partner ne restreignent pas** le listing ni l’achat aged — seuls le matching temps réel et les remboursements « wrong filter » s’appuient sur les filter sets (`partner_filter_sets.lead_type`).
+Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `aged_days_threshold`, hors `dead`, **gate #82**). **Les filter sets partner ne restreignent pas** le listing ni l’achat aged — seuls le matching temps réel et les remboursements « wrong filter » s’appuient sur les filter sets (`partner_filter_sets.lead_type`).
 
 **Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age/haveIul ; filtres et pagination appliqués **côté client** (pas de re-fetch SSR par changement de filtre). Paramètres URL (`state`, `type`, `age`, `haveIul`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc. Cache : clé `partner-aged` (`client-store`) ; invalidate / patch à l’achat.
 
@@ -234,7 +254,7 @@ Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `
 | `age` | `30` \| `60` \| `90` | Bucket jours sur `receivedAt` (`filterPartnerAgedLeadsInMemory`) |
 | `haveIul` | `Yes` \| `No` \| `empty` | Filtre client sur `haveIul` (`empty` = null/vide) |
 
-**Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet ; pas de garde filter set / min 15 états.
+**Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` (`src/lib/aged/purchase-aged-leads.ts`) : partenaire `active`, lead dans le where aged (incl. gate #82), débit wallet ; puis `computeAgedSaleUpdate` sur le lead (`agedSaleCount++`, `agedAvailableAfter` = prochaine tranche ou sentinel). Pas de garde filter set / min 15 états.
 
 ---
 
@@ -397,7 +417,7 @@ pnpm stripe:listen       # webhook Stripe local
 | p9-2 | Rejet doublon email+téléphone ; idempotence `externalId` |
 | prd-ca / prd-wallet / prd-states / prd-fifo | Règles matching (état, solde, ≥15 états, FIFO) |
 | p9-3 | Limite **hebdomadaire** filter set → unmatched |
-| p9-4 | Éligibilité aged (seuil `aged_days_threshold`) |
+| p9-4 | Éligibilité aged (seuil `aged_days_threshold` + gate #82) |
 | p9-5 | Remboursement Type A (`wrong_filter` → unmatched) et Type B (`invalid_phone` → dead) |
 | p9-6 | Recherche admin par email et téléphone |
 | p9-7 | Cron `POST /api/cron/integrity-post` sur lead unmatched au-delà du délai |
@@ -417,7 +437,7 @@ pnpm stripe:listen       # webhook Stripe local
 | `few-states@ffl-test.local` | 5 états — exclu (< 15) |
 | `pending@ffl-test.local` | `pending_approval` — exclu |
 
-**Test aged marketplace :** créer des leads avec `received_at` backdaté de 31+ jours (pas besoin d'attendre 30 jours réels).
+**Test aged marketplace :** créer des leads avec `received_at` backdaté de 31+ jours (pas besoin d'attendre 30 jours réels). Règles #82 (compteur / tranches) : `pnpm run test:aged-rules`.
 
 ---
 
@@ -444,3 +464,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-23 | Phase 9 — `verify-backend` scénarios complets, `api-base.mjs`, cron dev secret, seed filter set TX priorité 10 |
 | 2026-07-24 | Templates filter set unifiés dans `partner_filter_sets` (`isTemplate`) ; matching exclut les templates ; APIs `/filter-set-templates` inchangées |
 | 2026-07-24 | Intent / Have IUL : multi-select + `"empty"` ; Attribution retirée de l’onboarding (aligné filter sets) ; options critères préfetch SSR |
+| 2026-07-27 | Ticket #82 — règles achat aged : `aged_sale_count` / `aged_available_after`, max 2 ventes, cooldown tranches 30/60/90 ; helpers `eligibility.ts` + update post-achat |

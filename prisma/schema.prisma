@@ -264,6 +264,10 @@ model Lead {
   available               Boolean    @default(true)
   refundable              Boolean    @default(true)
   status                  LeadStatus @default(unmatched)
+  /** Aged marketplace: how many times this lead has been sold as aged (max 2). */
+  agedSaleCount           Int        @default(0) @map("aged_sale_count")
+  /** Null = available now; set to next bracket boundary or far-future when retired. */
+  agedAvailableAfter      DateTime?  @map("aged_available_after")
   externalId              String?    @map("external_id")
   rawPayload              Json?      @map("raw_payload")
   createdAt               DateTime   @default(now()) @map("created_at")
@@ -278,6 +282,7 @@ model Lead {
   @@index([available, receivedAt])
   @@index([externalId])
   @@index([email, phone])
+  @@index([agedSaleCount, agedAvailableAfter])
   @@map("leads")
 }
 
