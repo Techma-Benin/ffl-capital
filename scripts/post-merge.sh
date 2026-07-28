@@ -2,7 +2,7 @@
 set -e
 
 echo "→ Installing dependencies..."
-npm install --legacy-peer-deps
+pnpm install
 
 echo "→ Generating Prisma client..."
 npx prisma generate
