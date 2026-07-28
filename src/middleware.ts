@@ -7,6 +7,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/leads/intake(.*)",
   "/api/webhooks/stripe(.*)",
   "/api/cron(.*)",
+  "/api/clerk(.*)", // Clerk FAPI proxy — must be public
   "/dev(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",

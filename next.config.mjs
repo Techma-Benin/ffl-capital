@@ -12,6 +12,10 @@ const nextConfig = {
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
       process.env.CLERK_PUBLISHABLE_KEY ||
       "",
+    // App URL — used to construct the Clerk proxy URL on the client side.
+    // In production this is the published domain (set as a Replit secret).
+    // Leave empty in dev so ClerkProvider skips the proxy and uses the FAPI directly.
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "",
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: "/sign-in",
     NEXT_PUBLIC_CLERK_SIGN_UP_URL: "/sign-up",
     NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL:
