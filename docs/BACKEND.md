@@ -183,7 +183,7 @@ Module `src/lib/client-store` (pas de dépendance Zustand/SWR) : cache mémoire 
 |------|----------|--------------|
 | `/admin` dashboard | Charge 90 j + filtre client + store | — |
 | `/admin/partners` | Charge jusqu’à 2000 partners + filtre/tri/page client + store | Cap `ADMIN_PARTNERS_CLIENT_LOAD_LIMIT` |
-| `/admin/filter-list` | SSR sets live + templates ; store ; édition via pages dédiées (pas de modal) | — |
+| `/admin/settings?tab=filter-sets` | SSR sets live + templates ; store ; édition via pages dédiées (pas de modal) ; redirect legacy `/admin/filter-list` | — |
 | `/admin/refunds` | SSR pending + 30 history + store ; filtres déjà client | — |
 | `/partner/aged` | Cap 2500 + filtre client + store | — |
 | `/admin/leads`, `/partner/leads` | Pagination / search serveur | Volumes unbounded |
@@ -301,7 +301,7 @@ Transaction atomique à la livraison :
 
 **Critères Intent / Have IUL (UI)** : multi-select ; options = valeurs distinctes sur tous les `leads` + **Empty** (`"empty"`, même token que le filtre aged Have IUL), préfetchées SSR via `getLeadFilterCriteriaOptions()` — pas de route API publique ni fetch à l’ouverture du dropdown. Composant partagé : `advanced-filters-fields.tsx`.
 
-**Filter List** : `GET`/`PATCH` `/api/admin/filter-list` ; usage batch via `getFilterSetUsageBatch`.
+**Filter sets (Settings tab)** : `GET`/`PATCH` `/api/admin/filter-list` ; usage batch via `getFilterSetUsageBatch`. UI : `/admin/settings?tab=filter-sets` ; constante `ADMIN_FILTER_LIST_PATH` dans `src/lib/filter-sets/routes.ts`.
 
 ---
 

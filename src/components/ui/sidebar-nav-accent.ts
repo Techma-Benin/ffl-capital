@@ -20,7 +20,6 @@
  * | /admin/leads        | orange  | orange             |
  * | /admin/refunds      | orange  | orange             |
  * | /admin/aged         | mint    | teal               |
- * | /admin/filter-list  | amber   | amber              |
  * | /admin/integrity    | purple  | purple             |
  * | /admin/migration    | cyan    | (no empty)         |
  * | /admin/settings     | slate   | (no empty)         |

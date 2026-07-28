@@ -25,13 +25,12 @@ import {
   ArrowCounterClockwise,
   Archive,
   Gear,
-  Funnel,
   Wallet,
 } from "@/lib/icons/client";
 import type { Icon } from "@/lib/icons/client";
 import type { SidebarNavAccent } from "@/components/ui/sidebar-nav-accent";
 
-/** Flat nav aligned to Pencil mockup; keep Filter List / Integrity / Migration. */
+/** Flat nav aligned to Pencil mockup. */
 const navItems: {
   href: string;
   label: string;
@@ -45,7 +44,6 @@ const navItems: {
   { href: "/admin/refunds", label: "Refunds", icon: ArrowCounterClockwise, accent: "orange" },
   { href: "/admin/transactions", label: "Transactions", icon: Wallet, accent: "mint" },
   { href: "/admin/aged", label: "Aged Leads", icon: Archive, accent: "mint" },
-  { href: "/admin/filter-list", label: "Filter List", icon: Funnel, accent: "amber" },
   { href: "/admin/settings", label: "Settings", icon: Gear, accent: "slate" },
 ];
 
