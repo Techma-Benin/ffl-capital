@@ -71,6 +71,14 @@ export function ManageAccountModal({
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -83,6 +91,11 @@ export function ManageAccountModal({
     setLocalPreview(null);
     setPendingAvatarUrl(null);
     setAvatarError("");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordError("");
+    setPasswordSuccess(false);
   }, [open, initialFirstName, initialLastName, initialAffiliation]);
 
   // Body scroll lock + initial focus.
@@ -153,6 +166,57 @@ export function ManageAccountModal({
         ...(showAffiliation && { affiliation }),
       });
       onOpenChange(false);
+    }
+  }
+
+  const hasPassword = user?.passwordEnabled ?? true;
+
+  function passwordErrorMessage(err: unknown): string {
+    // Clerk errors expose an `errors` array with `longMessage`/`message`.
+    const clerkErr = err as {
+      errors?: { longMessage?: string; message?: string }[];
+    };
+    const first = clerkErr?.errors?.[0];
+    if (first?.longMessage) return first.longMessage;
+    if (first?.message) return first.message;
+    if (err instanceof Error) return err.message;
+    return "Failed to update password.";
+  }
+
+  async function handlePasswordSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+
+    setPasswordError("");
+    setPasswordSuccess(false);
+
+    if (hasPassword && !currentPassword) {
+      setPasswordError("Enter your current password.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirmation do not match.");
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      await user.updatePassword({
+        newPassword,
+        ...(hasPassword && { currentPassword }),
+      });
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setPasswordError(passwordErrorMessage(err));
+    } finally {
+      setPasswordSaving(false);
     }
   }
 
@@ -293,6 +357,91 @@ export function ManageAccountModal({
               </p>
             )}
           </form>
+
+          {/* Password */}
+          <div className="mt-6 border-t border-slate-100 pt-6">
+            <h3 className="text-xs font-semibold text-slate-900 mb-1">
+              {hasPassword ? "Change password" : "Set a password"}
+            </h3>
+            {!hasPassword && (
+              <p className="text-xs text-slate-500 mb-3">
+                Your account currently signs in via a connected social
+                provider. Set a password to also sign in with an email and
+                password.
+              </p>
+            )}
+            <form
+              onSubmit={handlePasswordSubmit}
+              className="space-y-4"
+              autoComplete="off"
+            >
+              {hasPassword && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-2">
+                    Current password
+                  </label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="input-line w-full"
+                    autoComplete="current-password"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-2">
+                  New password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="input-line w-full"
+                  autoComplete="new-password"
+                  minLength={8}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-2">
+                  Confirm new password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input-line w-full"
+                  autoComplete="new-password"
+                  minLength={8}
+                />
+              </div>
+
+              {passwordError && (
+                <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
+                  {passwordError}
+                </p>
+              )}
+              {passwordSuccess && (
+                <p className="rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">
+                  Password {hasPassword ? "updated" : "set"} successfully.
+                </p>
+              )}
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={passwordSaving}
+                  className="btn-secondary btn-sm"
+                >
+                  {passwordSaving
+                    ? "Saving…"
+                    : hasPassword
+                      ? "Update password"
+                      : "Set password"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
         {/* Footer */}
