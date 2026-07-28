@@ -54,7 +54,7 @@ export default function LeadSimulator() {
       City: form.get("city") || "Austin",
       State: state,
       Zip: form.get("zip") || "78701",
-      DOB: form.get("dob") || "1985-06-15",
+      DOB: form.get("dob"),
       Age: form.get("age") || "41",
       Have_IUL: form.get("haveIul") || "No",
       State_You_Currently_Live_In: state,
@@ -157,17 +157,27 @@ export default function LeadSimulator() {
             </select>
           </div>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="form-label">DOB</label>
+            <input
+              name="dob"
+              type="date"
+              required
+              className="form-input"
+              defaultValue="1985-06-15"
+            />
+          </div>
           <div>
             <label className="form-label">Have IUL</label>
-            <select name="haveIul" className="form-select" defaultValue={sample.haveIul} key={`hi-${sample.haveIul}`}>
+            <select name="haveIul" required className="form-select" defaultValue={sample.haveIul} key={`hi-${sample.haveIul}`}>
               <option value="No">No</option>
               <option value="Yes">Yes</option>
             </select>
           </div>
           <div>
             <label className="form-label">Primary Goal</label>
-            <input name="primaryGoal" className="form-input" defaultValue={sample.primaryGoal} key={`pg-${sample.primaryGoal}`} />
+            <input name="primaryGoal" required className="form-input" defaultValue={sample.primaryGoal} key={`pg-${sample.primaryGoal}`} />
           </div>
         </div>
         <div>

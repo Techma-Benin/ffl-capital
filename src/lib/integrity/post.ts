@@ -1,3 +1,4 @@
+import type { Lead } from "@prisma/client";
 import { LeadEventType, LeadStatus, ResaleMode, ResaleStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
@@ -21,6 +22,15 @@ export interface IntegrityPostResult {
   posted: boolean;
   postingId?: string;
   reason?: string;
+}
+
+function missingIntegrityPostFields(lead: Lead): string[] {
+  const missing: string[] = [];
+  if (!lead.dob?.trim()) missing.push("DOB");
+  if (!lead.trustedformCertUrl?.trim()) missing.push("TrustedForm certificate URL");
+  if (!lead.haveIul?.trim()) missing.push("Have_IUL");
+  if (!lead.primaryGoal?.trim()) missing.push("Primary_Goal");
+  return missing;
 }
 
 function toFormBody(data: Record<string, string | undefined>): string {
@@ -193,6 +203,17 @@ export async function integrityPostLead(
   });
   const integrityLabel = category?.integrityLabel ?? null;
   const integrationsMode = await getIntegrationsMode();
+
+  const missingFields = missingIntegrityPostFields(lead);
+  if (missingFields.length > 0) {
+    const reason = `Missing required Integrity fields: ${missingFields.join(", ")}`;
+    return skipIntegrityPost(leadId, reason, {
+      vendor: vendorKey,
+      mode: resaleMode,
+      enabled: vendor.enabled,
+      integrationsMode,
+    });
+  }
 
   if (integrationsMode === "mock") {
     const payload =

@@ -137,8 +137,12 @@ export function normalizeLead(
       payload.State_You_Currently_Live_In,
       payload.stateYouCurrentlyLiveIn,
     )?.toUpperCase() ?? null,
-    trustedformCertUrl:
-      payload.Trusted_Form_URL ?? payload.trustedformCertUrl ?? null,
+    trustedformCertUrl: pickString(
+      payload.Trusted_Form_URL,
+      payload.trustedformCertUrl,
+      payload.trustedform_cert_url,
+      payload.trusted_form_url,
+    ),
     tcpaConsent: pickString(payload.TCPA_Consent, payload.tcpaConsent),
     tcpaLanguage: pickString(payload.TCPA_Language, payload.tcpaLanguage),
     leadidToken: pickString(payload.LeadiD_Token, payload.leadidToken),

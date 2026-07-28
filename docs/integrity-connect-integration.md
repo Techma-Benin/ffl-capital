@@ -298,7 +298,9 @@ All responses are JSON with an `outcome` field:
 
 ## Field Mapping (Internal → LeadConduit)
 
-These are the mappings from our internal lead object properties to the LeadConduit HTTP parameter names:
+These are the mappings from our internal lead object properties to the LeadConduit HTTP parameter names.
+
+**Intake requirement:** `/api/leads/intake` rejects payloads missing `DOB`, `Trusted_Form_URL` (or `trustedform_cert_url`), `Have_IUL`, or `Primary_Goal` with `{ outcome: "error", reason: "Missing required fields: …" }`. Older leads already in the database are skipped at Integrity post time if any of these fields are empty.
 
 | Internal Field | LeadConduit Parameter | Notes |
 |---|---|---|
@@ -307,18 +309,18 @@ These are the mappings from our internal lead object properties to the LeadCondu
 | `lead.email` | `email` | |
 | `lead.phone` | `phone_1` | |
 | `lead.state` | `state` | |
-| `lead.dob` | `dob_mmddyyyy_thom` | **Must be formatted as `MM/dd/yyyy`** |
+| `lead.dob` | `dob_mmddyyyy_thom` | **Required at intake**; formatted as `MM/dd/yyyy` |
 | `lead.leadType` | `lead_type_thom` | RealTime: must map to one of the 5 exact strings; Storefront: any text |
 | `lead.id` or `lead.externalId` | `vendor_lead_id_thom` | Required for Storefront |
 | `lead.address` | `address_1` | |
 | `lead.city` | `city` | |
 | `lead.zip` | `postal_code` | |
-| `lead.trustedformCertUrl` | `trustedform_cert_url` | |
+| `lead.trustedformCertUrl` | `trustedform_cert_url` | **Required at intake** |
 | `lead.leadidToken` | `universal_leadid` | Jornaya token |
 | `lead.ipAddress` | `ip_address` | |
 | `lead.age` | `age` | |
-| `lead.haveIul` | `has_iul_thom` | Send `"yes"` or `"no"` |
-| `lead.primaryGoal` | `primary_goal_thom` | |
+| `lead.haveIul` | `has_iul_thom` | **Required at intake**; send `"yes"` or `"no"` |
+| `lead.primaryGoal` | `primary_goal_thom` | **Required at intake** |
 | `lead.source` | `campaign_source` | |
 | `lead.subId` | `campaign_id` | |
 

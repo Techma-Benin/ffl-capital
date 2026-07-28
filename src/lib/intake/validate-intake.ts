@@ -2,6 +2,39 @@ import { z } from "zod";
 
 const optionalString = z.string().optional();
 
+function resolveDob(data: Record<string, unknown>): string | undefined {
+  const dob = data.DOB ?? data.dob;
+  return typeof dob === "string" && dob.trim() !== "" ? dob.trim() : undefined;
+}
+
+function resolveTrustedFormUrl(data: Record<string, unknown>): string | undefined {
+  const url =
+    data.Trusted_Form_URL ??
+    data.trustedformCertUrl ??
+    data.trustedform_cert_url ??
+    data.trusted_form_url;
+  return typeof url === "string" && url.trim() !== "" ? url.trim() : undefined;
+}
+
+function resolveHaveIul(data: Record<string, unknown>): string | undefined {
+  const value = data.Have_IUL ?? data.haveIul;
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
+function resolvePrimaryGoal(data: Record<string, unknown>): string | undefined {
+  const value = data.Primary_Goal ?? data.primaryGoal;
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
+function missingIntegrityIntakeFields(data: Record<string, unknown>): string[] {
+  const missing: string[] = [];
+  if (!resolveDob(data)) missing.push("DOB");
+  if (!resolveTrustedFormUrl(data)) missing.push("Trusted_Form_URL");
+  if (!resolveHaveIul(data)) missing.push("Have_IUL");
+  if (!resolvePrimaryGoal(data)) missing.push("Primary_Goal");
+  return missing;
+}
+
 /** Accepts Boberdoo-style field names (underscores) from LeadConduit webhook. */
 export const intakePayloadSchema = z
   .object({
@@ -23,6 +56,8 @@ export const intakePayloadSchema = z
     Intent: optionalString,
     // Compliance
     Trusted_Form_URL: z.string().url().optional(),
+    trustedform_cert_url: z.string().url().optional(),
+    trusted_form_url: z.string().url().optional(),
     TCPA_Consent: optionalString,
     TCPA_Language: optionalString,
     LeadiD_Token: optionalString,
@@ -82,6 +117,12 @@ export const intakePayloadSchema = z
       message:
         "Missing required fields: firstName, lastName, email, phone, state",
     },
+  )
+  .refine(
+    (data) => missingIntegrityIntakeFields(data).length === 0,
+    (data) => ({
+      message: `Missing required fields: ${missingIntegrityIntakeFields(data).join(", ")}`,
+    }),
   );
 
 export type IntakePayload = z.infer<typeof intakePayloadSchema>;

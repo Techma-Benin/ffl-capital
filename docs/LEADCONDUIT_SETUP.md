@@ -85,9 +85,9 @@ HTTP status: `401`
 | `State` or `State_You_Currently_Live_In` | `state` | Required |
 | `Intent` | `intent` | `"High Intent"` → `high_intent_iul` |
 | `SRC` | `source` | e.g. `IUL_LeadConduit`, `MP_LeadConduit`, `FE_LeadConduit` |
-| `DOB` | `dob` | Date of birth |
+| `DOB` | `dob` | **Required** — date of birth |
 | `Age` | `age` | |
-| `Trusted_Form_URL` | `trustedformCertUrl` | TrustedForm certificate |
+| `Trusted_Form_URL` (or `trustedform_cert_url`) | `trustedformCertUrl` | **Required** — TrustedForm certificate |
 | `LeadiD_Token` | `leadidToken` | Jornaya token |
 | `Unique_Identifier` | `externalId` | Idempotency / duplicate detection |
 | `Lead_Type` | `boberdooLeadType` | Boberdoo numeric type (37, 35, 41) |
@@ -98,8 +98,8 @@ HTTP status: `401`
 | `User_Agent` | `userAgent` | |
 | `TCPA_Consent` | `tcpaConsent` | |
 | `TCPA_Language` | `tcpaLanguage` | |
-| `Have_IUL` | `haveIul` | |
-| `Primary_Goal` | `primaryGoal` | |
+| `Have_IUL` | `haveIul` | **Required** |
+| `Primary_Goal` | `primaryGoal` | **Required** |
 
 ### Lead type detection via SRC field
 
