@@ -32,14 +32,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) {
-    return NextResponse.json(
-      { error: "NEXT_PUBLIC_APP_URL is not set; cannot derive the proxy URL." },
-      { status: 500 },
-    );
-  }
-  const proxyUrl = `${appUrl.replace(/\/$/, "")}/api/__clerk`;
+  // Derive the proxy URL from the actual incoming request rather than the
+  // NEXT_PUBLIC_APP_URL secret, which is not guaranteed to track the real
+  // published domain (it can drift — e.g. still hold a dev *.replit.dev
+  // value after publishing, which is exactly what broke the client-side
+  // proxy URL before it was made relative in next.config.mjs). Call this
+  // route directly against the production URL so `request.nextUrl.origin`
+  // reflects the real domain Clerk should proxy through.
+  const proxyUrl = `${request.nextUrl.origin}/api/__clerk`;
 
   const client = await clerkClient();
   const { data: domains } = await client.domains.list();
