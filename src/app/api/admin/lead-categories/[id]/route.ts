@@ -15,12 +15,13 @@ const patchSchema = z.object({
 /** PATCH /api/admin/lead-categories/[id] — update mutable fields (type is read-only) */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requireAdmin();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: 403 });
 
-  const existing = await prisma.leadCategory.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+  const existing = await prisma.leadCategory.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await request.json();
@@ -39,7 +40,7 @@ export async function PATCH(
   }
 
   const category = await prisma.leadCategory.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       ...(parsed.data.src !== undefined ? { src: parsed.data.src } : {}),
       ...(parsed.data.label !== undefined ? { label: parsed.data.label } : {}),
@@ -55,12 +56,13 @@ export async function PATCH(
 /** DELETE /api/admin/lead-categories/[id] — blocked if any leads reference this type */
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requireAdmin();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: 403 });
 
-  const existing = await prisma.leadCategory.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+  const existing = await prisma.leadCategory.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Block deletion if any leads reference this type
@@ -75,6 +77,6 @@ export async function DELETE(
     );
   }
 
-  await prisma.leadCategory.delete({ where: { id: params.id } });
+  await prisma.leadCategory.delete({ where: { id } });
   return NextResponse.json({ deleted: true });
 }

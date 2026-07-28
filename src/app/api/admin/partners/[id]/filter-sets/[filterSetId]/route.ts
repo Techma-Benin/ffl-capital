@@ -32,17 +32,18 @@ const patchSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string; filterSetId: string } },
+  { params }: { params: Promise<{ id: string; filterSetId: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const { id, filterSetId } = await params;
   const filterSet = await prisma.partnerFilterSet.findFirst({
     where: {
-      id: params.filterSetId,
-      partnerId: params.id,
+      id: filterSetId,
+      partnerId: id,
       isTemplate: false,
     },
   });
@@ -56,17 +57,18 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; filterSetId: string } },
+  { params }: { params: Promise<{ id: string; filterSetId: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const { id, filterSetId } = await params;
   const existing = await prisma.partnerFilterSet.findFirst({
     where: {
-      id: params.filterSetId,
-      partnerId: params.id,
+      id: filterSetId,
+      partnerId: id,
       isTemplate: false,
     },
   });
@@ -91,7 +93,7 @@ export async function PATCH(
   }
 
   const filterSet = await prisma.partnerFilterSet.update({
-    where: { id: params.filterSetId },
+    where: { id: filterSetId },
     data: {
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
       ...(parsed.data.leadType !== undefined
@@ -128,17 +130,18 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string; filterSetId: string } },
+  { params }: { params: Promise<{ id: string; filterSetId: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const { id, filterSetId } = await params;
   const existing = await prisma.partnerFilterSet.findFirst({
     where: {
-      id: params.filterSetId,
-      partnerId: params.id,
+      id: filterSetId,
+      partnerId: id,
       isTemplate: false,
     },
   });
@@ -147,7 +150,7 @@ export async function DELETE(
   }
 
   const count = await prisma.partnerFilterSet.count({
-    where: { partnerId: params.id, isTemplate: false },
+    where: { partnerId: id, isTemplate: false },
   });
   if (count <= 1) {
     return NextResponse.json(
@@ -156,6 +159,6 @@ export async function DELETE(
     );
   }
 
-  await prisma.partnerFilterSet.delete({ where: { id: params.filterSetId } });
+  await prisma.partnerFilterSet.delete({ where: { id: filterSetId } });
   return NextResponse.json({ deleted: true });
 }

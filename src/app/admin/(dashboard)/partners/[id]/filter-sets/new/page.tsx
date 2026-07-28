@@ -7,11 +7,12 @@ import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options
 export default async function AdminPartnerFilterSetNewPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const [partner, categories, criteriaOptions] = await Promise.all([
     prisma.partner.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         firstName: true,

@@ -35,20 +35,21 @@ const BASE_PATH = "/partner/leads";
 export default async function PartnerLeadsPage({
   searchParams,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     view?: string;
     page?: string;
     pageSize?: string;
     sort?: string;
     dir?: string;
-  };
+  }>;
 }) {
+  const resolvedSearchParams = await searchParams;
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
   await ensurePartnerDefaultView(partnerId);
 
-  let viewId = searchParams.view;
+  let viewId = resolvedSearchParams.view;
   if (!viewId) {
     const defaultView = await getDefaultLeadView(
       LeadListViewScope.partner,
@@ -80,9 +81,9 @@ export default async function PartnerLeadsPage({
   );
   const tableColumns = portalColumnsFromView(PARTNER_LEAD_COLUMNS, columns);
 
-  const { page, pageSize, skip } = parsePageParams(searchParams);
-  const sortState = parsePartnerLeadSort(sortJson, searchParams);
-  const orderBy = buildPartnerLeadOrderBy(sortJson, searchParams);
+  const { page, pageSize, skip } = parsePageParams(resolvedSearchParams);
+  const sortState = parsePartnerLeadSort(sortJson, resolvedSearchParams);
+  const orderBy = buildPartnerLeadOrderBy(sortJson, resolvedSearchParams);
   const where = await buildPartnerLeadsWhere(partnerId, filters);
 
   const [total, deliveries, filterSets, distinctStatesRaw] = await Promise.all([
@@ -113,8 +114,8 @@ export default async function PartnerLeadsPage({
   const availableStates = distinctStatesRaw.map((l) => l.state);
   const paginationParams: Record<string, string | undefined> = {
     view: view.id,
-    sort: searchParams.sort,
-    dir: searchParams.dir,
+    sort: resolvedSearchParams.sort,
+    dir: resolvedSearchParams.dir,
   };
 
   const sortHrefMap = Object.fromEntries(

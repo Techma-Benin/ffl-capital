@@ -61,7 +61,7 @@ export default async function SignInPage() {
             </p>
           </div>
 
-          <SignIn afterSignInUrl={AUTH_CONTINUE_PARTNER} appearance={authClerkAppearance} />
+          <SignIn forceRedirectUrl={AUTH_CONTINUE_PARTNER} appearance={authClerkAppearance} />
         </div>
       </div>
     </div>

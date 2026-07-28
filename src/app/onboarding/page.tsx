@@ -1,29 +1,12 @@
-import dynamic from "next/dynamic";
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getCurrentPartner } from "@/lib/auth/session";
 import { getRoleFromMetadata } from "@/lib/auth/roles";
-import { FormSkeleton } from "@/components/ui/form-skeleton";
 import { Lightning } from "@/lib/icons/ssr";
 import { AuthContinueRedirect } from "@/app/auth/continue/redirect";
 import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
-
-// Skip SSR for the form: it is auth-gated and heavy with client state.
-// This prevents the Clerk/Next.js Suspense boundary from triggering an
-// "Invalid hook call" during server rendering, which was causing a
-// hydration crash every time an authenticated user landed on this page.
-const OnboardingWizard = dynamic(() => import("./onboarding-wizard"), {
-  ssr: false,
-  loading: () => (
-    <div className="space-y-8">
-      <div className="h-16 animate-pulse rounded-xl bg-slate-100" aria-hidden />
-      <div className="card p-6 sm:p-8">
-        <FormSkeleton />
-      </div>
-    </div>
-  ),
-});
+import { OnboardingWizardLoader } from "./onboarding-wizard-loader";
 
 export default async function OnboardingPage() {
   const user = await currentUser();
@@ -58,12 +41,12 @@ export default async function OnboardingPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-500">Signed in</span>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
         </div>
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
-        <OnboardingWizard
+        <OnboardingWizardLoader
           initialProfile={initialProfile}
           criteriaOptions={criteriaOptions}
         />

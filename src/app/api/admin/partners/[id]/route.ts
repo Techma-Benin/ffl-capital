@@ -14,15 +14,16 @@ const patchSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const { id } = await params;
   const partner = await prisma.partner.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       crmOutboundConfig: true,
       transactions: { orderBy: { createdAt: "desc" }, take: 20 },
@@ -43,13 +44,14 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const { id } = await params;
   const body = await request.json();
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
@@ -72,11 +74,11 @@ export async function PATCH(
 
   const partner = await prisma.$transaction(async (tx) => {
     const updated = await tx.partner.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
     if (data.status !== undefined) {
-      await syncFilterSetsActiveWithPartnerStatus(params.id, data.status, tx);
+      await syncFilterSetsActiveWithPartnerStatus(id, data.status, tx);
     }
     return updated;
   }, PRISMA_TX_OPTIONS);
@@ -86,13 +88,14 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
-  await prisma.partner.delete({ where: { id: params.id } });
+  const { id } = await params;
+  await prisma.partner.delete({ where: { id } });
   return NextResponse.json({ deleted: true });
 }

@@ -7,7 +7,7 @@ import { AdminPartnersView } from "@/components/admin/admin-partners-view";
 export default async function AdminPartnersPage({
   searchParams,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     status?: string;
     page?: string;
     pageSize?: string;
@@ -15,9 +15,10 @@ export default async function AdminPartnersPage({
     dir?: string;
     company?: string;
     family?: string;
-  };
+  }>;
 }) {
-  const initialFilters = parseAdminPartnersListFilters(searchParams);
+  const resolvedSearchParams = await searchParams;
+  const initialFilters = parseAdminPartnersListFilters(resolvedSearchParams);
   const raw = await fetchAdminPartnersRawData();
 
   return (

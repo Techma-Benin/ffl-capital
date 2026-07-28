@@ -26,7 +26,7 @@ const BASE_PATH = "/admin/aged";
 export default async function AdminAgedPage({
   searchParams,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     sort?: string;
     dir?: string;
@@ -34,14 +34,15 @@ export default async function AdminAgedPage({
     type?: string;
     status?: string;
     age?: string;
-  };
+  }>;
 }) {
-  const filters = parseAdminAgedLeadFilters(searchParams);
+  const resolvedSearchParams = await searchParams;
+  const filters = parseAdminAgedLeadFilters(resolvedSearchParams);
   const agedWhere = await buildAdminAgedLeadsWhere(filters);
-  const { page, pageSize, skip } = parsePageParams(searchParams);
-  const { sort, dir } = parseAdminAgedLeadSort(searchParams);
+  const { page, pageSize, skip } = parsePageParams(resolvedSearchParams);
+  const { sort, dir } = parseAdminAgedLeadSort(resolvedSearchParams);
   const orderBy = buildAdminAgedLeadOrderBy(sort, dir);
-  const hrefBySortKey = sortHrefMap(BASE_PATH, searchParams);
+  const hrefBySortKey = sortHrefMap(BASE_PATH, resolvedSearchParams);
 
   const [leads, total, agedPrice, agedDays] = await Promise.all([
     prisma.lead.findMany({
@@ -130,7 +131,7 @@ export default async function AdminAgedPage({
           pageSize={pageSize}
           total={total}
           basePath={BASE_PATH}
-          searchParams={searchParams}
+          searchParams={resolvedSearchParams}
         />
       </div>
     </div>

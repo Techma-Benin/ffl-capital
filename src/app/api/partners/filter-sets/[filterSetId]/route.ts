@@ -41,16 +41,17 @@ const patchSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { filterSetId: string } },
+  { params }: { params: Promise<{ filterSetId: string }> },
 ) {
   const partnerId = await getPartnerId();
   if (!partnerId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { filterSetId } = await params;
   // Verify this filter set belongs to the authenticated partner
   const existing = await prisma.partnerFilterSet.findFirst({
-    where: { id: params.filterSetId, partnerId, isTemplate: false },
+    where: { id: filterSetId, partnerId, isTemplate: false },
   });
   if (!existing) {
     return NextResponse.json({ error: "Filter set not found" }, { status: 404 });
@@ -131,7 +132,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.partnerFilterSet.update({
-    where: { id: params.filterSetId },
+    where: { id: filterSetId },
     data,
   });
 
@@ -150,16 +151,17 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { filterSetId: string } },
+  { params }: { params: Promise<{ filterSetId: string }> },
 ) {
   const partnerId = await getPartnerId();
   if (!partnerId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { filterSetId } = await params;
   // Verify this filter set belongs to the authenticated partner
   const existing = await prisma.partnerFilterSet.findFirst({
-    where: { id: params.filterSetId, partnerId, isTemplate: false },
+    where: { id: filterSetId, partnerId, isTemplate: false },
   });
   if (!existing) {
     return NextResponse.json({ error: "Filter set not found" }, { status: 404 });
@@ -168,7 +170,7 @@ export async function DELETE(
   // Soft-delete: deactivate the filter set rather than hard-deleting
   // (preserves delivery history references)
   await prisma.partnerFilterSet.update({
-    where: { id: params.filterSetId },
+    where: { id: filterSetId },
     data: { active: false },
   });
 

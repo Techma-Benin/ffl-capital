@@ -32,15 +32,16 @@ const filterSetSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const { id } = await params;
   const filterSets = await prisma.partnerFilterSet.findMany({
-    where: { partnerId: params.id, isTemplate: false },
+    where: { partnerId: id, isTemplate: false },
     orderBy: { createdAt: "asc" },
   });
 
@@ -49,14 +50,15 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
-  const partner = await prisma.partner.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+  const partner = await prisma.partner.findUnique({ where: { id } });
   if (!partner) {
     return NextResponse.json({ error: "Partner not found" }, { status: 404 });
   }
@@ -76,7 +78,7 @@ export async function POST(
 
   const filterSet = await prisma.partnerFilterSet.create({
     data: {
-      partnerId: params.id,
+      partnerId: id,
       isTemplate: false,
       name: parsed.data.name,
       leadType: parsed.data.leadType,

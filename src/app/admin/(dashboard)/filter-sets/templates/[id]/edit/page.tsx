@@ -9,10 +9,11 @@ import type { FilterCriteria } from "@/lib/matching/types";
 export default async function AdminFilterSetTemplateEditPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const [template, categories, criteriaOptions] = await Promise.all([
-    findFilterSetTemplate(params.id),
+    findFilterSetTemplate(id),
     prisma.leadCategory.findMany({
       orderBy: { createdAt: "asc" },
       select: { type: true, label: true },

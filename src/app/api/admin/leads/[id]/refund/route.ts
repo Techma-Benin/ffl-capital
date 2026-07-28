@@ -14,13 +14,14 @@ const refundSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const { id } = await params;
   const body = await request.json();
   const parsed = refundSchema.safeParse(body);
   if (!parsed.success) {
@@ -28,7 +29,7 @@ export async function POST(
   }
 
   const lead = await prisma.lead.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       leadDeliveries: {
         where: { refundedAt: null },
@@ -51,7 +52,7 @@ export async function POST(
   const delivery = await prisma.leadDelivery.findUnique({
     where: { id: deliveryId },
   });
-  if (!delivery || delivery.leadId !== params.id) {
+  if (!delivery || delivery.leadId !== id) {
     return NextResponse.json({ error: "Delivery not found" }, { status: 404 });
   }
 

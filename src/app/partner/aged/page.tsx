@@ -14,14 +14,15 @@ import {
 export default async function PartnerAgedPage({
   searchParams,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     state?: string;
     type?: string;
     age?: string;
     haveIul?: string;
     page?: string;
-  };
+  }>;
 }) {
+  const resolvedSearchParams = await searchParams;
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
@@ -59,7 +60,7 @@ export default async function PartnerAgedPage({
         }))}
         totalEligible={totalEligible}
         loadCapped={totalEligible > PARTNER_AGED_CLIENT_LOAD_LIMIT}
-        initialFilters={parsePartnerAgedClientFilters(searchParams)}
+        initialFilters={parsePartnerAgedClientFilters(resolvedSearchParams)}
       />
     </Suspense>
   );

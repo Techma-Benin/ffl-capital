@@ -10,17 +10,18 @@ import { AdminDashboardView } from "@/components/admin/admin-dashboard-view";
 export default async function AdminDashboardPage({
   searchParams,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     period?: string;
     from?: string;
     to?: string;
-  };
+  }>;
 }) {
-  if (!adminDashboardHasExplicitPeriod(searchParams)) {
+  const resolvedSearchParams = await searchParams;
+  if (!adminDashboardHasExplicitPeriod(resolvedSearchParams)) {
     redirect(`/admin?period=${ADMIN_DASHBOARD_DEFAULT_PERIOD}`);
   }
 
-  const initialPeriod = parseAdminDashboardPeriod(searchParams);
+  const initialPeriod = parseAdminDashboardPeriod(resolvedSearchParams);
 
   const raw = await fetchAdminDashboardRawData();
 

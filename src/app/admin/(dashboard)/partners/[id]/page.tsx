@@ -15,10 +15,11 @@ import { clsx } from "clsx";
 export default async function AdminPartnerDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const partner = await prisma.partner.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       filterSets: {
         where: { isTemplate: false },

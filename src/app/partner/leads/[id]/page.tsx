@@ -10,13 +10,14 @@ import { formatUsd } from "@/lib/format-money";
 export default async function PartnerLeadDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
   const delivery = await prisma.leadDelivery.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       lead: true,
       refundRequests: { orderBy: { createdAt: "desc" }, take: 1 },

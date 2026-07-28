@@ -40,17 +40,18 @@ const BASE_PATH = "/admin/leads";
 export default async function AdminLeadsPage({
   searchParams,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     view?: string;
     status?: string;
     page?: string;
     pageSize?: string;
     sort?: string;
     dir?: string;
-  };
+  }>;
 }) {
-  if (searchParams.status && !searchParams.view) {
-    const slice = legacyStatusToSlice(searchParams.status);
+  const resolvedSearchParams = await searchParams;
+  if (resolvedSearchParams.status && !resolvedSearchParams.view) {
+    const slice = legacyStatusToSlice(resolvedSearchParams.status);
     if (slice) {
       const matched = await findAdminViewByStatusSlice(slice);
       if (matched) {
@@ -61,7 +62,7 @@ export default async function AdminLeadsPage({
     }
   }
 
-  let viewId = searchParams.view;
+  let viewId = resolvedSearchParams.view;
   if (!viewId) {
     const defaultView = await getDefaultLeadView(LeadListViewScope.admin);
     if (defaultView) {
@@ -85,9 +86,9 @@ export default async function AdminLeadsPage({
   );
   const tableColumns = portalColumnsFromView(ADMIN_LEAD_COLUMNS, columns);
 
-  const { page, pageSize, skip } = parsePageParams(searchParams);
-  const sortState = parseAdminLeadSort(sortJson, searchParams);
-  const orderBy = buildAdminLeadOrderBy(sortJson, searchParams);
+  const { page, pageSize, skip } = parsePageParams(resolvedSearchParams);
+  const sortState = parseAdminLeadSort(sortJson, resolvedSearchParams);
+  const orderBy = buildAdminLeadOrderBy(sortJson, resolvedSearchParams);
   const whereClause = await buildAdminLeadsWhere(filters);
 
   const searchQuery = filters.q?.trim();
@@ -111,8 +112,8 @@ export default async function AdminLeadsPage({
 
   const paginationParams: Record<string, string | undefined> = {
     view: view.id,
-    sort: searchParams.sort,
-    dir: searchParams.dir,
+    sort: resolvedSearchParams.sort,
+    dir: resolvedSearchParams.dir,
   };
 
   const sortHrefMap = Object.fromEntries(

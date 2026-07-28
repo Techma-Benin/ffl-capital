@@ -16,10 +16,11 @@ import {
 export default async function AdminLeadDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const lead = await prisma.lead.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       leadDeliveries: {
         include: {
@@ -36,7 +37,7 @@ export default async function AdminLeadDetailPage({
 
   if (!lead) notFound();
 
-  const leadEvents = await getLeadEvents(params.id);
+  const leadEvents = await getLeadEvents(id);
 
   const timeline: AdminLeadDetailTimelineItem[] = [
     {

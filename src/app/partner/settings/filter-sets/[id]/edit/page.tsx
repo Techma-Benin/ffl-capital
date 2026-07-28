@@ -9,14 +9,15 @@ import type { FilterCriteria } from "@/lib/matching/types";
 export default async function PartnerFilterSetEditPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
   const [filterSet, categories, criteriaOptions] = await Promise.all([
     prisma.partnerFilterSet.findFirst({
-      where: { id: params.id, partnerId, isTemplate: false },
+      where: { id, partnerId, isTemplate: false },
     }),
     prisma.leadCategory.findMany({
       orderBy: { createdAt: "asc" },

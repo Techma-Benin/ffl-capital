@@ -40,8 +40,9 @@ export default function RootLayout({
     return body;
   }
 
-  // Replit's managed Clerk integration handles ClerkProvider config, the
-  // dev/prod instance switch, and custom-domain proxying automatically.
-  // Do not pass a manual proxyUrl or otherwise hand-configure this.
+  // No explicit proxyUrl prop needed: ClerkProvider reads
+  // NEXT_PUBLIC_CLERK_PROXY_URL (set in next.config.mjs, production only)
+  // to route Frontend API requests through src/middleware.ts's
+  // frontendApiProxy instead of Clerk's CNAME subdomain.
   return <ClerkProvider appearance={clerkAppearance}>{body}</ClerkProvider>;
 }

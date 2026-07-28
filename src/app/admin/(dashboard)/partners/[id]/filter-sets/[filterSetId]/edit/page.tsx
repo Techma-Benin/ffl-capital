@@ -10,12 +10,14 @@ export default async function AdminPartnerFilterSetEditPage({
   params,
   searchParams,
 }: {
-  params: { id: string; filterSetId: string };
-  searchParams: { returnTo?: string };
+  params: Promise<{ id: string; filterSetId: string }>;
+  searchParams: Promise<{ returnTo?: string }>;
 }) {
+  const { id, filterSetId } = await params;
+  const { returnTo: returnToRaw } = await searchParams;
   const [partner, filterSet, categories, criteriaOptions] = await Promise.all([
     prisma.partner.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         firstName: true,
@@ -24,8 +26,8 @@ export default async function AdminPartnerFilterSetEditPage({
     }),
     prisma.partnerFilterSet.findFirst({
       where: {
-        id: params.filterSetId,
-        partnerId: params.id,
+        id: filterSetId,
+        partnerId: id,
         isTemplate: false,
       },
     }),
@@ -38,8 +40,8 @@ export default async function AdminPartnerFilterSetEditPage({
 
   if (!partner || !filterSet) notFound();
 
-  const returnTo = isSafeReturnTo(searchParams.returnTo)
-    ? searchParams.returnTo
+  const returnTo = isSafeReturnTo(returnToRaw)
+    ? returnToRaw
     : `/admin/partners/${partner.id}`;
   const displayName = `${partner.firstName} ${partner.lastName}`.trim();
 

@@ -15,34 +15,35 @@ const redeliverSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const { id } = await params;
   const body = await request.json().catch(() => ({}));
   const parsed = redeliverSchema.safeParse(body);
 
-  const lead = await prisma.lead.findUnique({ where: { id: params.id } });
+  const lead = await prisma.lead.findUnique({ where: { id } });
   if (!lead) {
     return NextResponse.json({ error: "Lead not found" }, { status: 404 });
   }
 
   await prisma.lead.update({
-    where: { id: params.id },
+    where: { id },
     data: { available: true, status: LeadStatus.unmatched },
   });
 
   const excludePartnerIds =
     parsed.success && parsed.data.partnerId ? [parsed.data.partnerId] : undefined;
 
-  const matchResult = await matchLead(params.id, { excludePartnerIds });
+  const matchResult = await matchLead(id, { excludePartnerIds });
 
   if (matchResult.matched && matchResult.deliveryId) {
     await deliverLead(matchResult.deliveryId);
-    await emitLeadEvent(params.id, LeadEventType.reprocessed, {
+    await emitLeadEvent(id, LeadEventType.reprocessed, {
       forced: true,
       filterSetId: parsed.success ? parsed.data.filterSetId : undefined,
       deliveryId: matchResult.deliveryId,

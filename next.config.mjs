@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
+const isProdBuild = process.env.NODE_ENV === "production";
+
 const nextConfig = {
-  // Enable the instrumentation hook (src/instrumentation.ts) for in-process cron jobs
-  experimental: { instrumentationHook: true },
   reactStrictMode: false,
 
   // Expose Replit-managed secrets under the names Next.js and Clerk expect.
@@ -12,10 +12,19 @@ const nextConfig = {
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
       process.env.CLERK_PUBLISHABLE_KEY ||
       "",
-    // App URL — used to construct the Clerk proxy URL on the client side.
+    // App URL — used to construct the Clerk Frontend API proxy URL below.
     // In production this is the published domain (set as a Replit secret).
-    // Leave empty in dev so ClerkProvider skips the proxy and uses the FAPI directly.
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "",
+    // Clerk's production instance is configured to proxy its Frontend API
+    // through our own domain at /api/__clerk (handled entirely inside
+    // src/middleware.ts's frontendApiProxy option — no separate route file)
+    // instead of Clerk's CNAME subdomain. Proxying is not supported for
+    // Clerk development instances, so this is production-only; ClerkProvider
+    // talks to the Frontend API directly in dev.
+    NEXT_PUBLIC_CLERK_PROXY_URL:
+      isProdBuild && process.env.NEXT_PUBLIC_APP_URL
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/__clerk`
+        : "",
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: "/sign-in",
     NEXT_PUBLIC_CLERK_SIGN_UP_URL: "/sign-up",
     NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL:
