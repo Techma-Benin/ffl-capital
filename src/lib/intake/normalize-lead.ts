@@ -21,6 +21,9 @@ export interface NormalizedLead {
   haveIul: string | null;
   primaryGoal: string | null;
   stateYouCurrentlyLiveIn: string | null;
+  beneficiary: string | null;
+  historyOfCancer: string | null;
+  mortgageLoanAmount: string | null;
   trustedformCertUrl: string | null;
   tcpaConsent: string | null;
   tcpaLanguage: string | null;
@@ -133,6 +136,15 @@ export function normalizeLead(
     intent,
     haveIul: pickString(payload.Have_IUL, payload.haveIul),
     primaryGoal: pickString(payload.Primary_Goal, payload.primaryGoal),
+    beneficiary: pickString(payload.Beneficiary, payload.beneficiary),
+    historyOfCancer: pickString(
+      payload.History_Of_Cancer,
+      payload.historyOfCancer,
+    ),
+    mortgageLoanAmount: pickString(
+      payload.Mortgage_Loan_Amount,
+      payload.mortgageLoanAmount,
+    ),
     stateYouCurrentlyLiveIn: pickString(
       payload.State_You_Currently_Live_In,
       payload.stateYouCurrentlyLiveIn,

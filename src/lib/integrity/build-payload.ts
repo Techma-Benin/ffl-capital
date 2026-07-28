@@ -59,6 +59,13 @@ export function buildIntegrityLeadPayload(
     primary_goal_thom: lead.primaryGoal ?? undefined,
     campaign_source: lead.source ?? undefined,
     campaign_id: lead.subId ?? undefined,
+    ...(lead.leadType === "mortgage_protection"
+      ? {
+          beneficiary_thom: lead.beneficiary ?? undefined,
+          history_of_cancer_thom: lead.historyOfCancer ?? undefined,
+          mortgage_loan_amount_thom: lead.mortgageLoanAmount ?? undefined,
+        }
+      : {}),
   };
 
   return Object.fromEntries(

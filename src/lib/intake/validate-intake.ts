@@ -16,22 +16,19 @@ function resolveTrustedFormUrl(data: Record<string, unknown>): string | undefine
   return typeof url === "string" && url.trim() !== "" ? url.trim() : undefined;
 }
 
-function resolveHaveIul(data: Record<string, unknown>): string | undefined {
-  const value = data.Have_IUL ?? data.haveIul;
-  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
-}
-
-function resolvePrimaryGoal(data: Record<string, unknown>): string | undefined {
-  const value = data.Primary_Goal ?? data.primaryGoal;
-  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
-}
-
+// NOTE: Have_IUL / Primary_Goal are intentionally NOT enforced here. This
+// schema runs before we know the lead's product (that requires a DB lookup
+// against LeadCategory in processLeadIntake), and Have_IUL/Primary_Goal only
+// apply to IUL products — a Mortgage Protection lead legitimately omits them.
+// Only fields required for every product (DOB, TrustedForm) are enforced at
+// intake; full per-product completeness (including Mortgage Protection's
+// Beneficiary/History Of Cancer/Mortgage Loan Amount) is checked right
+// before the Integrity post in `src/lib/integrity/required-fields.ts`, once
+// the lead's resolved type is known.
 function missingIntegrityIntakeFields(data: Record<string, unknown>): string[] {
   const missing: string[] = [];
   if (!resolveDob(data)) missing.push("DOB");
   if (!resolveTrustedFormUrl(data)) missing.push("Trusted_Form_URL");
-  if (!resolveHaveIul(data)) missing.push("Have_IUL");
-  if (!resolvePrimaryGoal(data)) missing.push("Primary_Goal");
   return missing;
 }
 
@@ -54,6 +51,10 @@ export const intakePayloadSchema = z
     Primary_Goal: optionalString,
     State_You_Currently_Live_In: z.string().length(2).optional(),
     Intent: optionalString,
+    // Mortgage Protection business
+    Beneficiary: optionalString,
+    History_Of_Cancer: optionalString,
+    Mortgage_Loan_Amount: optionalString,
     // Compliance
     Trusted_Form_URL: z.string().url().optional(),
     trustedform_cert_url: z.string().url().optional(),
@@ -85,6 +86,9 @@ export const intakePayloadSchema = z
     primaryGoal: optionalString,
     stateYouCurrentlyLiveIn: z.string().length(2).optional(),
     intent: optionalString,
+    beneficiary: optionalString,
+    historyOfCancer: optionalString,
+    mortgageLoanAmount: optionalString,
     trustedformCertUrl: z.string().url().optional(),
     tcpaConsent: optionalString,
     tcpaLanguage: optionalString,

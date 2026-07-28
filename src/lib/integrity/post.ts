@@ -1,4 +1,3 @@
-import type { Lead } from "@prisma/client";
 import { LeadEventType, LeadStatus, ResaleMode, ResaleStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
@@ -17,20 +16,12 @@ import {
 } from "./build-payload";
 import { logIntegrityAction, urlHost } from "./log";
 import { integrityPing } from "./ping";
+import { checkRequiredIntegrityFields } from "./required-fields";
 
 export interface IntegrityPostResult {
   posted: boolean;
   postingId?: string;
   reason?: string;
-}
-
-function missingIntegrityPostFields(lead: Lead): string[] {
-  const missing: string[] = [];
-  if (!lead.dob?.trim()) missing.push("DOB");
-  if (!lead.trustedformCertUrl?.trim()) missing.push("TrustedForm certificate URL");
-  if (!lead.haveIul?.trim()) missing.push("Have_IUL");
-  if (!lead.primaryGoal?.trim()) missing.push("Primary_Goal");
-  return missing;
 }
 
 function toFormBody(data: Record<string, string | undefined>): string {
@@ -96,6 +87,38 @@ async function skipIntegrityPost(
     outcome: "skipped",
   });
   return { posted: false, reason };
+}
+
+async function rejectPostingMissingFields(
+  postingId: string,
+  leadId: string,
+  missing: string[],
+  vendorKey: string,
+  mode: ResaleMode,
+): Promise<string> {
+  const reason = `Missing required field(s) for Integrity: ${missing.join(", ")}`;
+  await prisma.resalePosting.update({
+    where: { id: postingId },
+    data: { status: ResaleStatus.rejected },
+  });
+  await emitLeadEvent(leadId, LeadEventType.integrity_missing_fields, {
+    postingId,
+    missingFields: missing,
+    reason,
+    vendor: vendorKey,
+    mode,
+    outcome: "rejected",
+  });
+  logIntegrityAction("post_missing_fields", {
+    leadId,
+    postingId,
+    vendor: vendorKey,
+    mode,
+    missingFields: missing,
+    reason,
+    outcome: "rejected",
+  });
+  return reason;
 }
 
 async function submitToIntegrity(
@@ -204,17 +227,6 @@ export async function integrityPostLead(
   const integrityLabel = category?.integrityLabel ?? null;
   const integrationsMode = await getIntegrationsMode();
 
-  const missingFields = missingIntegrityPostFields(lead);
-  if (missingFields.length > 0) {
-    const reason = `Missing required Integrity fields: ${missingFields.join(", ")}`;
-    return skipIntegrityPost(leadId, reason, {
-      vendor: vendorKey,
-      mode: resaleMode,
-      enabled: vendor.enabled,
-      integrationsMode,
-    });
-  }
-
   if (integrationsMode === "mock") {
     const payload =
       resaleMode === ResaleMode.storefront
@@ -271,6 +283,21 @@ export async function integrityPostLead(
           postedAt: new Date(),
         },
       });
+
+  // Verify the fields Integrity requires for this lead's product are present
+  // before ever attempting a post, so a missing field is diagnosable on the
+  // lead/posting instead of only surfacing later as a vendor-side rejection.
+  const requiredFieldsCheck = checkRequiredIntegrityFields(lead);
+  if (!requiredFieldsCheck.ok) {
+    const reason = await rejectPostingMissingFields(
+      posting.id,
+      leadId,
+      requiredFieldsCheck.missing,
+      vendorKey,
+      resaleMode,
+    );
+    return { posted: false, reason };
+  }
 
   if (resaleMode === ResaleMode.storefront) {
     let ping: Awaited<ReturnType<typeof integrityPing>>;

@@ -6,6 +6,7 @@ import {
   buildIntegrityStorefrontPayload,
 } from "@/lib/integrity/build-payload";
 import { logIntegrityAction } from "@/lib/integrity/log";
+import { checkRequiredIntegrityFields } from "@/lib/integrity/required-fields";
 import {
   getIntegrationsMode,
   getIntegrityRealtimeVendor,
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
 
   let testFields: Record<string, string>;
   let leadSummary: object | null = null;
+  let requiredFieldsCheck: { ok: boolean; missing: string[] } | null = null;
 
   if (manualPayload) {
     const filtered = Object.fromEntries(
@@ -91,6 +93,7 @@ export async function POST(request: NextRequest) {
         ? buildIntegrityLeadPayload(lead, category?.integrityLabel)
         : buildIntegrityStorefrontPayload(lead, category?.integrityLabel);
     testFields = { ...rawPayload, is_test: "yes" } as Record<string, string>;
+    requiredFieldsCheck = checkRequiredIntegrityFields(lead);
     leadSummary = {
       id: lead.id,
       name: `${lead.firstName} ${lead.lastName}`,
@@ -98,6 +101,10 @@ export async function POST(request: NextRequest) {
       state: lead.state,
       hasTrustedform: !!lead.trustedformCertUrl,
       hasDob: !!lead.dob,
+      hasBeneficiary: !!lead.beneficiary,
+      hasHistoryOfCancer: !!lead.historyOfCancer,
+      hasMortgageLoanAmount: !!lead.mortgageLoanAmount,
+      missingRequiredFields: requiredFieldsCheck.missing,
     };
   } else {
     testFields = {
@@ -175,7 +182,15 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json(
-    { flow, submitUrl, httpStatus, lead: leadSummary, payload: testFields, response: rawResponse },
+    {
+      flow,
+      submitUrl,
+      httpStatus,
+      lead: leadSummary,
+      payload: testFields,
+      response: rawResponse,
+      requiredFieldsCheck,
+    },
     { status: 200 },
   );
 }
@@ -190,7 +205,7 @@ export async function GET() {
     return NextResponse.json({ error: adminCheck.error }, { status: 403 });
   }
 
-  const [leads, categories, realtimeVendor, storefrontVendor] = await Promise.all([
+  const [leadRows, categories, realtimeVendor, storefrontVendor] = await Promise.all([
     prisma.lead.findMany({
       orderBy: { receivedAt: "desc" },
       take: 30,
@@ -207,6 +222,9 @@ export async function GET() {
         externalId: true,
         haveIul: true,
         primaryGoal: true,
+        beneficiary: true,
+        historyOfCancer: true,
+        mortgageLoanAmount: true,
         receivedAt: true,
       },
     }),
@@ -216,6 +234,13 @@ export async function GET() {
     getIntegrityRealtimeVendor(),
     getIntegrityStorefrontVendor(),
   ]);
+
+  // Surface required-field gaps per lead so admins can spot them in the
+  // picker without needing to run the test first.
+  const leads = leadRows.map((lead) => ({
+    ...lead,
+    missingRequiredFields: checkRequiredIntegrityFields(lead).missing,
+  }));
 
   return NextResponse.json({
     leads,

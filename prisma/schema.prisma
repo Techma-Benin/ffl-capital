@@ -37,6 +37,7 @@ enum LeadEventType {
   integrity_rejected
   integrity_skipped
   integrity_error
+  integrity_missing_fields
   aged_purchased
   reprocessed
   duplicate_rejected
@@ -244,6 +245,9 @@ model Lead {
   haveIul                 String?    @map("have_iul")
   primaryGoal             String?    @map("primary_goal")
   stateYouCurrentlyLiveIn String?    @map("state_you_currently_live_in")
+  beneficiary             String?    @map("beneficiary")
+  historyOfCancer         String?    @map("history_of_cancer")
+  mortgageLoanAmount      String?    @map("mortgage_loan_amount")
   trustedformCertUrl      String?    @map("trustedform_cert_url")
   trustedformValid        Boolean?   @map("trustedform_valid")
   trustedformCheckedAt    DateTime?  @map("trustedform_checked_at")
