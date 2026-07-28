@@ -12,10 +12,12 @@ export async function GET() {
   return NextResponse.json(partner);
 }
 
+// Email is not editable — it is set once at partner creation and never
+// changed afterward (not by the partner, not by an admin, not synced from
+// Clerk). Deliberately excluded from this schema.
 const patchSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100).optional(),
   lastName: z.string().min(1, "Last name is required").max(100).optional(),
-  email: z.string().email("Invalid email address").optional(),
   affiliation: z.string().max(200).nullable().optional(),
   avatarUrl: z.string().url().nullable().optional(),
 });
@@ -41,9 +43,9 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const { firstName, lastName, email, affiliation, avatarUrl } = parsed.data;
+  const { firstName, lastName, affiliation, avatarUrl } = parsed.data;
 
-  if (!firstName && !lastName && !email && affiliation === undefined && avatarUrl === undefined) {
+  if (!firstName && !lastName && affiliation === undefined && avatarUrl === undefined) {
     return NextResponse.json({ error: "No fields to update" }, { status: 422 });
   }
 
@@ -52,7 +54,6 @@ export async function PATCH(request: Request) {
     data: {
       ...(firstName !== undefined && { firstName }),
       ...(lastName !== undefined && { lastName }),
-      ...(email !== undefined && { email }),
       ...(affiliation !== undefined && { affiliation }),
       ...(avatarUrl !== undefined && { avatarUrl }),
     },

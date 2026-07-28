@@ -78,21 +78,13 @@ export const getPartnerSession = cache(async (): Promise<PartnerSession | null> 
   });
   if (!partner) return null;
 
-  // Always use the Clerk primary email as the source of truth.
-  const clerkEmail = user.emailAddresses.find(
-    (e) => e.id === user.primaryEmailAddressId,
-  )?.emailAddress;
-
-  // Silently sync the DB if the email has drifted.
-  if (clerkEmail && clerkEmail !== partner.email) {
-    await prisma.partner.update({
-      where: { id: partner.id },
-      data: { email: clerkEmail },
-    }).catch(() => { /* non-fatal */ });
-  }
-
+  // Email is not editable and is never synced from Clerk — the DB value is
+  // the sole source of truth. (Previously this synced the current Clerk
+  // user's email onto the partner row, which corrupted partner emails
+  // during admin impersonation since the "current" Clerk user was the
+  // admin, not the partner.)
   const { filterSets, ...row } = partner;
-  return serializePartner(row, filterSets, clerkEmail);
+  return serializePartner(row, filterSets);
 });
 
 /**

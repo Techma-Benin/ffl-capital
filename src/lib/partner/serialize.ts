@@ -22,7 +22,6 @@ function serializeFilterSet(fs: PartnerFilterSet): PartnerFilterSetSession {
 export function serializePartner(
   partner: Partner,
   filterSets: PartnerFilterSet[] = [],
-  clerkEmail?: string,
 ): PartnerSession {
   const defaultSet = pickDefaultFilterSet(filterSets);
   // Prefer default filter-set states when present — matching uses filter sets.
@@ -38,7 +37,7 @@ export function serializePartner(
 
   return {
     id: partner.id,
-    email: clerkEmail ?? partner.email,
+    email: partner.email,
     firstName: partner.firstName,
     lastName: partner.lastName,
     affiliation: partner.affiliation,
