@@ -61,4 +61,4 @@ timeoutMs = 240000
 [deployment]
 deploymentTarget = "autoscale"
 run = ["pnpm", "run", "start"]
-build = ["pnpm", "run", "build"]
+build = ["bash", "-c", "npx prisma generate && npx prisma migrate deploy && pnpm run build"]

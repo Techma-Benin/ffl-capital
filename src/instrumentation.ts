@@ -1,11 +1,78 @@
 /**
  * Next.js instrumentation hook — runs once when the server starts.
- * Schedules the IntegrityConnect post cron (every 15 minutes) so it
- * runs in-process without any external scheduler or HTTP self-call.
+ *
+ * 1. Auto-provisions every email in ADMIN_EMAILS as a Clerk admin (idempotent).
+ * 2. Schedules the IntegrityConnect post cron (every 15 minutes).
  */
+
+/**
+ * For each email in ADMIN_EMAILS: promote to admin if the Clerk account already
+ * exists, or create a new account with admin role if it doesn't.
+ * Logs the generated password so it can be retrieved from deployment logs.
+ * Safe to call on every startup — exits early when already provisioned.
+ */
+async function provisionAdminAccounts() {
+  const raw = process.env.ADMIN_EMAILS ?? process.env.ADMIN_EMAIL ?? "";
+  const emails = raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (emails.length === 0) return;
+
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  if (!secretKey) {
+    console.warn("[startup] ADMIN_EMAILS is set but CLERK_SECRET_KEY is missing — skipping admin provisioning.");
+    return;
+  }
+
+  const { createClerkClient } = await import("@clerk/backend");
+  const clerk = createClerkClient({ secretKey });
+
+  for (const email of emails) {
+    try {
+      const { data: existing } = await clerk.users.getUserList({ emailAddress: [email] });
+
+      if (existing.length > 0) {
+        const user = existing[0];
+        if (user.publicMetadata?.role === "admin") continue; // already done
+        await clerk.users.updateUserMetadata(user.id, {
+          publicMetadata: { ...(user.publicMetadata ?? {}), role: "admin" },
+        });
+        console.info(`[startup] promoted ${email} to admin (userId: ${user.id})`);
+      } else {
+        const bytes = new Uint8Array(12);
+        globalThis.crypto.getRandomValues(bytes);
+        const password = Buffer.from(bytes).toString("base64url");
+        const user = await clerk.users.createUser({
+          emailAddress: [email],
+          password,
+          firstName: "Admin",
+          lastName: "",
+          publicMetadata: { role: "admin" },
+          skipPasswordChecks: true,
+        });
+        console.info(
+          `[startup] created admin account — email: ${email}  userId: ${user.id}  password: ${password}`,
+        );
+      }
+    } catch (err: unknown) {
+      const msg = (err as { errors?: unknown; message?: string })?.errors
+        ?? (err as { message?: string })?.message
+        ?? err;
+      console.error(`[startup] failed to provision admin ${email}:`, msg);
+    }
+  }
+}
+
 export async function register() {
   // Only run in the Node.js runtime (not Edge, not during builds)
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  // Provision admin accounts from ADMIN_EMAILS on every startup (idempotent).
+  provisionAdminAccounts().catch((err) =>
+    console.error("[startup] admin provisioning error:", err),
+  );
 
   const INTERVAL_MS = parseInt(process.env.CRON_INTERVAL_MS ?? "", 10) || 15 * 60 * 1000; // default 15 min, override via env
 
