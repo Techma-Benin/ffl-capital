@@ -18,6 +18,10 @@ const nextConfig = {
       "/auth/continue?portal=partner",
     NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL:
       "/auth/continue?portal=partner",
+    // The managed Clerk custom frontend hostname can intermittently return 502
+    // in published deployments. Load the SDK from the public CDN instead.
+    NEXT_PUBLIC_CLERK_JS_URL:
+      "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js",
   },
 
   async redirects() {
