@@ -5,6 +5,16 @@ import {
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
 } from "@/lib/integrity/build-payload";
+import { logIntegrityAction } from "@/lib/integrity/log";
+import {
+  getIntegrationsMode,
+  getIntegrityRealtimeVendor,
+  getIntegrityStorefrontVendor,
+} from "@/lib/settings/app-settings";
+import {
+  INTEGRITY_REALTIME_VENDOR_KEY,
+  INTEGRITY_STOREFRONT_VENDOR_KEY,
+} from "@/lib/settings/resale-vendor-keys";
 
 export async function POST(request: NextRequest) {
   const adminCheck = await requireAdmin();
@@ -26,12 +36,31 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const submitUrl =
+  const vendor =
     flow === "realtime"
-      ? process.env.INTEGRITY_REALTIME_SUBMIT_URL
-      : process.env.INTEGRITY_STOREFRONT_SUBMIT_URL;
+      ? await getIntegrityRealtimeVendor()
+      : await getIntegrityStorefrontVendor();
+  const vendorKey =
+    flow === "realtime" ? INTEGRITY_REALTIME_VENDOR_KEY : INTEGRITY_STOREFRONT_VENDOR_KEY;
 
-  if (!submitUrl) {
+  if (!vendor) {
+    return NextResponse.json(
+      { error: `Integrity ${flow} vendor is not configured` },
+      { status: 503 },
+    );
+  }
+
+  if (!vendor.enabled) {
+    return NextResponse.json(
+      { error: `Integrity ${flow} vendor is disabled` },
+      { status: 403 },
+    );
+  }
+
+  const integrationsMode = await getIntegrationsMode();
+  const submitUrl = vendor.postUrl;
+
+  if (!submitUrl && integrationsMode === "live") {
     return NextResponse.json(
       {
         error: `${flow === "realtime" ? "INTEGRITY_REALTIME_SUBMIT_URL" : "INTEGRITY_STOREFRONT_SUBMIT_URL"} is not configured`,
@@ -44,7 +73,6 @@ export async function POST(request: NextRequest) {
   let leadSummary: object | null = null;
 
   if (manualPayload) {
-    // Use admin-supplied fields directly
     const filtered = Object.fromEntries(
       Object.entries(manualPayload).filter(([, v]) => v && v.trim() !== ""),
     ) as Record<string, string>;
@@ -72,7 +100,6 @@ export async function POST(request: NextRequest) {
       hasDob: !!lead.dob,
     };
   } else {
-    // Hardcoded test payload (mirrors LeadConduit docs example)
     testFields = {
       first_name: "Mike",
       last_name: "Jones",
@@ -90,22 +117,56 @@ export async function POST(request: NextRequest) {
     };
   }
 
+  if (integrationsMode === "mock") {
+    logIntegrityAction("test_mock", {
+      flow,
+      vendor: vendorKey,
+      enabled: vendor.enabled,
+      integrationsMode,
+      lead_type_thom: testFields.lead_type_thom,
+      outcome: "mock",
+    });
+    return NextResponse.json({
+      flow,
+      submitUrl: submitUrl ?? null,
+      httpStatus: 200,
+      lead: leadSummary,
+      payload: testFields,
+      response: {
+        outcome: "success",
+        message: "Mock mode — no HTTP request sent",
+      },
+    });
+  }
+
   const params = new URLSearchParams(testFields);
 
   let rawResponse: unknown;
   let httpStatus: number;
 
   try {
-    const res = await fetch(submitUrl, {
+    const res = await fetch(submitUrl!, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: params.toString(),
     });
     httpStatus = res.status;
     rawResponse = await res.json();
+    logIntegrityAction("test_response", {
+      flow,
+      vendor: vendorKey,
+      enabled: vendor.enabled,
+      httpStatus,
+      outcome:
+        typeof rawResponse === "object" &&
+        rawResponse !== null &&
+        (rawResponse as { outcome?: string }).outcome === "success"
+          ? "success"
+          : "error",
+    });
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to reach LeadConduit", detail: String(err) },
@@ -121,7 +182,7 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/admin/integrity/test
- * Returns recent leads (for picker) and lead categories (for label lookup).
+ * Returns recent leads (for picker), categories, and vendor status.
  */
 export async function GET() {
   const adminCheck = await requireAdmin();
@@ -129,7 +190,7 @@ export async function GET() {
     return NextResponse.json({ error: adminCheck.error }, { status: 403 });
   }
 
-  const [leads, categories] = await Promise.all([
+  const [leads, categories, realtimeVendor, storefrontVendor] = await Promise.all([
     prisma.lead.findMany({
       orderBy: { receivedAt: "desc" },
       take: 30,
@@ -152,7 +213,24 @@ export async function GET() {
     prisma.leadCategory.findMany({
       select: { type: true, integrityLabel: true },
     }),
+    getIntegrityRealtimeVendor(),
+    getIntegrityStorefrontVendor(),
   ]);
 
-  return NextResponse.json({ leads, categories });
+  return NextResponse.json({
+    leads,
+    categories,
+    vendors: {
+      realtime: {
+        key: INTEGRITY_REALTIME_VENDOR_KEY,
+        enabled: realtimeVendor?.enabled ?? false,
+        hasUrl: !!realtimeVendor?.postUrl,
+      },
+      storefront: {
+        key: INTEGRITY_STOREFRONT_VENDOR_KEY,
+        enabled: storefrontVendor?.enabled ?? false,
+        hasUrl: !!storefrontVendor?.postUrl,
+      },
+    },
+  });
 }

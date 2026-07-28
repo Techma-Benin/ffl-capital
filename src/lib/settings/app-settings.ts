@@ -1,9 +1,14 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isDevEnvironment } from "@/lib/settings/environment";
 import {
   DEFAULT_RESALE_VENDOR_CONFIGS,
   type ResaleVendorConfig,
 } from "@/lib/settings/resale-vendor-defaults";
+import {
+  INTEGRITY_REALTIME_VENDOR_KEY,
+  INTEGRITY_STOREFRONT_VENDOR_KEY,
+} from "@/lib/settings/resale-vendor-keys";
 
 export type { ResaleVendorConfig } from "@/lib/settings/resale-vendor-defaults";
 export { DEFAULT_RESALE_VENDOR_CONFIGS } from "@/lib/settings/resale-vendor-defaults";
@@ -42,9 +47,51 @@ export async function isAdminApprovalRequired(): Promise<boolean> {
 }
 
 export async function getIntegrationsMode(): Promise<"mock" | "live"> {
+  if (!isDevEnvironment()) return "live";
   const envVal = process.env.INTEGRATIONS_MODE;
   if (envVal === "live" || envVal === "mock") return envVal;
   return getSetting(APP_SETTING_KEYS.integrationsMode, "mock");
+}
+
+function resolveVendorPostUrl(
+  key: string,
+  config: ResaleVendorConfig,
+): string | undefined {
+  const fromDb = config.postUrl?.trim();
+  if (fromDb) return fromDb;
+  if (key === INTEGRITY_REALTIME_VENDOR_KEY) {
+    return process.env.INTEGRITY_REALTIME_SUBMIT_URL?.trim() || undefined;
+  }
+  if (key === INTEGRITY_STOREFRONT_VENDOR_KEY) {
+    return process.env.INTEGRITY_STOREFRONT_SUBMIT_URL?.trim() || undefined;
+  }
+  return undefined;
+}
+
+export type ResolvedResaleVendor = ResaleVendorConfig & {
+  key: string;
+  postUrl?: string;
+};
+
+export async function getResaleVendor(
+  key: string,
+): Promise<ResolvedResaleVendor | null> {
+  const configs = await getResaleVendorConfigs();
+  const config = configs[key];
+  if (!config) return null;
+  return {
+    key,
+    ...config,
+    postUrl: resolveVendorPostUrl(key, config),
+  };
+}
+
+export async function getIntegrityRealtimeVendor(): Promise<ResolvedResaleVendor | null> {
+  return getResaleVendor(INTEGRITY_REALTIME_VENDOR_KEY);
+}
+
+export async function getIntegrityStorefrontVendor(): Promise<ResolvedResaleVendor | null> {
+  return getResaleVendor(INTEGRITY_STOREFRONT_VENDOR_KEY);
 }
 
 export async function getAgedDaysThreshold(): Promise<number> {

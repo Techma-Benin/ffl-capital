@@ -1,6 +1,11 @@
 import { ResaleMode } from "@prisma/client";
-import { getIntegrationsMode } from "@/lib/settings/app-settings";
+import {
+  getIntegrationsMode,
+  getIntegrityStorefrontVendor,
+} from "@/lib/settings/app-settings";
+import { INTEGRITY_STOREFRONT_VENDOR_KEY } from "@/lib/settings/resale-vendor-keys";
 import { buildIntegrityPingPayload } from "./build-payload";
+import { logIntegrityAction, urlHost } from "./log";
 
 export interface IntegrityPingResult {
   accepted: boolean;
@@ -17,18 +22,43 @@ export async function integrityPing(
   leadId: string,
   mode?: ResaleMode,
 ): Promise<IntegrityPingResult> {
-  // Only Storefront supports ping; RealTime is direct submit
   if (mode && mode !== ResaleMode.storefront) {
     return { accepted: true };
+  }
+
+  const vendor = await getIntegrityStorefrontVendor();
+  const vendorKey = INTEGRITY_STOREFRONT_VENDOR_KEY;
+
+  if (!vendor || !vendor.enabled) {
+    const reason = !vendor
+      ? "Integrity storefront vendor not configured"
+      : "Integrity storefront vendor disabled";
+    logIntegrityAction("ping_skipped", {
+      leadId,
+      vendor: vendorKey,
+      mode: ResaleMode.storefront,
+      enabled: vendor?.enabled ?? false,
+      reason,
+      outcome: "skipped",
+    });
+    return { accepted: false, message: reason };
   }
 
   const integrationsMode = await getIntegrationsMode();
 
   if (integrationsMode === "mock") {
+    logIntegrityAction("ping_mock", {
+      leadId,
+      vendor: vendorKey,
+      mode: ResaleMode.storefront,
+      enabled: vendor.enabled,
+      integrationsMode,
+      outcome: "mock",
+    });
     return { accepted: true, externalRef: `mock-ping-${leadId.slice(0, 8)}` };
   }
 
-  const pingUrl = process.env.INTEGRITY_STOREFRONT_SUBMIT_URL;
+  const pingUrl = vendor.postUrl;
   if (!pingUrl) {
     return {
       accepted: false,
@@ -54,6 +84,16 @@ export async function integrityPing(
     }
   }
 
+  logIntegrityAction("ping_attempt", {
+    leadId,
+    vendor: vendorKey,
+    mode: ResaleMode.storefront,
+    enabled: vendor.enabled,
+    urlHost: urlHost(pingUrl),
+    lead_type_thom: pingPayload.lead_type_thom,
+    outcome: "attempt",
+  });
+
   let res: Response;
   try {
     res = await fetch(pingUrl, {
@@ -62,26 +102,64 @@ export async function integrityPing(
       body: params.toString(),
     });
   } catch (err) {
-    return { accepted: false, message: `Ping network error: ${String(err)}` };
+    const message = `Ping network error: ${String(err)}`;
+    logIntegrityAction("ping_response", {
+      leadId,
+      vendor: vendorKey,
+      mode: ResaleMode.storefront,
+      reason: message,
+      outcome: "error",
+    });
+    return { accepted: false, message };
   }
 
   if (!res.ok) {
-    return { accepted: false, message: `Ping failed: ${res.status}` };
+    const message = `Ping failed: ${res.status}`;
+    logIntegrityAction("ping_response", {
+      leadId,
+      vendor: vendorKey,
+      mode: ResaleMode.storefront,
+      httpStatus: res.status,
+      reason: message,
+      outcome: "error",
+    });
+    return { accepted: false, message };
   }
 
   let data: { outcome?: string; lead?: { id?: string }; reason?: string };
   try {
     data = (await res.json()) as typeof data;
   } catch {
-    return { accepted: false, message: "Ping returned non-JSON response" };
+    const message = "Ping returned non-JSON response";
+    logIntegrityAction("ping_response", {
+      leadId,
+      vendor: vendorKey,
+      mode: ResaleMode.storefront,
+      reason: message,
+      outcome: "error",
+    });
+    return { accepted: false, message };
   }
 
   if (data.outcome === "failure" || data.outcome === "error") {
-    return {
-      accepted: false,
-      message: data.reason ?? `Ping rejected: ${data.outcome}`,
-    };
+    const message = data.reason ?? `Ping rejected: ${data.outcome}`;
+    logIntegrityAction("ping_response", {
+      leadId,
+      vendor: vendorKey,
+      mode: ResaleMode.storefront,
+      reason: message,
+      outcome: "rejected",
+    });
+    return { accepted: false, message };
   }
+
+  logIntegrityAction("ping_response", {
+    leadId,
+    vendor: vendorKey,
+    mode: ResaleMode.storefront,
+    externalRef: data.lead?.id,
+    outcome: "success",
+  });
 
   return {
     accepted: true,

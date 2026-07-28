@@ -27,6 +27,17 @@ interface CategoryOption {
   integrityLabel: string | null;
 }
 
+interface VendorStatus {
+  key: string;
+  enabled: boolean;
+  hasUrl: boolean;
+}
+
+interface VendorsInfo {
+  realtime: VendorStatus;
+  storefront: VendorStatus;
+}
+
 interface TestResult {
   flow: Flow;
   httpStatus: number;
@@ -77,14 +88,17 @@ const IconShield = () => (
 /* ─── component ───────────────────────────────────────────────────────── */
 
 export function IntegrityTestPanel({
+  isDev = process.env.NODE_ENV !== "production",
   mode,
   onModeChange,
 }: {
+  isDev?: boolean;
   mode: "mock" | "live";
   onModeChange: (v: "mock" | "live") => void;
 }) {
   const [leads, setLeads] = useState<LeadOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [vendors, setVendors] = useState<VendorsInfo | null>(null);
   const [postings, setPostings] = useState<PostingRow[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string>("");
   const [modal, setModal] = useState<{ open: boolean; flow: Flow; fields: ModalFields } | null>(null);
@@ -97,6 +111,7 @@ export function IntegrityTestPanel({
       .then((d) => {
         setLeads(d.leads ?? []);
         setCategories(d.categories ?? []);
+        setVendors(d.vendors ?? null);
       });
     fetch("/api/admin/integrity/postings")
       .then((r) => r.json())
@@ -168,10 +183,14 @@ export function IntegrityTestPanel({
   const isSuccess = outcome === "success";
   const selectedLead = leads.find((l) => l.id === selectedLeadId) ?? null;
 
-  const modeHint =
-    mode === "live"
-      ? "Live sends real requests to email, CRM and Integrity."
-      : "Mock mode logs only — no real requests are sent.";
+  const modeHint = isDev
+    ? mode === "live"
+      ? "Dev live mode sends real requests to email, CRM, and Integrity (when vendors are enabled)."
+      : "Dev mock mode logs partner email/CRM only. Integrity tests also log without HTTP."
+    : "Production always runs live for partner delivery. Integrity posting is controlled by the resale vendor toggles above.";
+
+  const realtimeVendor = vendors?.realtime;
+  const storefrontVendor = vendors?.storefront;
 
   return (
     <>
@@ -208,26 +227,30 @@ export function IntegrityTestPanel({
             Integrity Connect
           </span>
           <span style={{ flex: 1 }} />
-          <label
-            style={{
-              fontSize: 14,
-              fontWeight: 800,
-              color: "#8b8a99",
-              margin: "0 8px 0 0",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Mode
-          </label>
-          <select
-            value={mode}
-            onChange={(e) => onModeChange(e.target.value as "mock" | "live")}
-            className="form-select"
-            style={{ width: 230, height: 34, fontSize: 13, borderRadius: 9 }}
-          >
-            <option value="mock">Mock (log only)</option>
-            <option value="live">Live (email, CRM, Integrity)</option>
-          </select>
+          {isDev && (
+            <>
+              <label
+                style={{
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: "#8b8a99",
+                  margin: "0 8px 0 0",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Mode
+              </label>
+              <select
+                value={mode}
+                onChange={(e) => onModeChange(e.target.value as "mock" | "live")}
+                className="form-select"
+                style={{ width: 230, height: 34, fontSize: 13, borderRadius: 9 }}
+              >
+                <option value="mock">Mock (log only)</option>
+                <option value="live">Live (email, CRM, Integrity)</option>
+              </select>
+            </>
+          )}
         </div>
 
         {/* Card body */}
@@ -287,16 +310,38 @@ export function IntegrityTestPanel({
               <button
                 type="button"
                 onClick={() => openModal("realtime")}
-                className="btn-primary btn-sm whitespace-nowrap"
+                disabled={realtimeVendor ? !realtimeVendor.enabled : false}
+                className="btn-primary btn-sm whitespace-nowrap disabled:opacity-40"
+                title={
+                  realtimeVendor && !realtimeVendor.enabled
+                    ? "Integrity RealTime vendor is disabled"
+                    : undefined
+                }
               >
                 Test RealTime
+                {realtimeVendor && (
+                  <span className="ml-1.5 text-[11px] font-bold opacity-80">
+                    ({realtimeVendor.enabled ? "on" : "off"})
+                  </span>
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => openModal("storefront")}
-                className="btn-sm border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap"
+                disabled={storefrontVendor ? !storefrontVendor.enabled : false}
+                className="btn-sm border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap disabled:opacity-40"
+                title={
+                  storefrontVendor && !storefrontVendor.enabled
+                    ? "Integrity Storefront vendor is disabled"
+                    : undefined
+                }
               >
                 Test Storefront
+                {storefrontVendor && (
+                  <span className="ml-1.5 text-[11px] font-bold opacity-80">
+                    ({storefrontVendor.enabled ? "on" : "off"})
+                  </span>
+                )}
               </button>
             </div>
 

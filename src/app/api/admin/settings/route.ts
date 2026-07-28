@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import { APP_SETTING_KEYS } from "@/lib/settings/app-settings";
+import { isDevEnvironment } from "@/lib/settings/environment";
 
 const settingsSchema = z.object({
   defaultRealtimePrice: z.number().positive().optional(),
@@ -58,6 +59,13 @@ export async function PATCH(request: NextRequest) {
   const parsed = settingsSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  if (!isDevEnvironment() && parsed.data.integrationsMode !== undefined) {
+    return NextResponse.json(
+      { error: "integrationsMode cannot be changed in production" },
+      { status: 403 },
+    );
   }
 
   const updates: Array<{ key: string; value: unknown }> = [];

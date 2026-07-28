@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { LeadCategoryManager } from "@/components/admin/lead-category-manager";
 import { IntegrityTestPanel } from "@/components/admin/integrity-test-panel";
 import { DEFAULT_RESALE_VENDOR_CONFIGS } from "@/lib/settings/resale-vendor-defaults";
+import {
+  isSystemResaleVendorKey,
+  resaleVendorLabel,
+} from "@/lib/settings/resale-vendor-keys";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -234,6 +238,7 @@ function ResaleVendorModal({
   onClose: () => void;
 }) {
   const [row, setRow] = useState<ResaleVendorRow>(initial);
+  const isSystemVendor = isSystemResaleVendorKey(initial.key);
 
   function set(patch: Partial<ResaleVendorRow>) {
     setRow((r) => ({ ...r, ...patch }));
@@ -241,16 +246,16 @@ function ResaleVendorModal({
 
   return (
     <ModalOverlay
-      title={isNew ? "Add resale vendor" : `Edit — ${initial.key}`}
+      title={isNew ? "Add resale vendor" : `Edit — ${resaleVendorLabel(initial.key)}`}
       onClose={onClose}
     >
-      <Field label="Vendor key" hint="Internal identifier (e.g. integrity, leadconduit)">
+      <Field label="Vendor key" hint="Internal identifier (e.g. integrity_realtime)">
         <input
           type="text"
           value={row.key}
           onChange={(e) => set({ key: e.target.value })}
           disabled={!isNew}
-          placeholder="e.g. integrity"
+          placeholder="e.g. integrity_realtime"
           className="form-input font-mono text-sm disabled:bg-slate-50 disabled:text-slate-500"
         />
       </Field>
@@ -265,17 +270,26 @@ function ResaleVendorModal({
         Enabled — send leads to this vendor
       </label>
 
-      <Field label="Ping URL" hint="Optional availability check endpoint">
-        <input
-          type="url"
-          value={row.pingUrl}
-          onChange={(e) => set({ pingUrl: e.target.value })}
-          placeholder="https://…"
-          className="form-input text-sm"
-        />
-      </Field>
+      {!isSystemVendor && (
+        <Field label="Ping URL" hint="Optional availability check endpoint">
+          <input
+            type="url"
+            value={row.pingUrl}
+            onChange={(e) => set({ pingUrl: e.target.value })}
+            placeholder="https://…"
+            className="form-input text-sm"
+          />
+        </Field>
+      )}
 
-      <Field label="Post URL" hint="Lead delivery endpoint">
+      <Field
+        label="Post URL"
+        hint={
+          isSystemVendor
+            ? "LeadConduit submit URL. Storefront ping uses the same URL. Leave blank to use the env var fallback."
+            : "Lead delivery endpoint"
+        }
+      >
         <input
           type="url"
           value={row.postUrl}
@@ -296,7 +310,7 @@ function ResaleVendorModal({
         >
           Cancel
         </button>
-        {!isNew && (
+        {!isNew && !isSystemVendor && (
           <button
             type="button"
             onClick={onDelete}
@@ -347,7 +361,13 @@ const IconTrash = () => (
 
 /* ─── main form ─────────────────────────────────────────────────────────── */
 
-export function AdminSettingsForm({ tab }: { tab: FormTab }) {
+export function AdminSettingsForm({
+  tab,
+  isDev = process.env.NODE_ENV !== "production",
+}: {
+  tab: FormTab;
+  isDev?: boolean;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
@@ -408,21 +428,24 @@ export function AdminSettingsForm({ tab }: { tab: FormTab }) {
     setMessage(null);
     try {
       const resaleVendorConfigs = resaleToPayload(resaleVendors);
+      const payload: Record<string, unknown> = {
+        defaultRealtimePrice: form.defaultRealtimePrice,
+        defaultAgedPrice: form.defaultAgedPrice,
+        adminApprovalRequired: form.adminApprovalRequired,
+        agedDaysThreshold: form.agedDaysThreshold,
+        trustedformValidationEnabled: form.trustedformValidationEnabled,
+        duplicateCheckEnabled: form.duplicateCheckEnabled,
+        duplicateCheckWindowDays: form.duplicateCheckWindowDays,
+        resaleVendorConfigs,
+        integrityPostDelayHours: form.integrityPostDelayHours,
+      };
+      if (isDev) {
+        payload.integrationsMode = form.integrationsMode;
+      }
       const res = await fetch("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          defaultRealtimePrice: form.defaultRealtimePrice,
-          defaultAgedPrice: form.defaultAgedPrice,
-          adminApprovalRequired: form.adminApprovalRequired,
-          integrationsMode: form.integrationsMode,
-          agedDaysThreshold: form.agedDaysThreshold,
-          trustedformValidationEnabled: form.trustedformValidationEnabled,
-          duplicateCheckEnabled: form.duplicateCheckEnabled,
-          duplicateCheckWindowDays: form.duplicateCheckWindowDays,
-          resaleVendorConfigs,
-          integrityPostDelayHours: form.integrityPostDelayHours,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Save failed");
       setMessage("Settings saved");
@@ -762,16 +785,22 @@ export function AdminSettingsForm({ tab }: { tab: FormTab }) {
                         i < resaleVendors.length - 1 ? "1px solid #f4f3f8" : "none",
                     }}
                   >
-                    <td
-                      className="px-3.5 py-[11px]"
-                      style={{
-                        fontFamily: "ui-monospace, monospace",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "#4a495c",
-                      }}
-                    >
-                      {row.key}
+                    <td className="px-3.5 py-[11px]">
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#030229" }}>
+                        {resaleVendorLabel(row.key)}
+                      </div>
+                      {resaleVendorLabel(row.key) !== row.key && (
+                        <div
+                          style={{
+                            fontFamily: "ui-monospace, monospace",
+                            fontSize: 12,
+                            color: "#8b8a99",
+                            marginTop: 2,
+                          }}
+                        >
+                          {row.key}
+                        </div>
+                      )}
                     </td>
                     <td className="px-3.5 py-[11px]">
                       <span
@@ -792,31 +821,33 @@ export function AdminSettingsForm({ tab }: { tab: FormTab }) {
                       {row.postUrl || <span style={{ color: "#d7d6e0" }}>—</span>}
                     </td>
                     <td className="px-3.5 py-[11px]" style={{ textAlign: "right" }}>
-                      <button
-                        type="button"
-                        onClick={(e) => deleteResaleByIndex(i, e)}
-                        className="inline-flex items-center justify-center rounded-lg transition-colors"
-                        style={{
-                          width: 30,
-                          height: 30,
-                          border: "1.5px solid #ececf3",
-                          background: "#fff",
-                          color: "#8b8a99",
-                          cursor: "pointer",
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#c0392b";
-                          (e.currentTarget as HTMLButtonElement).style.borderColor = "#ffd9cc";
-                          (e.currentTarget as HTMLButtonElement).style.background = "#fdf6f4";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#8b8a99";
-                          (e.currentTarget as HTMLButtonElement).style.borderColor = "#ececf3";
-                          (e.currentTarget as HTMLButtonElement).style.background = "#fff";
-                        }}
-                      >
-                        <IconTrash />
-                      </button>
+                      {!isSystemResaleVendorKey(row.key) && (
+                        <button
+                          type="button"
+                          onClick={(e) => deleteResaleByIndex(i, e)}
+                          className="inline-flex items-center justify-center rounded-lg transition-colors"
+                          style={{
+                            width: 30,
+                            height: 30,
+                            border: "1.5px solid #ececf3",
+                            background: "#fff",
+                            color: "#8b8a99",
+                            cursor: "pointer",
+                          }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.color = "#c0392b";
+                            (e.currentTarget as HTMLButtonElement).style.borderColor = "#ffd9cc";
+                            (e.currentTarget as HTMLButtonElement).style.background = "#fdf6f4";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.color = "#8b8a99";
+                            (e.currentTarget as HTMLButtonElement).style.borderColor = "#ececf3";
+                            (e.currentTarget as HTMLButtonElement).style.background = "#fff";
+                          }}
+                        >
+                          <IconTrash />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -858,6 +889,7 @@ export function AdminSettingsForm({ tab }: { tab: FormTab }) {
       {/* Integrity Connect + Recent postings — outside the form, integrations tab only */}
       {tab === "integrations" && (
         <IntegrityTestPanel
+          isDev={isDev}
           mode={form.integrationsMode}
           onModeChange={(v) => setForm((f) => ({ ...f, integrationsMode: v }))}
         />

@@ -463,6 +463,30 @@ async function verifyAdminSearch() {
 }
 
 async function verifyIntegrityCron() {
+  // Ensure live integrations + enabled realtime vendor so cron can post in dev.
+  await prisma.appSetting.upsert({
+    where: { key: "integrations_mode" },
+    create: { key: "integrations_mode", value: "live" },
+    update: { value: "live" },
+  });
+  const vendorRow = await prisma.appSetting.findUnique({
+    where: { key: "resale_vendor_configs" },
+  });
+  const vendors =
+    vendorRow?.value && typeof vendorRow.value === "object" && !Array.isArray(vendorRow.value)
+      ? { ...(vendorRow.value) }
+      : {};
+  if (!vendors.integrity_realtime) {
+    vendors.integrity_realtime = { enabled: true, pingUrl: "", postUrl: "" };
+  } else {
+    vendors.integrity_realtime = { ...vendors.integrity_realtime, enabled: true };
+  }
+  await prisma.appSetting.upsert({
+    where: { key: "resale_vendor_configs" },
+    create: { key: "resale_vendor_configs", value: vendors },
+    update: { value: vendors },
+  });
+
   const delayRow = await prisma.appSetting.findUnique({
     where: { key: "integrity_post_delay_hours" },
   });
@@ -496,6 +520,15 @@ async function verifyIntegrityCron() {
     updated?.status === LeadStatus.integrity_posted ||
     updated?.events.some((e) => e.type === LeadEventType.integrity_posted) ||
     (updated?.resalePostings?.length ?? 0) > 0;
+  const skipped = updated?.events.some((e) => e.type === LeadEventType.integrity_skipped);
+
+  if (!posted && skipped) {
+    fail(
+      "p9-7",
+      "Integrity post after delay window",
+      "integrity_skipped (vendor disabled or mock mode)",
+    );
+  }
 
   if (!posted) {
     fail(
