@@ -12,6 +12,7 @@ import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
 import { PartnersTableLayoutToggle } from "@/components/admin/partners-table-layout-toggle";
 import { useAdminLeadsTableLayout } from "@/components/admin/use-admin-leads-table-layout";
 import { LeadToolbarColumnSettingsButton } from "@/components/leads/lead-table-column-picker-button";
+import { notify } from "@/lib/notify";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 
 type ViewRecord = {
@@ -71,10 +72,6 @@ export function AdminLeadsListClient({
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkPending, setBulkPending] = useState(false);
-  const [bulkFeedback, setBulkFeedback] = useState<{
-    kind: "success" | "error";
-    message: string;
-  } | null>(null);
 
   const handleSelectedChange = useCallback((ids: Set<string>) => {
     setSelectedIds(ids);
@@ -83,7 +80,6 @@ export function AdminLeadsListClient({
   async function handleBulkReprocess() {
     if (bulkPending || selectedIds.size === 0) return;
     setBulkPending(true);
-    setBulkFeedback(null);
     try {
       const res = await fetch("/api/admin/leads/bulk-reprocess", {
         method: "POST",
@@ -93,16 +89,16 @@ export function AdminLeadsListClient({
       if (!res.ok) throw new Error("Bulk reprocess failed");
       const data = (await res.json()) as { processed: number; errors: number };
       setSelectedIds(new Set());
-      setBulkFeedback({
-        kind: data.errors === 0 ? "success" : "error",
-        message:
-          data.errors === 0
-            ? `${data.processed} lead${data.processed === 1 ? "" : "s"} queued for reprocessing.`
-            : `${data.processed} queued, ${data.errors} failed.`,
-      });
+      if (data.errors === 0) {
+        notify.success(
+          `${data.processed} lead${data.processed === 1 ? "" : "s"} queued for reprocessing.`,
+        );
+      } else {
+        notify.error(`${data.processed} queued, ${data.errors} failed.`);
+      }
       router.refresh();
     } catch {
-      setBulkFeedback({ kind: "error", message: "Bulk reprocess failed. Please try again." });
+      notify.error("Bulk reprocess failed. Please try again.");
     } finally {
       setBulkPending(false);
     }
@@ -177,8 +173,6 @@ export function AdminLeadsListClient({
           tableFooter={layout === "table" ? pagination : undefined}
           selectedIds={selectedIds}
           onSelectedChange={handleSelectedChange}
-          bulkFeedback={bulkFeedback}
-          onDismissFeedback={() => setBulkFeedback(null)}
         />
       </LeadListTableShell>
     </LeadColumnSettingsBridge>

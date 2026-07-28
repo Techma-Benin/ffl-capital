@@ -7,6 +7,7 @@ import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
 import { endpointHostForDisplay } from "@/lib/delivery/outbound-url-display";
 import { Lightning, Power, Trash, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { notify } from "@/lib/notify";
 import type { PartnerCrmSummary } from "@/lib/partner/types";
 
 const CRM_OUTBOUND_HREF = "/partner/settings/crm-outbound";
@@ -90,13 +91,11 @@ function ChannelRow({
 function ConfirmDeleteDialog({
   open,
   deleting,
-  error,
   onClose,
   onConfirm,
 }: {
   open: boolean;
   deleting: boolean;
-  error: string;
   onClose: () => void;
   onConfirm: () => void;
 }) {
@@ -131,7 +130,6 @@ function ConfirmDeleteDialog({
         <p className="text-sm text-slate-600">
           Leads will continue by email only. You can connect a CRM again anytime.
         </p>
-        {error ? <p className="mt-3 text-xs text-red-600">{error}</p> : null}
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
@@ -320,18 +318,14 @@ export function PartnerLeadDeliveryCard({
 }) {
   const hasInitial = initialCrm !== undefined;
   const [loading, setLoading] = useState(!hasInitial);
-  const [loadError, setLoadError] = useState("");
   const [crm, setCrm] = useState<CrmSummary>(hasInitial ? initialCrm : null);
   const [testOpen, setTestOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
   const [toggling, setToggling] = useState(false);
-  const [toggleError, setToggleError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
-    setLoadError("");
     try {
       const res = await fetch("/api/partners/me/crm-outbound");
       if (res.status === 404) {
@@ -339,7 +333,7 @@ export function PartnerLeadDeliveryCard({
         return;
       }
       if (!res.ok) {
-        setLoadError("Could not load lead delivery settings.");
+        notify.error("Could not load lead delivery settings.");
         return;
       }
       const data = (await res.json()) as {
@@ -353,7 +347,7 @@ export function PartnerLeadDeliveryCard({
         authType: data.authType,
       });
     } catch {
-      setLoadError("Could not load lead delivery settings.");
+      notify.error("Could not load lead delivery settings.");
     } finally {
       setLoading(false);
     }
@@ -374,7 +368,6 @@ export function PartnerLeadDeliveryCard({
     if (!crm || toggling) return;
     const nextEnabled = !crm.enabled;
     setToggling(true);
-    setToggleError("");
     try {
       // Disable: flip off only. Enable: server tests the endpoint first; stays off on failure.
       const patchRes = await fetch("/api/partners/me/crm-outbound", {
@@ -384,7 +377,7 @@ export function PartnerLeadDeliveryCard({
       });
       if (!patchRes.ok) {
         const data = await patchRes.json().catch(() => ({}));
-        setToggleError(
+        notify.error(
           typeof data.error === "string"
             ? data.error
             : nextEnabled
@@ -404,7 +397,7 @@ export function PartnerLeadDeliveryCard({
         authType: data.authType,
       });
     } catch {
-      setToggleError(
+      notify.error(
         nextEnabled
           ? "Could not enable CRM — connection test failed"
           : "Could not disable CRM",
@@ -416,14 +409,13 @@ export function PartnerLeadDeliveryCard({
 
   async function handleDelete() {
     setDeleting(true);
-    setDeleteError("");
     try {
       const res = await fetch("/api/partners/me/crm-outbound", {
         method: "DELETE",
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setDeleteError(
+        notify.error(
           typeof data.error === "string" ? data.error : "Delete failed",
         );
         return;
@@ -431,7 +423,7 @@ export function PartnerLeadDeliveryCard({
       setCrm(null);
       setDeleteOpen(false);
     } catch {
-      setDeleteError("Delete failed");
+      notify.error("Delete failed");
     } finally {
       setDeleting(false);
     }
@@ -456,8 +448,6 @@ export function PartnerLeadDeliveryCard({
         <div className="flex flex-1 flex-col gap-4 px-5 py-4">
           {loading ? (
             <p className="text-sm text-slate-400">Loading…</p>
-          ) : loadError ? (
-            <p className="text-sm text-red-600">{loadError}</p>
           ) : (
             <>
               <div className="space-y-3">
@@ -520,7 +510,6 @@ export function PartnerLeadDeliveryCard({
                             className="rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setDeleteError("");
                               setDeleteOpen(true);
                             }}
                           >
@@ -529,9 +518,6 @@ export function PartnerLeadDeliveryCard({
                         </>
                       }
                     />
-                    {toggleError ? (
-                      <p className="text-xs text-red-600">{toggleError}</p>
-                    ) : null}
                   </>
                 ) : (
                   <ChannelRow
@@ -557,7 +543,6 @@ export function PartnerLeadDeliveryCard({
       <ConfirmDeleteDialog
         open={deleteOpen}
         deleting={deleting}
-        error={deleteError}
         onClose={() => {
           if (!deleting) setDeleteOpen(false);
         }}

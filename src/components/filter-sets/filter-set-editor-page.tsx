@@ -13,6 +13,7 @@ import {
   Warning,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
+import { notify } from "@/lib/notify";
 import {
   FilterSetForm,
   type CategoryOption,
@@ -133,7 +134,6 @@ export function FilterSetEditorPage({
   const [prefill, setPrefill] = useState<FilterSetFormData>(initial);
   const [pending, setPending] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
-  const [templateMsg, setTemplateMsg] = useState("");
   const clientTime = useClientTimeZone();
 
   const formVariant = formVariantFromScope(apiScope, variant);
@@ -252,7 +252,6 @@ export function FilterSetEditorPage({
 
   async function handleSaveAsTemplate() {
     setSavingTemplate(true);
-    setTemplateMsg("");
     try {
       const response = await fetch("/api/admin/filter-set-templates", {
         method: "POST",
@@ -275,12 +274,12 @@ export function FilterSetEditorPage({
       });
       const data = await response.json();
       if (!response.ok) {
-        setTemplateMsg(data.error ?? "Failed to create template");
+        notify.error(data.error ?? "Failed to create template");
         return;
       }
-      setTemplateMsg("Saved as template");
+      notify.success("Saved as template");
     } catch {
-      setTemplateMsg("Request failed");
+      notify.error("Request failed");
     } finally {
       setSavingTemplate(false);
     }
@@ -440,19 +439,6 @@ export function FilterSetEditorPage({
                   >
                     Save as template
                   </ActionButton>
-                  {templateMsg && (
-                    <span
-                      role={templateMsg === "Saved as template" ? "status" : "alert"}
-                      className={clsx(
-                        "text-xs font-semibold",
-                        templateMsg === "Saved as template"
-                          ? "text-emerald-600"
-                          : "text-red-600",
-                      )}
-                    >
-                      {templateMsg}
-                    </span>
-                  )}
                 </div>
               ) : null}
 

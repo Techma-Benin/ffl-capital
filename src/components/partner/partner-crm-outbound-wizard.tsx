@@ -11,6 +11,7 @@ import type { CrmOutboundConfigInput } from "@/lib/crm-outbound/schemas";
 import { ActionButton } from "@/components/ui/action-button";
 import { Switch } from "@/components/ui/switch";
 import { WarningCircle } from "@/lib/icons/client";
+import { notify } from "@/lib/notify";
 
 type AuthType = CrmOutboundConfigInput["authType"];
 
@@ -350,8 +351,6 @@ export function PartnerCrmOutboundWizard({
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [configured, setConfigured] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [sampleJson, setSampleJson] = useState("");
@@ -359,17 +358,16 @@ export function PartnerCrmOutboundWizard({
 
   const loadConfig = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await fetch("/api/partners/me/crm-outbound");
       if (res.status === 404) { setConfigured(false); setForm(emptyForm()); onEnabledChange?.(false); return; }
-      if (!res.ok) { setError("Could not load CRM settings"); return; }
+      if (!res.ok) { notify.error("Could not load CRM settings"); return; }
       const data = (await res.json()) as CrmOutboundConfigInput;
       setForm(formFromApi(data));
       setConfigured(true);
       onEnabledChange?.(data.enabled);
     } catch {
-      setError("Could not load CRM settings");
+      notify.error("Could not load CRM settings");
     } finally {
       setLoading(false);
     }
@@ -391,7 +389,7 @@ export function PartnerCrmOutboundWizard({
   const canAdvanceStep = stepEmpty || stepComplete;
 
   async function saveConfig(): Promise<boolean> {
-    setError(""); setSuccess(""); setSaving(true);
+    setSaving(true);
     try {
       const body = buildPayload(form);
       const res = await fetch("/api/partners/me/crm-outbound", {
@@ -400,13 +398,13 @@ export function PartnerCrmOutboundWizard({
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Save failed"); return false; }
+      if (!res.ok) { notify.error(data.error ?? "Save failed"); return false; }
       setConfigured(true);
       setForm(formFromApi(data));
-      setSuccess("CRM outbound settings saved.");
+      notify.success("CRM outbound settings saved.");
       return true;
     } catch {
-      setError("Save failed");
+      notify.error("Save failed");
       return false;
     } finally {
       setSaving(false);
@@ -420,19 +418,19 @@ export function PartnerCrmOutboundWizard({
   }
 
   async function runTest() {
-    setTestResult(null); setError(""); setTesting(true);
+    setTestResult(null); setTesting(true);
     try {
       if (canSave) await saveConfig();
       const res = await fetch("/api/partners/me/crm-outbound/test", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Test failed"); return; }
+      if (!res.ok) { notify.error(data.error ?? "Test failed"); return; }
       if (data.ok) {
         setTestResult({ ok: true, message: `Success — HTTP ${data.statusCode ?? "?"}${data.bodyPreview ? `: ${data.bodyPreview}` : ""}` });
       } else {
         setTestResult({ ok: false, message: `Failed — ${data.error ?? "unknown"}${data.statusCode ? ` (HTTP ${data.statusCode})` : ""}` });
       }
     } catch {
-      setError("Test request failed");
+      notify.error("Test request failed");
     } finally {
       setTesting(false);
     }
@@ -441,22 +439,21 @@ export function PartnerCrmOutboundWizard({
   async function deleteConfig() {
     if (!configured) return;
     if (!window.confirm("Remove CRM outbound configuration?")) return;
-    setDeleting(true); setError("");
+    setDeleting(true);
     try {
       const res = await fetch("/api/partners/me/crm-outbound", { method: "DELETE" });
-      if (!res.ok) { const data = await res.json(); setError(data.error ?? "Delete failed"); return; }
+      if (!res.ok) { const data = await res.json(); notify.error(data.error ?? "Delete failed"); return; }
       setConfigured(false);
       setForm(emptyForm());
-      setSuccess("CRM outbound configuration removed.");
+      notify.success("CRM outbound configuration removed.");
     } catch {
-      setError("Delete failed");
+      notify.error("Delete failed");
     } finally {
       setDeleting(false);
     }
   }
 
   function importSampleKeys() {
-    setError("");
     try {
       const keys = parseTopLevelJsonKeys(sampleJson);
       setForm((prev) => ({
@@ -466,10 +463,10 @@ export function PartnerCrmOutboundWizard({
           source: LEAD_DELIVERY_SOURCE_FIELDS.includes(target as (typeof LEAD_DELIVERY_SOURCE_FIELDS)[number]) ? target : "",
         })),
       }));
-      setSuccess("Imported target keys from sample JSON.");
+      notify.success("Imported target keys from sample JSON.");
       setShowPreview(true);
     } catch {
-      setError("Invalid sample JSON — use a flat object with top-level keys only.");
+      notify.error("Invalid sample JSON — use a flat object with top-level keys only.");
     }
   }
 
@@ -933,14 +930,6 @@ export function PartnerCrmOutboundWizard({
                 )}
               </div>
             </div>
-          )}
-
-          {/* ── Error / success banners ──────────────────────────────── */}
-          {error && (
-            <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{error}</p>
-          )}
-          {success && (
-            <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{success}</p>
           )}
 
           {/* ── Footer nav ───────────────────────────────────────────── */}

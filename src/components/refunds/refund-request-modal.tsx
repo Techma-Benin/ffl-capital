@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import type { RefundTypeValue } from "@/lib/refunds/constants";
+import { notify } from "@/lib/notify";
 
 export function RefundRequestModal({
   open,
@@ -33,14 +34,12 @@ export function RefundRequestModal({
 }) {
   const [reason, setReason] = useState("");
   const [internalSubmitting, setInternalSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const isSubmitting = externalSubmitting ?? internalSubmitting;
 
   useEffect(() => {
     if (!open) return;
     setReason("");
-    setError(null);
     setInternalSubmitting(false);
   }, [open]);
 
@@ -48,13 +47,12 @@ export function RefundRequestModal({
 
   async function handleSubmit() {
     if (blockedMessage || isSubmitting) return;
-    setError(null);
     const trackInternal = externalSubmitting === undefined;
     if (trackInternal) setInternalSubmitting(true);
     try {
       await onSubmit({ refundType: "invalid_phone", reason });
     } catch {
-      setError("Something went wrong. Please try again.");
+      notify.error("Something went wrong. Please try again.");
     } finally {
       if (trackInternal) setInternalSubmitting(false);
     }
@@ -99,7 +97,6 @@ export function RefundRequestModal({
                 className="form-input w-full resize-none text-sm"
               />
             </div>
-            {error && <p className="text-xs text-red-600">{error}</p>}
           </div>
         )}
 

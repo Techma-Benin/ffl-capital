@@ -19,6 +19,7 @@ import {
   parsePartnerFilters,
   partnerLeadViewFiltersSchema,
 } from "@/lib/leads/list-view-schema";
+import { notify } from "@/lib/notify";
 
 type ViewRecord = {
   id: string;
@@ -79,7 +80,6 @@ export function LeadViewsToolbar({
     columns,
     saveColumns,
     flushColumnsSave,
-    columnsSaveError,
   } = usePersistLeadViewColumns({
     apiBase,
     activeViewId: activeView.id,
@@ -159,6 +159,8 @@ export function LeadViewsToolbar({
         });
         refresh();
       }
+    } catch {
+      notify.error("Could not save view");
     } finally {
       setPending(false);
     }
@@ -205,7 +207,7 @@ export function LeadViewsToolbar({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error ?? "Could not delete");
+        notify.error(data.error ?? "Could not delete");
         return;
       }
       const fallback = views.find((v) => v.isDefault && v.id !== activeView.id);
@@ -283,11 +285,6 @@ export function LeadViewsToolbar({
         columns={columns}
         onChange={saveColumns}
       />
-      {columnsSaveError ? (
-        <p className="px-1 text-sm text-red-600" role="alert">
-          {columnsSaveError}
-        </p>
-      ) : null}
     </div>
   );
 }

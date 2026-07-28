@@ -11,6 +11,7 @@ import { useUser } from "@clerk/nextjs";
 import { createPortal } from "react-dom";
 import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { useProfileUpdate } from "@/hooks/use-profile-update";
+import { notify } from "@/lib/notify";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
 
 // ---------------------------------------------------------------------------
@@ -57,7 +58,7 @@ export function ManageAccountModal({
   syncToDb = true,
 }: ManageAccountModalProps) {
   const { user } = useUser();
-  const { save, saving, error: saveError } = useProfileUpdate({ syncToDb });
+  const { save, saving } = useProfileUpdate({ syncToDb });
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -69,7 +70,6 @@ export function ManageAccountModal({
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [pendingAvatarUrl, setPendingAvatarUrl] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
-  const [avatarError, setAvatarError] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -82,7 +82,6 @@ export function ManageAccountModal({
     setAffiliation(initialAffiliation);
     setLocalPreview(null);
     setPendingAvatarUrl(null);
-    setAvatarError("");
   }, [open, initialFirstName, initialLastName, initialAffiliation]);
 
   // Body scroll lock + initial focus.
@@ -114,7 +113,6 @@ export function ManageAccountModal({
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    setAvatarError("");
     setAvatarUploading(true);
     // Show a local blob preview immediately.
     setLocalPreview(URL.createObjectURL(file));
@@ -126,7 +124,7 @@ export function ManageAccountModal({
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Failed to upload image.";
-      setAvatarError(msg);
+      notify.error(msg);
       setLocalPreview(null);
     } finally {
       setAvatarUploading(false);
@@ -146,6 +144,7 @@ export function ManageAccountModal({
     });
 
     if (ok) {
+      notify.success("Profile updated");
       onSaved?.({
         firstName,
         lastName,
@@ -227,9 +226,6 @@ export function ManageAccountModal({
               >
                 {avatarUploading ? "Uploading…" : "Change photo"}
               </button>
-              {avatarError && (
-                <p className="text-xs text-red-600 text-center">{avatarError}</p>
-              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -287,11 +283,6 @@ export function ManageAccountModal({
               </div>
             )}
 
-            {saveError && (
-              <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
-                {saveError}
-              </p>
-            )}
           </form>
         </div>
 

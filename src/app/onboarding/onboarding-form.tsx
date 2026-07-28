@@ -16,6 +16,7 @@ import type { LeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-optio
 import { FilterSetEditorAdvancedFields } from "@/components/filter-sets/advanced-filters-fields";
 import { StateChipGrid } from "@/components/filter-sets/state-chip-grid";
 import { ActionButton } from "@/components/ui/action-button";
+import { notify } from "@/lib/notify";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -273,7 +274,6 @@ export default function OnboardingForm({
   const { user } = useUser();
   const clientTime = useClientTimeZone();
 
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [navigating, setNavigating] = useState(false);
@@ -321,7 +321,6 @@ export default function OnboardingForm({
 
   function continueToFilterSet(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
     const next = {
       firstName: profile.firstName.trim(),
       lastName: profile.lastName.trim(),
@@ -334,7 +333,7 @@ export default function OnboardingForm({
       !next.affiliation ||
       !next.residenceState
     ) {
-      setError("Please fill in all profile fields before continuing.");
+      notify.error("Please fill in all profile fields before continuing.");
       return;
     }
     setProfile(next);
@@ -394,26 +393,24 @@ export default function OnboardingForm({
 
   function continueToAdvancedFilters(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
     if (!leadType) {
-      setError("Please select a lead type before continuing.");
+      notify.error("Please select a lead type before continuing.");
       return;
     }
     if (selectedStates.length < MIN_FILTER_STATES) {
-      setError(`Please select at least ${MIN_FILTER_STATES} target states.`);
+      notify.error(`Please select at least ${MIN_FILTER_STATES} target states.`);
       return;
     }
     onStepChange(3);
   }
 
   const submitOnboarding = useCallback(async () => {
-    setError("");
     if (!leadType) {
-      setError("Please select a lead type before continuing.");
+      notify.error("Please select a lead type before continuing.");
       return;
     }
     if (selectedStates.length < MIN_FILTER_STATES) {
-      setError(`Please select at least ${MIN_FILTER_STATES} target states.`);
+      notify.error(`Please select at least ${MIN_FILTER_STATES} target states.`);
       return;
     }
     setLoading(true);
@@ -432,12 +429,12 @@ export default function OnboardingForm({
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error ?? "Onboarding failed");
+        notify.error(data.error ?? "Onboarding failed");
         return;
       }
       setSuccess(true);
     } catch {
-      setError("Request failed. Please try again.");
+      notify.error("Request failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -1020,15 +1017,6 @@ export default function OnboardingForm({
               </div>
             )}
 
-            {error && !loading && (
-              <div
-                role="alert"
-                className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold leading-5 text-red-700"
-              >
-                <WarningCircle size={17} className="mt-0.5 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
           </aside>
         </div>
 
@@ -1037,7 +1025,6 @@ export default function OnboardingForm({
             <button
               type="button"
               onClick={() => {
-                setError("");
                 onStepChange(step === 3 ? 2 : 1);
               }}
               className="btn-secondary"

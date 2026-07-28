@@ -3,6 +3,7 @@
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { useTransition } from "react";
 import { Eye, ICON_WEIGHT } from "@/lib/icons/client";
+import { notify } from "@/lib/notify";
 
 interface Props {
   partnerId: string;
@@ -27,7 +28,7 @@ export function ViewAsPartnerButton({
         push("/partner");
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(`Could not impersonate partner: ${data?.error ?? res.statusText}`);
+        notify.error(`Could not impersonate partner: ${data?.error ?? res.statusText}`);
       }
     });
   }

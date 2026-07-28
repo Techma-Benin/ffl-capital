@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 24 juillet 2026 (v8 — Intent/Have IUL multi-select + Attribution retirée de l’onboarding)
+> Dernière mise à jour : 28 juillet 2026 (v8 — toasts Sonner pour retours utilisateur)
 
 ---
 
@@ -274,7 +274,7 @@ resale_postings                   -- envois IntegrityCONNECT
 | Couche | Choix |
 |--------|-------|
 | Framework | **Next.js 14** (App Router) + TypeScript |
-| UI | **Tailwind + shadcn/ui** |
+| UI | **Tailwind + shadcn/ui** · retours utilisateur via toasts Sonner globaux (`notify.success` / `notify.error`) |
 | ORM | **Prisma** |
 | Base | **Supabase PostgreSQL** (pas Docker local) |
 | Auth | Clerk |

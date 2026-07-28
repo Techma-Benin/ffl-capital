@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { mergeColumnsWithCatalog } from "@/lib/leads/list-view-columns";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type { LeadViewColumn } from "@/lib/leads/list-view-schema";
+import { notify } from "@/lib/notify";
 
 const SAVE_DEBOUNCE_MS = 400;
 
@@ -27,7 +28,6 @@ export function usePersistLeadViewColumns({
   const [draftColumns, setDraftColumns] = useState<LeadViewColumn[] | null>(
     null,
   );
-  const [saveError, setSaveError] = useState<string | null>(null);
   const pendingPayload = useRef<LeadViewColumn[] | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saving = useRef(false);
@@ -40,7 +40,6 @@ export function usePersistLeadViewColumns({
 
   useEffect(() => {
     setDraftColumns(null);
-    setSaveError(null);
     pendingPayload.current = null;
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
@@ -82,12 +81,11 @@ export function usePersistLeadViewColumns({
     const payload = pendingPayload.current;
     if (!payload || saving.current) return;
     saving.current = true;
-    setSaveError(null);
     try {
       await patchColumns(payload);
       pendingPayload.current = null;
     } catch (e) {
-      setSaveError(
+      notify.error(
         e instanceof Error ? e.message : "Could not save column settings",
       );
       setDraftColumns(null);
@@ -101,7 +99,6 @@ export function usePersistLeadViewColumns({
     (next: LeadViewColumn[]) => {
       const normalized = mergeColumnsWithCatalog(catalog, next);
       setDraftColumns(normalized);
-      setSaveError(null);
       pendingPayload.current = normalized;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
@@ -121,6 +118,5 @@ export function usePersistLeadViewColumns({
     columns,
     saveColumns: scheduleSave,
     flushColumnsSave: flushSave,
-    columnsSaveError: saveError,
   };
 }
