@@ -9,8 +9,6 @@ export type PartnerFilterSetSession = {
   filterStates: string[];
   priority: number;
   active: boolean;
-  weeklyLimit: number | null;
-  monthlyLimit: number | null;
   filterCriteria: FilterCriteria;
 };
 

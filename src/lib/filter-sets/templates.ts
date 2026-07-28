@@ -37,7 +37,7 @@ export function serializeTemplateRow(
   };
 }
 
-/** Slim picker/onboarding shape (stable for existing clients). */
+/** Slim picker shape for admin (includes delivery limits). */
 export function serializeTemplatePickerItem(row: PartnerFilterSet) {
   return {
     id: row.id,
@@ -46,6 +46,19 @@ export function serializeTemplatePickerItem(row: PartnerFilterSet) {
     filterStates: row.filterStates,
     weeklyLimit: row.weeklyLimit,
     monthlyLimit: row.monthlyLimit,
+    filterCriteria: stripAttributionCriteria(
+      (row.filterCriteria ?? {}) as FilterCriteria,
+    ),
+  };
+}
+
+/** Partner/onboarding picker — no delivery limits exposed to clients. */
+export function serializeTemplatePickerItemForPartner(row: PartnerFilterSet) {
+  return {
+    id: row.id,
+    name: row.name,
+    leadType: row.leadType,
+    filterStates: row.filterStates,
     filterCriteria: stripAttributionCriteria(
       (row.filterCriteria ?? {}) as FilterCriteria,
     ),

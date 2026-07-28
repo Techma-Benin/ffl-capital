@@ -100,6 +100,7 @@ export function FilterSetForm({
   onPendingChange,
   onFormChange,
   variant = "admin",
+  sourceTemplateId,
 }: {
   partnerId?: string;
   filterSetId?: string;
@@ -115,6 +116,8 @@ export function FilterSetForm({
   onPendingChange?: (pending: boolean) => void;
   onFormChange?: (form: FilterSetFormData) => void;
   variant?: FilterSetFormVariant;
+  /** When creating from a template, server applies admin-set limits from this template. */
+  sourceTemplateId?: string | null;
 }) {
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
@@ -123,6 +126,7 @@ export function FilterSetForm({
   const selectedCount = form.filterStates.length;
   const isEligible = selectedCount >= MIN_FILTER_STATES;
   const showPricing = variant === "admin" || variant === "template";
+  const showLimits = variant !== "partner";
   const criteriaConfigured = hasAdvancedCriteria(form);
 
   useEffect(() => {
@@ -171,10 +175,15 @@ export function FilterSetForm({
       leadType: form.leadType,
       filterStates: form.filterStates,
       active: form.active,
-      weeklyLimit: form.weeklyLimit ? Number(form.weeklyLimit) : null,
-      monthlyLimit: form.monthlyLimit ? Number(form.monthlyLimit) : null,
       filterCriteria: stripAttributionCriteria(form.filterCriteria),
     };
+
+    if (showLimits) {
+      payload.weeklyLimit = form.weeklyLimit ? Number(form.weeklyLimit) : null;
+      payload.monthlyLimit = form.monthlyLimit ? Number(form.monthlyLimit) : null;
+    } else if (!filterSetId && sourceTemplateId) {
+      payload.sourceTemplateId = sourceTemplateId;
+    }
 
     if (showPricing) {
       payload.priority = form.priority;
@@ -386,6 +395,7 @@ export function FilterSetForm({
         </div>
       </SectionCard>
 
+      {(showPricing || showLimits) && (
       <SectionCard
         icon={<Lightning size={17} weight={ICON_WEIGHT_LINEAR} />}
         iconClassName="bg-accent-50 text-accent-700"
@@ -445,50 +455,55 @@ export function FilterSetForm({
             </div>
           </>
         )}
-        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
-          Volume caps
-        </p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="form-label" htmlFor="filter-set-weekly-limit">
-              Weekly limit
-            </label>
-            <input
-              id="filter-set-weekly-limit"
-              type="number"
-              min={1}
-              placeholder="No limit"
-              className="form-input"
-              value={form.weeklyLimit}
-              onChange={(event) =>
-                setForm((previous) => ({
-                  ...previous,
-                  weeklyLimit: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div>
-            <label className="form-label" htmlFor="filter-set-monthly-limit">
-              Monthly limit
-            </label>
-            <input
-              id="filter-set-monthly-limit"
-              type="number"
-              min={1}
-              placeholder="No limit"
-              className="form-input"
-              value={form.monthlyLimit}
-              onChange={(event) =>
-                setForm((previous) => ({
-                  ...previous,
-                  monthlyLimit: event.target.value,
-                }))
-              }
-            />
-          </div>
-        </div>
+        {showLimits && (
+          <>
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+              Volume caps
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="form-label" htmlFor="filter-set-weekly-limit">
+                  Weekly limit
+                </label>
+                <input
+                  id="filter-set-weekly-limit"
+                  type="number"
+                  min={1}
+                  placeholder="No limit"
+                  className="form-input"
+                  value={form.weeklyLimit}
+                  onChange={(event) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      weeklyLimit: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="filter-set-monthly-limit">
+                  Monthly limit
+                </label>
+                <input
+                  id="filter-set-monthly-limit"
+                  type="number"
+                  min={1}
+                  placeholder="No limit"
+                  className="form-input"
+                  value={form.monthlyLimit}
+                  onChange={(event) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      monthlyLimit: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </>
+        )}
       </SectionCard>
+      )}
 
       <SectionCard
         icon={<Funnel size={17} weight={ICON_WEIGHT_LINEAR} />}

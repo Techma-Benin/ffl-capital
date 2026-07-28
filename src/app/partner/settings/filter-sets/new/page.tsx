@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
 import {
   listFilterSetTemplates,
-  serializeTemplateRow,
+  serializeTemplatePickerItemForPartner,
 } from "@/lib/filter-sets/templates";
 import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 
@@ -48,7 +48,7 @@ export default async function PartnerFilterSetNewPage() {
       categories={categoryOptions}
       criteriaOptions={criteriaOptions}
       showTemplatePicker
-      initialTemplates={templateRows.map(serializeTemplateRow)}
+      initialTemplates={templateRows.map(serializeTemplatePickerItemForPartner)}
     />
   );
 }

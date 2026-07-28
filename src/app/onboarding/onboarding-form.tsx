@@ -26,7 +26,6 @@ import {
   MapPin,
   Funnel,
   Users,
-  ChartBar,
   X,
   ICON_WEIGHT_LINEAR,
   ICON_WEIGHT_BOLD,
@@ -113,8 +112,6 @@ type FilterSetTemplate = {
   name: string;
   leadType: LeadType;
   filterStates: string[];
-  weeklyLimit?: number | null;
-  monthlyLimit?: number | null;
   filterCriteria?: FilterCriteria;
 };
 
@@ -291,8 +288,6 @@ export default function OnboardingForm({
     null,
   );
   const [filterCriteria, setFilterCriteria] = useState<FilterCriteria>({});
-  const [weeklyLimit, setWeeklyLimit] = useState("");
-  const [monthlyLimit, setMonthlyLimit] = useState("");
   const [templates, setTemplates] = useState<FilterSetTemplate[] | null>(null);
 
   useEffect(() => {
@@ -349,12 +344,6 @@ export default function OnboardingForm({
     setSelectedTemplateId(template.id);
     setLeadType(template.leadType);
     setSelectedStates([...template.filterStates]);
-    if (template.weeklyLimit != null) {
-      setWeeklyLimit(String(template.weeklyLimit));
-    }
-    if (template.monthlyLimit != null) {
-      setMonthlyLimit(String(template.monthlyLimit));
-    }
     if (template.filterCriteria) {
       setFilterCriteria(stripAttributionCriteria(template.filterCriteria));
     }
@@ -426,8 +415,7 @@ export default function OnboardingForm({
           leadType,
           filterStates: selectedStates,
           filterCriteria: stripAttributionCriteria(filterCriteria),
-          weeklyLimit: weeklyLimit ? Number(weeklyLimit) : null,
-          monthlyLimit: monthlyLimit ? Number(monthlyLimit) : null,
+          ...(selectedTemplateId ? { templateId: selectedTemplateId } : {}),
         }),
       });
       const data = await response.json();
@@ -446,8 +434,7 @@ export default function OnboardingForm({
     leadType,
     selectedStates,
     filterCriteria,
-    weeklyLimit,
-    monthlyLimit,
+    selectedTemplateId,
   ]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -528,10 +515,6 @@ export default function OnboardingForm({
       ? `${dayText} · ${hourText}`
       : `${dayText} · ${hourText} · ${clientTime.displayName}`;
 
-  const capParts: string[] = [];
-  if (weeklyLimit) capParts.push(`${weeklyLimit}/wk`);
-  if (monthlyLimit) capParts.push(`${monthlyLimit}/mo`);
-
   let panelSentence =
     "Complete your details so we can create and review your partner account.";
   if (step === 2) {
@@ -545,9 +528,7 @@ export default function OnboardingForm({
   } else if (step === 3) {
     panelSentence = `Receive ${leadTypeLabel} leads from ${
       selectedStates.length
-    } states, on ${dayText.toLowerCase()} ${hourText.toLowerCase()}${
-      capParts.length ? `, capped at ${capParts.join(" and ")}` : ""
-    }.`;
+    } states, on ${dayText.toLowerCase()} ${hourText.toLowerCase()}.`;
   }
 
   const regionButtons = [
@@ -852,95 +833,35 @@ export default function OnboardingForm({
             )}
 
             {step === 3 && (
-              <>
-                <SectionCard
-                  icon={<ChartBar size={17} weight={ICON_WEIGHT_LINEAR} />}
-                  iconClassName="bg-accent-50 text-accent-700"
-                  title="Volume limits"
-                  meta={
-                    <span className="text-[11px] font-semibold text-slate-400">
-                      Optional
-                    </span>
+              <SectionCard
+                icon={<Funnel size={17} weight={ICON_WEIGHT_LINEAR} />}
+                iconClassName="bg-amber-50 text-amber-700"
+                title="Lead profile & schedule"
+                meta={
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    Optional
+                  </span>
+                }
+                action={
+                  criteriaConfigured ? (
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={() => setFilterCriteria({})}
+                    >
+                      Reset
+                    </button>
+                  ) : undefined
+                }
+              >
+                <FilterSetEditorAdvancedFields
+                  criteria={filterCriteria}
+                  criteriaOptions={criteriaOptions}
+                  onChange={(criteria) =>
+                    setFilterCriteria(stripAttributionCriteria(criteria))
                   }
-                >
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label
-                        className="form-label"
-                        htmlFor="onboarding-weekly-limit"
-                      >
-                        Weekly limit
-                      </label>
-                      <input
-                        id="onboarding-weekly-limit"
-                        type="number"
-                        min={1}
-                        placeholder="No limit"
-                        className="form-input"
-                        value={weeklyLimit}
-                        onChange={(event) =>
-                          setWeeklyLimit(event.target.value)
-                        }
-                      />
-                      <p className="mt-1 text-xs text-slate-400">
-                        Maximum leads per rolling 7 days.
-                      </p>
-                    </div>
-                    <div>
-                      <label
-                        className="form-label"
-                        htmlFor="onboarding-monthly-limit"
-                      >
-                        Monthly limit
-                      </label>
-                      <input
-                        id="onboarding-monthly-limit"
-                        type="number"
-                        min={1}
-                        placeholder="No limit"
-                        className="form-input"
-                        value={monthlyLimit}
-                        onChange={(event) =>
-                          setMonthlyLimit(event.target.value)
-                        }
-                      />
-                      <p className="mt-1 text-xs text-slate-400">
-                        Maximum leads per rolling 30 days.
-                      </p>
-                    </div>
-                  </div>
-                </SectionCard>
-
-                <SectionCard
-                  icon={<Funnel size={17} weight={ICON_WEIGHT_LINEAR} />}
-                  iconClassName="bg-amber-50 text-amber-700"
-                  title="Lead profile & schedule"
-                  meta={
-                    <span className="text-[11px] font-semibold text-slate-400">
-                      Optional
-                    </span>
-                  }
-                  action={
-                    criteriaConfigured ? (
-                      <button
-                        type="button"
-                        className="btn-secondary btn-sm"
-                        onClick={() => setFilterCriteria({})}
-                      >
-                        Reset
-                      </button>
-                    ) : undefined
-                  }
-                >
-                  <FilterSetEditorAdvancedFields
-                    criteria={filterCriteria}
-                    criteriaOptions={criteriaOptions}
-                    onChange={(criteria) =>
-                      setFilterCriteria(stripAttributionCriteria(criteria))
-                    }
-                  />
-                </SectionCard>
-              </>
+                />
+              </SectionCard>
             )}
           </div>
 
@@ -994,10 +915,6 @@ export default function OnboardingForm({
                       ? `${selectedStates.length} of ${US_STATE_CODES.length}`
                       : "—"
                   }
-                />
-                <SummaryRow
-                  label="Caps"
-                  value={capParts.length ? capParts.join(" · ") : "No limit"}
                 />
                 <SummaryRow
                   label="Profile"

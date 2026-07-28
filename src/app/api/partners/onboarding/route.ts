@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db";
 import { isAdminApprovalRequired } from "@/lib/auth/session";
 import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
 
+import { findFilterSetTemplate } from "@/lib/filter-sets/templates";
+
 const filterCriteriaSchema = z
   .object({
     intent: z.array(z.string()).optional(),
@@ -25,8 +27,7 @@ const onboardingSchema = z.object({
   residenceState: z.string().length(2),
   leadType: z.string().min(1),
   filterStates: z.array(z.string().length(2)).min(15),
-  weeklyLimit: z.number().int().positive().nullable().optional(),
-  monthlyLimit: z.number().int().positive().nullable().optional(),
+  templateId: z.string().uuid().optional(),
   filterCriteria: filterCriteriaSchema,
 });
 
@@ -63,6 +64,16 @@ export async function POST(request: NextRequest) {
     ? PartnerStatus.pending_approval
     : PartnerStatus.active;
 
+  let weeklyLimit: number | null = null;
+  let monthlyLimit: number | null = null;
+  if (parsed.data.templateId) {
+    const template = await findFilterSetTemplate(parsed.data.templateId);
+    if (template) {
+      weeklyLimit = template.weeklyLimit;
+      monthlyLimit = template.monthlyLimit;
+    }
+  }
+
   const partner = await prisma.partner.create({
     data: {
       clerkUserId: userId,
@@ -78,8 +89,8 @@ export async function POST(request: NextRequest) {
           name: "Default",
           leadType: parsed.data.leadType,
           filterStates: parsed.data.filterStates.map((s) => s.toUpperCase()),
-          weeklyLimit: parsed.data.weeklyLimit ?? null,
-          monthlyLimit: parsed.data.monthlyLimit ?? null,
+          weeklyLimit,
+          monthlyLimit,
           filterCriteria: stripAttributionCriteria(
             parsed.data.filterCriteria ?? {},
           ),

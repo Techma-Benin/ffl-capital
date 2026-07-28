@@ -36,8 +36,6 @@ type PartnerFilterSet = {
   priority: number;
   active: boolean;
   priceOverride?: number | null;
-  weeklyLimit?: number | null;
-  monthlyLimit?: number | null;
   filterCriteria?: import("@/lib/matching/types").FilterCriteria;
 };
 

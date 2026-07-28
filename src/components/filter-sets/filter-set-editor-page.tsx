@@ -127,10 +127,11 @@ export function FilterSetEditorPage({
 }: FilterSetEditorPageProps) {
   const router = useRouter();
   const formId = useId();
-  const [step, setStep] = useState<"picker" | "editor">(
-    mode === "create" && showTemplatePicker ? "picker" : "editor",
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(
+    mode === "create" && showTemplatePicker,
   );
   const [prefill, setPrefill] = useState<FilterSetFormData>(initial);
+  const [sourceTemplateId, setSourceTemplateId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateMsg, setTemplateMsg] = useState("");
@@ -138,6 +139,7 @@ export function FilterSetEditorPage({
 
   const formVariant = formVariantFromScope(apiScope, variant);
   const showPricing = formVariant === "admin" || formVariant === "template";
+  const showLimits = formVariant !== "partner";
   const isEligible = prefill.filterStates.length >= MIN_FILTER_STATES;
   const isDirty = JSON.stringify(prefill) !== JSON.stringify(initial);
   const title =
@@ -197,8 +199,10 @@ export function FilterSetEditorPage({
         : `${dayText} · ${hourText} · ${clientTime.displayName}`;
 
     const capParts: string[] = [];
-    if (prefill.weeklyLimit) capParts.push(`${prefill.weeklyLimit}/wk`);
-    if (prefill.monthlyLimit) capParts.push(`${prefill.monthlyLimit}/mo`);
+    if (showLimits) {
+      if (prefill.weeklyLimit) capParts.push(`${prefill.weeklyLimit}/wk`);
+      if (prefill.monthlyLimit) capParts.push(`${prefill.monthlyLimit}/mo`);
+    }
 
     const profile = profileParts.length ? profileParts.join(" · ") : "Any";
     const price = prefill.priceOverride
@@ -243,6 +247,7 @@ export function FilterSetEditorPage({
     isEligible,
     prefill,
     showPricing,
+    showLimits,
   ]);
 
   function handleSaved() {
@@ -309,179 +314,170 @@ export function FilterSetEditorPage({
         }
       />
 
+      {showTemplatePicker && (
+        <FilterSetTemplatePicker
+          open={templatePickerOpen}
+          onOpenChange={setTemplatePickerOpen}
+          initialTemplates={initialTemplates}
+          onSelect={(template) => {
+            setSourceTemplateId(template.id);
+            setPrefill((current) => ({
+              ...current,
+              name: template.name,
+              leadType: template.leadType,
+              filterStates: [...template.filterStates],
+              filterCriteria: stripAttributionCriteria(
+                template.filterCriteria ?? {},
+              ),
+              priority: template.priority ?? current.priority,
+              priceOverride:
+                template.priceOverride != null
+                  ? String(template.priceOverride)
+                  : current.priceOverride,
+            }));
+          }}
+          onSkip={() => {}}
+        />
+      )}
+
       <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80">
-        {step === "picker" ? (
-          <div className="px-4 py-6 sm:px-6 sm:py-8">
-            <div className="mx-auto max-w-3xl">
-              <FilterSetTemplatePicker
-                initialTemplates={initialTemplates}
-                onSelect={(template) => {
-                  setPrefill((current) => ({
-                    ...current,
-                    name: template.name,
-                    leadType: template.leadType,
-                    filterStates: [...template.filterStates],
-                    weeklyLimit:
-                      template.weeklyLimit != null
-                        ? String(template.weeklyLimit)
-                        : current.weeklyLimit,
-                    monthlyLimit:
-                      template.monthlyLimit != null
-                        ? String(template.monthlyLimit)
-                        : current.monthlyLimit,
-                    filterCriteria: stripAttributionCriteria(
-                      template.filterCriteria ?? {},
-                    ),
-                    priority: template.priority ?? current.priority,
-                    priceOverride:
-                      template.priceOverride != null
-                        ? String(template.priceOverride)
-                        : current.priceOverride,
-                  }));
-                  setStep("editor");
-                }}
-                onSkip={() => setStep("editor")}
-              />
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="grid items-start gap-5 px-3 py-4 sm:px-5 sm:py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-              <FilterSetForm
-                formId={formId}
-                hideButtons
-                variant={formVariant}
-                onPendingChange={setPending}
-                filterSetId={filterSetId}
-                partnerId={partnerId}
-                initial={prefill}
-                categories={categories}
-                criteriaOptions={criteriaOptions}
-                buildUrl={(id) => buildFilterSetUrl(apiScope, partnerId, id)}
-                onCancel={() => router.push(backHref)}
-                onSaved={handleSaved}
-                onFormChange={setPrefill}
-              />
+        <div className="grid items-start gap-5 px-3 py-4 sm:px-5 sm:py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <FilterSetForm
+            formId={formId}
+            hideButtons
+            variant={formVariant}
+            sourceTemplateId={sourceTemplateId}
+            onPendingChange={setPending}
+            filterSetId={filterSetId}
+            partnerId={partnerId}
+            initial={prefill}
+            categories={categories}
+            criteriaOptions={criteriaOptions}
+            buildUrl={(id) => buildFilterSetUrl(apiScope, partnerId, id)}
+            onCancel={() => router.push(backHref)}
+            onSaved={handleSaved}
+            onFormChange={setPrefill}
+          />
 
-              <aside className="space-y-4 xl:sticky xl:top-5">
-                <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
-                  <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5">
-                    <h2 className="text-sm font-bold text-slate-900">
-                      Matching rule
-                    </h2>
-                    <span className="flex-1" />
-                    <Badge variant={isEligible ? "green" : "yellow"}>
-                      {isEligible ? "Eligible" : "Not eligible"}
-                    </Badge>
-                  </div>
-                  <p className="px-4 py-4 text-sm font-medium leading-6 text-slate-600">
-                    {summary.matchingRule}
-                  </p>
-                </section>
+          <aside className="space-y-4 xl:sticky xl:top-5">
+            <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
+              <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5">
+                <h2 className="text-sm font-bold text-slate-900">
+                  Matching rule
+                </h2>
+                <span className="flex-1" />
+                <Badge variant={isEligible ? "green" : "yellow"}>
+                  {isEligible ? "Eligible" : "Not eligible"}
+                </Badge>
+              </div>
+              <p className="px-4 py-4 text-sm font-medium leading-6 text-slate-600">
+                {summary.matchingRule}
+              </p>
+            </section>
 
-                <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
-                  <div className="border-b border-slate-100 px-4 py-3.5">
-                    <h2 className="text-sm font-bold text-slate-900">Summary</h2>
-                  </div>
-                  <dl className="px-4 pb-1">
-                    <SummaryRow label="Name" value={prefill.name || "Default"} />
-                    <SummaryRow label="Lead type" value={summary.leadType} />
+            <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
+              <div className="border-b border-slate-100 px-4 py-3.5">
+                <h2 className="text-sm font-bold text-slate-900">Summary</h2>
+              </div>
+              <dl className="px-4 pb-1">
+                <SummaryRow label="Name" value={prefill.name || "Default"} />
+                <SummaryRow label="Lead type" value={summary.leadType} />
+                <SummaryRow
+                  label="States"
+                  value={`${prefill.filterStates.length} of 50`}
+                />
+                {showPricing && (
+                  <>
                     <SummaryRow
-                      label="States"
-                      value={`${prefill.filterStates.length} of 50`}
+                      label="Priority"
+                      value={`P${prefill.priority}`}
                     />
-                    {showPricing && (
-                      <>
-                        <SummaryRow
-                          label="Priority"
-                          value={`P${prefill.priority}`}
-                        />
-                        <SummaryRow label="Price" value={summary.price} />
-                      </>
-                    )}
-                    <SummaryRow label="Caps" value={summary.caps} />
-                    <SummaryRow label="Profile" value={summary.profile} />
-                    <SummaryRow label="Schedule" value={summary.schedule} />
-                  </dl>
-                </section>
-
-                {!isEligible && (
-                  <div
-                    role="status"
-                    className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-800"
-                  >
-                    <Warning
-                      size={17}
-                      weight={ICON_WEIGHT_LINEAR}
-                      className="mt-0.5 shrink-0"
-                    />
-                    <span>
-                      Select at least {MIN_FILTER_STATES} states —{" "}
-                      {MIN_FILTER_STATES - prefill.filterStates.length} more to
-                      go.
-                    </span>
-                  </div>
+                    <SummaryRow label="Price" value={summary.price} />
+                  </>
                 )}
-              </aside>
-            </div>
+                {showLimits && (
+                  <SummaryRow label="Caps" value={summary.caps} />
+                )}
+                <SummaryRow label="Profile" value={summary.profile} />
+                <SummaryRow label="Schedule" value={summary.schedule} />
+              </dl>
+            </section>
 
-            <div className="flex flex-wrap items-center gap-3 rounded-b-2xl border-t border-slate-200 bg-white px-4 py-3.5 sm:px-6">
-              {showSaveAsTemplate ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <ActionButton
-                    type="button"
-                    variant="secondary"
-                    loading={savingTemplate}
-                    loadingText="Saving template…"
-                    disabled={!isEligible}
-                    icon={<CopySimple size={14} weight={ICON_WEIGHT_LINEAR} />}
-                    onClick={handleSaveAsTemplate}
-                    className="btn-sm"
-                  >
-                    Save as template
-                  </ActionButton>
-                  {templateMsg && (
-                    <span
-                      role={templateMsg === "Saved as template" ? "status" : "alert"}
-                      className={clsx(
-                        "text-xs font-semibold",
-                        templateMsg === "Saved as template"
-                          ? "text-emerald-600"
-                          : "text-red-600",
-                      )}
-                    >
-                      {templateMsg}
-                    </span>
+            {!isEligible && (
+              <div
+                role="status"
+                className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-800"
+              >
+                <Warning
+                  size={17}
+                  weight={ICON_WEIGHT_LINEAR}
+                  className="mt-0.5 shrink-0"
+                />
+                <span>
+                  Select at least {MIN_FILTER_STATES} states —{" "}
+                  {MIN_FILTER_STATES - prefill.filterStates.length} more to
+                  go.
+                </span>
+              </div>
+            )}
+          </aside>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 rounded-b-2xl border-t border-slate-200 bg-white px-4 py-3.5 sm:px-6">
+          {showSaveAsTemplate ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <ActionButton
+                type="button"
+                variant="secondary"
+                loading={savingTemplate}
+                loadingText="Saving template…"
+                disabled={!isEligible}
+                icon={<CopySimple size={14} weight={ICON_WEIGHT_LINEAR} />}
+                onClick={handleSaveAsTemplate}
+                className="btn-sm"
+              >
+                Save as template
+              </ActionButton>
+              {templateMsg && (
+                <span
+                  role={templateMsg === "Saved as template" ? "status" : "alert"}
+                  className={clsx(
+                    "text-xs font-semibold",
+                    templateMsg === "Saved as template"
+                      ? "text-emerald-600"
+                      : "text-red-600",
                   )}
-                </div>
-              ) : null}
-
-              <span className="min-w-2 flex-1" />
-              {isDirty && (
-                <span className="text-xs font-semibold text-slate-400">
-                  Unsaved changes
+                >
+                  {templateMsg}
                 </span>
               )}
-              <Link href={backHref} className="btn-secondary btn-sm">
-                Cancel
-              </Link>
-              <button
-                type="submit"
-                form={formId}
-                disabled={pending || !isEligible}
-                className="btn-primary btn-sm"
-              >
-                {pending
-                  ? "Saving…"
-                  : mode === "edit"
-                    ? "Save changes"
-                    : apiScope === "template"
-                      ? "Create template"
-                      : "Create filter set"}
-              </button>
             </div>
-          </>
-        )}
+          ) : null}
+
+          <span className="min-w-2 flex-1" />
+          {isDirty && (
+            <span className="text-xs font-semibold text-slate-400">
+              Unsaved changes
+            </span>
+          )}
+          <Link href={backHref} className="btn-secondary btn-sm">
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            form={formId}
+            disabled={pending || !isEligible}
+            className="btn-primary btn-sm"
+          >
+            {pending
+              ? "Saving…"
+              : mode === "edit"
+                ? "Save changes"
+                : apiScope === "template"
+                  ? "Create template"
+                  : "Create filter set"}
+          </button>
+        </div>
       </div>
     </div>
   );

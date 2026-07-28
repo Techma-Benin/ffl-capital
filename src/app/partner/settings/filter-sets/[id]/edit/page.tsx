@@ -56,8 +56,8 @@ export default async function PartnerFilterSetEditPage({
           ? Number(filterSet.priceOverride)
           : null,
         active: filterSet.active,
-        weeklyLimit: filterSet.weeklyLimit,
-        monthlyLimit: filterSet.monthlyLimit,
+        weeklyLimit: null,
+        monthlyLimit: null,
         filterCriteria: (filterSet.filterCriteria ?? {}) as FilterCriteria,
       })}
       categories={categoryOptions}

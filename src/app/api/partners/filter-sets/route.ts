@@ -6,6 +6,7 @@ import { listPartnerFilterSets } from "@/lib/partner/default-filter-set";
 import { MIN_FILTER_STATES } from "@/lib/partner/constants";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import { findFilterSetTemplate } from "@/lib/filter-sets/templates";
 import type { FilterCriteria } from "@/lib/matching/types";
 
 const stateCodeSchema = z.enum(
@@ -31,10 +32,31 @@ const createSchema = z.object({
   filterStates: z.array(stateCodeSchema).min(1).max(50),
   priority: z.number().int().min(1).max(10).default(5),
   active: z.boolean().default(true),
-  weeklyLimit: z.number().int().positive().nullable().optional(),
-  monthlyLimit: z.number().int().positive().nullable().optional(),
+  sourceTemplateId: z.string().uuid().optional(),
   filterCriteria: filterCriteriaSchema,
 });
+
+function serializePartnerFilterSet(fs: {
+  id: string;
+  name: string;
+  leadType: string;
+  filterStates: string[];
+  priority: number;
+  active: boolean;
+  filterCriteria: unknown;
+}) {
+  return {
+    id: fs.id,
+    name: fs.name,
+    leadType: fs.leadType,
+    filterStates: fs.filterStates,
+    priority: fs.priority,
+    active: fs.active,
+    filterCriteria: stripAttributionCriteria(
+      (fs.filterCriteria ?? {}) as FilterCriteria,
+    ),
+  };
+}
 
 export async function GET() {
   const partnerId = await getPartnerId();
@@ -44,21 +66,7 @@ export async function GET() {
 
   const filterSets = await listPartnerFilterSets(partnerId);
 
-  return NextResponse.json(
-    filterSets.map((fs) => ({
-      id: fs.id,
-      name: fs.name,
-      leadType: fs.leadType,
-      filterStates: fs.filterStates,
-      priority: fs.priority,
-      active: fs.active,
-      weeklyLimit: fs.weeklyLimit,
-      monthlyLimit: fs.monthlyLimit,
-      filterCriteria: stripAttributionCriteria(
-        (fs.filterCriteria ?? {}) as FilterCriteria,
-      ),
-    })),
-  );
+  return NextResponse.json(filterSets.map(serializePartnerFilterSet));
 }
 
 export async function POST(request: NextRequest) {
@@ -100,8 +108,7 @@ export async function POST(request: NextRequest) {
     filterStates: rawStates,
     priority,
     active,
-    weeklyLimit,
-    monthlyLimit,
+    sourceTemplateId,
     filterCriteria,
   } = parsed.data;
   const filterStates = Array.from(new Set(rawStates.map((s) => s.toUpperCase())));
@@ -116,6 +123,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let weeklyLimit: number | null = null;
+  let monthlyLimit: number | null = null;
+  if (sourceTemplateId) {
+    const template = await findFilterSetTemplate(sourceTemplateId);
+    if (template) {
+      weeklyLimit = template.weeklyLimit;
+      monthlyLimit = template.monthlyLimit;
+    }
+  }
+
   const created = await prisma.partnerFilterSet.create({
     data: {
       partnerId,
@@ -125,26 +142,13 @@ export async function POST(request: NextRequest) {
       filterStates,
       priority,
       active,
-      weeklyLimit: weeklyLimit ?? null,
-      monthlyLimit: monthlyLimit ?? null,
+      weeklyLimit,
+      monthlyLimit,
       filterCriteria: stripAttributionCriteria(
         (filterCriteria ?? {}) as FilterCriteria,
       ),
     },
   });
 
-  return NextResponse.json(
-    {
-      id: created.id,
-      name: created.name,
-      leadType: created.leadType,
-      filterStates: created.filterStates,
-      priority: created.priority,
-      active: created.active,
-      weeklyLimit: created.weeklyLimit,
-      monthlyLimit: created.monthlyLimit,
-      filterCriteria: created.filterCriteria,
-    },
-    { status: 201 },
-  );
+  return NextResponse.json(serializePartnerFilterSet(created), { status: 201 });
 }

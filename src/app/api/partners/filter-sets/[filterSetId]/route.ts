@@ -34,10 +34,30 @@ const patchSchema = z.object({
     .optional(),
   priority: z.number().int().min(1).max(10).optional(),
   active: z.boolean().optional(),
-  weeklyLimit: z.number().int().positive().nullable().optional(),
-  monthlyLimit: z.number().int().positive().nullable().optional(),
   filterCriteria: filterCriteriaSchema,
 });
+
+function serializePartnerFilterSet(fs: {
+  id: string;
+  name: string;
+  leadType: string;
+  filterStates: string[];
+  priority: number;
+  active: boolean;
+  filterCriteria: unknown;
+}) {
+  return {
+    id: fs.id,
+    name: fs.name,
+    leadType: fs.leadType,
+    filterStates: fs.filterStates,
+    priority: fs.priority,
+    active: fs.active,
+    filterCriteria: stripAttributionCriteria(
+      (fs.filterCriteria ?? {}) as FilterCriteria,
+    ),
+  };
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -89,8 +109,6 @@ export async function PATCH(
     filterStates: rawStates,
     priority,
     active,
-    weeklyLimit,
-    monthlyLimit,
     filterCriteria,
   } = parsed.data;
 
@@ -118,8 +136,6 @@ export async function PATCH(
   // Partners may send priority but it is ignored (admin-only field).
   void priority;
   if (active !== undefined) data.active = active;
-  if (weeklyLimit !== undefined) data.weeklyLimit = weeklyLimit;
-  if (monthlyLimit !== undefined) data.monthlyLimit = monthlyLimit;
   if (filterCriteria !== undefined) {
     data.filterCriteria = stripAttributionCriteria(
       (filterCriteria ?? {}) as FilterCriteria,
@@ -135,17 +151,7 @@ export async function PATCH(
     data,
   });
 
-  return NextResponse.json({
-    id: updated.id,
-    name: updated.name,
-    leadType: updated.leadType,
-    filterStates: updated.filterStates,
-    priority: updated.priority,
-    active: updated.active,
-    weeklyLimit: updated.weeklyLimit,
-    monthlyLimit: updated.monthlyLimit,
-    filterCriteria: updated.filterCriteria,
-  });
+  return NextResponse.json(serializePartnerFilterSet(updated));
 }
 
 export async function DELETE(

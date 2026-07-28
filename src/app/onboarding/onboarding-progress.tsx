@@ -7,8 +7,8 @@ const STEPS = [
   { n: 2 as const, label: "Lead preferences", shortLabel: "Preferences" },
   {
     n: 3 as const,
-    label: "Limits & filters",
-    shortLabel: "Limits",
+    label: "Lead filters",
+    shortLabel: "Filters",
     optional: true,
   },
 ] as const;
