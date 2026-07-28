@@ -1,5 +1,13 @@
 const SAFE_RETURN_PREFIXES = ["/admin", "/partner"] as const;
 
+export const ADMIN_FILTER_LIST_PATH = "/admin/settings?tab=filter-sets";
+
+const LEGACY_ADMIN_FILTER_LIST_PATH = "/admin/filter-list";
+
+export function isFilterListReturnPath(path: string): boolean {
+  return path === ADMIN_FILTER_LIST_PATH || path === LEGACY_ADMIN_FILTER_LIST_PATH;
+}
+
 export function isSafeReturnTo(path: string | null | undefined): path is string {
   if (!path || !path.startsWith("/") || path.startsWith("//")) return false;
   return SAFE_RETURN_PREFIXES.some(

@@ -52,6 +52,23 @@ export function serializeTemplatePickerItem(row: PartnerFilterSet) {
   };
 }
 
+/**
+ * Partner-facing picker shape — excludes weekly/monthly limits, which are
+ * admin/template-only and are copied server-side when a partner creates a
+ * filter set from a template.
+ */
+export function serializeTemplatePickerItemForPartner(row: PartnerFilterSet) {
+  return {
+    id: row.id,
+    name: row.name,
+    leadType: row.leadType,
+    filterStates: row.filterStates,
+    filterCriteria: stripAttributionCriteria(
+      (row.filterCriteria ?? {}) as FilterCriteria,
+    ),
+  };
+}
+
 export async function listFilterSetTemplates(client: DbClient = prisma) {
   return client.partnerFilterSet.findMany({
     where: { isTemplate: true },

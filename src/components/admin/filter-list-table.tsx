@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Funnel, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
-import { adminPartnerFilterSetEditPath } from "@/lib/filter-sets/routes";
+import { ADMIN_FILTER_LIST_PATH, adminPartnerFilterSetEditPath } from "@/lib/filter-sets/routes";
 import type { FilterCriteria } from "@/lib/matching/types";
 
 // ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ export function FilterListTable({
                 const editHref = adminPartnerFilterSetEditPath(
                   fs.partnerId,
                   fs.id,
-                  "/admin/filter-list",
+                  ADMIN_FILTER_LIST_PATH,
                 );
 
                 return (

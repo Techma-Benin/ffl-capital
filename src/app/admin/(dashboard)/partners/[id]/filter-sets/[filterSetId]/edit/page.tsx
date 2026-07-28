@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
 import { toFormData } from "@/components/filter-sets/filter-set-types";
-import { isSafeReturnTo } from "@/lib/filter-sets/routes";
+import { isSafeReturnTo, isFilterListReturnPath } from "@/lib/filter-sets/routes";
 import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 import type { FilterCriteria } from "@/lib/matching/types";
 
@@ -55,7 +55,7 @@ export default async function AdminPartnerFilterSetEditPage({
       filterSetActive={filterSet.active}
       backHref={returnTo}
       backLabel={
-        returnTo === "/admin/filter-list" ? "Back to filter list" : "Back to partner"
+        isFilterListReturnPath(returnTo) ? "Back to filter list" : "Back to partner"
       }
       subtitle={`${displayName} · ${filterSet.name}`}
       initial={toFormData({

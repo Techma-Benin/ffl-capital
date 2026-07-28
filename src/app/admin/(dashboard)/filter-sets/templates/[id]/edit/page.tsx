@@ -4,6 +4,7 @@ import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-
 import { toFormData } from "@/components/filter-sets/filter-set-types";
 import { findFilterSetTemplate } from "@/lib/filter-sets/templates";
 import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
+import { ADMIN_FILTER_LIST_PATH } from "@/lib/filter-sets/routes";
 import type { FilterCriteria } from "@/lib/matching/types";
 
 export default async function AdminFilterSetTemplateEditPage({
@@ -31,7 +32,7 @@ export default async function AdminFilterSetTemplateEditPage({
       filterSetId={template.id}
       filterSetName={template.name}
       filterSetActive={template.active}
-      backHref="/admin/filter-list"
+      backHref={ADMIN_FILTER_LIST_PATH}
       backLabel="Back to filter list"
       subtitle={template.name}
       initial={toFormData({

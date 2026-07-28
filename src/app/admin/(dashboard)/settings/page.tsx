@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AdminSettingsForm } from "@/components/admin/admin-settings-form";
 import { AdminsTable, type AdminRow } from "@/components/admin/admins-table";
 import { AdminImportWizard } from "@/components/admin/admin-import-wizard";
+import { AdminFilterListPanel } from "@/components/admin/admin-filter-list-panel";
 
 // ---------------------------------------------------------------------------
 // Tab definitions
@@ -11,6 +12,7 @@ import { AdminImportWizard } from "@/components/admin/admin-import-wizard";
 const TABS = [
   { key: "general",         label: "General" },
   { key: "lead-categories", label: "Lead categories" },
+  { key: "filter-sets",     label: "Filter sets" },
   { key: "integrations",    label: "Integrations" },
   { key: "administration",  label: "Administrators" },
   { key: "import",          label: "Import" },
@@ -106,15 +108,17 @@ export default async function AdminSettingsPage({
         {/* spacer pushes save button to the right */}
         <span className="flex-1" />
 
-        <div className="flex items-center gap-2.5 py-2 pr-1">
-          <button
-            type="submit"
-            form="admin-settings-form"
-            className="btn-primary btn-sm"
-          >
-            Save all changes
-          </button>
-        </div>
+        {isFormTab && (
+          <div className="flex items-center gap-2.5 py-2 pr-1">
+            <button
+              type="submit"
+              form="admin-settings-form"
+              className="btn-primary btn-sm"
+            >
+              Save all changes
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Content — cards sit directly on page background ─────────────── */}
@@ -135,6 +139,9 @@ export default async function AdminSettingsPage({
             currentUserId={currentUserId}
           />
         )}
+
+        {/* Filter sets */}
+        {activeTab === "filter-sets" && <AdminFilterListPanel />}
 
         {/* Import */}
         {activeTab === "import" && <AdminImportWizard />}

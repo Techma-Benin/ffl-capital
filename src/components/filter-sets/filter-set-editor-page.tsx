@@ -127,10 +127,11 @@ export function FilterSetEditorPage({
 }: FilterSetEditorPageProps) {
   const router = useRouter();
   const formId = useId();
-  const [step, setStep] = useState<"picker" | "editor">(
-    mode === "create" && showTemplatePicker ? "picker" : "editor",
+  const [pickerOpen, setPickerOpen] = useState(
+    mode === "create" && showTemplatePicker,
   );
   const [prefill, setPrefill] = useState<FilterSetFormData>(initial);
+  const [sourceTemplateId, setSourceTemplateId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateMsg, setTemplateMsg] = useState("");
@@ -138,6 +139,7 @@ export function FilterSetEditorPage({
 
   const formVariant = formVariantFromScope(apiScope, variant);
   const showPricing = formVariant === "admin" || formVariant === "template";
+  const showLimits = formVariant !== "partner";
   const isEligible = prefill.filterStates.length >= MIN_FILTER_STATES;
   const isDirty = JSON.stringify(prefill) !== JSON.stringify(initial);
   const title =
@@ -197,8 +199,8 @@ export function FilterSetEditorPage({
         : `${dayText} · ${hourText} · ${clientTime.displayName}`;
 
     const capParts: string[] = [];
-    if (prefill.weeklyLimit) capParts.push(`${prefill.weeklyLimit}/wk`);
-    if (prefill.monthlyLimit) capParts.push(`${prefill.monthlyLimit}/mo`);
+    if (showLimits && prefill.weeklyLimit) capParts.push(`${prefill.weeklyLimit}/wk`);
+    if (showLimits && prefill.monthlyLimit) capParts.push(`${prefill.monthlyLimit}/mo`);
 
     const profile = profileParts.length ? profileParts.join(" · ") : "Any";
     const price = prefill.priceOverride
@@ -213,7 +215,7 @@ export function FilterSetEditorPage({
     if (hourText !== "Any hour") {
       matchingRule += ` in ${clientTime.displayName}`;
     }
-    if (capParts.length) matchingRule += `, capped at ${capParts.join(" and ")}`;
+    if (showLimits && capParts.length) matchingRule += `, capped at ${capParts.join(" and ")}`;
     if (showPricing) {
       matchingRule += `, at ${price.toLowerCase()} with priority ${prefill.priority}`;
     }
@@ -242,6 +244,7 @@ export function FilterSetEditorPage({
     criteriaOptions,
     isEligible,
     prefill,
+    showLimits,
     showPricing,
   ]);
 
@@ -309,45 +312,56 @@ export function FilterSetEditorPage({
         }
       />
 
+      {showTemplatePicker && (
+        <FilterSetTemplatePicker
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          initialTemplates={initialTemplates}
+          onSelect={(template) => {
+            setSourceTemplateId(template.id);
+            setPrefill((current) => ({
+              ...current,
+              name: template.name,
+              leadType: template.leadType,
+              filterStates: [...template.filterStates],
+              weeklyLimit:
+                showLimits && template.weeklyLimit != null
+                  ? String(template.weeklyLimit)
+                  : current.weeklyLimit,
+              monthlyLimit:
+                showLimits && template.monthlyLimit != null
+                  ? String(template.monthlyLimit)
+                  : current.monthlyLimit,
+              filterCriteria: stripAttributionCriteria(
+                template.filterCriteria ?? {},
+              ),
+              priority: template.priority ?? current.priority,
+              priceOverride:
+                template.priceOverride != null
+                  ? String(template.priceOverride)
+                  : current.priceOverride,
+            }));
+          }}
+          onSkip={() => setSourceTemplateId(null)}
+        />
+      )}
+
       <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80">
-        {step === "picker" ? (
-          <div className="px-4 py-6 sm:px-6 sm:py-8">
-            <div className="mx-auto max-w-3xl">
-              <FilterSetTemplatePicker
-                initialTemplates={initialTemplates}
-                onSelect={(template) => {
-                  setPrefill((current) => ({
-                    ...current,
-                    name: template.name,
-                    leadType: template.leadType,
-                    filterStates: [...template.filterStates],
-                    weeklyLimit:
-                      template.weeklyLimit != null
-                        ? String(template.weeklyLimit)
-                        : current.weeklyLimit,
-                    monthlyLimit:
-                      template.monthlyLimit != null
-                        ? String(template.monthlyLimit)
-                        : current.monthlyLimit,
-                    filterCriteria: stripAttributionCriteria(
-                      template.filterCriteria ?? {},
-                    ),
-                    priority: template.priority ?? current.priority,
-                    priceOverride:
-                      template.priceOverride != null
-                        ? String(template.priceOverride)
-                        : current.priceOverride,
-                  }));
-                  setStep("editor");
-                }}
-                onSkip={() => setStep("editor")}
-              />
-            </div>
-          </div>
-        ) : (
-          <>
+        <>
+            {showTemplatePicker && (
+              <div className="flex items-center justify-end px-4 pt-4 sm:px-6">
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen(true)}
+                  className="btn-secondary btn-sm"
+                >
+                  Start from a template
+                </button>
+              </div>
+            )}
             <div className="grid items-start gap-5 px-3 py-4 sm:px-5 sm:py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
               <FilterSetForm
+                key={sourceTemplateId ?? "blank"}
                 formId={formId}
                 hideButtons
                 variant={formVariant}
@@ -361,6 +375,7 @@ export function FilterSetEditorPage({
                 onCancel={() => router.push(backHref)}
                 onSaved={handleSaved}
                 onFormChange={setPrefill}
+                sourceTemplateId={sourceTemplateId}
               />
 
               <aside className="space-y-4 xl:sticky xl:top-5">
@@ -481,7 +496,6 @@ export function FilterSetEditorPage({
               </button>
             </div>
           </>
-        )}
       </div>
     </div>
   );

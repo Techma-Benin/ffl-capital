@@ -57,8 +57,10 @@ export default async function PartnerFilterSetEditPage({
           ? Number(filterSet.priceOverride)
           : null,
         active: filterSet.active,
-        weeklyLimit: filterSet.weeklyLimit,
-        monthlyLimit: filterSet.monthlyLimit,
+        // Delivery limits are admin/template-only; partners never see or edit
+        // them, so this form is always hydrated without the real values.
+        weeklyLimit: null,
+        monthlyLimit: null,
         filterCriteria: (filterSet.filterCriteria ?? {}) as FilterCriteria,
       })}
       categories={categoryOptions}

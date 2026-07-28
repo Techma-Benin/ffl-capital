@@ -6,6 +6,7 @@ import { MIN_FILTER_STATES } from "@/lib/partner/constants";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
 import type { FilterCriteria } from "@/lib/matching/types";
+import type { PartnerFilterSet } from "@prisma/client";
 
 const stateCodeSchema = z.enum(
   US_STATE_CODES as unknown as [string, ...string[]],
@@ -34,10 +35,26 @@ const patchSchema = z.object({
     .optional(),
   priority: z.number().int().min(1).max(10).optional(),
   active: z.boolean().optional(),
-  weeklyLimit: z.number().int().positive().nullable().optional(),
-  monthlyLimit: z.number().int().positive().nullable().optional(),
   filterCriteria: filterCriteriaSchema,
 });
+
+/**
+ * Partner-facing serialization — excludes weekly/monthly limits, which are
+ * admin/template-only fields not editable (or visible) in the partner portal.
+ */
+function serializePartnerFilterSet(fs: Pick<PartnerFilterSet, "id" | "name" | "leadType" | "filterStates" | "priority" | "active" | "filterCriteria">) {
+  return {
+    id: fs.id,
+    name: fs.name,
+    leadType: fs.leadType,
+    filterStates: fs.filterStates,
+    priority: fs.priority,
+    active: fs.active,
+    filterCriteria: stripAttributionCriteria(
+      (fs.filterCriteria ?? {}) as FilterCriteria,
+    ),
+  };
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -90,8 +107,6 @@ export async function PATCH(
     filterStates: rawStates,
     priority,
     active,
-    weeklyLimit,
-    monthlyLimit,
     filterCriteria,
   } = parsed.data;
 
@@ -119,8 +134,6 @@ export async function PATCH(
   // Partners may send priority but it is ignored (admin-only field).
   void priority;
   if (active !== undefined) data.active = active;
-  if (weeklyLimit !== undefined) data.weeklyLimit = weeklyLimit;
-  if (monthlyLimit !== undefined) data.monthlyLimit = monthlyLimit;
   if (filterCriteria !== undefined) {
     data.filterCriteria = stripAttributionCriteria(
       (filterCriteria ?? {}) as FilterCriteria,
@@ -136,17 +149,7 @@ export async function PATCH(
     data,
   });
 
-  return NextResponse.json({
-    id: updated.id,
-    name: updated.name,
-    leadType: updated.leadType,
-    filterStates: updated.filterStates,
-    priority: updated.priority,
-    active: updated.active,
-    weeklyLimit: updated.weeklyLimit,
-    monthlyLimit: updated.monthlyLimit,
-    filterCriteria: updated.filterCriteria,
-  });
+  return NextResponse.json(serializePartnerFilterSet(updated));
 }
 
 export async function DELETE(

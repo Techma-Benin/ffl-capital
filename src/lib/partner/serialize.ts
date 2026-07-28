@@ -15,8 +15,6 @@ function serializeFilterSet(fs: PartnerFilterSet): PartnerFilterSetSession {
     filterStates: fs.filterStates,
     priority: fs.priority,
     active: fs.active,
-    weeklyLimit: fs.weeklyLimit,
-    monthlyLimit: fs.monthlyLimit,
     filterCriteria: (fs.filterCriteria ?? {}) as FilterCriteria,
   };
 }

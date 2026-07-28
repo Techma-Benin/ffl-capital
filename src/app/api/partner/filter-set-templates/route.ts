@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requirePartner } from "@/lib/auth/session";
 import {
   listFilterSetTemplates,
-  serializeTemplatePickerItem,
+  serializeTemplatePickerItemForPartner,
 } from "@/lib/filter-sets/templates";
 
 export async function GET() {
@@ -12,5 +12,5 @@ export async function GET() {
   }
 
   const templates = await listFilterSetTemplates();
-  return NextResponse.json(templates.map(serializeTemplatePickerItem));
+  return NextResponse.json(templates.map(serializeTemplatePickerItemForPartner));
 }
