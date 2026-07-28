@@ -57,3 +57,8 @@ CRON_INTERVAL_MS = "900000"
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 240000
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["npm", "run", "start"]
+build = ["npm", "run", "build"]
