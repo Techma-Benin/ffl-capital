@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { headers } from "next/headers";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import { AppDotSpotlight } from "@/components/layout/app-dot-spotlight";
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   description: "Internal lead distribution platform for FFL Capital",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -40,19 +41,18 @@ export default function RootLayout({
     return body;
   }
 
-  // In production the NEXT_PUBLIC_APP_URL secret is set to the published domain
-  // (e.g. https://ffl-capital.replit.app).  We route all Clerk FAPI calls through
-  // /api/__clerk on the same domain so the browser never touches the broken
-  // clerk.ffl-capital.replit.app subdomain (SSL cert mismatch on Replit).
-  // In dev NEXT_PUBLIC_APP_URL is empty so proxyUrl stays undefined and Clerk
-  // talks directly to the dev FAPI — which works fine.
-  // Only activate the proxy on the published production domain.
-  // In dev the Clerk FAPI works fine with direct calls; running it through a
-  // proxy the dev instance doesn't know about causes 400s.
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
-  const isProductionDomain =
-    !!appUrl && !appUrl.includes(".replit.dev") && !appUrl.includes("localhost");
-  const proxyUrl = isProductionDomain ? `${appUrl}/api/clerk` : undefined;
+  // The proxy is only needed in production where clerk.<domain> has an SSL cert
+  // gap on Replit.  In dev, Clerk's FAPI is directly reachable; routing through
+  // the proxy causes 400s because the ephemeral *.replit.dev domain isn't
+  // registered with the Clerk dev instance.
+  let proxyUrl: string | undefined;
+  if (process.env.NODE_ENV === "production") {
+    const headersList = await headers();
+    const host = headersList.get("host") ?? "";
+    if (host) {
+      proxyUrl = `https://${host}/api/clerk`;
+    }
+  }
 
   return (
     <ClerkProvider proxyUrl={proxyUrl} appearance={clerkAppearance}>
