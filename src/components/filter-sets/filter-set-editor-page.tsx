@@ -343,6 +343,7 @@ export function FilterSetEditorPage({
       <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80">
         <div className="grid items-start gap-5 px-3 py-4 sm:px-5 sm:py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <FilterSetForm
+            key={sourceTemplateId ?? "blank"}
             formId={formId}
             hideButtons
             variant={formVariant}
