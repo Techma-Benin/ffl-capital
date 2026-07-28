@@ -153,21 +153,26 @@ HTTP status: `401`
 # RealTime flow — direct submit, no ping required
 INTEGRITY_REALTIME_SUBMIT_URL=https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit
 
-# Storefront flow — aged leads, supports optional ping/post
+# Storefront flow — aged leads; ping and post use the same URL
 INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
 ```
+
+Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override these URLs when `postUrl` is set. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. In dev, `INTEGRATIONS_MODE=mock` logs Integrity without HTTP and does not set `integrity_posted`; production always runs live for partner delivery and ignores `integrations_mode`.
 
 ### Routing logic
 
 ```
+IF vendor (integrity_realtime | integrity_storefront) disabled:
+  → Skip HTTP; emit integrity_skipped; lead stays unmatched
+
 IF resaleMode = realtime:
-  → POST directly to INTEGRITY_REALTIME_SUBMIT_URL
+  → POST to resolved integrity_realtime postUrl (DB or INTEGRITY_REALTIME_SUBMIT_URL)
   → Required fields: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
   → No ping
 
 IF resaleMode = storefront:
-  → Optional ping to INTEGRITY_STOREFRONT_SUBMIT_URL (partial fields)
-  → If ping accepted → POST full payload to INTEGRITY_STOREFRONT_SUBMIT_URL
+  → Optional ping to resolved integrity_storefront postUrl (same URL as post)
+  → If ping accepted → POST full payload to same URL
   → Required fields: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
 ```
 
