@@ -100,7 +100,8 @@ async function proxyRequest(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    return new NextResponse(upstream.body, {
+    // Uint8Array satisfies BodyInit — Buffer alone does not in strict TS
+    return new NextResponse(new Uint8Array(upstream.body), {
       status: upstream.status,
       headers: responseHeaders,
     });
