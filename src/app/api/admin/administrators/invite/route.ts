@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
+import { isClerkAPIResponseError } from "@clerk/shared/error";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 
@@ -26,11 +27,39 @@ export async function POST(request: NextRequest) {
 
   const client = await clerkClient();
 
-  const invitation = await client.invitations.createInvitation({
-    emailAddress: email,
-    publicMetadata: { role: "admin" },
-    redirectUrl,
-  });
+  try {
+    const invitation = await client.invitations.createInvitation({
+      emailAddress: email,
+      publicMetadata: { role: "admin" },
+      redirectUrl,
+    });
 
-  return NextResponse.json({ invitation }, { status: 201 });
+    return NextResponse.json({ invitation }, { status: 201 });
+  } catch (err) {
+    if (isClerkAPIResponseError(err)) {
+      const alreadyExists = err.errors.some(
+        (e) => e.code === "form_identifier_exists" || e.code === "duplicate_record",
+      );
+      if (alreadyExists) {
+        return NextResponse.json(
+          {
+            error:
+              "This email already has an account and can't be re-invited. If they previously tried signing in and were denied, ask them to try signing in again — their old account was removed and they can now be invited normally.",
+          },
+          { status: 409 },
+        );
+      }
+      const message = err.errors[0]?.longMessage ?? err.errors[0]?.message;
+      return NextResponse.json(
+        { error: message ?? "Failed to send invitation." },
+        { status: 422 },
+      );
+    }
+
+    console.error("[admin/administrators/invite] unexpected error", err);
+    return NextResponse.json(
+      { error: "Failed to send invitation. Please try again." },
+      { status: 500 },
+    );
+  }
 }
