@@ -52,6 +52,9 @@ export default async function AdminSignUpPage() {
           </p>
 
           <SignUp
+            routing="path"
+            path="/admin/sign-up"
+            signInUrl="/admin/sign-in"
             forceRedirectUrl={AUTH_CONTINUE_ADMIN}
             appearance={adminClerkAppearance}
           />

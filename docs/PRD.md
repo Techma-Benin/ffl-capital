@@ -88,6 +88,7 @@ Construire une **plateforme web propriétaire** (usage interne client, **pas un 
 - Contrôle total : agents, leads, prix, priorités, remboursements, revente
 - Rôle **superviseur** : le flux normal ne requiert aucune action
 - Un ou quelques utilisateurs internes FFL Capital
+- Comptes admin **invite-only** (invitation Clerk par un super-admin — pas de signup public ; voir [CLERK_INTEGRATION.md](CLERK_INTEGRATION.md))
 
 #### Partner (acheteur de leads)
 

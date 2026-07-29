@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 24 juillet 2026
+> Dernière mise à jour : 29 juillet 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -310,6 +310,22 @@ Transaction atomique à la livraison :
 - Comptes **admin** et **partner** sont **séparés** (URLs et flux Clerk distincts).
 - Admin : allowlist email `ADMIN_EMAILS` → promotion automatique au login (`promote-admin.ts`).
 - **Pas de promotion** partner → admin — une personne qui a les deux rôles a deux comptes.
+- **Admin invite-only** : pas de signup public ; `POST /api/admin/administrators/invite` → Clerk `createInvitation` avec `redirectUrl: ${origin}/admin/sign-up` et `publicMetadata.role = admin`.
+- Page acceptation : `/admin/sign-up` — `<SignUp routing="path" path="/admin/sign-up" signInUrl="/admin/sign-in" />` (ticket d'invitation ; pas de lien UI vers cette page).
+
+### Clerk Frontend API proxy (Replit prod)
+
+Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/api/__clerk` (`clerkMiddleware` → `frontendApiProxy`, production uniquement). Détail : [CLERK_INTEGRATION.md](CLERK_INTEGRATION.md).
+
+**Exception — invitations :** `GET /api/__clerk/v1/tickets/accept` n'est **pas** proxifié (Cloudflare bloquait les liens → page blanche). Handler local :
+
+| Fichier | Rôle |
+|---------|------|
+| `src/app/api/__clerk/v1/tickets/accept/route.ts` | 302 → sign-up avec `__clerk_ticket` |
+| `src/lib/auth/clerk-ticket-accept.ts` | Skip proxy middleware + résolution JWT edge-safe |
+| `src/lib/auth/clerk-ticket-accept-server.ts` | Fallback lookup invitation Clerk (Node) |
+
+`shouldProxyClerkFrontendApi` et route publique `CLERK_TICKET_ACCEPT_PATH` dans `src/middleware.ts`.
 
 ---
 
@@ -444,3 +460,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-23 | Phase 9 — `verify-backend` scénarios complets, `api-base.mjs`, cron dev secret, seed filter set TX priorité 10 |
 | 2026-07-24 | Templates filter set unifiés dans `partner_filter_sets` (`isTemplate`) ; matching exclut les templates ; APIs `/filter-set-templates` inchangées |
 | 2026-07-24 | Intent / Have IUL : multi-select + `"empty"` ; Attribution retirée de l’onboarding (aligné filter sets) ; options critères préfetch SSR |
+| 2026-07-29 | Clerk Replit : handler local `tickets/accept` (fix page blanche invitations) ; admin invite → `/admin/sign-up` ; proxy FAPI skip sur ce chemin |

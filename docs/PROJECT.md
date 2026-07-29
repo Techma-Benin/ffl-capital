@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 24 juillet 2026 (v8 — Intent/Have IUL multi-select + Attribution retirée de l’onboarding)
+> Dernière mise à jour : 29 juillet 2026 (v9 — Clerk invitations admin Replit)
 
 ---
 
@@ -300,7 +300,7 @@ resale_postings                   -- envois IntegrityCONNECT
 | Domaine | Statut |
 |---------|--------|
 | Repo, Next.js 14, Prisma, Supabase | ✅ |
-| Auth Clerk (admin + partner séparés) | ✅ |
+| Auth Clerk (admin + partner séparés ; invitations admin Replit) | ✅ |
 | Onboarding partner (≥15 états) + approbation admin | ✅ |
 | `POST /api/leads/intake` (format Boberdoo, CORS, public) | ✅ |
 | Pipeline intake : validate, normalize, doublons, TrustedForm, match, deliver | ✅ |
@@ -474,6 +474,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | `docs/team call.txt` | Briefing interne TECHMA (Bill, Masdouk) |
 | `docs/PROJECT.md` | Mémoire projet / décisions / FAQ |
 | `docs/LEADCONDUIT_SETUP.md` | Guide connexion LeadConduit / ngrok / cutover prod |
+| `docs/CLERK_INTEGRATION.md` | Clerk proxy Replit, invitations admin, tickets/accept |
 | `docs/PRD.md` | **Spécification produit** — features, flows, BDD, stack |
 
 ---

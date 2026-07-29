@@ -9,6 +9,7 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 - [BACKEND](docs/BACKEND.md) — architecture backend et journal d'implémentation
 - [PARTNER_CRM_OUTBOUND](docs/PARTNER_CRM_OUTBOUND.md) — livraison CRM POST self-service partner
 - [LEADCONDUIT_SETUP](docs/LEADCONDUIT_SETUP.md) — connexion LeadConduit / ngrok / cutover prod
+- [CLERK_INTEGRATION](docs/CLERK_INTEGRATION.md) — Clerk proxy Replit, invitations admin
 - [CORE_BACKEND_PLAN](docs/CORE_BACKEND_PLAN.md) — plan backend core (✅ complété)
 - [Boberdoo exploration](docs/BOBERDOO_EXPLORATION.md) — parité fonctionnelle
 - [Gap analysis](docs/BOBERDOO_GAP_ANALYSIS.md) — inventaire vs Boberdoo (mis à jour juil. 2026)
@@ -108,8 +109,8 @@ Pour recevoir de **vrais** leads LeadConduit en local : ngrok + [LEADCONDUIT_SET
 
 | Portail | Routes |
 |---------|--------|
-| Admin | `/admin` — dashboard, leads, partners, refunds, aged, integrity, settings, migration, filter list |
-| Partner | `/partner` — dashboard, leads, wallet, aged, settings, contact |
+| Admin | `/admin` — dashboard, leads, partners, refunds, aged, integrity, settings, migration, filter list ; auth `/admin/sign-in`, invite-only `/admin/sign-up` |
+| Partner | `/partner` — dashboard, leads, wallet, aged, settings, contact ; auth `/sign-in`, `/sign-up` |
 
 ## Structure
 
