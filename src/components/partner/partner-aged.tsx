@@ -27,8 +27,13 @@ import {
   AgedLeadPreviewSheet,
   type PartnerAgedLeadPreview,
 } from "@/components/partner/aged-lead-preview-sheet";
+import {
+  AgedPurchaseSuccessModal,
+  type AgedPurchaseSuccessLead,
+} from "@/components/partner/aged-purchase-success-modal";
 import { getPartnerAgedLeadAgeChipClassNames } from "@/lib/partner/aged-lead-age-chip";
 import { ClientStoreKeys, useClientResource } from "@/lib/client-store";
+import { notify } from "@/lib/notify";
 
 type AgedLead = PartnerAgedLeadPreview;
 
@@ -78,7 +83,7 @@ export function PartnerAgedView({
   initialFilters: AgedFilters;
 }) {
   const { partner } = usePartner();
-  const { router } = useNavigateWithPending();
+  const { router, push } = useNavigateWithPending();
   const canBuy = partner.status === "active" && partner.walletBalance >= agedPrice;
 
   const initialPayload: PartnerAgedStorePayload = useMemo(
@@ -106,6 +111,10 @@ export function PartnerAgedView({
   const [pending, setPending] = useState(false);
   const [previewLead, setPreviewLead] = useState<AgedLead | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [purchaseSuccess, setPurchaseSuccess] = useState<{
+    leads: AgedPurchaseSuccessLead[];
+    totalCount: number;
+  } | null>(null);
 
   function openPreview(lead: AgedLead) {
     setPreviewLead(lead);
@@ -171,6 +180,10 @@ export function PartnerAgedView({
         body: JSON.stringify({ leadIds }),
       });
       if (!res.ok) throw new Error("Purchase failed");
+      const data: {
+        purchased: Array<{ leadId: string; firstName: string; lastName: string }>;
+        failed: Array<{ leadId: string; reason: string }>;
+      } = await res.json();
       const purchased = new Set(leadIds);
       mutate((prev) => {
         const base = prev ?? initialPayload;
@@ -186,8 +199,26 @@ export function PartnerAgedView({
         return next;
       });
       router.refresh();
+
+      if (data.purchased.length > 0) {
+        setPurchaseSuccess({
+          leads: data.purchased.map((p) => ({
+            leadId: p.leadId,
+            firstName: p.firstName,
+            lastName: p.lastName,
+          })),
+          totalCount: data.purchased.length,
+        });
+      }
+      if (data.failed.length > 0) {
+        notify.error(
+          data.failed.length === 1
+            ? `1 lead could not be purchased: ${data.failed[0].reason}`
+            : `${data.failed.length} leads could not be purchased.`,
+        );
+      }
     } catch {
-      // allow retry
+      notify.error("Purchase failed — please try again.");
     } finally {
       setPending(false);
     }
@@ -423,6 +454,19 @@ export function PartnerAgedView({
         agedDays={agedDays}
         open={previewOpen}
         onOpenChange={setPreviewOpen}
+      />
+
+      <AgedPurchaseSuccessModal
+        open={purchaseSuccess !== null}
+        onOpenChange={(open) => {
+          if (!open) setPurchaseSuccess(null);
+        }}
+        leads={purchaseSuccess?.leads ?? []}
+        totalCount={purchaseSuccess?.totalCount ?? 0}
+        onViewLeads={() => {
+          setPurchaseSuccess(null);
+          push("/partner/leads");
+        }}
       />
     </div>
   );

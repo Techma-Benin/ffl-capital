@@ -17,7 +17,12 @@ import { debitWallet } from "@/lib/wallet/ledger";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 
 export interface AgedPurchaseResult {
-  purchased: Array<{ leadId: string; deliveryId: string }>;
+  purchased: Array<{
+    leadId: string;
+    deliveryId: string;
+    firstName: string;
+    lastName: string;
+  }>;
   failed: Array<{ leadId: string; reason: string }>;
 }
 
@@ -39,12 +44,12 @@ export async function purchaseAgedLeads(
 
   for (const leadId of leadIds) {
     try {
-      const deliveryId = await purchaseSingleAgedLead(
+      const { deliveryId, firstName, lastName } = await purchaseSingleAgedLead(
         partnerId,
         leadId,
         agedPrice,
       );
-      purchased.push({ leadId, deliveryId });
+      purchased.push({ leadId, deliveryId, firstName, lastName });
     } catch (err) {
       failed.push({
         leadId,
@@ -60,7 +65,7 @@ async function purchaseSingleAgedLead(
   partnerId: string,
   leadId: string,
   agedPrice: number,
-): Promise<string> {
+): Promise<{ deliveryId: string; firstName: string; lastName: string }> {
   const agedWhere = await buildAgedLeadWhere();
   const result = await prisma.$transaction(async (tx) => {
     const lead = await tx.lead.findFirst({
@@ -118,15 +123,21 @@ async function purchaseSingleAgedLead(
       },
     });
 
-    return delivery.id;
+    return {
+      deliveryId: delivery.id,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+    };
   }, PRISMA_TX_OPTIONS);
 
-  await deliverLead(result);
+  await deliverLead(result.deliveryId);
 
-  const delivery = await prisma.leadDelivery.findUnique({ where: { id: result } });
+  const delivery = await prisma.leadDelivery.findUnique({
+    where: { id: result.deliveryId },
+  });
   if (delivery) {
     await emitLeadEvent(leadId, LeadEventType.aged_purchased, {
-      deliveryId: result,
+      deliveryId: result.deliveryId,
       partnerId,
       price: agedPrice,
     });

@@ -8,6 +8,7 @@ import {
   X,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
+import { notify } from "@/lib/notify";
 import type { FilterCriteria } from "@/lib/matching/types";
 
 export type FilterSetTemplate = {
@@ -44,7 +45,6 @@ export function FilterSetTemplatePicker({
   const [templates, setTemplates] = useState<FilterSetTemplate[] | null>(
     initialTemplates ?? null,
   );
-  const [loadError, setLoadError] = useState("");
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -60,7 +60,7 @@ export function FilterSetTemplatePicker({
     fetch("/api/partner/filter-set-templates")
       .then((r) => r.json())
       .then((data) => setTemplates(Array.isArray(data) ? data : []))
-      .catch(() => setLoadError("Could not load templates."));
+      .catch(() => notify.error("Could not load templates."));
   }, [initialTemplates]);
 
   useEffect(() => {
@@ -116,13 +116,7 @@ export function FilterSetTemplatePicker({
         </div>
 
         <div className="space-y-4 px-5 py-5">
-          {loadError && (
-            <p role="alert" className="text-sm font-medium text-red-600">
-              {loadError}
-            </p>
-          )}
-
-          {templates === null && !loadError && (
+          {templates === null && (
             <div className="grid gap-3 sm:grid-cols-2" aria-label="Loading templates">
               {[0, 1, 2, 3].map((item) => (
                 <div

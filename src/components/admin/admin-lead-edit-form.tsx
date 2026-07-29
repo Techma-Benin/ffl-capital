@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PencilSimple, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { notify } from "@/lib/notify";
 
 type LeadFields = {
   firstName: string;
@@ -30,12 +31,10 @@ export function AdminLeadEditForm({
   const router = useRouter();
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setPending(true);
-    setMessage(null);
     try {
       const res = await fetch(`/api/admin/leads/${leadId}`, {
         method: "PATCH",
@@ -43,10 +42,12 @@ export function AdminLeadEditForm({
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error("Save failed");
+      notify.success("Lead updated");
       router.refresh();
       onClose?.();
     } catch {
-      setMessage("Failed to save");
+      notify.error("Failed to save");
+    } finally {
       setPending(false);
     }
   }
@@ -81,7 +82,6 @@ export function AdminLeadEditForm({
         ))}
       </div>
       <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
-        {message && <span className="text-xs text-red-500 mr-auto">{message}</span>}
         {onClose && (
           <button type="button" onClick={onClose} className="btn-secondary btn-sm">
             Cancel

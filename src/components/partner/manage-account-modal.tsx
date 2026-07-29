@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { useProfileUpdate } from "@/hooks/use-profile-update";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
+import { notify } from "@/lib/notify";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -57,7 +58,7 @@ export function ManageAccountModal({
   syncToDb = true,
 }: ManageAccountModalProps) {
   const { user } = useUser();
-  const { save, saving, error: saveError } = useProfileUpdate({ syncToDb });
+  const { save, saving } = useProfileUpdate({ syncToDb });
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -69,15 +70,12 @@ export function ManageAccountModal({
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [pendingAvatarUrl, setPendingAvatarUrl] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
-  const [avatarError, setAvatarError] = useState("");
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -90,12 +88,9 @@ export function ManageAccountModal({
     setAffiliation(initialAffiliation);
     setLocalPreview(null);
     setPendingAvatarUrl(null);
-    setAvatarError("");
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
-    setPasswordError("");
-    setPasswordSuccess(false);
   }, [open, initialFirstName, initialLastName, initialAffiliation]);
 
   // Body scroll lock + initial focus.
@@ -127,7 +122,6 @@ export function ManageAccountModal({
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    setAvatarError("");
     setAvatarUploading(true);
     // Show a local blob preview immediately.
     setLocalPreview(URL.createObjectURL(file));
@@ -139,7 +133,7 @@ export function ManageAccountModal({
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Failed to upload image.";
-      setAvatarError(msg);
+      notify.error(msg);
       setLocalPreview(null);
     } finally {
       setAvatarUploading(false);
@@ -165,6 +159,7 @@ export function ManageAccountModal({
         avatarUrl: pendingAvatarUrl ?? initialAvatarUrl ?? null,
         ...(showAffiliation && { affiliation }),
       });
+      notify.success("Profile updated");
       onOpenChange(false);
     }
   }
@@ -187,19 +182,16 @@ export function ManageAccountModal({
     e.preventDefault();
     if (!user) return;
 
-    setPasswordError("");
-    setPasswordSuccess(false);
-
     if (hasPassword && !currentPassword) {
-      setPasswordError("Enter your current password.");
+      notify.error("Enter your current password.");
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordError("New password must be at least 8 characters.");
+      notify.error("New password must be at least 8 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError("New password and confirmation do not match.");
+      notify.error("New password and confirmation do not match.");
       return;
     }
 
@@ -209,12 +201,12 @@ export function ManageAccountModal({
         newPassword,
         ...(hasPassword && { currentPassword }),
       });
-      setPasswordSuccess(true);
+      notify.success(`Password ${hasPassword ? "updated" : "set"} successfully`);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setPasswordError(passwordErrorMessage(err));
+      notify.error(passwordErrorMessage(err));
     } finally {
       setPasswordSaving(false);
     }
@@ -291,9 +283,6 @@ export function ManageAccountModal({
               >
                 {avatarUploading ? "Uploading…" : "Change photo"}
               </button>
-              {avatarError && (
-                <p className="text-xs text-red-600 text-center">{avatarError}</p>
-              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -349,12 +338,6 @@ export function ManageAccountModal({
                   autoComplete="organization"
                 />
               </div>
-            )}
-
-            {saveError && (
-              <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
-                {saveError}
-              </p>
             )}
           </form>
 
@@ -415,17 +398,6 @@ export function ManageAccountModal({
                   minLength={8}
                 />
               </div>
-
-              {passwordError && (
-                <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
-                  {passwordError}
-                </p>
-              )}
-              {passwordSuccess && (
-                <p className="rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">
-                  Password {hasPassword ? "updated" : "set"} successfully.
-                </p>
-              )}
 
               <div className="flex justify-end">
                 <button

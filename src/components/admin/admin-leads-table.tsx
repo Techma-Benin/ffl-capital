@@ -158,8 +158,6 @@ export function AdminLeadsTable({
   tableFooter,
   selectedIds,
   onSelectedChange,
-  bulkFeedback,
-  onDismissFeedback,
 }: {
   leads: LeadRow[];
   columns: PortalDataTableColumn[];
@@ -172,8 +170,6 @@ export function AdminLeadsTable({
   tableFooter?: React.ReactNode;
   selectedIds: Set<string>;
   onSelectedChange: (ids: Set<string>) => void;
-  bulkFeedback?: { kind: "success" | "error"; message: string } | null;
-  onDismissFeedback?: () => void;
 }) {
   const { router } = useNavigateWithPending();
 
@@ -389,27 +385,6 @@ export function AdminLeadsTable({
 
   return (
     <div className="flex flex-col gap-2">
-
-      {/* Feedback banner */}
-      {bulkFeedback && (
-        <div
-          className={`flex items-center justify-between rounded-lg border px-4 py-2.5 text-sm ${
-            bulkFeedback.kind === "success"
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-red-200 bg-red-50 text-red-800"
-          }`}
-        >
-          <span>{bulkFeedback.message}</span>
-          <button
-            type="button"
-            onClick={() => onDismissFeedback?.()}
-            className="ml-4 text-xs opacity-60 hover:opacity-100"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       <PortalDataTable
         columns={displayColumns}
         sort={sort}

@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Lightning, Prohibit, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { notify } from "@/lib/notify";
 
 export function BlockPartnerButton({
   partnerId,
@@ -36,7 +37,7 @@ export function BlockPartnerButton({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error ?? "Could not update partner status");
+        notify.error(data.error ?? "Could not update partner status");
         return;
       }
       router.refresh();

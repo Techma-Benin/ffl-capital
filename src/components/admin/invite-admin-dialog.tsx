@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { notify } from "@/lib/notify";
 
 export function InviteAdminDialog({
   open,
@@ -13,8 +14,6 @@ export function InviteAdminDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [email, setEmail] = useState("");
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const titleId = useId();
@@ -34,15 +33,11 @@ export function InviteAdminDialog({
 
   function handleClose() {
     setEmail("");
-    setSuccessMsg(null);
-    setErrorMsg(null);
     onOpenChange(false);
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSuccessMsg(null);
-    setErrorMsg(null);
 
     startTransition(async () => {
       try {
@@ -53,14 +48,14 @@ export function InviteAdminDialog({
         });
         const data = await res.json();
         if (!res.ok) {
-          setErrorMsg(data.error ?? "Failed to send invitation.");
+          notify.error(data.error ?? "Failed to send invitation.");
           return;
         }
-        setSuccessMsg(`Invitation sent to ${email}.`);
+        notify.success(`Invitation sent to ${email}.`);
         setEmail("");
         router.refresh();
       } catch {
-        setErrorMsg("Network error — please try again.");
+        notify.error("Network error — please try again.");
       }
     });
   }
@@ -122,17 +117,6 @@ export function InviteAdminDialog({
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
           </div>
-
-          {successMsg && (
-            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              {successMsg}
-            </div>
-          )}
-          {errorMsg && (
-            <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {errorMsg}
-            </div>
-          )}
 
           <div className="flex justify-end gap-2 pt-1">
             <button

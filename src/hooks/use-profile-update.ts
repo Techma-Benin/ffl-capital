@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { notify } from "@/lib/notify";
 
 export type ProfileUpdateData = {
   firstName: string;
@@ -12,7 +13,6 @@ export type ProfileUpdateData = {
 export type UseProfileUpdateResult = {
   save: (data: ProfileUpdateData) => Promise<boolean>;
   saving: boolean;
-  error: string;
 };
 
 /**
@@ -33,11 +33,9 @@ export function useProfileUpdate({
   syncToDb = true,
 }: { syncToDb?: boolean } = {}): UseProfileUpdateResult {
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   async function save(data: ProfileUpdateData): Promise<boolean> {
     setSaving(true);
-    setError("");
 
     try {
       const endpoint = syncToDb ? "/api/partners/me" : "/api/user/me";
@@ -69,12 +67,12 @@ export function useProfileUpdate({
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "An unexpected error occurred.";
-      setError(msg);
+      notify.error(msg);
       return false;
     } finally {
       setSaving(false);
     }
   }
 
-  return { save, saving, error };
+  return { save, saving };
 }

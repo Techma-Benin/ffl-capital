@@ -11,6 +11,7 @@ import {
 } from "@/lib/settings/resale-vendor-keys";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
+import { notify } from "@/lib/notify";
 
 interface ResaleVendorRow {
   key: string;
@@ -387,7 +388,6 @@ export function AdminSettingsForm({
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     defaultRealtimePrice: 25,
@@ -443,7 +443,6 @@ export function AdminSettingsForm({
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setPending(true);
-    setMessage(null);
     try {
       const resaleVendorConfigs = resaleToPayload(resaleVendors);
       const payload: Record<string, unknown> = {
@@ -467,10 +466,10 @@ export function AdminSettingsForm({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Save failed");
-      setMessage("Settings saved");
+      notify.success("Settings saved");
       router.refresh();
     } catch {
-      setMessage("Failed to save");
+      notify.error("Failed to save");
     } finally {
       setPending(false);
     }
@@ -914,20 +913,9 @@ export function AdminSettingsForm({
         )}
 
         {/* ── status feedback ────────────────────────────────────────────── */}
-        {(pending || message) && (
+        {pending && (
           <div className="flex items-center gap-3">
-            {pending && (
-              <span className="text-xs text-slate-400">Saving…</span>
-            )}
-            {message && !pending && (
-              <span
-                className={`text-xs ${
-                  message === "Settings saved" ? "text-green-600" : "text-red-500"
-                }`}
-              >
-                {message}
-              </span>
-            )}
+            <span className="text-xs text-slate-400">Saving…</span>
           </div>
         )}
 

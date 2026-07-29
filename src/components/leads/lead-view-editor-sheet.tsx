@@ -11,6 +11,7 @@ import type {
 import { LeadColumnSettings } from "@/components/leads/lead-column-settings";
 import { AdminLeadViewFilterFields } from "@/components/leads/admin-lead-view-filter-fields";
 import { PartnerLeadViewFilterFields } from "@/components/leads/partner-lead-view-filter-fields";
+import { notify } from "@/lib/notify";
 
 type Scope = "admin" | "partner";
 
@@ -52,14 +53,12 @@ export function LeadViewEditorSheet({
 }) {
   const [state, setState] = useState(() => cloneEditorState(initial));
   const [columnsOpen, setColumnsOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const initialRef = useRef(initial);
   initialRef.current = initial;
 
   useEffect(() => {
     if (!open) return;
     setState(cloneEditorState(initialRef.current));
-    setError(null);
     setColumnsOpen(false);
   }, [open]);
 
@@ -70,16 +69,16 @@ export function LeadViewEditorSheet({
   }
 
   async function submit() {
-    setError(null);
     if (!state.name.trim()) {
-      setError("Name is required");
+      notify.error("Name is required");
       return;
     }
     try {
       await onSave(state);
+      notify.success(mode === "create" ? "View created" : "View saved");
       onOpenChange(false);
     } catch {
-      setError("Could not save view");
+      notify.error("Could not save view");
     }
   }
 
@@ -130,8 +129,6 @@ export function LeadViewEditorSheet({
             >
               Configure columns…
             </button>
-
-            {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="flex justify-end gap-2 pt-2">
               <button

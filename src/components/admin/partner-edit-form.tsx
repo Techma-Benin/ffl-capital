@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { notify } from "@/lib/notify";
 
 export type PartnerEditFormInitial = {
   priority: number;
@@ -34,12 +35,10 @@ export function PartnerEditForm({
   const router = useRouter();
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setPending(true);
-    setMessage(null);
 
     try {
       const res = await fetch(`/api/admin/partners/${partnerId}`, {
@@ -51,11 +50,15 @@ export function PartnerEditForm({
           status: form.status,
         }),
       });
-      if (!res.ok) throw new Error("Save failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(typeof data.error === "string" ? data.error : "Save failed");
+      }
+      notify.success("Partner updated");
       router.refresh();
       onSaved?.();
-    } catch {
-      setMessage("Failed to save — try again");
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Failed to save — try again");
     } finally {
       setPending(false);
     }
@@ -146,13 +149,6 @@ export function PartnerEditForm({
           <button type="submit" disabled={pending} className="btn-primary btn-sm">
             {pending ? "Saving…" : "Save Changes"}
           </button>
-          {message && (
-            <span
-              className={`text-xs ${message.includes("Failed") ? "text-red-600" : "text-slate-500"}`}
-            >
-              {message}
-            </span>
-          )}
         </div>
       </div>
     </form>

@@ -15,6 +15,7 @@ import {
 import { StateChipGrid } from "@/components/filter-sets/state-chip-grid";
 import { FilterSetEditorAdvancedFields } from "@/components/filter-sets/advanced-filters-fields";
 import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import { notify } from "@/lib/notify";
 import type { LeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
 import type {
   CategoryOption,
@@ -121,7 +122,6 @@ export function FilterSetForm({
 }) {
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
 
   const selectedCount = form.filterStates.length;
   const isEligible = selectedCount >= MIN_FILTER_STATES;
@@ -163,12 +163,11 @@ export function FilterSetForm({
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!isEligible) {
-      setError(`Select at least ${MIN_FILTER_STATES} states.`);
+      notify.error(`Select at least ${MIN_FILTER_STATES} states.`);
       return;
     }
 
     setPending(true);
-    setError("");
 
     const payload: Record<string, unknown> = {
       name: form.name.trim() || "Default",
@@ -210,7 +209,7 @@ export function FilterSetForm({
       onSavedWithData?.(data);
       onSaved();
     } catch (caughtError) {
-      setError(
+      notify.error(
         caughtError instanceof Error ? caughtError.message : "Save failed",
       );
     } finally {
@@ -542,15 +541,6 @@ export function FilterSetForm({
           }
         />
       </SectionCard>
-
-      {error && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
-        >
-          {error}
-        </div>
-      )}
 
       {!hideButtons && (
         <div className="flex flex-wrap gap-2">

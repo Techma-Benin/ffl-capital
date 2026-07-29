@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { ActionButton } from "@/components/ui/action-button";
-import { StatusStrip } from "@/components/ui/status-strip";
 import { usePartner } from "@/components/partner/partner-provider";
+import { notify } from "@/lib/notify";
 import { EnvelopeSimple, ICON_WEIGHT, PaperPlaneTilt } from "@/lib/icons/client";
 
 const SUPPORT_EMAIL = "support@fflcapital.com";
@@ -48,23 +48,21 @@ export function PartnerContactView() {
 
   const [subject, setSubject] = useState<SubjectValue>(defaultSubject);
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
   const [opening, setOpening] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    setSent(false);
 
     if (!message.trim()) {
-      setError("Please enter a message before sending.");
+      notify.error("Please enter a message before sending.");
       return;
     }
 
     setOpening(true);
     window.location.href = buildMailto(subject, message, partner);
-    setSent(true);
+    notify.success("Email client opened", {
+      description: "If your email app did not open, use the address above.",
+    });
     setOpening(false);
   }
 
@@ -93,19 +91,6 @@ export function PartnerContactView() {
           </div>
         </div>
 
-        <StatusStrip
-          status={error ? "error" : sent ? "success" : null}
-          title={error ? "Message required" : sent ? "Email client opened" : undefined}
-          message={
-            error
-              ? error
-              : sent
-                ? "If your email app did not open, use the address above."
-                : undefined
-          }
-          className="mb-6"
-        />
-
         <div className="space-y-5">
           <div>
             <label htmlFor="contact-subject" className="form-label">
@@ -117,8 +102,6 @@ export function PartnerContactView() {
               value={subject}
               onChange={(e) => {
                 setSubject(e.target.value as SubjectValue);
-                setSent(false);
-                setError("");
               }}
             >
               {SUBJECTS.map((option) => (
@@ -144,8 +127,6 @@ export function PartnerContactView() {
               value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
-                setSent(false);
-                setError("");
               }}
             />
           </div>

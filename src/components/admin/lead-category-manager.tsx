@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatUsdPlain, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
+import { notify } from "@/lib/notify";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -111,7 +112,6 @@ function CategoryModal({
 }) {
   const [form, setForm] = useState(initial);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   function set(patch: Partial<CategoryFormData>) {
@@ -127,15 +127,14 @@ function CategoryModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.type.trim() || !form.label.trim()) {
-      setError("Type and label are required.");
+      notify.error("Type and label are required.");
       return;
     }
     setPending(true);
-    setError("");
     try {
       await onSave(form);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      notify.error(err instanceof Error ? err.message : "Save failed");
     } finally {
       setPending(false);
     }
@@ -144,11 +143,10 @@ function CategoryModal({
   async function handleDelete() {
     if (!onDelete) return;
     setPending(true);
-    setError("");
     try {
       await onDelete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      notify.error(err instanceof Error ? err.message : "Delete failed");
       setPending(false);
     }
   }
@@ -227,8 +225,6 @@ function CategoryModal({
           />
           Active — accept and route leads of this category
         </label>
-
-        {error && <p className="text-xs text-red-600">{error}</p>}
 
         <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
           <button type="submit" disabled={pending} className="btn-primary btn-sm disabled:opacity-40">
@@ -325,6 +321,7 @@ export function LeadCategoryManager() {
     }
 
     setModal(null);
+    notify.success(isNew ? "Category created" : "Category saved");
     await load();
     router.refresh();
   }

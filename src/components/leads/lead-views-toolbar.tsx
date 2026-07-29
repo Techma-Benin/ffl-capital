@@ -11,6 +11,7 @@ import {
   type LeadViewEditorState,
 } from "@/components/leads/lead-view-editor-sheet";
 import { LeadColumnSettings } from "@/components/leads/lead-column-settings";
+import { notify } from "@/lib/notify";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type { LeadViewSort } from "@/lib/leads/list-view-schema";
 import {
@@ -75,12 +76,7 @@ export function LeadViewsToolbar({
 
   const refresh = useCallback(() => router.refresh(), [router]);
 
-  const {
-    columns,
-    saveColumns,
-    flushColumnsSave,
-    columnsSaveError,
-  } = usePersistLeadViewColumns({
+  const { columns, saveColumns, flushColumnsSave } = usePersistLeadViewColumns({
     apiBase,
     activeViewId: activeView.id,
     activeViewColumns: activeView.columns,
@@ -205,7 +201,7 @@ export function LeadViewsToolbar({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error ?? "Could not delete");
+        notify.error(data.error ?? "Could not delete");
         return;
       }
       const fallback = views.find((v) => v.isDefault && v.id !== activeView.id);
@@ -283,11 +279,6 @@ export function LeadViewsToolbar({
         columns={columns}
         onChange={saveColumns}
       />
-      {columnsSaveError ? (
-        <p className="px-1 text-sm text-red-600" role="alert">
-          {columnsSaveError}
-        </p>
-      ) : null}
     </div>
   );
 }
