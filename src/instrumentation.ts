@@ -175,12 +175,35 @@ export async function register() {
   // configured delay get a retry match attempt; older ones are escalated to
   // IntegrityCONNECT. See src/lib/jobs/reprocess-unmatched.ts. Respects the
   // "Reprocessing enabled" admin setting, which can pause the whole flow.
+  //
+  // This calls the job over HTTP (self-request to the cron route) rather
+  // than importing reprocessUnmatchedLeads() directly. That job's dependency
+  // chain (matching engine -> lead delivery -> outbound URL guard) uses
+  // Node-only built-ins (node:dns/promises, node:net). instrumentation.ts is
+  // compiled for both the Node.js and Edge runtimes, and even a dynamic
+  // import of that chain gets traced into the Edge bundle in dev, which
+  // fails to build ("UnhandledSchemeError: node:dns/promises"). Going over
+  // HTTP keeps instrumentation.ts's module graph Edge-safe and exercises the
+  // exact same authenticated path an external scheduler would use.
   async function runReprocessCron() {
     try {
-      const { reprocessUnmatchedLeads } = await import(
-        "@/lib/jobs/reprocess-unmatched"
-      );
-      const result = await reprocessUnmatchedLeads();
+      const port = process.env.PORT || "5000";
+      const secret =
+        process.env.CRON_SECRET ??
+        (process.env.NODE_ENV === "development" ? "dev-cron-secret" : undefined);
+      if (!secret) {
+        console.warn("[cron] reprocess-unmatched: CRON_SECRET not set, skipping");
+        return;
+      }
+      const res = await fetch(`http://127.0.0.1:${port}/api/cron/reprocess-unmatched`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${secret}` },
+      });
+      const result = await res.json().catch(() => null);
+      if (!res.ok) {
+        console.error("[cron] reprocess-unmatched failed:", res.status, result);
+        return;
+      }
       console.info("[cron] reprocess-unmatched:", result);
     } catch (err) {
       console.error("[cron] reprocess-unmatched failed:", err);
@@ -203,9 +226,11 @@ export async function register() {
   }
 
   setInterval(guardedCronRun, INTERVAL_MS);
-  // Also run once at startup so the flow doesn't wait a full interval before
-  // its first pass on a freshly (re)started instance.
-  guardedCronRun();
+  // Also run once shortly after startup (delayed so the HTTP server is
+  // actually accepting connections before we self-request it) so the flow
+  // doesn't wait a full interval before its first pass on a freshly
+  // (re)started instance.
+  setTimeout(guardedCronRun, 5000);
 
   console.info(
     `[cron] reprocess-unmatched scheduler registered (every ${INTERVAL_MS / 60000} min)`,
