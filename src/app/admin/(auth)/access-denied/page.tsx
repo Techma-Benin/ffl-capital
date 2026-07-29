@@ -1,5 +1,6 @@
 import { SignOutButton } from "@clerk/nextjs";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
+import { isClerkAPIResponseError } from "@clerk/shared/error";
 import { ShieldWarning } from "@/lib/icons/ssr";
 import Link from "next/link";
 import { getRoleFromMetadata } from "@/lib/auth/roles";
@@ -19,7 +20,21 @@ async function resolveDenialReason(): Promise<"partner" | "orphan" | "unauthenti
   const { userId } = await auth();
   if (!userId) return "unauthenticated";
 
-  const user = await currentUser();
+  let user;
+  try {
+    user = await currentUser();
+  } catch (err) {
+    // The account may have already been removed by an earlier request for
+    // this same denied attempt (double render, prefetch, refresh after the
+    // first visit already cleaned it up). Clerk's Backend API 404s when
+    // asked for a deleted user — treat that the same as "already handled"
+    // instead of letting the page crash.
+    if (isClerkAPIResponseError(err) && err.status === 404) {
+      return "orphan";
+    }
+    throw err;
+  }
+
   const role = getRoleFromMetadata(user?.publicMetadata as Record<string, unknown>);
   if (role === "partner") return "partner";
 
