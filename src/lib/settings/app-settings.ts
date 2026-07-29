@@ -68,6 +68,20 @@ function resolveVendorPostUrl(
   return undefined;
 }
 
+/**
+ * Read-only helper for the settings UI: what URL would actually be used for
+ * this vendor right now (DB override if set, otherwise the env var), without
+ * ever writing it back to the DB. Lets the settings screen show that
+ * Integrity is already working via the env default even when the DB field
+ * is blank.
+ */
+export async function getResolvedResaleVendorPostUrl(
+  key: string,
+  config: ResaleVendorConfig,
+): Promise<string | undefined> {
+  return resolveVendorPostUrl(key, config);
+}
+
 export type ResolvedResaleVendor = ResaleVendorConfig & {
   key: string;
   postUrl?: string;

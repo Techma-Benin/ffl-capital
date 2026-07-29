@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
-import { APP_SETTING_KEYS } from "@/lib/settings/app-settings";
+import {
+  APP_SETTING_KEYS,
+  getResaleVendorConfigs,
+  getResolvedResaleVendorPostUrl,
+} from "@/lib/settings/app-settings";
 import { isDevEnvironment } from "@/lib/settings/environment";
 
 const settingsSchema = z.object({
@@ -45,7 +49,24 @@ export async function GET() {
     where: { key: { in: Object.values(APP_SETTING_KEYS) } },
   });
 
-  const settings = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const settings: Record<string, unknown> = Object.fromEntries(
+    rows.map((r) => [r.key, r.value]),
+  );
+
+  // Annotate each resale vendor config with the URL that would actually be
+  // used right now (DB override, or the env var fallback) so the UI can show
+  // it's working even when the stored postUrl is blank — without persisting
+  // the resolved value back into the DB.
+  const resaleConfigs = await getResaleVendorConfigs();
+  const resaleConfigsWithResolved: Record<string, unknown> = {};
+  for (const [key, config] of Object.entries(resaleConfigs)) {
+    resaleConfigsWithResolved[key] = {
+      ...config,
+      resolvedPostUrl: await getResolvedResaleVendorPostUrl(key, config),
+    };
+  }
+  settings[APP_SETTING_KEYS.resaleVendorConfigs] = resaleConfigsWithResolved;
+
   return NextResponse.json({ settings });
 }
 

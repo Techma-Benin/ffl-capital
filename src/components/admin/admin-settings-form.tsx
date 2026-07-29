@@ -17,6 +17,11 @@ interface ResaleVendorRow {
   enabled: boolean;
   pingUrl: string;
   postUrl: string;
+  /**
+   * Read-only: the URL actually in effect right now (env var fallback when
+   * postUrl is blank). Never sent back to the server — display only.
+   */
+  resolvedPostUrl?: string;
 }
 
 type FormTab = "general" | "lead-categories" | "integrations";
@@ -24,13 +29,17 @@ type FormTab = "general" | "lead-categories" | "integrations";
 /* ─── helpers ───────────────────────────────────────────────────────────── */
 
 function buildResaleRows(
-  resaleConfigs: Record<string, { enabled?: boolean; pingUrl?: string; postUrl?: string }>,
+  resaleConfigs: Record<
+    string,
+    { enabled?: boolean; pingUrl?: string; postUrl?: string; resolvedPostUrl?: string }
+  >,
 ): ResaleVendorRow[] {
   return Object.entries(resaleConfigs).map(([key, cfg]) => ({
     key,
     enabled: cfg.enabled ?? true,
     pingUrl: cfg.pingUrl ?? "",
     postUrl: cfg.postUrl ?? "",
+    resolvedPostUrl: cfg.resolvedPostUrl,
   }));
 }
 
@@ -294,9 +303,16 @@ function ResaleVendorModal({
           type="url"
           value={row.postUrl}
           onChange={(e) => set({ postUrl: e.target.value })}
-          placeholder="https://…"
+          placeholder={row.resolvedPostUrl || "https://…"}
           className="form-input text-sm"
         />
+        {!row.postUrl && row.resolvedPostUrl && (
+          <p className="text-xs text-slate-400 mt-1">
+            Currently using the environment default:{" "}
+            <span className="font-mono">{row.resolvedPostUrl}</span>. Enter a
+            URL above to override it.
+          </p>
+        )}
       </Field>
 
       <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
@@ -818,7 +834,28 @@ export function AdminSettingsForm({
                       className="px-3.5 py-[11px]"
                       style={{ fontSize: 13, color: "#8b8a99" }}
                     >
-                      {row.postUrl || <span style={{ color: "#d7d6e0" }}>—</span>}
+                      {row.postUrl ? (
+                        row.postUrl
+                      ) : row.resolvedPostUrl ? (
+                        <span title="Using environment variable default">
+                          {row.resolvedPostUrl}{" "}
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "#a5842b",
+                              background: "rgba(255,214,107,0.22)",
+                              borderRadius: 6,
+                              padding: "1px 6px",
+                              marginLeft: 4,
+                            }}
+                          >
+                            env default
+                          </span>
+                        </span>
+                      ) : (
+                        <span style={{ color: "#d7d6e0" }}>—</span>
+                      )}
                     </td>
                     <td className="px-3.5 py-[11px]" style={{ textAlign: "right" }}>
                       {!isSystemResaleVendorKey(row.key) && (
