@@ -364,6 +364,15 @@
     @apply block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors;
   }
 
+  /* Clerk applies the same "form-input" class to checkboxes (e.g. the
+     "Sign out of all other devices" toggle). Without this override the
+     block/w-full/padding rules above stretch the checkbox into a full-width
+     bar that overlaps its label text. Keep checkboxes/radios small. */
+  .form-input[type="checkbox"],
+  .form-input[type="radio"] {
+    @apply inline-block h-4 w-4 shrink-0 grow-0 basis-auto rounded border-slate-300 p-0 shadow-none accent-brand-600;
+  }
+
   /* Plain input used across forms (replaces bare browser default) */
   .input {
     @apply block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors;
