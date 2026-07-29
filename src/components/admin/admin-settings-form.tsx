@@ -399,6 +399,7 @@ export function AdminSettingsForm({
     duplicateCheckEnabled: true,
     duplicateCheckWindowDays: 30,
     integrityPostDelayHours: 24,
+    integrityReprocessEnabled: true,
   });
 
   const [resaleVendors, setResaleVendors] = useState<ResaleVendorRow[]>([]);
@@ -424,6 +425,7 @@ export function AdminSettingsForm({
           duplicateCheckEnabled: Boolean(s.duplicate_check_enabled ?? true),
           duplicateCheckWindowDays: Number(s.duplicate_check_window_days ?? 30),
           integrityPostDelayHours: Number(s.integrity_post_delay_hours ?? 24),
+          integrityReprocessEnabled: Boolean(s.integrity_reprocess_enabled ?? true),
         });
         setResaleVendors(
           buildResaleRows(
@@ -454,6 +456,7 @@ export function AdminSettingsForm({
         duplicateCheckWindowDays: form.duplicateCheckWindowDays,
         resaleVendorConfigs,
         integrityPostDelayHours: form.integrityPostDelayHours,
+        integrityReprocessEnabled: form.integrityReprocessEnabled,
       };
       if (isDev) {
         payload.integrationsMode = form.integrationsMode;
@@ -700,12 +703,19 @@ export function AdminSettingsForm({
                       className="form-input"
                     />
                     <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 6 }}>
-                      Before the nightly job forwards to Integrity.
+                      Unmatched leads younger than this are retried for matching every
+                      cron run; older ones are sent to Integrity.
                     </p>
                   </div>
                 </div>
 
                 {/* Toggle rows */}
+                <ToggleRow
+                  label="Automated reprocessing"
+                  description="Every 15 min: retry matching unmatched leads, then escalate old ones to Integrity. Turn off to pause the whole flow."
+                  checked={form.integrityReprocessEnabled}
+                  onChange={(v) => setForm({ ...form, integrityReprocessEnabled: v })}
+                />
                 <ToggleRow
                   label="TrustedForm validation on intake"
                   checked={form.trustedformValidationEnabled}

@@ -3,19 +3,39 @@ import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { matchLead } from "@/lib/matching/engine";
 import { integrityPostLead } from "@/lib/integrity/post";
-
-const REPROCESS_WINDOW_HOURS = 24;
+import {
+  getIntegrityPostDelayHours,
+  isIntegrityReprocessEnabled,
+} from "@/lib/settings/app-settings";
 
 export interface ReprocessJobResult {
   attempted: number;
   matched: number;
   integrityQueued: number;
   errors: string[];
+  skipped?: string;
 }
 
+/**
+ * Single combined job for unmatched leads, matching the documented design
+ * (docs/BACKEND.md "Stratégie jobs planifiés"): leads unmatched for less
+ * than the configured delay get a retry match attempt; leads unmatched for
+ * longer than that are escalated to IntegrityCONNECT. One threshold
+ * (the admin-configurable "Integrity unmatched delay" setting) governs both
+ * sides of the cutoff so there's a single source of truth.
+ *
+ * Leads that are already matched/delivered, posted to Integrity, or sold on
+ * the aged marketplace are never picked up here — they no longer satisfy
+ * `status: unmatched, available: true`.
+ */
 export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
+  if (!(await isIntegrityReprocessEnabled())) {
+    return { attempted: 0, matched: 0, integrityQueued: 0, errors: [], skipped: "disabled by admin setting" };
+  }
+
+  const delayHours = await getIntegrityPostDelayHours();
   const windowStart = new Date();
-  windowStart.setHours(windowStart.getHours() - REPROCESS_WINDOW_HOURS);
+  windowStart.setHours(windowStart.getHours() - delayHours);
 
   const leads = await prisma.lead.findMany({
     where: {

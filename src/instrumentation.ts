@@ -171,40 +171,19 @@ export async function register() {
 
   const INTERVAL_MS = parseInt(process.env.CRON_INTERVAL_MS ?? "", 10) || 15 * 60 * 1000; // default 15 min, override via env
 
-  async function runIntegrityPostCron() {
+  // Single combined job (docs/BACKEND.md): unmatched leads younger than the
+  // configured delay get a retry match attempt; older ones are escalated to
+  // IntegrityCONNECT. See src/lib/jobs/reprocess-unmatched.ts. Respects the
+  // "Reprocessing enabled" admin setting, which can pause the whole flow.
+  async function runReprocessCron() {
     try {
-      const { prisma } = await import("@/lib/db");
-      const { LeadStatus } = await import("@prisma/client");
-      const { integrityPostLead } = await import("@/lib/integrity/post");
-      const { getIntegrityPostDelayHours } = await import(
-        "@/lib/settings/app-settings"
+      const { reprocessUnmatchedLeads } = await import(
+        "@/lib/jobs/reprocess-unmatched"
       );
-
-      const delayHours = await getIntegrityPostDelayHours();
-      const cutoff = new Date();
-      cutoff.setHours(cutoff.getHours() - delayHours);
-
-      const leads = await prisma.lead.findMany({
-        where: {
-          status: LeadStatus.unmatched,
-          available: true,
-          receivedAt: { lte: cutoff },
-        },
-        take: 25,
-      });
-
-      let posted = 0;
-      const errors: string[] = [];
-
-      for (const lead of leads) {
-        const result = await integrityPostLead(lead.id);
-        if (result.posted) posted++;
-        else if (result.reason) errors.push(`${lead.id}: ${result.reason}`);
-      }
-
-      console.info("[cron] integrity-post:", { attempted: leads.length, posted, errors });
+      const result = await reprocessUnmatchedLeads();
+      console.info("[cron] reprocess-unmatched:", result);
     } catch (err) {
-      console.error("[cron] integrity-post failed:", err);
+      console.error("[cron] reprocess-unmatched failed:", err);
     }
   }
 
@@ -212,20 +191,23 @@ export async function register() {
   let cronRunning = false;
   async function guardedCronRun() {
     if (cronRunning) {
-      console.warn("[cron] integrity-post: previous run still in progress, skipping");
+      console.warn("[cron] reprocess-unmatched: previous run still in progress, skipping");
       return;
     }
     cronRunning = true;
     try {
-      await runIntegrityPostCron();
+      await runReprocessCron();
     } finally {
       cronRunning = false;
     }
   }
 
   setInterval(guardedCronRun, INTERVAL_MS);
+  // Also run once at startup so the flow doesn't wait a full interval before
+  // its first pass on a freshly (re)started instance.
+  guardedCronRun();
 
   console.info(
-    `[cron] integrity-post scheduler registered (every ${INTERVAL_MS / 60000} min)`,
+    `[cron] reprocess-unmatched scheduler registered (every ${INTERVAL_MS / 60000} min)`,
   );
 }

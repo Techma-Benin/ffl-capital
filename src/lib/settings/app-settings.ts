@@ -24,6 +24,7 @@ export const APP_SETTING_KEYS = {
   duplicateCheckWindowDays: "duplicate_check_window_days",
   resaleVendorConfigs: "resale_vendor_configs",
   integrityPostDelayHours: "integrity_post_delay_hours",
+  integrityReprocessEnabled: "integrity_reprocess_enabled",
 } as const;
 
 async function getSetting<T>(key: string, fallback: T): Promise<T> {
@@ -145,6 +146,16 @@ export async function getIntegrityPostDelayHours(): Promise<number> {
   return getSetting(APP_SETTING_KEYS.integrityPostDelayHours, 24);
 }
 
+/**
+ * Master on/off switch for the automated unmatched-lead reprocessing flow
+ * (retry match, then escalate to Integrity). Lets an admin pause the flow
+ * without touching individual vendor toggles — e.g. during a migration or
+ * while investigating a matching issue.
+ */
+export async function isIntegrityReprocessEnabled(): Promise<boolean> {
+  return getSetting(APP_SETTING_KEYS.integrityReprocessEnabled, true);
+}
+
 export async function seedAppSettings(): Promise<void> {
   const defaults: Array<{ key: string; value: Prisma.InputJsonValue }> = [
     { key: APP_SETTING_KEYS.defaultRealtimePrice, value: 25 },
@@ -160,6 +171,7 @@ export async function seedAppSettings(): Promise<void> {
       value: DEFAULT_RESALE_VENDOR_CONFIGS as Prisma.InputJsonValue,
     },
     { key: APP_SETTING_KEYS.integrityPostDelayHours, value: 24 },
+    { key: APP_SETTING_KEYS.integrityReprocessEnabled, value: true },
   ];
 
   for (const { key, value } of defaults) {

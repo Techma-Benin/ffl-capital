@@ -24,6 +24,7 @@ const settingsSchema = z.object({
     enabled: z.boolean().optional(),
   })).optional(),
   integrityPostDelayHours: z.number().int().min(1).optional(),
+  integrityReprocessEnabled: z.boolean().optional(),
 });
 
 const KEY_MAP: Record<string, string> = {
@@ -37,6 +38,7 @@ const KEY_MAP: Record<string, string> = {
   duplicateCheckWindowDays: APP_SETTING_KEYS.duplicateCheckWindowDays,
   resaleVendorConfigs: APP_SETTING_KEYS.resaleVendorConfigs,
   integrityPostDelayHours: APP_SETTING_KEYS.integrityPostDelayHours,
+  integrityReprocessEnabled: APP_SETTING_KEYS.integrityReprocessEnabled,
 };
 
 export async function GET() {
