@@ -48,6 +48,7 @@ export {
   AddSquare,
   AddCircle as PlusCircle,
   TrashBinTrash as Trash,
+  Crown,
   MenuDots as DotsThree,
   SortVertical as ArrowsDownUp,
   GraphUp as TrendUp,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { requireAdmin } from "@/lib/auth/session";
+import { isSuperAdminFromMetadata } from "@/lib/auth/roles";
 
 export async function GET() {
   const authResult = await requireAdmin();
@@ -24,6 +25,9 @@ export async function GET() {
       imageUrl: u.imageUrl,
       lastSignInAt: u.lastSignInAt ?? null,
       type: "admin" as const,
+      isSuperAdmin: isSuperAdminFromMetadata(
+        u.publicMetadata as Record<string, unknown>,
+      ),
     }));
 
   // Fetch pending invitations with admin role

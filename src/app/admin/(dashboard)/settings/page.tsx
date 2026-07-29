@@ -4,6 +4,7 @@ import { AdminSettingsForm } from "@/components/admin/admin-settings-form";
 import { AdminsTable, type AdminRow } from "@/components/admin/admins-table";
 import { AdminImportWizard } from "@/components/admin/admin-import-wizard";
 import { AdminFilterListPanel } from "@/components/admin/admin-filter-list-panel";
+import { isSuperAdminFromMetadata } from "@/lib/auth/roles";
 
 // ---------------------------------------------------------------------------
 // Tab definitions
@@ -42,6 +43,7 @@ export default async function AdminSettingsPage({
   let admins: AdminRow[] = [];
   let pendingInvites: AdminRow[] = [];
   let currentUserId = "";
+  let viewerIsSuperAdmin = false;
 
   if (activeTab === "administration") {
     const { userId } = await auth();
@@ -63,7 +65,14 @@ export default async function AdminSettingsPage({
         imageUrl: u.imageUrl ?? null,
         lastSignInAt: u.lastSignInAt ?? null,
         type: "admin" as const,
+        isSuperAdmin: isSuperAdminFromMetadata(
+          u.publicMetadata as Record<string, unknown>,
+        ),
       }));
+
+    viewerIsSuperAdmin = admins.some(
+      (a) => a.id === currentUserId && a.isSuperAdmin,
+    );
 
     const invitationsResponse = await client.invitations.getInvitationList({
       status: "pending",
@@ -138,6 +147,7 @@ export default async function AdminSettingsPage({
             admins={admins}
             pendingInvites={pendingInvites}
             currentUserId={currentUserId}
+            viewerIsSuperAdmin={viewerIsSuperAdmin}
           />
         )}
 

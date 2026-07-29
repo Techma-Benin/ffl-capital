@@ -77,6 +77,9 @@ pnpm run seed:refunds-demo
 
 # Leads vieillis pour /admin/aged et /partner/aged
 pnpm run seed:aged-leads
+
+# Désigner le premier super admin (one-off, requiert un admin existant)
+pnpm run make-super-admin -- --email admin@example.com
 ```
 
 ## Endpoints API (principaux)

@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   const { email } = parsed.data;
   // Derive from the actual incoming request rather than the NEXT_PUBLIC_APP_URL
   // secret, which can drift from the real published domain (see next.config.mjs).
-  const redirectUrl = `${request.nextUrl.origin}/admin/sign-in`;
+  const redirectUrl = `${request.nextUrl.origin}/admin/sign-up`;
 
   const client = await clerkClient();
 

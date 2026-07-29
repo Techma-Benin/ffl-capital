@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { InviteAdminDialog } from "@/components/admin/invite-admin-dialog";
+import { notify } from "@/lib/notify";
+import { Crown, Trash, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 export type AdminRow = {
   id: string;
@@ -9,6 +12,7 @@ export type AdminRow = {
   imageUrl: string | null;
   lastSignInAt: number | null;
   type: "admin" | "invited";
+  isSuperAdmin?: boolean;
 };
 
 function formatLastSignIn(ts: number | null): string {
@@ -26,13 +30,111 @@ export function AdminsTable({
   admins,
   pendingInvites,
   currentUserId,
+  viewerIsSuperAdmin = false,
 }: {
   admins: AdminRow[];
   pendingInvites: AdminRow[];
   currentUserId: string;
+  viewerIsSuperAdmin?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const allRows = [...admins, ...pendingInvites];
+
+  function handleRemove(row: AdminRow) {
+    if (
+      !window.confirm(
+        `Remove admin access for ${row.email}? They'll keep their account but will no longer be able to sign in as an admin.`,
+      )
+    ) {
+      return;
+    }
+
+    setPendingActionId(row.id);
+    startTransition(async () => {
+      try {
+        const res = await fetch(
+          `/api/admin/administrators/${row.id}/remove`,
+          { method: "POST" },
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          notify.error(data.error ?? "Failed to remove admin access.");
+          return;
+        }
+        notify.success(`Removed admin access for ${row.email}.`);
+        router.refresh();
+      } catch {
+        notify.error("Network error — please try again.");
+      } finally {
+        setPendingActionId(null);
+      }
+    });
+  }
+
+  function handleRevokeInvite(row: AdminRow) {
+    if (
+      !window.confirm(
+        `Revoke the invitation sent to ${row.email}? The invite link will stop working.`,
+      )
+    ) {
+      return;
+    }
+
+    setPendingActionId(row.id);
+    startTransition(async () => {
+      try {
+        const res = await fetch(
+          `/api/admin/administrators/invitations/${row.id}`,
+          { method: "DELETE" },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          notify.error(data.error ?? "Failed to revoke invitation.");
+          return;
+        }
+        notify.success(`Revoked invitation to ${row.email}.`);
+        router.refresh();
+      } catch {
+        notify.error("Network error — please try again.");
+      } finally {
+        setPendingActionId(null);
+      }
+    });
+  }
+
+  function handleTransfer(row: AdminRow) {
+    if (
+      !window.confirm(
+        `Make ${row.email} the super admin? You'll immediately lose your own super admin title.`,
+      )
+    ) {
+      return;
+    }
+
+    setPendingActionId(row.id);
+    startTransition(async () => {
+      try {
+        const res = await fetch(
+          `/api/admin/administrators/${row.id}/transfer-super-admin`,
+          { method: "POST" },
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          notify.error(data.error ?? "Failed to transfer super admin.");
+          return;
+        }
+        notify.success(`${row.email} is now the super admin.`);
+        router.refresh();
+      } catch {
+        notify.error("Network error — please try again.");
+      } finally {
+        setPendingActionId(null);
+      }
+    });
+  }
 
   return (
     <>
@@ -52,6 +154,9 @@ export function AdminsTable({
               </th>
               <th className="px-3.5 py-2.5 text-left text-[10.5px] font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap">
                 Status
+              </th>
+              <th className="px-3.5 py-2.5 text-left text-[10.5px] font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap">
+                Actions
               </th>
             </tr>
           </thead>
@@ -104,6 +209,17 @@ export function AdminsTable({
                       you
                     </span>
                   )}
+                  {row.isSuperAdmin && (
+                    <span
+                      className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-extrabold"
+                      style={{
+                        background: "rgba(165,132,43,0.12)",
+                        color: "#a5842b",
+                      }}
+                    >
+                      Super admin
+                    </span>
+                  )}
                 </td>
                 <td className="px-3.5 py-[11px] text-[12.5px] text-[#8b8a99]">
                   {formatLastSignIn(row.lastSignInAt)}
@@ -125,12 +241,56 @@ export function AdminsTable({
                     </span>
                   )}
                 </td>
+                <td className="px-3.5 py-[11px]">
+                  <div className="flex items-center gap-1.5">
+                    {row.type === "invited" && (
+                      <button
+                        type="button"
+                        title="Revoke invitation"
+                        aria-label="Revoke invitation"
+                        disabled={isPending && pendingActionId === row.id}
+                        onClick={() => handleRevokeInvite(row)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-[#8b8a99] transition-colors hover:bg-[#fbe9e9] hover:text-[#d64545] disabled:opacity-50"
+                      >
+                        <Trash size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+                      </button>
+                    )}
+                    {row.type === "admin" &&
+                      viewerIsSuperAdmin &&
+                      row.id !== currentUserId && (
+                        <>
+                          {!row.isSuperAdmin && (
+                            <button
+                              type="button"
+                              title="Make super admin"
+                              aria-label="Make super admin"
+                              disabled={isPending && pendingActionId === row.id}
+                              onClick={() => handleTransfer(row)}
+                              className="flex h-8 w-8 items-center justify-center rounded-full text-[#8b8a99] transition-colors hover:bg-[rgba(96,91,255,0.1)] hover:text-[#605BFF] disabled:opacity-50"
+                            >
+                              <Crown size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            title="Remove admin access"
+                            aria-label="Remove admin access"
+                            disabled={isPending && pendingActionId === row.id}
+                            onClick={() => handleRemove(row)}
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-[#8b8a99] transition-colors hover:bg-[#fbe9e9] hover:text-[#d64545] disabled:opacity-50"
+                          >
+                            <Trash size={16} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+                          </button>
+                        </>
+                      )}
+                  </div>
+                </td>
               </tr>
             ))}
             {allRows.length === 0 && (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-3.5 py-8 text-center text-[12.5px] text-[#8b8a99]"
                 >
                   No administrators found.
