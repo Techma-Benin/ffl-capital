@@ -10,6 +10,8 @@ type RequiredLeadField = Exclude<keyof RequiredFieldsLeadInput, "leadType">;
 const BASE_REQUIRED_FIELDS: Array<{ field: RequiredLeadField; label: string }> = [
   { field: "dob", label: "DOB" },
   { field: "trustedformCertUrl", label: "TrustedForm certificate URL" },
+  { field: "haveIul", label: "Have_IUL" },
+  { field: "primaryGoal", label: "Primary_Goal" },
 ];
 
 /**
@@ -38,6 +40,8 @@ export type RequiredFieldsLeadInput = Pick<
   | "leadType"
   | "dob"
   | "trustedformCertUrl"
+  | "haveIul"
+  | "primaryGoal"
   | "beneficiary"
   | "historyOfCancer"
   | "mortgageLoanAmount"
