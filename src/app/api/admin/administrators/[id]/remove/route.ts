@@ -4,8 +4,10 @@ import { requireSuperAdmin } from "@/lib/auth/session";
 import { getRoleFromMetadata } from "@/lib/auth/roles";
 
 /**
- * POST /api/admin/administrators/[id]/remove — revoke another user's admin
- * access. Only the super admin may do this; self-removal is blocked.
+ * POST /api/admin/administrators/[id]/remove — permanently delete another
+ * admin's Clerk account, revoking all access. Only the super admin may do
+ * this; self-removal is blocked. This is destructive and irreversible — the
+ * account must be re-invited from scratch to regain access.
  */
 export async function POST(
   _request: NextRequest,
@@ -36,10 +38,12 @@ export async function POST(
     );
   }
 
-  const { role: _role, isSuperAdmin: _isSuperAdmin, ...rest } = targetMetadata;
-  await client.users.updateUserMetadata(id, {
-    publicMetadata: rest,
-  });
+  // Permanently delete the account rather than clearing its role. Clerk's
+  // updateUserMetadata merges top-level keys into existing metadata instead
+  // of replacing it, so omitting `role` from the payload does not remove it —
+  // the account would keep admin access. Deleting the account sidesteps that
+  // entirely and guarantees access is actually revoked.
+  await client.users.deleteUser(id);
 
   return NextResponse.json({ ok: true });
 }

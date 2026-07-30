@@ -116,9 +116,9 @@ export function AdminsTable({
   const confirmCopy =
     confirm?.kind === "remove"
       ? {
-          title: "Remove admin access?",
-          description: `Remove admin access for ${confirm.row.email}? They'll keep their account but will no longer be able to sign in as an admin.`,
-          confirmLabel: "Remove access",
+          title: "Delete admin account?",
+          description: `This permanently deletes ${confirm.row.email}'s account. This can't be undone — they'll need a brand-new invitation to regain access.`,
+          confirmLabel: "Delete account",
         }
       : confirm?.kind === "revoke"
         ? {
