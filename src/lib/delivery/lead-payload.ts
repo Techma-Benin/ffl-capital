@@ -1,13 +1,32 @@
 import type { Lead, LeadDelivery, Partner } from "@prisma/client";
 import { formatUsd } from "@/lib/format-money";
+import {
+  resolveLeadTypeDisplay,
+  type CategoryLabelSource,
+} from "@/lib/lead-categories/category-labels";
+
+export function resolveLeadDeliveryTypeLabel(
+  lead: Pick<
+    Lead,
+    "leadType" | "categoryResolution" | "categoryCandidateTypes"
+  >,
+  categories: CategoryLabelSource[],
+): string {
+  return resolveLeadTypeDisplay({
+    leadType: lead.leadType,
+    categoryResolution: lead.categoryResolution,
+    categoryCandidateTypes: lead.categoryCandidateTypes,
+    categories,
+  }).label;
+}
 
 export function buildLeadDeliveryPayload(
   delivery: LeadDelivery,
   lead: Lead,
   partner: Partner,
+  categories: CategoryLabelSource[] = [],
 ) {
-  const leadTypeLabel =
-    lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
+  const leadTypeLabel = resolveLeadDeliveryTypeLabel(lead, categories);
 
   return {
     deliveryId: delivery.id,
@@ -58,8 +77,9 @@ export function buildLeadDeliveryEmailHtml(
   delivery: LeadDelivery,
   lead: Lead,
   partner: Partner,
+  categories: CategoryLabelSource[] = [],
 ): string {
-  const payload = buildLeadDeliveryPayload(delivery, lead, partner);
+  const payload = buildLeadDeliveryPayload(delivery, lead, partner, categories);
   const certLink = lead.trustedformCertUrl
     ? `<p><a href="${lead.trustedformCertUrl}">TrustedForm certificate</a></p>`
     : "";

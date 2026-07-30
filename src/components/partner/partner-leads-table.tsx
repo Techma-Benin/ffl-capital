@@ -40,6 +40,7 @@ type DeliveryRow = {
     state: string;
     address: string | null;
     leadType: string;
+    leadTypeLabel: string;
     intent: string | null;
     haveIul: string | null;
     primaryGoal: string | null;
@@ -357,7 +358,7 @@ export function PartnerLeadsTable({
         return (
           <td key={key} className={cellClass({ first, last })}>
             <Badge variant="purple">
-              {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+              {d.lead.leadTypeLabel}
             </Badge>
           </td>
         );

@@ -11,6 +11,7 @@ import {
   getIntegrityPostDelayHours,
   isIntegrityReprocessEnabled,
 } from "@/lib/settings/app-settings";
+import { getReprocessEligibility } from "@/lib/jobs/reprocess-eligibility";
 
 export interface ReprocessJobResult {
   attempted: number;
@@ -94,13 +95,15 @@ export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
 export async function reprocessSingleLead(leadId: string) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) throw new Error("Lead not found");
-  if (
-    !lead.available ||
-    lead.status !== LeadStatus.unmatched ||
-    lead.categoryResolution !== LeadCategoryResolution.matched ||
-    !lead.leadType
-  ) {
-    throw new Error("Lead is not available for reprocessing");
+
+  const eligibility = getReprocessEligibility({
+    available: lead.available,
+    status: lead.status,
+    categoryResolution: lead.categoryResolution,
+    leadType: lead.leadType,
+  });
+  if (!eligibility.eligible) {
+    throw new Error(eligibility.reason ?? "Lead is not available for reprocessing");
   }
 
   const result = await matchLead(leadId);

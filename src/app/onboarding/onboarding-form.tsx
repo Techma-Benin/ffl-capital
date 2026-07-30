@@ -93,11 +93,6 @@ const US_STATE_NAMES: Record<string, string> = {
   WY: "Wyoming",
 };
 
-const LEAD_TYPE_LABELS: Record<string, string> = {
-  traditional_iul: "Traditional IUL",
-  high_intent_iul: "High Intent IUL",
-};
-
 type ProfileFields = {
   firstName: string;
   lastName: string;
@@ -105,7 +100,7 @@ type ProfileFields = {
   residenceState: string;
 };
 
-type LeadType = "traditional_iul" | "high_intent_iul";
+type LeadType = string;
 type LeadTypeSelection = LeadType | "";
 
 type FilterSetTemplate = {
@@ -121,6 +116,7 @@ type InitialProfile = Partial<ProfileFields> & { email?: string };
 type Props = {
   initialProfile?: InitialProfile;
   criteriaOptions: LeadFilterCriteriaOptions;
+  categories: Array<{ type: string; label: string }>;
   step: 1 | 2 | 3;
   onStepChange: (step: 1 | 2 | 3) => void;
 };
@@ -189,10 +185,12 @@ function TemplateCard({
   template,
   selected,
   onClick,
+  categoryLabelByType,
 }: {
   template: FilterSetTemplate;
   selected: boolean;
   onClick: () => void;
+  categoryLabelByType: Record<string, string>;
 }) {
   return (
     <button
@@ -228,7 +226,7 @@ function TemplateCard({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-slate-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-500">
-          {LEAD_TYPE_LABELS[template.leadType]}
+          {categoryLabelByType[template.leadType] ?? template.leadType}
         </span>
         <span className="text-[11px] font-semibold text-slate-400">
           {template.filterStates.length} states
@@ -264,9 +262,13 @@ function hasCriteria(criteria: FilterCriteria) {
 export default function OnboardingForm({
   initialProfile,
   criteriaOptions,
+  categories,
   step,
   onStepChange,
 }: Props) {
+  const categoryLabelByType = Object.fromEntries(
+    categories.map((category) => [category.type, category.label]),
+  );
   const router = useRouter();
   const { user } = useUser();
   const clientTime = useClientTimeZone();
@@ -455,7 +457,9 @@ export default function OnboardingForm({
   const criteriaConfigured = hasCriteria(filterCriteria);
   const fullName =
     `${profile.firstName.trim()} ${profile.lastName.trim()}`.trim() || "—";
-  const leadTypeLabel = leadType ? LEAD_TYPE_LABELS[leadType] : "—";
+  const leadTypeLabel = leadType
+    ? (categoryLabelByType[leadType] ?? leadType)
+    : "—";
 
   const intentLabels = (filterCriteria.intent ?? []).map(
     (value) =>
@@ -691,6 +695,7 @@ export default function OnboardingForm({
                               template={template}
                               selected={selectedTemplateId === template.id}
                               onClick={() => selectTemplate(template)}
+                              categoryLabelByType={categoryLabelByType}
                             />
                           ))}
                         </div>
@@ -725,12 +730,11 @@ export default function OnboardingForm({
                         }}
                       >
                         <option value="">Select lead type…</option>
-                        <option value="high_intent_iul">
-                          High Intent IUL
-                        </option>
-                        <option value="traditional_iul">
-                          Traditional IUL
-                        </option>
+                        {categories.map((category) => (
+                          <option key={category.type} value={category.type}>
+                            {category.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

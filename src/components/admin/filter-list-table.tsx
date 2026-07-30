@@ -43,9 +43,11 @@ export type FilterListRow = {
 
 export function FilterListTable({
   initialRows,
+  categoryLabelByType = {},
 }: {
   initialRows: FilterListRow[];
   sources?: string[];
+  categoryLabelByType?: Record<string, string>;
 }) {
   return (
     <div>
@@ -121,9 +123,7 @@ export function FilterListTable({
                     <td>
                       <Link href={editHref} className="block">
                         <Badge variant="blue">
-                          {fs.leadType === "traditional_iul"
-                            ? "Trad. IUL"
-                            : "High Intent"}
+                          {categoryLabelByType[fs.leadType] ?? fs.leadType}
                         </Badge>
                       </Link>
                     </td>

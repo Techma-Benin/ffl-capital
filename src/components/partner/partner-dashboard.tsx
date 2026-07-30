@@ -22,6 +22,7 @@ type RecentDelivery = {
     lastName: string;
     state: string;
     leadType: string;
+    leadTypeLabel: string;
   };
 };
 
@@ -131,7 +132,7 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                     </td>
                     <td>
                       <Badge variant="blue">
-                        {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                        {d.lead.leadTypeLabel}
                       </Badge>
                     </td>
                     <td>

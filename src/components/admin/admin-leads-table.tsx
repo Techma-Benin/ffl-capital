@@ -33,6 +33,7 @@ type LeadRow = {
   phone: string;
   state: string;
   leadType: string;
+  leadTypeLabel: string;
   status: string;
   available: boolean;
   receivedAt: Date;
@@ -294,9 +295,7 @@ export function AdminLeadsTable({
       case "type":
         return (
           <td key={key} className={cellClass({ first, last })}>
-            <Badge variant="purple">
-              {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-            </Badge>
+            <Badge variant="purple">{lead.leadTypeLabel}</Badge>
           </td>
         );
       case "status":

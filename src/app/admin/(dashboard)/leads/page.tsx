@@ -12,6 +12,7 @@ import {
   buildAdminLeadsWhere,
   legacyStatusToSlice,
 } from "@/lib/admin/admin-leads-query";
+import { loadEnabledCategoryLabels, resolveLeadTypeDisplay } from "@/lib/lead-categories/category-labels";
 import {
   findAdminViewByStatusSlice,
   getDefaultLeadView,
@@ -93,7 +94,7 @@ export default async function AdminLeadsPage({
 
   const searchQuery = filters.q?.trim();
 
-  const [leads, total] = await Promise.all([
+  const [leads, total, categories] = await Promise.all([
     prisma.lead.findMany({
       where: whereClause,
       orderBy,
@@ -108,6 +109,7 @@ export default async function AdminLeadsPage({
       },
     }),
     prisma.lead.count({ where: whereClause }),
+    loadEnabledCategoryLabels(),
   ]);
 
   const paginationParams: Record<string, string | undefined> = {
@@ -165,7 +167,13 @@ export default async function AdminLeadsPage({
             email: lead.email,
             phone: lead.phone,
             state: lead.state,
-            leadType: lead.leadType,
+            leadType: lead.leadType ?? "",
+            leadTypeLabel: resolveLeadTypeDisplay({
+              leadType: lead.leadType,
+              categoryResolution: lead.categoryResolution,
+              categoryCandidateTypes: lead.categoryCandidateTypes,
+              categories,
+            }).label,
             status: lead.status,
             available: lead.available,
             receivedAt: lead.receivedAt,

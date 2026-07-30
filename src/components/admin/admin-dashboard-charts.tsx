@@ -126,7 +126,7 @@ export function AdminDashboardCharts({
                       </span>
                     </td>
                     <td className="text-slate-500">
-                      {lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL"}
+                      {lead.leadTypeLabel}
                     </td>
                     <td>
                       <LeadStatusBadge status={lead.status} />

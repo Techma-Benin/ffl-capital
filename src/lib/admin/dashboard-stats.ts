@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/db";
 import { PartnerStatus } from "@prisma/client";
 import { resolveAdminDashboardLookbackWindow } from "@/lib/admin/admin-date-period";
+import {
+  loadEnabledCategoryLabels,
+  resolveLeadTypeDisplay,
+} from "@/lib/lead-categories/category-labels";
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -31,6 +35,7 @@ export type AdminDashboardRawLead = {
   lastName: string;
   state: string;
   leadType: string;
+  leadTypeLabel: string;
   status: string;
   receivedAt: string;
   partnerName: string | null;
@@ -56,7 +61,7 @@ export async function fetchAdminDashboardRawData(
 ): Promise<AdminDashboardRawData> {
   const window = resolveAdminDashboardLookbackWindow(now);
 
-  const [leadRows, deliveryRows, activePartners, unmatchedLeads] =
+  const [leadRows, deliveryRows, activePartners, unmatchedLeads, categories] =
     await Promise.all([
       prisma.lead.findMany({
         where: {
@@ -81,6 +86,7 @@ export async function fetchAdminDashboardRawData(
       prisma.lead.count({
         where: { status: "unmatched", available: true },
       }),
+      loadEnabledCategoryLabels(),
     ]);
 
   const { ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS } = await import(
@@ -98,7 +104,13 @@ export async function fetchAdminDashboardRawData(
         firstName: lead.firstName,
         lastName: lead.lastName,
         state: lead.state,
-        leadType: lead.leadType,
+        leadType: lead.leadType ?? "",
+        leadTypeLabel: resolveLeadTypeDisplay({
+          leadType: lead.leadType,
+          categoryResolution: lead.categoryResolution,
+          categoryCandidateTypes: lead.categoryCandidateTypes,
+          categories,
+        }).label,
         status: lead.status,
         receivedAt: lead.receivedAt.toISOString(),
         partnerName: delivery

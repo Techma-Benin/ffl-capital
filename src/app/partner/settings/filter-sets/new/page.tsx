@@ -29,12 +29,7 @@ export default async function PartnerFilterSetNewPage() {
   ]);
 
   const categoryOptions =
-    categories.length > 0
-      ? categories
-      : [
-          { type: "traditional_iul", label: "Traditional IUL" },
-          { type: "high_intent_iul", label: "High Intent IUL" },
-        ];
+    categories.length > 0 ? categories : [];
 
   return (
     <FilterSetEditorPage

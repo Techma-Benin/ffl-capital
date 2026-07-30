@@ -6,23 +6,25 @@ export const ADMIN_AGED_TYPE_PARAM = "type";
 export const ADMIN_AGED_STATUS_PARAM = "status";
 export const ADMIN_AGED_AGE_PARAM = "age";
 
-export const ADMIN_AGED_LEAD_TYPES = [
-  "traditional_iul",
-  "high_intent_iul",
-] as const;
+export type AdminAgedLeadTypeFilter = "all" | string;
 
-export type AdminAgedLeadType = (typeof ADMIN_AGED_LEAD_TYPES)[number];
+export function buildAdminAgedTypeFilterOptions(
+  categories: Array<{ type: string; label: string }>,
+): Array<{ value: AdminAgedLeadTypeFilter; label: string }> {
+  return [
+    { value: "all", label: "All" },
+    ...categories.map((category) => ({
+      value: category.type,
+      label: category.label,
+    })),
+  ];
+}
 
+/** @deprecated Use buildAdminAgedTypeFilterOptions with live categories */
 export const ADMIN_AGED_TYPE_FILTER_OPTIONS: {
-  value: "all" | AdminAgedLeadType;
+  value: AdminAgedLeadTypeFilter;
   label: string;
-}[] = [
-  { value: "all", label: "All" },
-  { value: "traditional_iul", label: "Trad. IUL" },
-  { value: "high_intent_iul", label: "High Intent" },
-];
-
-export type AdminAgedLeadTypeFilter = "all" | AdminAgedLeadType;
+}[] = [{ value: "all", label: "All" }];
 
 export const ADMIN_AGED_STATUS_FILTER_VALUES = [
   "unmatched",
@@ -82,18 +84,18 @@ export function parseAdminAgedLeadStates(raw: string | undefined): string[] {
   );
 }
 
-export function parseAdminAgedLeadFilters(searchParams: {
-  state?: string;
-  type?: string;
-  status?: string;
-  age?: string;
-}): AdminAgedLeadFilters {
+export function parseAdminAgedLeadFilters(
+  searchParams: {
+    state?: string;
+    type?: string;
+    status?: string;
+    age?: string;
+  },
+  knownTypes: string[] = [],
+): AdminAgedLeadFilters {
   const typeRaw = searchParams.type?.trim();
   const type: AdminAgedLeadTypeFilter =
-    typeRaw &&
-    ADMIN_AGED_LEAD_TYPES.includes(typeRaw as AdminAgedLeadType)
-      ? (typeRaw as AdminAgedLeadType)
-      : "all";
+    typeRaw && knownTypes.includes(typeRaw) ? typeRaw : "all";
 
   const statusRaw = searchParams.status?.trim();
   const status: AdminAgedLeadStatusFilter =
@@ -238,18 +240,18 @@ function parsePartnerAgedHaveIulFilter(raw: string | undefined): string {
   return "";
 }
 
-export function parsePartnerAgedClientFilters(searchParams: {
-  state?: string;
-  type?: string;
-  age?: string;
-  haveIul?: string;
-}): PartnerAgedClientFilters {
+export function parsePartnerAgedClientFilters(
+  searchParams: {
+    state?: string;
+    type?: string;
+    age?: string;
+    haveIul?: string;
+  },
+  knownTypes: string[] = [],
+): PartnerAgedClientFilters {
   const typeRaw = searchParams.type?.trim();
   const type =
-    typeRaw &&
-    ADMIN_AGED_LEAD_TYPES.includes(typeRaw as AdminAgedLeadType)
-      ? typeRaw
-      : "";
+    typeRaw && knownTypes.includes(typeRaw) ? typeRaw : "";
 
   const ageRaw = searchParams.age?.trim();
   const age =

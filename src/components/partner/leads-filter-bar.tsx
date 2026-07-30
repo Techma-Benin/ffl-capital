@@ -47,6 +47,31 @@ export function LeadsFilterBar({
     return () => document.removeEventListener("mousedown", handle);
   }, [openKey]);
 
+  const [categoryOptions, setCategoryOptions] = useState<FilterOption[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/lead-categories");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setCategoryOptions(
+          (data.categories ?? []).map((category: { type: string; label: string }) => ({
+            value: category.type,
+            label: category.label,
+          })),
+        );
+      } catch {
+        // optional
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const categories: FilterCategory[] = [
     {
       key: "filterSet",
@@ -73,10 +98,7 @@ export function LeadsFilterBar({
       key: "type",
       label: "Type",
       paramKey: "type",
-      options: [
-        { value: "traditional_iul", label: "Trad. IUL" },
-        { value: "high_intent", label: "High Intent" },
-      ],
+      options: categoryOptions,
     },
     {
       key: "status",

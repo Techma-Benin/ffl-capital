@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import { getPartnerId } from "@/lib/partner/session";
+import { mapCsvRowToLead } from "@/lib/migration/map-csv-row-to-lead";
 
 // ---------------------------------------------------------------------------
 // Shared alias dictionary — used both server-side and exported for the UI
@@ -118,88 +119,6 @@ function parseCsvLine(line: string): string[] {
   return result;
 }
 
-function pick(row: Record<string, string>, ...keys: string[]): string | null {
-  for (const key of keys) {
-    const v = row[key];
-    if (v) return v;
-  }
-  return null;
-}
-
-function normalizeLeadType(
-  value: string,
-  intent?: string | null,
-  source?: string | null,
-): string {
-  const combined = [value, intent, source].filter(Boolean).join(" ").toLowerCase();
-  if (combined.includes("high")) return "high_intent_iul";
-  return "traditional_iul";
-}
-
-function resolveBoberdooLeadType(row: Record<string, string>): string | null {
-  const explicit = pick(row, "boberdoo_lead_type", "lead_type_id");
-  if (explicit) return explicit;
-  const leadType = row.lead_type;
-  if (leadType && /^\d+$/.test(leadType)) return leadType;
-  return null;
-}
-
-function resolveClassification(row: Record<string, string>): string {
-  const leadType = row.lead_type ?? "";
-  if (leadType && !/^\d+$/.test(leadType)) return leadType;
-  return pick(row, "classification", "intent") ?? "";
-}
-
-function mapCsvRowToLead(row: Record<string, string>) {
-  const state = (
-    pick(row, "state", "state_you_currently_live_in") ?? ""
-  )
-    .toUpperCase()
-    .slice(0, 2);
-
-  return {
-    firstName: pick(row, "first_name", "firstname") ?? "",
-    lastName: pick(row, "last_name", "lastname") ?? "",
-    email: pick(row, "email") ?? "",
-    phone: pick(row, "phone", "primary_phone") ?? "0000000000",
-    address: pick(row, "address"),
-    city: pick(row, "city"),
-    state,
-    zip: pick(row, "zip"),
-    dob: pick(row, "dob", "date_of_birth"),
-    age: pick(row, "age"),
-    leadType: normalizeLeadType(
-      resolveClassification(row),
-      pick(row, "intent"),
-      pick(row, "source", "src"),
-    ),
-    intent: pick(row, "intent"),
-    haveIul: pick(row, "have_iul", "haveiul"),
-    primaryGoal: pick(row, "primary_goal", "primarygoal"),
-    stateYouCurrentlyLiveIn:
-      pick(row, "state_you_currently_live_in")?.toUpperCase().slice(0, 2) ??
-      null,
-    trustedformCertUrl: pick(
-      row,
-      "trustedform_cert_url",
-      "trusted_form_url",
-    ),
-    tcpaConsent: pick(row, "tcpa_consent"),
-    tcpaLanguage: pick(row, "tcpa_language"),
-    leadidToken: pick(row, "leadid_token", "leadi_d_token"),
-    source: pick(row, "source", "src") ?? "boberdoo_migration",
-    landingPage: pick(row, "landing_page"),
-    subId: pick(row, "sub_id"),
-    pubId: pick(row, "pub_id"),
-    boberdooLeadType: resolveBoberdooLeadType(row),
-    ipAddress: pick(row, "ip_address"),
-    userAgent: pick(row, "user_agent"),
-    externalId: pick(row, "external_id", "unique_identifier"),
-    receivedAt: row.received_at ? new Date(row.received_at) : new Date(),
-    rawPayload: row,
-  };
-}
-
 /**
  * Apply a columnMapping (csvHeader → fieldName | "skip") to a raw row,
  * returning a new row keyed by the first alias of each target field.
@@ -304,6 +223,16 @@ export async function POST(request: NextRequest) {
   );
   const createdById = await getPartnerId();
 
+  const categories = await prisma.leadCategory.findMany({
+    where: { enabled: true },
+    select: {
+      type: true,
+      label: true,
+      enabled: true,
+      criteria: { select: { field: true, value: true } },
+    },
+  });
+
   const job = await prisma.migrationJob.create({
     data: {
       fileName: file.name,
@@ -330,7 +259,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const mapped = mapCsvRowToLead(row);
+      const mapped = mapCsvRowToLead(row, categories);
       if (!mapped.firstName || !mapped.email || !mapped.state) {
         throw new Error("Missing required fields");
       }

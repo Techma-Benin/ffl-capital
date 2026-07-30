@@ -58,17 +58,25 @@ function navigateWithFilters(
 
 export function AdminAgedLeadsFilters({
   stateOptions,
+  typeFilterOptions = ADMIN_AGED_TYPE_FILTER_OPTIONS,
 }: {
   stateOptions: { value: string; label: string }[];
+  typeFilterOptions?: { value: AdminAgedLeadTypeFilter; label: string }[];
 }) {
   const { push } = useNavigateWithPending();
   const searchParams = useSearchParams();
-  const filters = parseAdminAgedLeadFilters({
-    state: searchParams.get(ADMIN_AGED_STATE_PARAM) ?? undefined,
-    type: searchParams.get(ADMIN_AGED_TYPE_PARAM) ?? undefined,
-    status: searchParams.get(ADMIN_AGED_STATUS_PARAM) ?? undefined,
-    age: searchParams.get(ADMIN_AGED_AGE_PARAM) ?? undefined,
-  });
+  const knownTypes = typeFilterOptions
+    .map((option) => option.value)
+    .filter((value) => value !== "all");
+  const filters = parseAdminAgedLeadFilters(
+    {
+      state: searchParams.get(ADMIN_AGED_STATE_PARAM) ?? undefined,
+      type: searchParams.get(ADMIN_AGED_TYPE_PARAM) ?? undefined,
+      status: searchParams.get(ADMIN_AGED_STATUS_PARAM) ?? undefined,
+      age: searchParams.get(ADMIN_AGED_AGE_PARAM) ?? undefined,
+    },
+    knownTypes,
+  );
 
   const hasActiveFilters =
     filters.states.length > 0 ||
@@ -109,7 +117,7 @@ export function AdminAgedLeadsFilters({
         accent="teal"
         value={filters.type}
         allValue="all"
-        options={ADMIN_AGED_TYPE_FILTER_OPTIONS}
+        options={typeFilterOptions}
         onChange={(type: AdminAgedLeadTypeFilter) => update({ type })}
         searchable={false}
       />

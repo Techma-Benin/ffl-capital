@@ -16,11 +16,13 @@ type InitialProfile = {
 type Props = {
   initialProfile: InitialProfile;
   criteriaOptions: LeadFilterCriteriaOptions;
+  categories: Array<{ type: string; label: string }>;
 };
 
 export default function OnboardingWizard({
   initialProfile,
   criteriaOptions,
+  categories,
 }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
@@ -50,6 +52,7 @@ export default function OnboardingWizard({
       <OnboardingForm
         initialProfile={initialProfile}
         criteriaOptions={criteriaOptions}
+        categories={categories}
         step={step}
         onStepChange={setStep}
       />

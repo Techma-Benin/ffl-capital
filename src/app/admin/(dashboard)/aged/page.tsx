@@ -20,6 +20,11 @@ import {
 } from "@/lib/admin/admin-aged-leads-sort";
 import { refundLeadSnapshotFromAgedListing } from "@/lib/admin/refund-lead-snapshot";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
+import {
+  loadEnabledCategoryLabels,
+  resolveLeadTypeDisplay,
+  buildCategoryFilterOptions,
+} from "@/lib/lead-categories/category-labels";
 
 const BASE_PATH = "/admin/aged";
 
@@ -37,7 +42,11 @@ export default async function AdminAgedPage({
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const filters = parseAdminAgedLeadFilters(resolvedSearchParams);
+  const categories = await loadEnabledCategoryLabels();
+  const filters = parseAdminAgedLeadFilters(
+    resolvedSearchParams,
+    categories.map((category) => category.type),
+  );
   const agedWhere = await buildAdminAgedLeadsWhere(filters);
   const { page, pageSize, skip } = parsePageParams(resolvedSearchParams);
   const { sort, dir } = parseAdminAgedLeadSort(resolvedSearchParams);
@@ -68,12 +77,23 @@ export default async function AdminAgedPage({
     label: code,
   }));
 
+  const typeFilterOptions = [
+    { value: "all", label: "All" },
+    ...buildCategoryFilterOptions(categories),
+  ];
+
   const rows = leads.map((lead) => ({
     id: lead.id,
     firstName: lead.firstName,
     lastName: lead.lastName,
     state: lead.state,
-    leadType: lead.leadType,
+    leadType: lead.leadType ?? "",
+    leadTypeLabel: resolveLeadTypeDisplay({
+      leadType: lead.leadType,
+      categoryResolution: lead.categoryResolution,
+      categoryCandidateTypes: lead.categoryCandidateTypes,
+      categories,
+    }).label,
     status: lead.status,
     ageDays: Math.floor(
       (Date.now() - lead.receivedAt.getTime()) / (1000 * 60 * 60 * 24),
@@ -104,7 +124,10 @@ export default async function AdminAgedPage({
           <div className="mb-5 min-h-[36px] animate-pulse rounded-md bg-slate-50" />
         }
       >
-        <AdminAgedLeadsFilters stateOptions={stateOptions} />
+        <AdminAgedLeadsFilters
+          stateOptions={stateOptions}
+          typeFilterOptions={typeFilterOptions}
+        />
       </Suspense>
 
       <div className="card">

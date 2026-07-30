@@ -15,6 +15,7 @@ export type PartnerAgedLeadPreview = {
   state: string;
   address: string | null;
   leadType: string;
+  leadTypeLabel: string;
   receivedAt: string;
   intent: string;
   haveIul: string | null;
@@ -28,10 +29,6 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
-
-function leadTypeLabel(leadType: string): string {
-  return leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
-}
 
 function displayValue(value: string | null | undefined): string {
   if (value == null || value === "") return "—";
@@ -67,7 +64,7 @@ export function AgedLeadPreviewSheet({
             </span>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge variant="blue">{leadTypeLabel(lead.leadType)}</Badge>
+            <Badge variant="blue">{lead.leadTypeLabel}</Badge>
             {lead.intent ? (
               <Badge variant={lead.leadType === "high_intent_iul" ? "green" : "yellow"}>
                 {lead.intent}

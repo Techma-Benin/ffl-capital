@@ -4,7 +4,10 @@ import { getPartnerId } from "@/lib/partner/session";
 import { PartnerLeadDetailView } from "@/components/partner/partner-lead-detail-view";
 import type { LeadDetailTimelineItem } from "@/components/leads/lead-detail-types";
 import type { LeadDetailPurchaseInfo } from "@/components/leads/lead-detail-panels";
-import { formatDateTimeLong } from "@/lib/format-datetime";
+import {
+  loadAllCategoryLabels,
+  resolveLeadTypeDisplay,
+} from "@/lib/lead-categories/category-labels";
 import { formatUsd } from "@/lib/format-money";
 
 export default async function PartnerLeadDetailPage({
@@ -32,8 +35,13 @@ export default async function PartnerLeadDetailPage({
   const isRefunded = !!delivery.refundedAt;
   const canRefund = lead.refundable && !isRefunded && !refundReq;
 
-  const leadTypeLabel =
-    lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
+  const categories = await loadAllCategoryLabels();
+  const leadTypeLabel = resolveLeadTypeDisplay({
+    leadType: lead.leadType,
+    categoryResolution: lead.categoryResolution,
+    categoryCandidateTypes: lead.categoryCandidateTypes,
+    categories,
+  }).label;
   const channelLabel = delivery.channel === "realtime" ? "Real-time" : "Aged";
 
   const timeline: LeadDetailTimelineItem[] = [

@@ -34,6 +34,12 @@ import {
   LeadDetailTwoColumnLayout,
 } from "@/components/leads/lead-detail-ui";
 import { LeadStatusBadge } from "@/components/leads/lead-status-badge";
+import { CategoryPayloadViewer } from "@/components/leads/category-payload-viewer";
+import {
+  AdminLeadCategoryAssignPanel,
+  type CategoryAssignmentOption,
+} from "@/components/admin/admin-lead-category-assign-panel";
+import type { DiagnosticField } from "@/lib/lead-categories/payload-diagnostics";
 
 const TABS = [
   { id: "contact", label: "Contact" },
@@ -65,6 +71,12 @@ export type AdminLeadDetailLead = LeadDetailPanelLead & {
   available: boolean;
   refundable: boolean;
   leadType: string;
+  categoryResolution?: string;
+  candidateLabels?: string[];
+  categoryCandidateTypes?: string[];
+  payloadDiagnostics?: DiagnosticField[];
+  categoryAssignOptions?: CategoryAssignmentOption[];
+  showCategoryAssign?: boolean;
   rawPayload: unknown;
 };
 
@@ -132,6 +144,15 @@ export function AdminLeadDetailView({
           <>
             <LeadStatusBadge status={lead.status} />
             <Badge variant="purple">{lead.leadTypeLabel}</Badge>
+            {lead.candidateLabels && lead.candidateLabels.length > 0 && (
+              <>
+                {lead.candidateLabels.map((label) => (
+                  <Badge key={label} variant="yellow">
+                    {label}
+                  </Badge>
+                ))}
+              </>
+            )}
           </>
         }
         subtitle={
@@ -258,14 +279,35 @@ export function AdminLeadDetailView({
               </div>
             </div>
 
+            {lead.showCategoryAssign && lead.categoryAssignOptions && (
+              <AdminLeadCategoryAssignPanel
+                leadId={lead.id}
+                categories={lead.categoryAssignOptions}
+                candidateTypes={lead.categoryCandidateTypes ?? []}
+              />
+            )}
+
             {lead.rawPayload != null && (
-              <details className="card p-4 sm:p-6">
+              <details className="card p-4 sm:p-6" open>
                 <summary className="cursor-pointer text-sm font-semibold text-slate-900">
                   Raw Payload (audit trail)
                 </summary>
-                <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-50 p-4 text-xs text-slate-700">
-                  {JSON.stringify(lead.rawPayload, null, 2)}
-                </pre>
+                <div className="mt-3">
+                  {lead.payloadDiagnostics &&
+                  typeof lead.rawPayload === "object" &&
+                  lead.rawPayload !== null &&
+                  !Array.isArray(lead.rawPayload) ? (
+                    <CategoryPayloadViewer
+                      payload={lead.rawPayload as Record<string, unknown>}
+                      diagnosticFields={lead.payloadDiagnostics}
+                      candidateLabels={lead.candidateLabels}
+                    />
+                  ) : (
+                    <pre className="overflow-x-auto rounded-lg bg-slate-50 p-4 text-xs text-slate-700">
+                      {JSON.stringify(lead.rawPayload, null, 2)}
+                    </pre>
+                  )}
+                </div>
               </details>
             )}
           </>

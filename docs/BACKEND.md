@@ -126,6 +126,7 @@ POST /api/leads/intake
 - `20260724200000_unify_filter_set_templates` — templates → `partner_filter_sets.is_template` ; drop `filter_set_templates`
 - `20260724210000_drop_partner_filter_set_description` — drop `partner_filter_sets.description`
 - `20260730170000_flexible_lead_categories` — `lead_category_criteria` ; drop `lead_categories.src` ; `leads.category_resolution`, `category_candidate_types` ; `lead_type` nullable
+- `20260730120000_add_category_assigned_event` — `LeadEventType.category_assigned` (assignation manuelle admin)
 
 **`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label`, `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`.
 
@@ -288,6 +289,33 @@ UI : `/admin/settings` → onglet **Lead categories** (`LeadCategoryManager`). M
 
 Schémas Zod : `categoryCreateSchema`, `categoryUpdateSchema`. Critères : au moins un par catégorie ; `field` unique par catégorie. `integrityLabel` alimente `lead_type_thom` à la revente Integrity.
 
+### Présentation et libellés UI
+
+Modules : `category-presentation.ts`, `category-labels.ts`. Les libellés affichés (admin, partner, emails, filtres) viennent de la table `lead_categories`, pas de constantes IUL hardcodées. Anomalies intake : **Unclassified** (`no_match` / `leadType` vide) et **Multiple match** (avec chips des candidats). Helpers : `resolveLeadCategoryPresentation`, `loadEnabledCategoryLabels`, `buildCategoryFilterOptions`.
+
+### Diagnostics payload (détail lead admin)
+
+`payload-diagnostics.ts` — `buildCategoryPayloadDiagnostics` : union des champs critères des catégories actives, avec présence/valeur sur le `raw_payload` top-level. Affiché dans le détail lead admin (onglet IUL / panneau assignation).
+
+### Assignation manuelle (review uniquement)
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| POST | `/api/admin/leads/[id]/assign-category` | Corps `{ categoryType }` — résout un lead `status=review` avec `no_match` ou `multiple_matches` |
+
+Module : `manual-category-assignment.ts` (`prepareManualCategoryAssignment`). Écrit les critères manquants dans `raw_payload`, synchronise colonnes intake (`map-payload-fields`), passe le lead en `unmatched` + `available=true` + `category_resolution=matched`. Émet `LeadEventType.category_assigned`. Réponse `{ success, requiresReprocess: true }` — l’admin relance le reprocess manuellement ou via cron.
+
+UI : `admin-lead-category-assign-panel.tsx` (chips candidats + sélecteur catégorie).
+
+### Garde-fous reprocess
+
+`reprocess-eligibility.ts` — `getReprocessEligibility` : refuse le reprocess si `category_resolution` est `no_match` ou `multiple_matches`, si `leadType` absent, ou si lead non `unmatched`/`available`. Branché dans `reprocess-unmatched.ts`.
+
+### Import et réparation historique
+
+- **Import CSV** : `import-category-classification.ts` + `map-csv-row-to-lead.ts` — même `evaluateLeadCategories` qu’à l’intake ; plus de fallback Traditional/High Intent depuis `SRC` seul.
+- **Script réparation** : `pnpm run repair:category-classification` (dry-run par défaut) ; `--apply` pour persister. Réévalue tous les leads non finalisés (`delivered`, `integrity_posted`, `aged_listed`, `dead` exclus).
+
 ---
 
 ## Moteur de matching V1 (actuel)
@@ -422,6 +450,8 @@ pnpm run verify          # checklist backend Phase 9 (serveur dev requis)
 pnpm run verify:cron     # smoke test routes cron
 pnpm run test:outbound   # CRM outbound (SSRF, mapping, règles succès — sans DB)
 pnpm run seed:lead       # POST fixture intake
+pnpm run repair:category-classification   # dry-run réévaluation catégories (historique)
+pnpm run repair:category-classification -- --apply   # applique les corrections
 pnpm stripe:listen       # webhook Stripe local
 ```
 
@@ -490,3 +520,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-24 | Intent / Have IUL : multi-select + `"empty"` ; Attribution retirée de l’onboarding (aligné filter sets) ; options critères préfetch SSR |
 | 2026-07-29 | Clerk Replit : handler local `tickets/accept` (fix page blanche invitations) ; admin invite → `/admin/sign-up` ; proxy FAPI skip sur ce chemin |
 | 2026-07-30 | Catégories lead flexibles : critères multi-champs, résolution intake (`category_resolution`), filtres vues admin, UI settings |
+| 2026-07-30 | Résolution catégorie complète : libellés UI dynamiques, diagnostics payload, assignation manuelle review, garde-fous reprocess, import/réparation, événement `category_assigned` |

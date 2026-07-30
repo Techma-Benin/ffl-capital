@@ -19,7 +19,8 @@ export type AdminAgedLeadRow = {
   firstName: string;
   lastName: string;
   state: string;
-  leadType: string;
+    leadType: string;
+    leadTypeLabel: string;
   status: string;
   ageDays: number;
   sheetLead: RefundLeadSnapshot;
@@ -104,7 +105,7 @@ export function AdminAgedLeadsTable({
               <td>{lead.state}</td>
               <td>
                 <Badge variant="blue">
-                  {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                  {lead.leadTypeLabel}
                 </Badge>
               </td>
               <td className="capitalize">{lead.status.replace("_", " ")}</td>

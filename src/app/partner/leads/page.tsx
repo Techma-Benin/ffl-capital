@@ -25,6 +25,10 @@ import {
   listLeadViews,
 } from "@/lib/leads/lead-list-view-service";
 import {
+  loadEnabledCategoryLabels,
+  resolveLeadTypeDisplay,
+} from "@/lib/lead-categories/category-labels";
+import {
   leadViewSortSchema,
   parsePartnerFilters,
   type LeadViewColumn,
@@ -86,7 +90,7 @@ export default async function PartnerLeadsPage({
   const orderBy = buildPartnerLeadOrderBy(sortJson, resolvedSearchParams);
   const where = await buildPartnerLeadsWhere(partnerId, filters);
 
-  const [total, deliveries, filterSets, distinctStatesRaw] = await Promise.all([
+  const [total, deliveries, filterSets, distinctStatesRaw, categories] = await Promise.all([
     prisma.leadDelivery.count({ where }),
     prisma.leadDelivery.findMany({
       where,
@@ -109,6 +113,7 @@ export default async function PartnerLeadsPage({
       distinct: ["state"],
       orderBy: { state: "asc" },
     }),
+    loadEnabledCategoryLabels(),
   ]);
 
   const availableStates = distinctStatesRaw.map((l) => l.state);
@@ -178,7 +183,13 @@ export default async function PartnerLeadsPage({
               phone: d.lead.phone,
               state: d.lead.state,
               address: d.lead.address,
-              leadType: d.lead.leadType,
+              leadType: d.lead.leadType ?? "",
+              leadTypeLabel: resolveLeadTypeDisplay({
+                leadType: d.lead.leadType,
+                categoryResolution: d.lead.categoryResolution,
+                categoryCandidateTypes: d.lead.categoryCandidateTypes,
+                categories,
+              }).label,
               intent: d.lead.intent,
               haveIul: d.lead.haveIul,
               primaryGoal: d.lead.primaryGoal,

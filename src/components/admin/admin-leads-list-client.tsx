@@ -32,6 +32,7 @@ type LeadRow = {
   phone: string;
   state: string;
   leadType: string;
+  leadTypeLabel: string;
   status: string;
   available: boolean;
   receivedAt: Date;

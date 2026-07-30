@@ -84,6 +84,9 @@ pnpm run seed:refunds-demo
 # Leads vieillis pour /admin/aged et /partner/aged
 pnpm run seed:aged-leads
 
+# Réévaluer la classification catégorie sur l'historique (dry-run ; --apply pour écrire)
+pnpm run repair:category-classification
+
 # Désigner le premier super admin (one-off, requiert un admin existant)
 pnpm run make-super-admin -- --email admin@example.com
 ```
@@ -99,7 +102,7 @@ pnpm run make-super-admin -- --email admin@example.com
 | POST | `/api/cron/reprocess-unmatched` | Retraitement leads (Bearer CRON_SECRET) |
 | POST | `/api/cron/integrity-post` | Post Integrity unmatched (Bearer CRON_SECRET) |
 
-Admin APIs : leads search/export/reprocess, **lead-categories** CRUD, **lead-views** CRUD, partners, filter sets, refunds — voir [BACKEND.md](docs/BACKEND.md).
+Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, partners, filter sets, refunds — voir [BACKEND.md](docs/BACKEND.md).
 
 ## Dev tools
 

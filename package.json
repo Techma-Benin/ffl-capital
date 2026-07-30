@@ -24,6 +24,7 @@
     "test:backend:current": "node --import tsx --test test/current/*.test.ts",
     "test:backend:planned": "node --import tsx --test test/planned/*.test.ts",
     "test:backend": "node --import tsx --test test/current/*.test.ts test/planned/*.test.ts",
+    "repair:category-classification": "pnpm exec tsx scripts/repair-category-classification.ts",
     "verify": "node scripts/verify-backend.mjs",
     "verify:cron": "node scripts/verify-cron.mjs",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"

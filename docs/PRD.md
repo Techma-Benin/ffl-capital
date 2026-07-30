@@ -284,9 +284,9 @@ Phase D — Migration Replit (livraison client)
 - Actions : approuver/rejeter inscription, activer/désactiver, modifier priorité (1–10), prix personnalisé, voir historique
 
 #### Gestion leads
-- Liste tous les leads avec filtres : statut, état, date, available
-- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity
-- Actions manuelles : reprocesser (relancer matching), voir file unmatched
+- Liste tous les leads avec filtres : statut, état, date, available, résolution catégorie
+- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity ; **diagnostics payload** (champs critères catégories) ; libellés **Unclassified** / **Multiple match** depuis la table catégories
+- Actions manuelles : reprocesser (relancer matching), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
 
 #### Remboursements
 - File des `refund_requests` en attente (écran « Approve Refunds », parité Boberdoo)
@@ -386,7 +386,7 @@ Phase D — Migration Replit (livraison client)
 
 **Si aucun agent éligible :**
 1. Lead reste `status=unmatched`, `available=true`
-2. Job toutes les X minutes pendant **24 h** : réessayer matching
+2. Job toutes les X minutes pendant **24 h** : réessayer matching (sauf leads `review` ou catégorie non résolue — assignation admin requise)
 3. Après 24 h sans match → module IntegrityCONNECT
 4. Lead reste en base pour aging J+30
 
@@ -491,6 +491,7 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 **Scope import :**
 - Leads historiques (contact, état, dates, TrustedForm si présent, statuts)
+- **Classification catégorie** via la table `lead_categories` (même logique qu’intake) — plus de fallback implicite Traditional/High Intent depuis `SRC`
 - Optionnel : agents existants (mapping vers Clerk manuel ou invite)
 
 **Écran admin :**

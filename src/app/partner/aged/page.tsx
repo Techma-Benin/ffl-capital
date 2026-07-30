@@ -6,10 +6,15 @@ import { PartnerAgedView } from "@/components/partner/partner-aged";
 import { getAgedDaysThreshold, getDefaultAgedPrice } from "@/lib/settings/app-settings";
 import {
   buildAdminAgedLeadsWhere,
+  buildAdminAgedTypeFilterOptions,
   parseAdminAgedLeadFilters,
   parsePartnerAgedClientFilters,
   PARTNER_AGED_CLIENT_LOAD_LIMIT,
 } from "@/lib/admin/admin-aged-leads-filters";
+import {
+  loadEnabledCategoryLabels,
+  resolveLeadTypeDisplay,
+} from "@/lib/lead-categories/category-labels";
 
 export default async function PartnerAgedPage({
   searchParams,
@@ -28,7 +33,7 @@ export default async function PartnerAgedPage({
 
   const agedWhere = await buildAdminAgedLeadsWhere(parseAdminAgedLeadFilters({}));
 
-  const [agedLeads, totalEligible, agedPrice, agedDays] = await Promise.all([
+  const [agedLeads, totalEligible, agedPrice, agedDays, categories] = await Promise.all([
     prisma.lead.findMany({
       where: agedWhere,
       orderBy: { receivedAt: "asc" },
@@ -37,7 +42,11 @@ export default async function PartnerAgedPage({
     prisma.lead.count({ where: agedWhere }),
     getDefaultAgedPrice(),
     getAgedDaysThreshold(),
+    loadEnabledCategoryLabels(),
   ]);
+
+  const knownTypes = categories.map((category) => category.type);
+  const typeFilterOptions = buildAdminAgedTypeFilterOptions(categories);
 
   return (
     <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading…</div>}>
@@ -50,17 +59,25 @@ export default async function PartnerAgedPage({
           lastName: lead.lastName,
           state: lead.state,
           address: lead.address,
-          leadType: lead.leadType,
+          leadType: lead.leadType ?? "",
+          leadTypeLabel: resolveLeadTypeDisplay({
+            leadType: lead.leadType,
+            categoryResolution: lead.categoryResolution,
+            categoryCandidateTypes: lead.categoryCandidateTypes,
+            categories,
+          }).label,
           receivedAt: lead.receivedAt.toISOString(),
-          intent:
-            lead.intent ??
-            (lead.leadType === "high_intent_iul" ? "High Intent" : "Traditional"),
+          intent: lead.intent ?? "",
           haveIul: lead.haveIul,
           primaryGoal: lead.primaryGoal,
         }))}
         totalEligible={totalEligible}
         loadCapped={totalEligible > PARTNER_AGED_CLIENT_LOAD_LIMIT}
-        initialFilters={parsePartnerAgedClientFilters(resolvedSearchParams)}
+        initialFilters={parsePartnerAgedClientFilters(
+          resolvedSearchParams,
+          knownTypes,
+        )}
+        typeFilterOptions={typeFilterOptions}
       />
     </Suspense>
   );

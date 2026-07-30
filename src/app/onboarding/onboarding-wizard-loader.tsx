@@ -34,13 +34,19 @@ type InitialProfile = {
 type Props = {
   initialProfile: InitialProfile;
   criteriaOptions: LeadFilterCriteriaOptions;
+  categories: Array<{ type: string; label: string }>;
 };
 
-export function OnboardingWizardLoader({ initialProfile, criteriaOptions }: Props) {
+export function OnboardingWizardLoader({
+  initialProfile,
+  criteriaOptions,
+  categories,
+}: Props) {
   return (
     <OnboardingWizard
       initialProfile={initialProfile}
       criteriaOptions={criteriaOptions}
+      categories={categories}
     />
   );
 }

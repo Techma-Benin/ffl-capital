@@ -23,17 +23,13 @@ export type FilterSetTemplate = {
   filterCriteria?: FilterCriteria;
 };
 
-const LEAD_TYPE_LABELS: Record<string, string> = {
-  traditional_iul: "Traditional IUL",
-  high_intent_iul: "High Intent IUL",
-};
-
 export function FilterSetTemplatePicker({
   open,
   onOpenChange,
   onSelect,
   onSkip,
   initialTemplates,
+  categoryLabelByType = {},
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,6 +37,7 @@ export function FilterSetTemplatePicker({
   onSkip: () => void;
   /** Prefer SSR data; falls back to partner templates API when omitted */
   initialTemplates?: FilterSetTemplate[];
+  categoryLabelByType?: Record<string, string>;
 }) {
   const [templates, setTemplates] = useState<FilterSetTemplate[] | null>(
     initialTemplates ?? null,
@@ -150,7 +147,7 @@ export function FilterSetTemplatePicker({
                       {template.name}
                     </span>
                     <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-500">
-                      {LEAD_TYPE_LABELS[template.leadType] ?? template.leadType}
+                      {categoryLabelByType[template.leadType] ?? template.leadType}
                     </span>
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-3">

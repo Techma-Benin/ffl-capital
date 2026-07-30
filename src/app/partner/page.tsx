@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PartnerDashboard } from "@/components/partner/partner-dashboard";
+import {
+  loadEnabledCategoryLabels,
+  resolveLeadTypeDisplay,
+} from "@/lib/lead-categories/category-labels";
 
 export default async function PartnerDashboardPage() {
   const partnerId = await getPartnerId();
@@ -10,7 +14,7 @@ export default async function PartnerDashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [deliveriesAll, deliveriesToday, recentDeliveries, spentAggregate] = await Promise.all([
+  const [deliveriesAll, deliveriesToday, recentDeliveries, spentAggregate, categories] = await Promise.all([
     prisma.leadDelivery.count({ where: { partnerId } }),
     prisma.leadDelivery.count({
       where: { partnerId, deliveredAt: { gte: today } },
@@ -25,6 +29,7 @@ export default async function PartnerDashboardPage() {
       where: { partnerId },
       _sum: { price: true },
     }),
+    loadEnabledCategoryLabels(),
   ]);
 
   return (
@@ -43,7 +48,13 @@ export default async function PartnerDashboardPage() {
             firstName: d.lead.firstName,
             lastName: d.lead.lastName,
             state: d.lead.state,
-            leadType: d.lead.leadType,
+            leadType: d.lead.leadType ?? "",
+            leadTypeLabel: resolveLeadTypeDisplay({
+              leadType: d.lead.leadType,
+              categoryResolution: d.lead.categoryResolution,
+              categoryCandidateTypes: d.lead.categoryCandidateTypes,
+              categories,
+            }).label,
           },
         })),
       }}

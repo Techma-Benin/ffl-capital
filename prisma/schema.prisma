@@ -49,6 +49,7 @@ enum LeadEventType {
   duplicate_rejected
   trustedform_failed
   deleted
+  category_assigned
 }
 
 enum PartnerCrmOutboundAuthType {

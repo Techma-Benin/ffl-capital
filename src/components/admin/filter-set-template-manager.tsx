@@ -23,15 +23,12 @@ type FilterSetTemplate = {
   filterStates: string[];
 };
 
-const LEAD_TYPE_LABELS: Record<string, string> = {
-  traditional_iul: "Traditional IUL",
-  high_intent_iul: "High Intent IUL",
-};
-
 export function FilterSetTemplateManager({
   initialTemplates,
+  categoryLabelByType = {},
 }: {
   initialTemplates: FilterSetTemplate[];
+  categoryLabelByType?: Record<string, string>;
 }) {
   const [templates, setTemplates] = useState(initialTemplates);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -128,7 +125,7 @@ export function FilterSetTemplateManager({
                     {t.name}
                   </span>
                   <Badge variant="blue">
-                    {LEAD_TYPE_LABELS[t.leadType] ?? t.leadType}
+                    {categoryLabelByType[t.leadType] ?? t.leadType}
                   </Badge>
                   <span className="text-xs text-slate-500">
                     {t.filterStates.length} states

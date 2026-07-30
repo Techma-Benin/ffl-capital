@@ -74,6 +74,7 @@ export function PartnerAgedView({
   totalEligible,
   loadCapped,
   initialFilters,
+  typeFilterOptions = ADMIN_AGED_TYPE_FILTER_OPTIONS,
 }: {
   allAgedLeads: AgedLead[];
   agedDays: number;
@@ -81,6 +82,7 @@ export function PartnerAgedView({
   totalEligible: number;
   loadCapped: boolean;
   initialFilters: AgedFilters;
+  typeFilterOptions?: { value: AdminAgedLeadTypeFilter; label: string }[];
 }) {
   const { partner } = usePartner();
   const { router, push } = useNavigateWithPending();
@@ -272,7 +274,7 @@ export function PartnerAgedView({
             accent="teal"
             value={(filters.type || "all") as AdminAgedLeadTypeFilter}
             allValue="all"
-            options={ADMIN_AGED_TYPE_FILTER_OPTIONS}
+            options={typeFilterOptions}
             onChange={(type) =>
               updateFilter("type", type === "all" ? "" : type)
             }
@@ -408,7 +410,7 @@ export function PartnerAgedView({
                           {lead.state}
                         </span>
                         <Badge variant="blue">
-                          {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                          {lead.leadTypeLabel}
                         </Badge>
                         <span className={ageChip.chip}>
                           <Clock size={11} className={ageChip.icon} aria-hidden />

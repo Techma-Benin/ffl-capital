@@ -4,6 +4,12 @@ import { getLeadEvents } from "@/lib/leads/lead-events";
 import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
 import { getClerkPartnerImageUrlMap } from "@/lib/auth/clerk-profile";
 import { formatUsd } from "@/lib/format-money";
+import {
+  loadEnabledCategoriesWithCriteria,
+  resolveLeadTypeDisplay,
+} from "@/lib/lead-categories/category-labels";
+import { buildCategoryPayloadDiagnostics } from "@/lib/lead-categories/payload-diagnostics";
+import { getReprocessEligibility } from "@/lib/jobs/reprocess-eligibility";
 
 const PARTNER_SHEET_AVATAR_PX = 48;
 import {
@@ -37,6 +43,34 @@ export default async function AdminLeadDetailPage({
 
   if (!lead) notFound();
 
+  const categories = await loadEnabledCategoriesWithCriteria();
+  const presentation = resolveLeadTypeDisplay({
+    leadType: lead.leadType,
+    categoryResolution: lead.categoryResolution,
+    categoryCandidateTypes: lead.categoryCandidateTypes,
+    categories,
+  });
+  const rawPayload =
+    lead.rawPayload &&
+    typeof lead.rawPayload === "object" &&
+    !Array.isArray(lead.rawPayload)
+      ? (lead.rawPayload as Record<string, unknown>)
+      : {};
+  const payloadDiagnostics = buildCategoryPayloadDiagnostics(
+    rawPayload,
+    categories,
+  );
+  const showCategoryAssign =
+    lead.status === "review" &&
+    (lead.categoryResolution === "no_match" ||
+      lead.categoryResolution === "multiple_matches");
+  const reprocessEligibility = getReprocessEligibility({
+    available: lead.available,
+    status: lead.status,
+    categoryResolution: lead.categoryResolution,
+    leadType: lead.leadType,
+  });
+
   const leadEvents = await getLeadEvents(id);
 
   const timeline: AdminLeadDetailTimelineItem[] = [
@@ -64,8 +98,7 @@ export default async function AdminLeadDetailPage({
     })),
   ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
-  const leadTypeLabel =
-    lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
+  const leadTypeLabel = presentation.label;
 
   const latestDelivery = lead.leadDeliveries[0];
   const canRedeliver = lead.leadDeliveries.length > 0;
@@ -122,8 +155,20 @@ export default async function AdminLeadDetailPage({
         status: lead.status,
         available: lead.available,
         refundable: lead.refundable,
-        leadType: lead.leadType,
+        leadType: lead.leadType ?? "",
         leadTypeLabel,
+        categoryResolution: lead.categoryResolution,
+        candidateLabels: presentation.candidateLabels,
+        categoryCandidateTypes: lead.categoryCandidateTypes,
+        payloadDiagnostics,
+        categoryAssignOptions: showCategoryAssign
+          ? categories.map((category) => ({
+              type: category.type,
+              label: category.label,
+              criteria: category.criteria,
+            }))
+          : [],
+        showCategoryAssign,
         intent: lead.intent,
         haveIul: lead.haveIul,
         primaryGoal: lead.primaryGoal,
@@ -148,7 +193,7 @@ export default async function AdminLeadDetailPage({
       events={events}
       grossSold={grossSold}
       actions={{
-        showReprocess: lead.status === "unmatched" && lead.available,
+        showReprocess: reprocessEligibility.eligible,
         showRedeliver: canRedeliver,
         excludePartnerId: latestDelivery?.partnerId,
         refundableDeliveryId: refundableDelivery?.id,

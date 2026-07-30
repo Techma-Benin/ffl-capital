@@ -6,7 +6,9 @@ import { getIntegrationsMode } from "@/lib/settings/app-settings";
 import {
   buildLeadDeliveryEmailHtml,
   buildLeadDeliveryPayload,
+  resolveLeadDeliveryTypeLabel,
 } from "./lead-payload";
+import { loadEnabledCategoryLabels } from "@/lib/lead-categories/category-labels";
 import { postPartnerCrmOutbound } from "./outbound-http";
 import { sendCrmOutboundFailureEmail } from "./crm-outbound-failure-email";
 import { endpointHostForDisplay } from "./outbound-url-display";
@@ -55,10 +57,15 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
 
   const partnerEmail = await getPartnerEmail(partner);
   const partnerWithClerkEmail = { ...partner, email: partnerEmail };
+  const categories = await loadEnabledCategoryLabels();
 
-  const payload = buildLeadDeliveryPayload(delivery, lead, partnerWithClerkEmail);
-  const leadTypeLabel =
-    lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
+  const payload = buildLeadDeliveryPayload(
+    delivery,
+    lead,
+    partnerWithClerkEmail,
+    categories,
+  );
+  const leadTypeLabel = resolveLeadDeliveryTypeLabel(lead, categories);
 
   const crmConfig = partner.crmOutboundConfig;
   const crmEnabled = Boolean(crmConfig?.enabled);
@@ -117,7 +124,12 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
           from: fromEmail,
           to: toEmail,
           subject,
-          html: buildLeadDeliveryEmailHtml(delivery, lead, partner),
+          html: buildLeadDeliveryEmailHtml(
+            delivery,
+            lead,
+            partner,
+            categories,
+          ),
         });
 
         if (result.error) {

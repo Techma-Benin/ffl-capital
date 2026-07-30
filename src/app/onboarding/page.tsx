@@ -6,6 +6,7 @@ import { getRoleFromMetadata } from "@/lib/auth/roles";
 import { Lightning } from "@/lib/icons/ssr";
 import { AuthContinueRedirect } from "@/app/auth/continue/redirect";
 import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
+import { loadEnabledCategoryLabels } from "@/lib/lead-categories/category-labels";
 import { OnboardingWizardLoader } from "./onboarding-wizard-loader";
 
 export default async function OnboardingPage() {
@@ -13,9 +14,10 @@ export default async function OnboardingPage() {
   const role = getRoleFromMetadata(user?.publicMetadata as Record<string, unknown>);
   if (role === "admin") redirect("/admin");
 
-  const [partner, criteriaOptions] = await Promise.all([
+  const [partner, criteriaOptions, categories] = await Promise.all([
     getCurrentPartner(),
     getLeadFilterCriteriaOptions(),
+    loadEnabledCategoryLabels(),
   ]);
   // Use client-side redirect to avoid throwing NEXT_REDIRECT in the RSC layer,
   // which triggers the dev-mode error overlay (non-issue in production but
@@ -49,6 +51,7 @@ export default async function OnboardingPage() {
         <OnboardingWizardLoader
           initialProfile={initialProfile}
           criteriaOptions={criteriaOptions}
+          categories={categories}
         />
       </div>
     </div>

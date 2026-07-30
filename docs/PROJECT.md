@@ -43,6 +43,7 @@
 | **Vue leads (lead list view)** | Configuration **persistée** de liste : filtres d’affichage, tri, colonnes visibles ; scope **admin** (global) ou **partner** (par compte). URL portail : `?view=<uuid>`. Distinct d’un filter set |
 | **Lead category** | Règle admin (label + critères exacts sur le payload webhook) → clé interne `type` (snake_case, générée à la création) ; détermine `lead.leadType` à l’intake |
 | **Category resolution** | Résultat intake : `matched` (1 catégorie), `no_match` (0), `multiple_matches` (2+) — zéro/plusieurs → `status=review`, pas de matching ni Integrity |
+| **Unclassified / Multiple match** | Libellés UI pour anomalies (`no_match` / `multiple_matches`) — affichés partout via `lead_categories.label`, pas de constantes IUL hardcodées |
 
 ---
 
@@ -319,7 +320,7 @@ lead_categories                   -- classification produit (admin)
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtres résolution catégorie), partners, refunds, **aged browse** (tri URL + pagination), settings (**lead categories** multi-critères), migration, filter list (+ templates) | ✅ |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtres résolution catégorie, **assignation manuelle review**, diagnostics payload), partners, refunds, **aged browse** (tri URL + pagination), settings (**lead categories** multi-critères), migration (classification via table catégories), filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées), wallet, aged, settings, contact, refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
@@ -355,7 +356,7 @@ lead_categories                   -- classification produit (admin)
 ### UI fonctionnelle (**terminé — polish partiel**)
 
 - [x] Dashboard admin (Operations) : filtre période en en-tête (`?period=` today \| yesterday \| last_7_days \| custom + `from`/`to` ; défaut last 7 days, redirect canonique `/admin` → `?period=last_7_days` ; `period=custom` sans dates → même défaut) ; **Custom** → modal calendrier ancré en-tête + Apply (URL custom seulement après validation) ; libellé période dans titres KPI/graphiques ; KPIs leads/livraisons, graphiques intake + canal, leads récents filtrés ; compteurs agents actifs / unmatched (instantanés, hors période)
-- [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, colonnes visibles + ordre persistés sur la vue active (`lead_list_views.columns`, PATCH lead-views), toggle cartes/tableau seul en `localStorage` (`admin-leads-table-layout` ; partner : `partner-leads-table-layout`), détail lead **B3** (hero compact, onglets Contact/IUL/Compliance/Tracking/Events, livraisons partenaires + timeline) ; `?view=` (redirection legacy `?status=`)
+- [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, colonnes visibles + ordre persistés sur la vue active (`lead_list_views.columns`, PATCH lead-views), toggle cartes/tableau seul en `localStorage` (`admin-leads-table-layout` ; partner : `partner-leads-table-layout`), détail lead **B3** (hero compact, onglets Contact/IUL/Compliance/Tracking/Events, livraisons partenaires + timeline ; **diagnostics payload** + panneau assignation catégorie pour leads `review`) ; `?view=` (redirection legacy `?status=`)
 - [x] Partner leads : vues par partner (défaut « All deliveries »), mêmes primitives UI que l’admin côté liste (colonnes sur la vue, layout en localStorage)
 - [x] Admin partners : liste, approbation, détail **P5** (profil + conformité CRM : colonne résumé, stats, checklist, filter sets en lignes, activité unifiée ; édition compte (modal « Edit account » depuis l’en-tête ou Account & CRM ; avatar 96px sur la carte profil — photo Clerk si `Partner.clerkUserId` renseigné, sinon initiales du nom ; partenaires seed type « Dashboard Demo » sans compte Clerk lié)), filter sets (création/édition pages `/admin/partners/[id]/filter-sets/new` et `…/[filterSetId]/edit` ; retour filter list via `?returnTo=/admin/filter-list`) ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; toggle cartes/tableau + colonnes masquables (`localStorage` `admin-partners-table-layout`, `admin-partners-visible-columns`)
 - [x] Admin Filter List (`/admin/filter-list`) : sets live + templates SSR ; templates via `/admin/filter-sets/templates/new` et `…/[id]/edit` ; éditeur partagé `FilterSetEditorPage` / `FilterSetForm` (admin live, templates, partner) — plus de modal d’édition ; partner ne voit pas prix/priorité ; Attribution absente du formulaire filter set **et** de l’onboarding (clés stripées à la sauvegarde) ; Intent / Have IUL = multi-select partagé (`AdvancedFiltersFields`) — options = valeurs distinctes leads + **Empty** (`"empty"`), préfetchées SSR via `getLeadFilterCriteriaOptions()` (pas de fetch à l’ouverture du dropdown)

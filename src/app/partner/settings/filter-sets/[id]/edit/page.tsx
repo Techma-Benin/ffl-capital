@@ -28,13 +28,7 @@ export default async function PartnerFilterSetEditPage({
 
   if (!filterSet) notFound();
 
-  const categoryOptions =
-    categories.length > 0
-      ? categories
-      : [
-          { type: "traditional_iul", label: "Traditional IUL" },
-          { type: "high_intent_iul", label: "High Intent IUL" },
-        ];
+  const categoryOptions = categories.length > 0 ? categories : [];
 
   return (
     <FilterSetEditorPage

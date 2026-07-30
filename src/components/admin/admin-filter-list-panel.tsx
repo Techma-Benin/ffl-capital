@@ -6,6 +6,7 @@ import {
 } from "@/lib/matching/eligibility";
 import { FilterSetTemplateManager } from "@/components/admin/filter-set-template-manager";
 import { FilterListTable } from "@/components/admin/filter-list-table";
+import { loadEnabledCategoryLabels } from "@/lib/lead-categories/category-labels";
 import {
   listFilterSetTemplates,
   serializeTemplatePickerItem,
@@ -13,7 +14,7 @@ import {
 import type { FilterCriteria } from "@/lib/matching/types";
 
 export async function AdminFilterListPanel() {
-  const [defaultPrice, filterSets, sourceRows, templateRows] = await Promise.all([
+  const [defaultPrice, filterSets, sourceRows, templateRows, categories] = await Promise.all([
     getDefaultRealtimePrice(),
     prisma.partnerFilterSet.findMany({
       where: { isTemplate: false },
@@ -37,7 +38,12 @@ export async function AdminFilterListPanel() {
       orderBy: { createdAt: "asc" },
     }),
     listFilterSetTemplates(),
+    loadEnabledCategoryLabels(),
   ]);
+
+  const categoryLabelByType = Object.fromEntries(
+    categories.map((category) => [category.type, category.label]),
+  );
 
   const sources = Array.from(
     new Set(sourceRows.map((r) => r.value).filter(Boolean)),
@@ -76,8 +82,15 @@ export async function AdminFilterListPanel() {
 
   return (
     <div className="space-y-8">
-      <FilterSetTemplateManager initialTemplates={templates} />
-      <FilterListTable initialRows={rows} sources={sources} />
+      <FilterSetTemplateManager
+        initialTemplates={templates}
+        categoryLabelByType={categoryLabelByType}
+      />
+      <FilterListTable
+        initialRows={rows}
+        sources={sources}
+        categoryLabelByType={categoryLabelByType}
+      />
     </div>
   );
 }
