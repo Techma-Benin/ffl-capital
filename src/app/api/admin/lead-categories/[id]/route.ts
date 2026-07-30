@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
+import { categoryUpdateSchema } from "@/lib/lead-categories/flexible-lead-categories";
 
-const patchSchema = z.object({
-  // `type` is intentionally excluded — immutable after creation
-  src: z.string().nullable().optional(),
-  label: z.string().min(1).optional(),
-  defaultPrice: z.number().positive().nullable().optional(),
-  enabled: z.boolean().optional(),
-  integrityLabel: z.string().nullable().optional(),
-});
+const categoryInclude = {
+  criteria: {
+    select: { id: true, field: true, value: true },
+    orderBy: { createdAt: "asc" as const },
+  },
+};
 
 /** PATCH /api/admin/lead-categories/[id] — update mutable fields (type is read-only) */
 export async function PATCH(
@@ -21,12 +19,14 @@ export async function PATCH(
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: 403 });
 
   const { id } = await params;
-  const existing = await prisma.leadCategory.findUnique({ where: { id } });
+  const existing = await prisma.leadCategory.findUnique({
+    where: { id },
+    include: categoryInclude,
+  });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await request.json();
 
-  // Reject attempts to change the immutable `type`
   if ("type" in body) {
     return NextResponse.json(
       { error: "The `type` field cannot be changed after creation" },
@@ -34,20 +34,37 @@ export async function PATCH(
     );
   }
 
-  const parsed = patchSchema.safeParse(body);
+  const parsed = categoryUpdateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
   }
 
-  const category = await prisma.leadCategory.update({
-    where: { id },
-    data: {
-      ...(parsed.data.src !== undefined ? { src: parsed.data.src } : {}),
-      ...(parsed.data.label !== undefined ? { label: parsed.data.label } : {}),
-      ...(parsed.data.defaultPrice !== undefined ? { defaultPrice: parsed.data.defaultPrice } : {}),
-      ...(parsed.data.enabled !== undefined ? { enabled: parsed.data.enabled } : {}),
-      ...(parsed.data.integrityLabel !== undefined ? { integrityLabel: parsed.data.integrityLabel } : {}),
-    },
+  const category = await prisma.$transaction(async (tx) => {
+    if (parsed.data.criteria) {
+      await tx.leadCategoryCriterion.deleteMany({ where: { categoryId: id } });
+      await tx.leadCategoryCriterion.createMany({
+        data: parsed.data.criteria.map((criterion) => ({
+          categoryId: id,
+          field: criterion.field,
+          value: criterion.value,
+        })),
+      });
+    }
+
+    return tx.leadCategory.update({
+      where: { id },
+      data: {
+        ...(parsed.data.label !== undefined ? { label: parsed.data.label } : {}),
+        ...(parsed.data.defaultPrice !== undefined
+          ? { defaultPrice: parsed.data.defaultPrice }
+          : {}),
+        ...(parsed.data.enabled !== undefined ? { enabled: parsed.data.enabled } : {}),
+        ...(parsed.data.integrityLabel !== undefined
+          ? { integrityLabel: parsed.data.integrityLabel }
+          : {}),
+      },
+      include: categoryInclude,
+    });
   });
 
   return NextResponse.json({ category });
@@ -65,7 +82,6 @@ export async function DELETE(
   const existing = await prisma.leadCategory.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Block deletion if any leads reference this type
   const leadCount = await prisma.lead.count({ where: { leadType: existing.type } });
   if (leadCount > 0) {
     return NextResponse.json(

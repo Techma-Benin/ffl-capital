@@ -1,7 +1,13 @@
-import { LeadEventType, LeadStatus, Prisma } from "@prisma/client";
+import {
+  LeadCategoryResolution,
+  LeadEventType,
+  LeadStatus,
+  Prisma,
+} from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { normalizeLead } from "@/lib/intake/normalize-lead";
+import { resolveLeadCategory } from "@/lib/intake/resolve-category";
 import type { IntakePayload } from "@/lib/intake/validate-intake";
 import { matchLead } from "@/lib/matching/engine";
 import {
@@ -34,13 +40,7 @@ export class IntakeRejectedError extends Error {
 export async function processLeadIntake(
   payload: IntakePayload,
 ): Promise<IntakeResult> {
-  // Load enabled categories from DB to drive SRC → leadType resolution
-  const categories = await prisma.leadCategory.findMany({
-    where: { enabled: true },
-    select: { type: true, src: true },
-  });
-
-  const normalized = normalizeLead(payload, categories);
+  const normalized = normalizeLead(payload);
 
   // Idempotency: safe retry on same externalId
   if (normalized.externalId) {
@@ -74,9 +74,36 @@ export async function processLeadIntake(
     );
   }
 
+  const categories = await prisma.leadCategory.findMany({
+    where: { enabled: true },
+    select: {
+      type: true,
+      label: true,
+      enabled: true,
+      criteria: {
+        select: { field: true, value: true },
+      },
+    },
+  });
+
+  const categoryResult = resolveLeadCategory(
+    normalized.rawPayload,
+    categories,
+  );
+
+  const categoryResolution =
+    categoryResult.outcome === "one"
+      ? LeadCategoryResolution.matched
+      : categoryResult.outcome === "zero"
+        ? LeadCategoryResolution.no_match
+        : LeadCategoryResolution.multiple_matches;
+
   let trustedformValid: boolean | null = null;
   let trustedformCheckedAt: Date | null = null;
-  let leadStatus: LeadStatus = LeadStatus.unmatched;
+  let leadStatus: LeadStatus =
+    categoryResult.status === "review"
+      ? LeadStatus.review
+      : LeadStatus.unmatched;
 
   if (normalized.trustedformCertUrl) {
     const tfEnabled = await isTrustedformValidationEnabled();
@@ -102,7 +129,9 @@ export async function processLeadIntake(
       zip: normalized.zip,
       dob: normalized.dob,
       age: normalized.age,
-      leadType: normalized.leadType,
+      leadType: categoryResult.categoryType,
+      categoryResolution,
+      categoryCandidateTypes: categoryResult.matchedTypes,
       intent: normalized.intent,
       haveIul: normalized.haveIul,
       primaryGoal: normalized.primaryGoal,
@@ -126,17 +155,32 @@ export async function processLeadIntake(
       externalId: normalized.externalId,
       rawPayload: normalized.rawPayload as Prisma.InputJsonValue,
       status: leadStatus,
-      available: leadStatus !== LeadStatus.review,
+      available:
+        categoryResult.available && leadStatus !== LeadStatus.review,
       refundable: true,
     },
   });
 
   await emitLeadEvent(lead.id, LeadEventType.received, {
     source: normalized.source,
-    leadType: normalized.leadType,
+    leadType: categoryResult.categoryType,
+    categoryResolution,
+    categoryCandidateTypes: categoryResult.matchedTypes,
     state: normalized.state,
     externalId: normalized.externalId,
   });
+
+  if (!categoryResult.proceedToPartnerMatching) {
+    const reason =
+      categoryResult.outcome === "zero"
+        ? "Lead flagged for review (no category match)"
+        : "Lead flagged for review (multiple category matches)";
+    return {
+      leadId: lead.id,
+      matched: false,
+      reason,
+    };
+  }
 
   if (leadStatus === LeadStatus.review) {
     await emitLeadEvent(lead.id, LeadEventType.trustedform_failed, {

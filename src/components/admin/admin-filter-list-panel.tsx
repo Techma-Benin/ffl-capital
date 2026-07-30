@@ -31,16 +31,16 @@ export async function AdminFilterListPanel() {
       },
       orderBy: [{ priority: "desc" }, { partner: { createdAt: "asc" } }],
     }),
-    prisma.leadCategory.findMany({
-      where: { src: { not: null } },
-      select: { src: true },
+    prisma.leadCategoryCriterion.findMany({
+      where: { field: "SRC" },
+      select: { value: true },
       orderBy: { createdAt: "asc" },
     }),
     listFilterSetTemplates(),
   ]);
 
   const sources = Array.from(
-    new Set(sourceRows.map((r) => r.src!).filter(Boolean)),
+    new Set(sourceRows.map((r) => r.value).filter(Boolean)),
   );
 
   const usageById = await getFilterSetUsageBatch(filterSets.map((fs) => fs.id));

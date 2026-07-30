@@ -1,4 +1,10 @@
-import { LeadEventType, LeadStatus, ResaleMode, ResaleStatus } from "@prisma/client";
+import {
+  LeadCategoryResolution,
+  LeadEventType,
+  LeadStatus,
+  ResaleMode,
+  ResaleStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import {
@@ -193,7 +199,12 @@ export async function integrityPostLead(
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return { posted: false, reason: "Lead not found" };
-  if (lead.status !== LeadStatus.unmatched || !lead.available) {
+  if (
+    lead.status !== LeadStatus.unmatched ||
+    !lead.available ||
+    lead.categoryResolution !== LeadCategoryResolution.matched ||
+    !lead.leadType
+  ) {
     return { posted: false, reason: "Lead not eligible for Integrity post" };
   }
 

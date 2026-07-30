@@ -4,19 +4,22 @@ Context from July 13 call analysis and Active Prospect / Boberdoo exploration.
 
 ---
 
-## 1. High Intent vs Traditional IUL Categorization
+## 1. Lead categorization at intake
 
-**Status: Already handled — no action needed.**
+**Status: implemented (July 2026) — flexible admin rules.**
 
-The lead normalizer (`src/lib/intake/normalize-lead.ts`) resolves lead type using two signals:
+`normalize-lead.ts` no longer assigns `leadType`. At intake, `process-intake.ts` calls `evaluateLeadCategories` (`src/lib/lead-categories/flexible-lead-categories.ts`) against the **raw webhook payload** and all **enabled** rows in `lead_categories` (with child `lead_category_criteria`).
 
-1. **Primary — `Intent` field:** if the value contains "high intent", the lead is classified as `high_intent_iul`
-2. **Fallback — `SRC` field:** if SRC contains "highintent" or "high_intent" (e.g. `IUL_LeadConduit_HighIntent`), it also resolves to `high_intent_iul`
-3. **Default:** if neither matches → `traditional_iul`
+- Each criterion is an exact, case-sensitive match on a top-level payload key (`field` + `value`).
+- All criteria on a category must match (AND).
+- Exactly one category → `lead.leadType` = that category’s `type`, `categoryResolution = matched`, normal matching proceeds.
+- Zero or multiple categories → `status = review`, `leadType = null`, partner matching and Integrity post are skipped.
 
-The client confirmed (call 13-7, minute 6:09) that high intent and regular IUL **share the same Active Prospect flow** (Facebook Boberdoo) and the **same Facebook page**. Differentiation happens via a Facebook **form type** field that Boberdoo uses to route into the correct filter set template. However, the client is **not currently running high intent leads** — the mechanism exists but is inactive.
+Default SRC-based rules were backfilled from the former `lead_categories.src` column (e.g. `IUL_LeadConduit` → `traditional_iul`). There is **no** implicit fallback from `Intent` or partial SRC strings.
 
-The client agreed (minute 13:00) to potentially create a **separate Facebook page** for high intent to make it cleaner. Either approach will work with our existing normalizer.
+Admin configures categories at `/admin/settings` → **Lead categories**.
+
+The client confirmed (call 13-7, minute 6:09) that high intent and regular IUL share the same Active Prospect flow; differentiation is via form/source fields. Either a separate Facebook page or distinct SRC values remain compatible — configure matching criteria in admin.
 
 ---
 
@@ -32,15 +35,15 @@ Each flow has its own Facebook page, spec URL, and API key. There is also a **Fa
 
 ---
 
-## 3. Mortgage Protection & Final Expense — Must Integrate
+## 3. Mortgage Protection & Final Expense
 
-The client (call 13-7, minute 3:03) mentioned Mortgage Protection and Final Expense are "not as important or as needed" — but then at minute 4:04 walked through the full technical details of how they are differentiated (own Facebook pages, own spec URLs, own API keys, own Boberdoo lead type numbers). This indicates the client expects these to be part of the platform.
+**Status: categories exist in `lead_categories` (`mortgage_protection`, `final_expense`) with SRC criteria; full flow cutover when client routes those Active Prospect JSON nodes to our endpoint.**
 
-**Action needed (not now, after IUL is solid):**
-- Add `mortgage_protection` and `final_expense` to the `LeadType` enum in Prisma schema
-- Update the normalization logic to recognize them (can use the `TYPE` numeric ID or a new dedicated field)
-- Create filter set templates for partners
-- Duplicate the two remaining Active Prospect flows with JSON nodes pointing to our endpoint
+The client (call 13-7) expects MP and FE on the platform eventually. Filter set templates and partner onboarding can reference these types like IUL.
+
+**Remaining when MP/FE go live:**
+- Duplicate Active Prospect JSON nodes for Freedom Financial and Independent Financial flows pointing to `/api/leads/intake`
+- Confirm SRC values match admin category criteria (or add criteria for new payload fields)
 
 ---
 
@@ -58,7 +61,7 @@ The Active Prospect XML payload to Boberdoo includes a `TYPE` field with numeric
 | 41 | Final Expense |
 | 9 | Inbound Phone |
 
-**Implementation status:** The field is already captured in our database as `boberdooLeadType` (column `boberdoo_lead_type` in the leads table). The intake validates it as `Lead_Type` and the normalizer stores it via `pickString(payload.Lead_Type, payload.leadTypeBoberdoo, payload.boberdooLeadType)`. Keep as-is — no changes needed.
+**Implementation status:** Captured as `boberdooLeadType` (`Lead_Type` in intake). Category assignment uses admin criteria (often `SRC`), not this numeric field directly.
 
 ---
 
@@ -92,11 +95,9 @@ The existing Boberdoo XML nodes in Active Prospect **cannot be duplicated** for 
 
 ---
 
-## 8. Proposed New Field: "Lead Type" (Broader)
+## 8. Broader product types
 
-The current `LeadType` enum only has `traditional_iul` and `high_intent_iul`. To support Mortgage Protection and Final Expense, we will need to expand it. Consider renaming or restructuring to accommodate a broader categorization (e.g. a "product type" concept separate from intent level).
-
-**Not to implement now** — document for future sprint when MP and FE flows go live.
+**Status: implemented via `lead_categories` table** — not a fixed Prisma enum. New product lines are admin-created categories with custom criteria and `integrity_label`. Internal `type` is snake_case generated from label at creation.
 
 ---
 
@@ -104,6 +105,7 @@ The current `LeadType` enum only has `traditional_iul` and `high_intent_iul`. To
 
 - `docs/update_call_13-7` — July 13 client call transcript (minutes 3:03–13:55)
 - `docs/BOBERDOO_EXPLORATION.md` — Sections 3, 4, 24, 25
-- `src/lib/intake/normalize-lead.ts` — Lead type resolution logic
-- `prisma/schema.prisma` — `boberdooLeadType` field (line ~190)
-- `docs/BOBERDOO_GAP_ANALYSIS.md` — Filter set templates, lead type selectors
+- `src/lib/lead-categories/flexible-lead-categories.ts` — Category evaluation and admin schemas
+- `src/lib/intake/process-intake.ts` — Intake orchestration
+- `docs/LEADCONDUIT_SETUP.md` — Payload mapping and default SRC criteria
+- `docs/BACKEND.md` — Admin APIs and schema

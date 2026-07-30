@@ -1,4 +1,4 @@
-import { LeadStatus, Prisma } from "@prisma/client";
+import { LeadCategoryResolution, LeadStatus, Prisma } from "@prisma/client";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { resolveAdminReceivedAtRange } from "@/lib/admin/admin-date-period";
 import {
@@ -51,6 +51,17 @@ export async function buildAdminLeadsWhere(
   }
 
   if (f.states?.length) where.state = { in: f.states };
+
+  if (f.categoryResolution) {
+    where.categoryResolution =
+      f.categoryResolution === "no_match"
+        ? LeadCategoryResolution.no_match
+        : LeadCategoryResolution.multiple_matches;
+  }
+  if (f.categoryCandidateTypes?.length) {
+    where.categoryCandidateTypes = { hasSome: f.categoryCandidateTypes };
+  }
+
   const receivedRange = resolveAdminReceivedAtRange(f);
   if (receivedRange) {
     where.receivedAt = {};

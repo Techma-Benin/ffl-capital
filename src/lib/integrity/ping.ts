@@ -1,4 +1,5 @@
-import { ResaleMode } from "@prisma/client";
+import { LeadCategoryResolution, ResaleMode } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import {
   getIntegrationsMode,
   getIntegrityStorefrontVendor,
@@ -24,6 +25,20 @@ export async function integrityPing(
 ): Promise<IntegrityPingResult> {
   if (mode && mode !== ResaleMode.storefront) {
     return { accepted: true };
+  }
+
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead) {
+    return { accepted: false, message: "Lead not found" };
+  }
+  if (
+    lead.categoryResolution !== LeadCategoryResolution.matched ||
+    !lead.leadType
+  ) {
+    return {
+      accepted: false,
+      message: "Lead has no resolved category",
+    };
   }
 
   const vendor = await getIntegrityStorefrontVendor();
@@ -64,12 +79,6 @@ export async function integrityPing(
       accepted: false,
       message: "INTEGRITY_STOREFRONT_SUBMIT_URL not configured",
     };
-  }
-
-  const { prisma } = await import("@/lib/db");
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
-  if (!lead) {
-    return { accepted: false, message: "Lead not found" };
   }
 
   const category = await prisma.leadCategory.findUnique({

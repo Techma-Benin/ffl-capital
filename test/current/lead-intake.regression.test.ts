@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 
 import { normalizeLead } from "../../src/lib/intake/normalize-lead";
 import { intakePayloadSchema } from "../../src/lib/intake/validate-intake";
+import { evaluateLeadCategories } from "../../src/lib/lead-categories/flexible-lead-categories";
 
 const requiredBoberdooPayload = {
   First_Name: "Ada",
@@ -89,46 +90,66 @@ describe("current lead normalization and category mapping", () => {
     assert.deepEqual(normalizeLead(payload).rawPayload, payload);
   });
 
-  test("maps an exact SRC value to the configured internal type", () => {
-    const normalized = normalizeLead(
-      intakePayloadSchema.parse({
-        ...requiredBoberdooPayload,
-        SRC: "AP-Mortgage-Exclusive",
-      }),
-      [{ type: "mortgage_protection", src: "AP-Mortgage-Exclusive" }],
+  test("resolves an exact SRC criterion to the configured internal type", () => {
+    const payload = intakePayloadSchema.parse({
+      ...requiredBoberdooPayload,
+      SRC: "AP-Mortgage-Exclusive",
+    });
+    const result = evaluateLeadCategories(
+      payload as Record<string, unknown>,
+      [
+        {
+          type: "mortgage_protection",
+          label: "Mortgage Protection",
+          enabled: true,
+          criteria: [{ field: "SRC", value: "AP-Mortgage-Exclusive" }],
+        },
+      ],
     );
 
-    assert.equal(normalized.leadType, "mortgage_protection");
+    assert.equal(result.outcome, "one");
+    assert.equal(result.categoryType, "mortgage_protection");
   });
 
-  test("keeps current exact SRC matching case-sensitive", () => {
-    const normalized = normalizeLead(
-      intakePayloadSchema.parse({
-        ...requiredBoberdooPayload,
-        SRC: "campaign-a",
-        Intent: "Traditional",
-      }),
-      [{ type: "configured_category", src: "Campaign-A" }],
+  test("keeps exact SRC matching case-sensitive", () => {
+    const payload = intakePayloadSchema.parse({
+      ...requiredBoberdooPayload,
+      SRC: "campaign-a",
+      Intent: "Traditional",
+    });
+    const result = evaluateLeadCategories(
+      payload as Record<string, unknown>,
+      [
+        {
+          type: "configured_category",
+          label: "Configured Category",
+          enabled: true,
+          criteria: [{ field: "SRC", value: "Campaign-A" }],
+        },
+      ],
     );
 
-    assert.equal(normalized.leadType, "traditional_iul");
+    assert.equal(result.outcome, "zero");
+    assert.equal(result.categoryType, null);
   });
 
-  test("retains current intent and source fallbacks when SRC is not configured", () => {
-    const highIntent = normalizeLead(
+  test("does not apply intent or source fallbacks when no category matches", () => {
+    const highIntent = evaluateLeadCategories(
       intakePayloadSchema.parse({
         ...requiredBoberdooPayload,
         Intent: "High Intent",
-      }),
+      }) as Record<string, unknown>,
+      [],
     );
-    const finalExpense = normalizeLead(
+    const finalExpense = evaluateLeadCategories(
       intakePayloadSchema.parse({
         ...requiredBoberdooPayload,
         SRC: "vendor_finalexpense_campaign",
-      }),
+      }) as Record<string, unknown>,
+      [],
     );
 
-    assert.equal(highIntent.leadType, "high_intent_iul");
-    assert.equal(finalExpense.leadType, "final_expense");
+    assert.equal(highIntent.outcome, "zero");
+    assert.equal(finalExpense.outcome, "zero");
   });
 });

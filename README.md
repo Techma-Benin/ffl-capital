@@ -66,6 +66,11 @@ pnpm run test:matching
 # Tests CRM outbound (SSRF, mapping, success rules — sans DB)
 pnpm run test:outbound
 
+# Tests logique catégories lead + intake (sans DB)
+pnpm test:backend:current
+pnpm test:backend:planned
+pnpm test:backend
+
 # Checklist backend E2E (dev server must be running; Replit Run → port 5000)
 API_BASE_URL=http://127.0.0.1:5000 pnpm run verify   # Replit
 pnpm run verify                                      # local default http://127.0.0.1:3000
@@ -94,7 +99,7 @@ pnpm run make-super-admin -- --email admin@example.com
 | POST | `/api/cron/reprocess-unmatched` | Retraitement leads (Bearer CRON_SECRET) |
 | POST | `/api/cron/integrity-post` | Post Integrity unmatched (Bearer CRON_SECRET) |
 
-Admin APIs : leads search/export/reprocess, **lead-views** CRUD, partners, filter sets, refunds — voir [BACKEND.md](docs/BACKEND.md).
+Admin APIs : leads search/export/reprocess, **lead-categories** CRUD, **lead-views** CRUD, partners, filter sets, refunds — voir [BACKEND.md](docs/BACKEND.md).
 
 ## Dev tools
 
@@ -109,7 +114,7 @@ Pour recevoir de **vrais** leads LeadConduit en local : ngrok + [LEADCONDUIT_SET
 
 | Portail | Routes |
 |---------|--------|
-| Admin | `/admin` — dashboard, leads, partners, refunds, aged, integrity, settings, migration, filter list ; auth `/admin/sign-in`, invite-only `/admin/sign-up` |
+| Admin | `/admin` — dashboard, leads, partners, refunds, aged, integrity, settings (lead categories, integrations), migration, filter list ; auth `/admin/sign-in`, invite-only `/admin/sign-up` |
 | Partner | `/partner` — dashboard, leads, wallet, aged, settings, contact ; auth `/sign-in`, `/sign-up` |
 
 ## Structure

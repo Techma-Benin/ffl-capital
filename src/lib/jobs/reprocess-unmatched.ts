@@ -1,4 +1,8 @@
-import { LeadEventType, LeadStatus } from "@prisma/client";
+import {
+  LeadCategoryResolution,
+  LeadEventType,
+  LeadStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { matchLead } from "@/lib/matching/engine";
@@ -41,6 +45,8 @@ export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
     where: {
       status: LeadStatus.unmatched,
       available: true,
+      categoryResolution: LeadCategoryResolution.matched,
+      leadType: { not: null },
     },
     orderBy: { receivedAt: "asc" },
     take: 50,
@@ -88,7 +94,12 @@ export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
 export async function reprocessSingleLead(leadId: string) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) throw new Error("Lead not found");
-  if (!lead.available || lead.status !== LeadStatus.unmatched) {
+  if (
+    !lead.available ||
+    lead.status !== LeadStatus.unmatched ||
+    lead.categoryResolution !== LeadCategoryResolution.matched ||
+    !lead.leadType
+  ) {
     throw new Error("Lead is not available for reprocessing");
   }
 

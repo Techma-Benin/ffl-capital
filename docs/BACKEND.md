@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 29 juillet 2026
+> Dernière mise à jour : 30 juillet 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -65,6 +65,7 @@
 | Seuil aged configurable | ✅ `aged_days_threshold` |
 | `scripts/verify-cron.mjs` | ✅ |
 | `scripts/verify-backend.mjs` étendu | ✅ |
+| Catégories lead flexibles (`lead_category_criteria`, résolution intake) | ✅ migration `20260730170000` |
 
 ### Reporté / hors scope
 
@@ -92,8 +93,11 @@ Meta / LeadConduit / feeding-platform / simulateur dev
 POST /api/leads/intake
         │
         ├── validate-intake.ts (Zod)
-        ├── normalize-lead.ts (Boberdoo → modèle interne)
-        ├── process-intake.ts (persist + match)
+        ├── normalize-lead.ts (Boberdoo → modèle interne ; sans résolution leadType)
+        ├── process-intake.ts
+        │     ├── evaluateLeadCategories (payload brut vs catégories actives)
+        │     ├── persist (leadType nullable ; categoryResolution ; review si 0/N match)
+        │     └── matchLead si résolution OK + TrustedForm OK
         └── matching/engine.ts (priorité DESC, created_at ASC FIFO)
                 │
                 ├── deliverLead → Resend email + CRM webhook
@@ -109,7 +113,7 @@ POST /api/leads/intake
 
 ## Schéma base de données
 
-**Tables actuelles :** `partners`, `partner_filter_sets`, `lead_list_views`, `leads`, `lead_events`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
+**Tables actuelles :** `partners`, `partner_filter_sets`, `lead_list_views`, `lead_categories`, `lead_category_criteria`, `leads`, `lead_events`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
 
 **`partner_filter_sets` :** sets live (`partnerId` requis, `isTemplate=false`) et templates admin (`partnerId` null, `isTemplate=true`). Ancienne table `filter_set_templates` migrée puis droppée (`20260724200000_unify_filter_set_templates`). Colonne `description` retirée (`20260724210000_drop_partner_filter_set_description`).
 
@@ -121,6 +125,11 @@ POST /api/leads/intake
 - `20260721120000_lead_list_views` — vues liste leads (seed admin, défaut par partner), RLS
 - `20260724200000_unify_filter_set_templates` — templates → `partner_filter_sets.is_template` ; drop `filter_set_templates`
 - `20260724210000_drop_partner_filter_set_description` — drop `partner_filter_sets.description`
+- `20260730170000_flexible_lead_categories` — `lead_category_criteria` ; drop `lead_categories.src` ; `leads.category_resolution`, `category_candidate_types` ; `lead_type` nullable
+
+**`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label`, `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`.
+
+**`leads` (catégorisation) :** `lead_type` (string, nullable) ; `category_resolution` (`matched` \| `no_match` \| `multiple_matches`) ; `category_candidate_types` (text[], types des catégories qui ont matché). Zéro ou plusieurs matchs → `status=review`, `available=false`, pas de matching partenaire ni post Integrity.
 
 ---
 
@@ -151,7 +160,7 @@ Auth : session **admin** ou **partner** (routes miroir sous `/api/admin/lead-vie
 
 **Corps PATCH** — sous-ensemble optionnel de `name`, `filters`, `sort`, `columns`, `isDefault`. Le sélecteur de colonnes (admin + partner) persiste `{ "columns": [...] }` sur la vue active via `PATCH .../lead-views/[id]` (debounce côté client, flush à la fermeture du panneau). Le layout cartes/tableau reste en `localStorage` (`admin-leads-table-layout` / `partner-leads-table-layout`), pas les colonnes.
 
-**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `states` (tableau de codes US 2 lettres ; vide ou absent = tous les états ; l’ancien champ `state` unique est migré à la lecture), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `custom`), et si `datePeriod` = `custom` optionnel `from` / `to` (dates ISO `YYYY-MM-DD`, bornes `receivedAt` en jours calendaires locaux), optionnel `q`. Les vues sans `datePeriod` mais avec `from`/`to` sont traitées comme `custom`.
+**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `categoryResolution` (`no_match` \| `multiple_matches` — anomalies intake), optionnel `categoryCandidateTypes` (tableau de `type` internes), optionnel `states` (tableau de codes US 2 lettres ; vide ou absent = tous les états ; l’ancien champ `state` unique est migré à la lecture), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `custom`), et si `datePeriod` = `custom` optionnel `from` / `to` (dates ISO `YYYY-MM-DD`, bornes `receivedAt` en jours calendaires locaux), optionnel `q`. Les vues sans `datePeriod` mais avec `from`/`to` sont traitées comme `custom`.
 
 **Filtres partner** (`filters`) : optionnel `filterSetId`, `locations[]`, `channels[]` (`realtime` \| `aged`), `types[]`, `statuses[]` (`active` \| `refund_pending` \| `refunded`).
 
@@ -247,11 +256,12 @@ Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `
 | `Primary_Phone` | `phone` |
 | `Address`, `City`, `Zip`, `DOB`, `Age` | colonnes homonymes |
 | `State` ou `State_You_Currently_Live_In` | `state` (uppercase) |
-| `Intent` = "High Intent" | `high_intent_iul` |
+| `Intent` | `intent` (stocké ; ne détermine plus `leadType`) |
 | `Have_IUL`, `Primary_Goal` | `have_iul`, `primary_goal` |
 | `Trusted_Form_URL` | `trustedform_cert_url` |
 | `TCPA_Consent`, `TCPA_Language`, `LeadiD_Token` | colonnes homonymes |
-| `SRC`, `Landing_Page`, `Sub_ID`, `Pub_ID` | tracking |
+| `SRC` | `source` ; critère fréquent pour catégories (`field=SRC`, match exact) |
+| `Landing_Page`, `Sub_ID`, `Pub_ID` | tracking |
 | `Unique_Identifier` | `external_id` |
 | `Lead_Type` | `boberdoo_lead_type` |
 | `IP_Address`, `User_Agent` | colonnes homonymes |
@@ -261,16 +271,35 @@ Réponse LeadConduit : `{ "outcome": "success", "reason": "" }` (chaîne vide en
 
 **Note TrustedForm :** le certificat arrive dans le payload webhook (Meta → LeadConduit → plateforme). Pas besoin d'accès admin TrustedForm pour l'intake — il suffit de rediriger le webhook vers `/api/leads/intake` quand on coupe Boberdoo.
 
+**Résolution catégorie (intake) :** `evaluateLeadCategories` (`src/lib/lead-categories/flexible-lead-categories.ts`) compare le **payload brut** aux catégories `enabled`. Tous les critères d'une catégorie doivent matcher (AND) ; une seule catégorie gagnante → `leadType` = son `type` ; zéro ou plusieurs → `status=review`, matching et Integrity ignorés. Pas de fallback `Intent` / `SRC` implicite hors critères configurés. Détail LeadConduit : [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
+
+---
+
+## Catégories lead (admin)
+
+UI : `/admin/settings` → onglet **Lead categories** (`LeadCategoryManager`). Module : `src/lib/lead-categories/flexible-lead-categories.ts`.
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/api/admin/lead-categories` | Liste (avec `criteria`) |
+| POST | `/api/admin/lead-categories` | Création — `type` **interdit** (généré snake_case depuis `label`) |
+| PATCH | `/api/admin/lead-categories/[id]` | `label`, `criteria`, `defaultPrice`, `enabled`, `integrityLabel` |
+| DELETE | `/api/admin/lead-categories/[id]` | Refusé si des leads référencent le `type` |
+
+Schémas Zod : `categoryCreateSchema`, `categoryUpdateSchema`. Critères : au moins un par catégorie ; `field` unique par catégorie. `integrityLabel` alimente `lead_type_thom` à la revente Integrity.
+
 ---
 
 ## Moteur de matching V1 (actuel)
 
 Critères d'éligibilité partner :
-1. `status = active`
-2. `filter_states` contient l'état du lead
-3. `lead_type` compatible
-4. **≥ 15 états** dans `filter_states`
-5. `wallet_balance >= prix_effectif` (`price_override` ou `default_realtime_price`)
+1. Lead `category_resolution = matched` et `lead_type` renseigné
+2. `status = unmatched` et `available = true`
+3. Partner `status = active`
+4. `filter_states` contient l'état du lead
+5. `lead_type` compatible (filter set)
+6. **≥ 15 états** dans `filter_states`
+7. `wallet_balance >= prix_effectif` (`price_override` ou `default_realtime_price`)
 
 Tri : `priority DESC`, puis `created_at ASC` (FIFO).
 
@@ -460,3 +489,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-24 | Templates filter set unifiés dans `partner_filter_sets` (`isTemplate`) ; matching exclut les templates ; APIs `/filter-set-templates` inchangées |
 | 2026-07-24 | Intent / Have IUL : multi-select + `"empty"` ; Attribution retirée de l’onboarding (aligné filter sets) ; options critères préfetch SSR |
 | 2026-07-29 | Clerk Replit : handler local `tickets/accept` (fix page blanche invitations) ; admin invite → `/admin/sign-up` ; proxy FAPI skip sur ce chemin |
+| 2026-07-30 | Catégories lead flexibles : critères multi-champs, résolution intake (`category_resolution`), filtres vues admin, UI settings |

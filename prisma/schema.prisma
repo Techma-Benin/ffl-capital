@@ -26,6 +26,12 @@ enum LeadStatus {
   review
 }
 
+enum LeadCategoryResolution {
+  matched
+  no_match
+  multiple_matches
+}
+
 enum LeadEventType {
   received
   matched
@@ -107,12 +113,10 @@ enum LeadListViewScope {
 
 /// Single source of truth for all lead classification.
 /// `type` is the immutable internal key (set at creation, never editable).
-/// `src` is the LeadConduit SRC field value that maps to this category.
 /// `integrityLabel` is the exact string Integrity Connect requires for lead_type_thom.
 model LeadCategory {
   id              String   @id @default(uuid()) @db.Uuid
   type            String   @unique
-  src             String?
   label           String
   defaultPrice    Decimal? @map("default_price") @db.Decimal(10, 2)
   enabled         Boolean  @default(true)
@@ -120,7 +124,24 @@ model LeadCategory {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
+  criteria LeadCategoryCriterion[]
+
   @@map("lead_categories")
+}
+
+model LeadCategoryCriterion {
+  id         String   @id @default(uuid()) @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  field      String
+  value      String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  category LeadCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, field])
+  @@index([categoryId])
+  @@map("lead_category_criteria")
 }
 
 model AdminProfile {
@@ -240,7 +261,9 @@ model Lead {
   zip                     String?
   dob                     String?
   age                     String?
-  leadType                String     @map("lead_type")
+  leadType                String?    @map("lead_type")
+  categoryResolution      LeadCategoryResolution @default(matched) @map("category_resolution")
+  categoryCandidateTypes  String[]   @default([]) @map("category_candidate_types")
   intent                  String?
   haveIul                 String?    @map("have_iul")
   primaryGoal             String?    @map("primary_goal")

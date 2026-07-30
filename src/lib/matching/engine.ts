@@ -1,6 +1,7 @@
 import {
   DeliveryChannel,
   Lead,
+  LeadCategoryResolution,
   LeadEventType,
   LeadStatus,
   Partner,
@@ -31,7 +32,12 @@ export async function matchLead(
     throw new Error(`Lead not found: ${leadId}`);
   }
 
-  if (!lead.available || lead.status !== LeadStatus.unmatched) {
+  if (
+    !lead.available ||
+    lead.status !== LeadStatus.unmatched ||
+    lead.categoryResolution !== LeadCategoryResolution.matched ||
+    !lead.leadType
+  ) {
     return {
       matched: false,
       lead,
@@ -59,7 +65,12 @@ export async function matchLead(
       where: { id: leadId },
     });
 
-    if (!freshLead.available || freshLead.status !== LeadStatus.unmatched) {
+    if (
+      !freshLead.available ||
+      freshLead.status !== LeadStatus.unmatched ||
+      freshLead.categoryResolution !== LeadCategoryResolution.matched ||
+      !freshLead.leadType
+    ) {
       return null;
     }
 

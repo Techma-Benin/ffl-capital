@@ -298,6 +298,7 @@ Phase D — Migration Replit (livraison client)
 #### Configuration globale
 - Prix lead temps réel par type (défaut IUL = 25 $)
 - Prix aged lead (défaut 5 $)
+- **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label`, prix par défaut ; clé interne `type` générée (non éditable)
 - *(Futur)* frais de retraitement
 
 #### Migration historique
@@ -350,10 +351,11 @@ Phase D — Migration Replit (livraison client)
 **Déclencheur :** LeadConduit envoie POST à chaque soumission Meta.
 
 **Traitement :**
-1. Valider payload (champs minimum : contact, state, lead_type, trustedform_cert_url)
-2. Créer lead : `received_at=now()`, `available=true`, `refundable=true`, `status=unmatched`
-3. Répondre `{ "outcome": "success" }` (format LeadConduit)
-4. Déclencher matching engine asynchrone
+1. Valider payload (champs minimum : contact, state, trustedform_cert_url — `lead_type` n’est plus inféré à la normalisation)
+2. **Évaluer les catégories lead** actives : critères AND sur clés top-level du payload (match exact, case-sensitive) ; 1 match → `leadType` ; 0 ou 2+ → `status=review`, `categoryResolution` `no_match` / `multiple_matches`, pas de matching ni Integrity
+3. Créer lead : `received_at=now()`, `available` selon résolution catégorie, `refundable=true`, `status` unmatched ou review
+4. Répondre `{ "outcome": "success" }` (format LeadConduit)
+5. Déclencher matching engine (uniquement si catégorie résolue et TrustedForm OK)
 
 **Source champs :** déduire depuis Boberdoo / LeadConduit — ne pas demander à la cliente.
 
@@ -505,14 +507,17 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 ```
 LeadConduit POST webhook
-  → Créer lead (available=true)
-  → Matching engine
-       ├─ Agent éligible trouvé (priorité max)
-       │    → Débit wallet, delivery, email, CRM, available=false
-       └─ Aucun agent
-            → unmatched, file 24 h
-                 ├─ Match ultérieur → livraison
-                 └─ 24 h écoulées → IntegrityCONNECT
+  → Créer lead (available selon catégorie)
+  → Évaluer catégories lead (critères admin)
+       ├─ 0 ou 2+ matchs → review (pas de matching)
+       └─ 1 match → leadType défini
+            → Matching engine
+                 ├─ Agent éligible trouvé (priorité max)
+                 │    → Débit wallet, delivery, email, CRM, available=false
+                 └─ Aucun agent
+                      → unmatched, file 24 h
+                           ├─ Match ultérieur → livraison
+                           └─ 24 h écoulées → IntegrityCONNECT
   → [Parallèle temps] J+30 → éligible marketplace aged si available
 ```
 
@@ -685,6 +690,29 @@ migration_jobs                    │
 
 **CRM outbound (optionnel)** — table `partner_crm_outbound_configs` (1:1 avec agent/partner) : endpoint, auth, `field_mappings`, `success_rule`, `enabled`. Détail : [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md).
 
+### Table `lead_categories`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| type | string unique | Clé interne immuable (snake_case, générée à la création) |
+| label | string | Libellé admin |
+| default_price | decimal nullable | Prix temps réel suggéré |
+| enabled | boolean | Exclue de l’évaluation si false |
+| integrity_label | string nullable | Chaîne exacte `lead_type_thom` pour Integrity |
+| created_at, updated_at | timestamp | |
+
+### Table `lead_category_criteria`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | UUID PK | |
+| category_id | FK lead_categories | |
+| field | string | Nom de clé top-level du payload webhook |
+| value | string | Valeur exacte attendue (case-sensitive) |
+
+Contrainte : un seul critère par `field` par catégorie ; tous les critères d’une catégorie doivent matcher (AND).
+
 ### Table `leads`
 
 | Colonne | Type | Description |
@@ -693,13 +721,15 @@ migration_jobs                    │
 | first_name, last_name | string | |
 | email, phone | string | |
 | state | string | Code état US |
-| lead_type | enum | |
+| lead_type | string nullable | Type interne (`lead_categories.type`) après résolution intake |
+| category_resolution | enum | matched \| no_match \| multiple_matches |
+| category_candidate_types | string[] | Types des catégories ayant matché (vide ou plusieurs en anomalie) |
 | trustedform_cert_url | string nullable | |
 | source | string | ex. meta_leadconduit |
 | received_at | timestamp | **Référence aging** |
 | available | boolean | Défaut true |
 | refundable | boolean | Défaut true |
-| status | enum | unmatched \| delivered \| integrity_posted \| aged_listed |
+| status | enum | unmatched \| delivered \| integrity_posted \| aged_listed \| review \| dead |
 | external_id | string nullable | ID LeadConduit / Boberdoo migration |
 | raw_payload | jsonb nullable | Payload webhook brut (debug) |
 | created_at, updated_at | timestamp | |

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   US_REGION_STATES,
   US_STATE_CODES,
@@ -16,6 +17,8 @@ const STATE_OPTIONS = US_STATE_CODES.map((code) => ({
   label: code,
 }));
 
+type CategoryOption = { type: string; label: string };
+
 export function AdminLeadViewFilterFields({
   filters,
   onChange,
@@ -24,6 +27,31 @@ export function AdminLeadViewFilterFields({
   onChange: (patch: Partial<AdminLeadViewFilters>) => void;
 }) {
   const selectedStates = filters.states ?? [];
+  const selectedCandidates = filters.categoryCandidateTypes ?? [];
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/lead-categories");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setCategories(
+          (data.categories ?? []).map((category: CategoryOption) => ({
+            type: category.type,
+            label: category.label,
+          })),
+        );
+      } catch {
+        // Non-blocking: candidate filter is optional.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function setStates(states: string[]) {
     onChange({ states: states.length ? states : undefined });
@@ -35,6 +63,20 @@ export function AdminLeadViewFilterFields({
     else next.add(code);
     setStates(Array.from(next).sort());
   }
+
+  function toggleCandidate(type: string) {
+    const next = new Set(selectedCandidates);
+    if (next.has(type)) next.delete(type);
+    else next.add(type);
+    onChange({
+      categoryCandidateTypes: next.size ? Array.from(next).sort() : undefined,
+    });
+  }
+
+  const candidateOptions = categories.map((category) => ({
+    value: category.type,
+    label: category.label,
+  }));
 
   return (
     <>
@@ -59,6 +101,35 @@ export function AdminLeadViewFilterFields({
           <option value="aged_listed">Aged listed</option>
         </select>
       </div>
+      <div>
+        <label className="form-label text-[10px]">Category resolution</label>
+        <select
+          className="form-select w-full text-sm"
+          value={filters.categoryResolution ?? ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            onChange({
+              categoryResolution:
+                value === "no_match" || value === "multiple_matches"
+                  ? value
+                  : undefined,
+            });
+          }}
+        >
+          <option value="">Any</option>
+          <option value="no_match">No category match</option>
+          <option value="multiple_matches">Multiple category matches</option>
+        </select>
+      </div>
+      {candidateOptions.length > 0 && (
+        <FilterChipGroup
+          label="Candidate categories"
+          options={candidateOptions}
+          selected={selectedCandidates}
+          onToggle={toggleCandidate}
+          scrollable
+        />
+      )}
       <FilterChipGroup
         label="States"
         options={STATE_OPTIONS}

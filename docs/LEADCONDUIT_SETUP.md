@@ -83,8 +83,8 @@ HTTP status: `401`
 | `Email` | `email` | Required |
 | `Primary_Phone` | `phone` | Required |
 | `State` or `State_You_Currently_Live_In` | `state` | Required |
-| `Intent` | `intent` | `"High Intent"` → `high_intent_iul` |
-| `SRC` | `source` | e.g. `IUL_LeadConduit`, `MP_LeadConduit`, `FE_LeadConduit` |
+| `Intent` | `intent` | Stored on lead; does not set `leadType` |
+| `SRC` | `source` | Also used in category criteria (`field=SRC`, exact match) |
 | `DOB` | `dob` | **Required** — date of birth |
 | `Age` | `age` | |
 | `Trusted_Form_URL` (or `trustedform_cert_url`) | `trustedformCertUrl` | **Required** — TrustedForm certificate |
@@ -101,14 +101,28 @@ HTTP status: `401`
 | `Have_IUL` | `haveIul` | **Required** |
 | `Primary_Goal` | `primaryGoal` | **Required** |
 
-### Lead type detection via SRC field
+### Lead category rules (intake)
 
-| `SRC` value | `leadType` assigned |
-|-------------|---------------------|
-| `IUL_LeadConduit` | `traditional_iul` |
-| `IUL_LeadConduit_HighIntent` | `high_intent_iul` |
-| `MP_LeadConduit` | `mortgage_protection` |
-| `FE_LeadConduit` | `final_expense` |
+`leadType` is **not** inferred in `normalize-lead.ts`. At intake, `process-intake.ts` evaluates all **enabled** `lead_categories` against the **raw webhook payload** (top-level keys only; each criterion is an exact, case-sensitive string match; all criteria on a category must match).
+
+| Outcome | `categoryResolution` | `leadType` | `status` | Partner matching | Integrity post |
+|---------|---------------------|------------|----------|------------------|----------------|
+| Exactly 1 category | `matched` | category `type` | `unmatched` (or `review` if TrustedForm fails) | yes | yes |
+| 0 categories | `no_match` | `null` | `review` | skipped | skipped |
+| 2+ categories | `multiple_matches` | `null` | `review` | skipped | skipped |
+
+Default seeded criteria (migrated from former `lead_categories.src` column):
+
+| Category `type` | Criterion |
+|-----------------|-----------|
+| `traditional_iul` | `SRC` = `IUL_LeadConduit` |
+| `high_intent_iul` | `SRC` = `IUL_LeadConduit_HighIntent` |
+| `mortgage_protection` | `SRC` = `Mortgage_LeadConduit` |
+| `final_expense` | `SRC` = `Veteran_LeadConduit` |
+
+Admin UI: `/admin/settings` → **Lead categories** — multi-criteria editor; internal `type` is server-generated from label (not supplied on create).
+
+There is **no** implicit fallback from `Intent` or partial `SRC` matching; unmatched payloads require admin review or new category rules.
 
 ### Outbound field mapping (Internal → Integrity Connect / LeadConduit)
 

@@ -18,6 +18,11 @@ export const adminStatusSliceSchema = z.enum([
   "aged_listed",
 ]);
 
+export const adminCategoryResolutionSchema = z.enum([
+  "no_match",
+  "multiple_matches",
+]);
+
 export const adminDatePeriodSchema = z.enum([
   "today",
   "yesterday",
@@ -67,6 +72,8 @@ function normalizeAdminFiltersForSave(
 
 const adminLeadViewFiltersSchemaInner = z.object({
   statusSlice: adminStatusSliceSchema.default("all"),
+  categoryResolution: adminCategoryResolutionSchema.optional(),
+  categoryCandidateTypes: z.array(z.string().min(1)).optional(),
   states: z.array(z.string().length(2)).optional(),
   datePeriod: adminDatePeriodSchema.optional(),
   from: z.string().optional(),

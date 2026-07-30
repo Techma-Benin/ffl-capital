@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 29 juillet 2026 (v9 — Clerk invitations admin Replit)
+> Dernière mise à jour : 30 juillet 2026 (v10 — catégories lead flexibles)
 
 ---
 
@@ -41,6 +41,8 @@
 | **Filter set** | Profil de **matching** partner : états, type IUL, priorité, limites H/J, prix — plusieurs par partner (`partner_filter_sets`, `isTemplate=false`) ; pilote la distribution temps réel, pas l’affichage de la liste leads |
 | **Filter set template** | Même table `partner_filter_sets` avec `isTemplate=true` et `partnerId` null — modèles admin (Filter List / onboarding / picker) ; **exclus** du matching |
 | **Vue leads (lead list view)** | Configuration **persistée** de liste : filtres d’affichage, tri, colonnes visibles ; scope **admin** (global) ou **partner** (par compte). URL portail : `?view=<uuid>`. Distinct d’un filter set |
+| **Lead category** | Règle admin (label + critères exacts sur le payload webhook) → clé interne `type` (snake_case, générée à la création) ; détermine `lead.leadType` à l’intake |
+| **Category resolution** | Résultat intake : `matched` (1 catégorie), `no_match` (0), `multiple_matches` (2+) — zéro/plusieurs → `status=review`, pas de matching ni Integrity |
 
 ---
 
@@ -67,7 +69,8 @@ Meta Lead Ads
 
 - Persister le lead avec `received_at` (base du calcul des 30 jours)
 - Stocker l’URL/certificat TrustedForm
-- Lancer le moteur de matching automatiquement
+- **Évaluer les catégories lead** configurées (critères exacts sur le payload) → `leadType` ou file review si 0/N match
+- Lancer le moteur de matching automatiquement (uniquement si catégorie résolue)
 - Si non matché : file d’attente + retraitement 24 h → puis revente IntegrityCONNECT
 
 ### Référence Loom / call client
@@ -238,7 +241,9 @@ agents (users)
   └── partner_crm_outbound_configs (optionnel — Lead delivery / wizard crm-outbound, voir PARTNER_CRM_OUTBOUND.md)
 
 leads
-  ├── contact fields, state, lead_type, source
+  ├── contact fields, state, lead_type (nullable — string, catégorie résolue)
+  ├── category_resolution (matched | no_match | multiple_matches)
+  ├── category_candidate_types (types ayant matché)
   ├── trustedform_cert_url
   ├── received_at
   ├── available (boolean, default true)
@@ -257,6 +262,10 @@ transactions                      -- ledger wallet
 
 resale_postings                   -- envois IntegrityCONNECT
   ├── lead_id, mode (realtime|storefront), status, external_ref
+
+lead_categories                   -- classification produit (admin)
+  ├── type (immuable), label, integrity_label, enabled, default_price
+  └── criteria[] (field + value, match exact payload)
 ```
 
 **Matching V1 :** état US + type IUL + partner actif (wallet) + **≥ 15 états** + priorité. **Égalité de priorité → FIFO** (confirmé équipe).
@@ -303,14 +312,14 @@ resale_postings                   -- envois IntegrityCONNECT
 | Auth Clerk (admin + partner séparés ; invitations admin Replit) | ✅ |
 | Onboarding partner (≥15 états) + approbation admin | ✅ |
 | `POST /api/leads/intake` (format Boberdoo, CORS, public) | ✅ |
-| Pipeline intake : validate, normalize, doublons, TrustedForm, match, deliver | ✅ |
+| Pipeline intake : validate, normalize, doublons, TrustedForm, **catégories flexibles**, match, deliver | ✅ |
 | Moteur matching v2 (filter sets, limites H/J, FIFO ; exclut templates) | ✅ |
 | Wallet Stripe (top-up + abonnement hebdo) + ledger | ✅ |
 | Emails livraison (Resend), CRM outbound POST (wizard) | ✅ |
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue), partners, refunds, **aged browse** (tri URL + pagination), settings, migration, filter list (+ templates) | ✅ |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtres résolution catégorie), partners, refunds, **aged browse** (tri URL + pagination), settings (**lead categories** multi-critères), migration, filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées), wallet, aged, settings, contact, refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |

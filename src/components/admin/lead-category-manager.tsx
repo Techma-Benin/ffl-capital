@@ -7,14 +7,20 @@ import { notify } from "@/lib/notify";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
+export interface LeadCategoryCriterion {
+  id?: string;
+  field: string;
+  value: string;
+}
+
 export interface LeadCategory {
   id: string;
   type: string;
-  src: string | null;
   label: string;
   defaultPrice: number | null;
   enabled: boolean;
   integrityLabel: string | null;
+  criteria: LeadCategoryCriterion[];
 }
 
 /* ─── modal ─────────────────────────────────────────────────────────────── */
@@ -67,44 +73,47 @@ function Field({
 /* ─── category form (shared by create + edit) ───────────────────────────── */
 
 interface CategoryFormData {
-  type: string;
-  src: string;
   label: string;
   defaultPrice: string;
   enabled: boolean;
   integrityLabel: string;
+  criteria: LeadCategoryCriterion[];
+}
+
+function emptyCriterion(): LeadCategoryCriterion {
+  return { field: "SRC", value: "" };
 }
 
 function emptyForm(): CategoryFormData {
   return {
-    type: "",
-    src: "",
     label: "",
     defaultPrice: "",
     enabled: true,
     integrityLabel: "",
+    criteria: [emptyCriterion()],
   };
 }
 
 function categoryToForm(cat: LeadCategory): CategoryFormData {
   return {
-    type: cat.type,
-    src: cat.src ?? "",
     label: cat.label,
     defaultPrice: cat.defaultPrice != null ? String(cat.defaultPrice) : "",
     enabled: cat.enabled,
     integrityLabel: cat.integrityLabel ?? "",
+    criteria: cat.criteria.length ? cat.criteria : [emptyCriterion()],
   };
 }
 
 function CategoryModal({
   initial,
+  existingType,
   isNew,
   onSave,
   onDelete,
   onClose,
 }: {
   initial: CategoryFormData;
+  existingType?: string;
   isNew: boolean;
   onSave: (data: CategoryFormData) => Promise<void>;
   onDelete?: () => Promise<void>;
@@ -118,16 +127,40 @@ function CategoryModal({
     setForm((f) => ({ ...f, ...patch }));
   }
 
-  function handleTypeInput(value: string) {
-    // Auto-format to snake_case
-    const clean = value.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
-    set({ type: clean });
+  function setCriterion(index: number, patch: Partial<LeadCategoryCriterion>) {
+    setForm((f) => ({
+      ...f,
+      criteria: f.criteria.map((criterion, i) =>
+        i === index ? { ...criterion, ...patch } : criterion,
+      ),
+    }));
+  }
+
+  function addCriterion() {
+    setForm((f) => ({ ...f, criteria: [...f.criteria, emptyCriterion()] }));
+  }
+
+  function removeCriterion(index: number) {
+    setForm((f) => ({
+      ...f,
+      criteria:
+        f.criteria.length > 1
+          ? f.criteria.filter((_, i) => i !== index)
+          : f.criteria,
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.type.trim() || !form.label.trim()) {
-      notify.error("Type and label are required.");
+    if (!form.label.trim()) {
+      notify.error("Display label is required.");
+      return;
+    }
+    if (
+      form.criteria.length === 0 ||
+      form.criteria.some((criterion) => !criterion.field.trim() || !criterion.value.trim())
+    ) {
+      notify.error("Each criterion needs a field name and exact value.");
       return;
     }
     setPending(true);
@@ -154,19 +187,16 @@ function CategoryModal({
   return (
     <ModalOverlay title={isNew ? "New lead category" : `Edit — ${initial.label}`} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field
-          label="Type (internal key)"
-          hint={isNew ? "Snake_case identifier — cannot be changed after saving." : "Read-only after creation."}
-        >
-          <input
-            type="text"
-            value={form.type}
-            onChange={(e) => handleTypeInput(e.target.value)}
-            disabled={!isNew}
-            placeholder="e.g. mortgage_protection"
-            className="form-input font-mono text-sm disabled:bg-slate-50 disabled:text-slate-500"
-          />
-        </Field>
+        {!isNew && existingType && (
+          <Field label="Internal type" hint="Set once at creation and never changed.">
+            <input
+              type="text"
+              value={existingType}
+              disabled
+              className="form-input font-mono text-sm disabled:bg-slate-50 disabled:text-slate-500"
+            />
+          </Field>
+        )}
 
         <Field label="Display label" hint="Shown in dashboards and partner UIs">
           <input
@@ -179,16 +209,44 @@ function CategoryModal({
         </Field>
 
         <Field
-          label="LeadConduit SRC value"
-          hint="The SRC field value that maps to this category on intake"
+          label="Matching criteria"
+          hint="All rows must match exactly (case-sensitive) on the top-level ActiveProspect payload."
         >
-          <input
-            type="text"
-            value={form.src}
-            onChange={(e) => set({ src: e.target.value })}
-            placeholder="e.g. Mortgage_LeadConduit"
-            className="form-input font-mono text-sm"
-          />
+          <div className="space-y-2">
+            {form.criteria.map((criterion, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={criterion.field}
+                  onChange={(e) => setCriterion(index, { field: e.target.value })}
+                  placeholder="Field"
+                  className="form-input font-mono text-sm flex-1"
+                />
+                <input
+                  type="text"
+                  value={criterion.value}
+                  onChange={(e) => setCriterion(index, { value: e.target.value })}
+                  placeholder="Exact value"
+                  className="form-input font-mono text-sm flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeCriterion(index)}
+                  className="text-slate-400 hover:text-red-500 text-lg leading-none px-1"
+                  aria-label="Remove criterion"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addCriterion}
+              className="text-xs font-semibold text-[#605BFF] hover:text-[#4f4ad8]"
+            >
+              + Add criterion
+            </button>
+          </div>
         </Field>
 
         <Field
@@ -260,6 +318,11 @@ function CategoryModal({
   );
 }
 
+function formatCriteriaSummary(criteria: LeadCategoryCriterion[]): string {
+  if (!criteria.length) return "—";
+  return criteria.map((criterion) => `${criterion.field}=${criterion.value}`).join(" · ");
+}
+
 /* ─── main component ─────────────────────────────────────────────────────── */
 
 export function LeadCategoryManager() {
@@ -268,7 +331,7 @@ export function LeadCategoryManager() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{
     form: CategoryFormData;
-    category: LeadCategory | null; // null = new
+    category: LeadCategory | null;
   } | null>(null);
 
   async function load() {
@@ -301,9 +364,8 @@ export function LeadCategoryManager() {
       : `/api/admin/lead-categories/${modal!.category!.id}`;
 
     const body = {
-      ...(isNew ? { type: data.type } : {}),
-      src: data.src || null,
       label: data.label,
+      criteria: data.criteria.map(({ field, value }) => ({ field, value })),
       defaultPrice: data.defaultPrice !== "" ? Number(data.defaultPrice) : null,
       enabled: data.enabled,
       integrityLabel: data.integrityLabel || null,
@@ -345,6 +407,7 @@ export function LeadCategoryManager() {
       {modal && (
         <CategoryModal
           initial={modal.form}
+          existingType={modal.category?.type}
           isNew={modal.category === null}
           onSave={handleSave}
           onDelete={modal.category ? handleDelete : undefined}
@@ -352,7 +415,6 @@ export function LeadCategoryManager() {
         />
       )}
 
-      {/* Table card — matching mockup: overflow-hidden, no title above */}
       <div
         className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)] overflow-hidden"
       >
@@ -366,7 +428,7 @@ export function LeadCategoryManager() {
                   Category
                 </th>
                 <th className="px-3.5 py-2.5 text-left text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap">
-                  SRC
+                  Criteria
                 </th>
                 <th className={`px-3.5 py-2.5 text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap ${moneyHeaderClassName}`}>
                   Price
@@ -408,11 +470,12 @@ export function LeadCategoryManager() {
                     className="px-3.5 py-[11px]"
                     style={{
                       fontFamily: "ui-monospace, monospace",
-                      fontSize: 13,
+                      fontSize: 12,
                       color: "#8b8a99",
+                      maxWidth: 280,
                     }}
                   >
-                    {cat.src ?? <span style={{ color: "#d7d6e0" }}>—</span>}
+                    {formatCriteriaSummary(cat.criteria)}
                   </td>
                   <td className={moneyCellClass("px-3.5 py-[11px]")}
                     style={{ fontSize: 13, fontWeight: 800 }}
@@ -454,14 +517,12 @@ export function LeadCategoryManager() {
         )}
       </div>
 
-      {/* Hint text below the card — matches mockup */}
       <p style={{ fontSize: 13, color: "#8b8a99", lineHeight: 1.5 }}>
-        Single source of truth for lead classification — SRC mapping, pricing,
-        matching rules and Integrity Connect label. The internal type is set once
-        and cannot be renamed.
+        Single source of truth for lead classification — exact field/value criteria,
+        pricing, matching rules, and Integrity Connect labels. The internal type is
+        generated once from the display label and cannot be renamed.
       </p>
 
-      {/* Floating action button — fixed bottom-right, matches mockup */}
       <button
         type="button"
         onClick={openNew}
