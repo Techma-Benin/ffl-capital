@@ -105,7 +105,10 @@ export async function processLeadIntake(
       ? LeadStatus.review
       : LeadStatus.unmatched;
 
-  if (normalized.trustedformCertUrl) {
+  if (
+    categoryResult.outcome === "one" &&
+    normalized.trustedformCertUrl
+  ) {
     const tfEnabled = await isTrustedformValidationEnabled();
     if (tfEnabled) {
       const tfResult = await validateTrustedFormCert(normalized.trustedformCertUrl);

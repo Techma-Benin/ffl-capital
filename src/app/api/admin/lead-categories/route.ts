@@ -33,7 +33,11 @@ export async function POST(request: NextRequest) {
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: 403 });
 
   const body = await request.json();
-  if ("type" in body) {
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "type" in body
+  ) {
     return NextResponse.json(
       { error: "Internal type is generated from the display label and cannot be supplied" },
       { status: 400 },

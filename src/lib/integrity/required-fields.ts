@@ -52,9 +52,12 @@ export type RequiredFieldsLeadInput = Pick<
  * for the given lead type (base fields + any product-specific fields).
  */
 export function getRequiredIntegrityFields(
-  leadType: string,
+  leadType: string | null,
 ): RequiredFieldDefinition[] {
-  return [...BASE_REQUIRED_FIELDS, ...(PRODUCT_REQUIRED_FIELDS[leadType] ?? [])];
+  return [
+    ...BASE_REQUIRED_FIELDS,
+    ...(leadType ? PRODUCT_REQUIRED_FIELDS[leadType] ?? [] : []),
+  ];
 }
 
 function isBlank(value: unknown): boolean {

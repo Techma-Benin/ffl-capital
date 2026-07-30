@@ -27,7 +27,11 @@ export async function PATCH(
 
   const body = await request.json();
 
-  if ("type" in body) {
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "type" in body
+  ) {
     return NextResponse.json(
       { error: "The `type` field cannot be changed after creation" },
       { status: 422 },

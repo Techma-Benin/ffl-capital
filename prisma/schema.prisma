@@ -76,7 +76,6 @@ enum TransactionType {
   reprocessing_fee
 }
 
-
 enum RefundStatus {
   pending
   approved
@@ -115,14 +114,14 @@ enum LeadListViewScope {
 /// `type` is the immutable internal key (set at creation, never editable).
 /// `integrityLabel` is the exact string Integrity Connect requires for lead_type_thom.
 model LeadCategory {
-  id              String   @id @default(uuid()) @db.Uuid
-  type            String   @unique
-  label           String
-  defaultPrice    Decimal? @map("default_price") @db.Decimal(10, 2)
-  enabled         Boolean  @default(true)
-  integrityLabel  String?  @map("integrity_label")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  type           String   @unique
+  label          String
+  defaultPrice   Decimal? @map("default_price") @db.Decimal(10, 2)
+  enabled        Boolean  @default(true)
+  integrityLabel String?  @map("integrity_label")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   criteria LeadCategoryCriterion[]
 
@@ -177,7 +176,7 @@ model Partner {
   refundRequests       RefundRequest[]
   transactions         Transaction[]
   billingRecurrences   BillingRecurrence[]
-  reviewedRefunds      RefundRequest[]     @relation("ReviewedBy")
+  reviewedRefunds      RefundRequest[]           @relation("ReviewedBy")
   createdMigrationJobs MigrationJob[]
   filterSets           PartnerFilterSet[]
   leadListViews        LeadListView[]
@@ -225,20 +224,20 @@ model LeadListView {
 }
 
 model PartnerFilterSet {
-  id              String                   @id @default(uuid()) @db.Uuid
-  partnerId       String?                  @map("partner_id") @db.Uuid
-  name            String                   @default("Default")
-  leadType        String                   @map("lead_type")
-  filterStates    String[]                 @map("filter_states")
-  priority        Int                      @default(5)
-  priceOverride   Decimal?                 @map("price_override") @db.Decimal(10, 2)
-  active          Boolean                  @default(true)
-  isTemplate      Boolean                  @default(false) @map("is_template")
-  weeklyLimit     Int?                     @map("weekly_limit")
-  monthlyLimit    Int?                     @map("monthly_limit")
-  filterCriteria  Json                     @default("{}") @map("filter_criteria")
-  createdAt       DateTime                 @default(now()) @map("created_at")
-  updatedAt       DateTime                 @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  partnerId      String?  @map("partner_id") @db.Uuid
+  name           String   @default("Default")
+  leadType       String   @map("lead_type")
+  filterStates   String[] @map("filter_states")
+  priority       Int      @default(5)
+  priceOverride  Decimal? @map("price_override") @db.Decimal(10, 2)
+  active         Boolean  @default(true)
+  isTemplate     Boolean  @default(false) @map("is_template")
+  weeklyLimit    Int?     @map("weekly_limit")
+  monthlyLimit   Int?     @map("monthly_limit")
+  filterCriteria Json     @default("{}") @map("filter_criteria")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   partner        Partner?       @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   leadDeliveries LeadDelivery[]
@@ -250,9 +249,9 @@ model PartnerFilterSet {
 }
 
 model Lead {
-  id                      String     @id @default(uuid()) @db.Uuid
-  firstName               String     @map("first_name")
-  lastName                String     @map("last_name")
+  id                      String                 @id @default(uuid()) @db.Uuid
+  firstName               String                 @map("first_name")
+  lastName                String                 @map("last_name")
   email                   String
   phone                   String
   address                 String?
@@ -261,39 +260,39 @@ model Lead {
   zip                     String?
   dob                     String?
   age                     String?
-  leadType                String?    @map("lead_type")
+  leadType                String?                @map("lead_type")
   categoryResolution      LeadCategoryResolution @default(matched) @map("category_resolution")
-  categoryCandidateTypes  String[]   @default([]) @map("category_candidate_types")
+  categoryCandidateTypes  String[]               @default([]) @map("category_candidate_types")
   intent                  String?
-  haveIul                 String?    @map("have_iul")
-  primaryGoal             String?    @map("primary_goal")
-  stateYouCurrentlyLiveIn String?    @map("state_you_currently_live_in")
-  beneficiary             String?    @map("beneficiary")
-  historyOfCancer         String?    @map("history_of_cancer")
-  mortgageLoanAmount      String?    @map("mortgage_loan_amount")
-  trustedformCertUrl      String?    @map("trustedform_cert_url")
-  trustedformValid        Boolean?   @map("trustedform_valid")
-  trustedformCheckedAt    DateTime?  @map("trustedform_checked_at")
-  tcpaConsent             String?    @map("tcpa_consent")
-  tcpaLanguage            String?    @map("tcpa_language")
-  leadidToken             String?    @map("leadid_token")
-  source                  String     @default("meta_leadconduit")
-  landingPage             String?    @map("landing_page")
-  subId                   String?    @map("sub_id")
-  pubId                   String?    @map("pub_id")
-  boberdooLeadType        String?    @map("boberdoo_lead_type")
-  ipAddress               String?    @map("ip_address")
-  userAgent               String?    @map("user_agent")
-  receivedAt              DateTime   @default(now()) @map("received_at")
-  available               Boolean    @default(true)
-  refundable              Boolean    @default(true)
-  status                  LeadStatus @default(unmatched)
-  externalId              String?    @map("external_id")
-  rawPayload              Json?      @map("raw_payload")
-  agedSaleCount           Int        @default(0) @map("aged_sale_count")
-  agedAvailableAfter      DateTime?  @map("aged_available_after")
-  createdAt               DateTime   @default(now()) @map("created_at")
-  updatedAt               DateTime   @updatedAt @map("updated_at")
+  haveIul                 String?                @map("have_iul")
+  primaryGoal             String?                @map("primary_goal")
+  stateYouCurrentlyLiveIn String?                @map("state_you_currently_live_in")
+  beneficiary             String?                @map("beneficiary")
+  historyOfCancer         String?                @map("history_of_cancer")
+  mortgageLoanAmount      String?                @map("mortgage_loan_amount")
+  trustedformCertUrl      String?                @map("trustedform_cert_url")
+  trustedformValid        Boolean?               @map("trustedform_valid")
+  trustedformCheckedAt    DateTime?              @map("trustedform_checked_at")
+  tcpaConsent             String?                @map("tcpa_consent")
+  tcpaLanguage            String?                @map("tcpa_language")
+  leadidToken             String?                @map("leadid_token")
+  source                  String                 @default("meta_leadconduit")
+  landingPage             String?                @map("landing_page")
+  subId                   String?                @map("sub_id")
+  pubId                   String?                @map("pub_id")
+  boberdooLeadType        String?                @map("boberdoo_lead_type")
+  ipAddress               String?                @map("ip_address")
+  userAgent               String?                @map("user_agent")
+  receivedAt              DateTime               @default(now()) @map("received_at")
+  available               Boolean                @default(true)
+  refundable              Boolean                @default(true)
+  status                  LeadStatus             @default(unmatched)
+  externalId              String?                @map("external_id")
+  rawPayload              Json?                  @map("raw_payload")
+  agedSaleCount           Int                    @default(0) @map("aged_sale_count")
+  agedAvailableAfter      DateTime?              @map("aged_available_after")
+  createdAt               DateTime               @default(now()) @map("created_at")
+  updatedAt               DateTime               @updatedAt @map("updated_at")
 
   leadDeliveries LeadDelivery[]
   resalePostings ResalePosting[]
@@ -333,11 +332,11 @@ model LeadDelivery {
   lastDeliveryError String?         @map("last_delivery_error")
   createdAt         DateTime        @default(now()) @map("created_at")
 
-  lead            Lead              @relation(fields: [leadId], references: [id])
-  partner         Partner           @relation(fields: [partnerId], references: [id])
-  filterSet       PartnerFilterSet? @relation(fields: [filterSetId], references: [id])
-  refundRequests  RefundRequest[]
-  transactions    Transaction[]
+  lead           Lead              @relation(fields: [leadId], references: [id])
+  partner        Partner           @relation(fields: [partnerId], references: [id])
+  filterSet      PartnerFilterSet? @relation(fields: [filterSetId], references: [id])
+  refundRequests RefundRequest[]
+  transactions   Transaction[]
 
   @@index([partnerId])
   @@index([leadId])
@@ -347,15 +346,15 @@ model LeadDelivery {
 }
 
 model RefundRequest {
-  id              String       @id @default(uuid()) @db.Uuid
-  leadDeliveryId  String       @map("lead_delivery_id") @db.Uuid
-  partnerId       String       @map("partner_id") @db.Uuid
-  reason          String?
-  refundType      String       @map("refund_type")
-  status          RefundStatus @default(pending)
-  reviewedById    String?      @map("reviewed_by") @db.Uuid
-  reviewedAt      DateTime?    @map("reviewed_at")
-  createdAt       DateTime     @default(now()) @map("created_at")
+  id             String       @id @default(uuid()) @db.Uuid
+  leadDeliveryId String       @map("lead_delivery_id") @db.Uuid
+  partnerId      String       @map("partner_id") @db.Uuid
+  reason         String?
+  refundType     String       @map("refund_type")
+  status         RefundStatus @default(pending)
+  reviewedById   String?      @map("reviewed_by") @db.Uuid
+  reviewedAt     DateTime?    @map("reviewed_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
 
   leadDelivery LeadDelivery @relation(fields: [leadDeliveryId], references: [id])
   partner      Partner      @relation(fields: [partnerId], references: [id])
@@ -423,16 +422,16 @@ model AppSetting {
 }
 
 model MigrationJob {
-  id           String             @id @default(uuid()) @db.Uuid
-  status       MigrationJobStatus @default(pending)
-  fileName     String             @map("file_name")
-  totalRows    Int                @default(0) @map("total_rows")
-  successRows  Int                @default(0) @map("success_rows")
-  errorRows    Int                @default(0) @map("error_rows")
-  errorLog     Json?              @map("error_log")
-  createdById  String?            @map("created_by") @db.Uuid
-  createdAt    DateTime           @default(now()) @map("created_at")
-  completedAt  DateTime?          @map("completed_at")
+  id          String             @id @default(uuid()) @db.Uuid
+  status      MigrationJobStatus @default(pending)
+  fileName    String             @map("file_name")
+  totalRows   Int                @default(0) @map("total_rows")
+  successRows Int                @default(0) @map("success_rows")
+  errorRows   Int                @default(0) @map("error_rows")
+  errorLog    Json?              @map("error_log")
+  createdById String?            @map("created_by") @db.Uuid
+  createdAt   DateTime           @default(now()) @map("created_at")
+  completedAt DateTime?          @map("completed_at")
 
   createdBy Partner? @relation(fields: [createdById], references: [id])
 
