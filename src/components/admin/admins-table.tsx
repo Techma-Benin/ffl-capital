@@ -117,7 +117,7 @@ export function AdminsTable({
     confirm?.kind === "remove"
       ? {
           title: "Delete admin account?",
-          description: `This permanently deletes ${confirm.row.email}'s account. This can't be undone — they'll need a brand-new invitation to regain access.`,
+          description: `This permanently deletes ${confirm.row.email}'s account. This can't be undone `,
           confirmLabel: "Delete account",
         }
       : confirm?.kind === "revoke"
