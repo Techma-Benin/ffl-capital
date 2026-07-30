@@ -25,7 +25,7 @@ export interface MatchResult {
 
 export async function matchLead(
   leadId: string,
-  options?: { excludePartnerIds?: string[] },
+  options?: { excludePartnerIds?: string[]; includePartnerIds?: string[] },
 ): Promise<MatchResult> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) {

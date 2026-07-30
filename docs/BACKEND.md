@@ -421,6 +421,16 @@ Options : `pg_cron` Supabase, Vercel Cron, cron-job.org.
 
 Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`
 
+### Reprocess admin (manuel vs cron)
+
+| Route | Body | Réponse | Comportement |
+|-------|------|---------|--------------|
+| `POST /api/admin/leads/bulk-reprocess/eligible-partners` | `{ leadIds: string[] }` | `{ partners: [{ id, firstName, lastName, priority, matchCount }] }` | Partenaires actifs éligibles pour ≥1 lead (règles complètes filter set + limites). 400 si lead absent ou non `unmatched`+`available`. |
+| `POST /api/admin/leads/bulk-reprocess` | `{ leadIds: string[], partnerIds: string[] }` | `{ processed, matched, errors, unmatched }` | Reprocess manuel : `matchLead` restreint à `partnerIds` ; **pas** de fallback Integrity. |
+| `POST /api/admin/leads/:id/reprocess` | — | résultat `reprocessSingleLead` | Idem mode **manual** (match only). |
+
+Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads au-delà du délai configuré. `matchLead` accepte `includePartnerIds` (allowlist) via `findEligibleFilterSets`.
+
 ---
 
 ## Infra Supabase

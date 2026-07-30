@@ -9,7 +9,10 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { leadIds } = body as { leadIds: string[] };
+  const { leadIds, partnerIds } = body as {
+    leadIds: string[];
+    partnerIds: string[];
+  };
 
   if (!Array.isArray(leadIds) || leadIds.length === 0) {
     return NextResponse.json(
@@ -18,17 +21,34 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!Array.isArray(partnerIds) || partnerIds.length === 0) {
+    return NextResponse.json(
+      { error: "partnerIds must be a non-empty array" },
+      { status: 400 },
+    );
+  }
+
   let processed = 0;
+  let matched = 0;
+  let unmatched = 0;
   let errors = 0;
 
   for (const id of leadIds) {
     try {
-      await reprocessSingleLead(id);
+      const result = await reprocessSingleLead(id, {
+        includePartnerIds: partnerIds,
+        mode: "manual",
+      });
       processed++;
+      if (result.matched) {
+        matched++;
+      } else {
+        unmatched++;
+      }
     } catch {
       errors++;
     }
   }
 
-  return NextResponse.json({ processed, errors });
+  return NextResponse.json({ processed, matched, errors, unmatched });
 }

@@ -92,7 +92,17 @@ export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
   };
 }
 
-export async function reprocessSingleLead(leadId: string) {
+export type ReprocessSingleLeadOptions = {
+  includePartnerIds?: string[];
+  mode?: "manual" | "cron";
+};
+
+export async function reprocessSingleLead(
+  leadId: string,
+  options?: ReprocessSingleLeadOptions,
+) {
+  const mode = options?.mode ?? "manual";
+
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) throw new Error("Lead not found");
 
@@ -106,9 +116,15 @@ export async function reprocessSingleLead(leadId: string) {
     throw new Error(eligibility.reason ?? "Lead is not available for reprocessing");
   }
 
-  const result = await matchLead(leadId);
+  const result = await matchLead(leadId, {
+    includePartnerIds: options?.includePartnerIds,
+  });
   if (result.matched && result.deliveryId) {
     return result;
+  }
+
+  if (mode === "manual") {
+    return { matched: false, lead, reason: result.reason };
   }
 
   const postResult = await integrityPostLead(leadId);

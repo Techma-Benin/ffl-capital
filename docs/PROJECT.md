@@ -94,8 +94,9 @@ Un lead est **non vendu** quand aucun agent actif ne correspond aux critères (s
 **Ce qui se passe :**
 1. Entrée en base avec statut `unmatched`
 2. **Retraitement pendant 24 h** : le système réessaie périodiquement de le matcher (ex. un agent recharge son wallet ou change ses filtres)
-3. Si toujours non vendu après 24 h → envoi vers **IntegrityCONNECT** (ping/post temps réel ou storefront 48 h)
-4. Après **30 jours** dans le système → devient **aged lead** (5 $), visible dans la marketplace
+3. **Reprocess admin (bulk)** : sélection de leads + modal partenaires actifs éligibles (au moins 1 lead) ; matching restreint aux partenaires cochés ; **pas** d’envoi Integrity immédiat si échec
+4. Si toujours non vendu après 24 h → envoi vers **IntegrityCONNECT** (ping/post temps réel ou storefront 48 h)
+5. Après **30 jours** dans le système → devient **aged lead** (5 $), visible dans la marketplace
 
 Exemple client : lead Wisconsin, personne ne veut cet état → rejeté temps réel, reste unmatched (**17:08 – 17:32** dans le transcript).
 
@@ -320,7 +321,7 @@ lead_categories                   -- classification produit (admin)
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload), partners, refunds, **aged browse** (tri URL + pagination), settings (**lead categories** multi-critères + reclassification automatique), migration (classification via table catégories), filter list (+ templates) | ✅ |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess avec sélection partners**), partners, refunds, **aged browse** (tri URL + pagination), settings (**lead categories** multi-critères + reclassification automatique), migration (classification via table catégories), filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées avec périodes de livraison), wallet, aged, settings, contact, refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |

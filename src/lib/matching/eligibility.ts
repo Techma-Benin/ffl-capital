@@ -144,7 +144,7 @@ async function countDeliveriesInWindow(
   });
 }
 
-async function isWithinLimits(filterSet: PartnerFilterSet): Promise<boolean> {
+export async function isWithinLimits(filterSet: PartnerFilterSet): Promise<boolean> {
   const now = new Date();
 
   if (filterSet.weeklyLimit !== null) {
@@ -171,7 +171,11 @@ async function isWithinLimits(filterSet: PartnerFilterSet): Promise<boolean> {
 export async function findEligibleFilterSets(
   leadState: string,
   leadType: string,
-  options?: { excludePartnerIds?: string[]; lead?: Lead },
+  options?: {
+    excludePartnerIds?: string[];
+    includePartnerIds?: string[];
+    lead?: Lead;
+  },
 ): Promise<FilterSetWithPartner[]> {
   // Skip matching if the category is disabled
   const category = await prisma.leadCategory.findUnique({
@@ -184,6 +188,7 @@ export async function findEligibleFilterSets(
 
   const defaultPrice = await getDefaultRealtimePrice();
   const exclude = new Set(options?.excludePartnerIds ?? []);
+  const include = options?.includePartnerIds?.filter(Boolean) ?? [];
 
   const filterSets = await prisma.partnerFilterSet.findMany({
     where: {
@@ -193,7 +198,11 @@ export async function findEligibleFilterSets(
       filterStates: { has: leadState },
       partner: {
         status: PartnerStatus.active,
-        ...(exclude.size > 0 ? { id: { notIn: Array.from(exclude) } } : {}),
+        ...(include.length > 0
+          ? { id: { in: include } }
+          : exclude.size > 0
+            ? { id: { notIn: Array.from(exclude) } }
+            : {}),
       },
     },
     include: { partner: true },

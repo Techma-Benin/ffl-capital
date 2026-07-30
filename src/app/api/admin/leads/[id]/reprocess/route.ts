@@ -13,7 +13,7 @@ export async function POST(
 
   const { id } = await params;
   try {
-    const result = await reprocessSingleLead(id);
+    const result = await reprocessSingleLead(id, { mode: "manual" });
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(

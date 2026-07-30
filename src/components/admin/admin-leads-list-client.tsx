@@ -12,7 +12,7 @@ import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
 import { PartnersTableLayoutToggle } from "@/components/admin/partners-table-layout-toggle";
 import { useAdminLeadsTableLayout } from "@/components/admin/use-admin-leads-table-layout";
 import { LeadToolbarColumnSettingsButton } from "@/components/leads/lead-table-column-picker-button";
-import { notify } from "@/lib/notify";
+import { BulkReprocessPartnersDialog } from "@/components/admin/bulk-reprocess-partners-dialog";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type { LeadViewEditorState } from "@/components/leads/lead-view-editor-sheet";
 
@@ -77,37 +77,20 @@ export function AdminLeadsListClient({
   const router = useRouter();
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkPending, setBulkPending] = useState(false);
+  const [reprocessDialogOpen, setReprocessDialogOpen] = useState(false);
 
   const handleSelectedChange = useCallback((ids: Set<string>) => {
     setSelectedIds(ids);
   }, []);
 
-  async function handleBulkReprocess() {
-    if (bulkPending || selectedIds.size === 0) return;
-    setBulkPending(true);
-    try {
-      const res = await fetch("/api/admin/leads/bulk-reprocess", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: Array.from(selectedIds) }),
-      });
-      if (!res.ok) throw new Error("Bulk reprocess failed");
-      const data = (await res.json()) as { processed: number; errors: number };
-      setSelectedIds(new Set());
-      if (data.errors === 0) {
-        notify.success(
-          `${data.processed} lead${data.processed === 1 ? "" : "s"} queued for reprocessing.`,
-        );
-      } else {
-        notify.error(`${data.processed} queued, ${data.errors} failed.`);
-      }
-      router.refresh();
-    } catch {
-      notify.error("Bulk reprocess failed. Please try again.");
-    } finally {
-      setBulkPending(false);
-    }
+  function handleBulkReprocessClick() {
+    if (selectedIds.size === 0) return;
+    setReprocessDialogOpen(true);
+  }
+
+  function handleReprocessSuccess() {
+    setSelectedIds(new Set());
+    router.refresh();
   }
 
   const selectionAction =
@@ -118,12 +101,12 @@ export function AdminLeadsListClient({
         </span>
         <button
           type="button"
-          disabled={bulkPending}
-          onClick={() => void handleBulkReprocess()}
+          disabled={reprocessDialogOpen}
+          onClick={handleBulkReprocessClick}
           className="flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60"
         >
-          <ArrowsClockwise size={13} className={bulkPending ? "animate-spin" : ""} />
-          {bulkPending ? "Processing…" : `Reprocess (${selectedIds.size})`}
+          <ArrowsClockwise size={13} />
+          {`Reprocess (${selectedIds.size})`}
         </button>
         <button
           type="button"
@@ -183,6 +166,13 @@ export function AdminLeadsListClient({
           onSelectedChange={handleSelectedChange}
         />
       </LeadListTableShell>
+      <BulkReprocessPartnersDialog
+        open={reprocessDialogOpen}
+        onOpenChange={setReprocessDialogOpen}
+        leadIds={Array.from(selectedIds)}
+        leadCount={selectedIds.size}
+        onSuccess={handleReprocessSuccess}
+      />
     </LeadColumnSettingsBridge>
   );
 }
