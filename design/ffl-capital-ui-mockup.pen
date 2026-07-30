@@ -9701,6 +9701,647 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "rpModF",
+      "x": 5820,
+      "y": -112,
+      "name": "Admin — Reprocess Partners Modal",
+      "clip": true,
+      "width": 960,
+      "height": 640,
+      "fill": "#00000059",
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "rpDlgF",
+          "name": "Modal Dialog",
+          "width": 480,
+          "fill": "$bg-card",
+          "cornerRadius": 12,
+          "stroke": "$border-subtle",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#0000001F",
+            "offset": {
+              "x": 0,
+              "y": 8
+            },
+            "blur": 24
+          },
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "rpHdrF",
+              "name": "Modal Header",
+              "width": "fill_container",
+              "padding": [
+                20,
+                24,
+                16,
+                24
+              ],
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rpHdrL",
+                  "name": "Header Text",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rpTitT",
+                      "name": "Title",
+                      "fill": "$text-primary",
+                      "content": "Reprocess leads",
+                      "fontFamily": "$font-body",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "rpSubT",
+                      "name": "Subtitle",
+                      "fill": "$text-secondary",
+                      "content": "5 leads selected · Choose active partners to include",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rpClsB",
+                  "name": "Close Button",
+                  "width": 32,
+                  "height": 32,
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "rpClsI",
+                      "name": "Close",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "x",
+                      "library": "phosphor",
+                      "fill": "$text-muted"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rpLstH",
+              "name": "List Header",
+              "width": "fill_container",
+              "fill": "$table-header",
+              "stroke": "$border-subtle",
+              "strokeWidth": {
+                "top": 1,
+                "bottom": 1
+              },
+              "gap": 12,
+              "padding": [
+                10,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rpAllC",
+                  "name": "Select All Checkbox",
+                  "width": 24,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rpAllCb",
+                      "name": "Checkbox",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "$accent-blue",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "rpAllCk",
+                          "name": "Check",
+                          "width": 10,
+                          "height": 10,
+                          "icon": "check",
+                          "library": "phosphor",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "rpAllT",
+                  "name": "Select All Label",
+                  "fill": "$text-secondary",
+                  "content": "Select all eligible partners (3)",
+                  "fontFamily": "$font-body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rpLstB",
+              "name": "Partner List",
+              "width": "fill_container",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rpP1Row",
+                  "name": "Partner Row",
+                  "width": "fill_container",
+                  "stroke": "$border-subtle",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "gap": 12,
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rpP1CbCell",
+                      "name": "Checkbox Cell",
+                      "width": 24,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rpP1Cb",
+                          "name": "Checkbox",
+                          "width": 16,
+                          "height": 16,
+                          "fill": "$accent-blue",
+                          "cornerRadius": 4,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "rpP1Ck",
+                              "name": "Check",
+                              "width": 10,
+                              "height": 10,
+                              "icon": "check",
+                              "library": "phosphor",
+                              "fill": "#FFFFFF"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rpP1Av",
+                      "name": "Avatar",
+                      "width": 32,
+                      "height": 32,
+                      "fill": "$pastel-blue",
+                      "cornerRadius": 16,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rpP1In",
+                          "name": "Initials",
+                          "fill": "$accent-blue",
+                          "content": "SC",
+                          "fontFamily": "$font-body",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rpP1Info",
+                      "name": "Partner Info",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rpP1Nm",
+                          "name": "Name",
+                          "fill": "$text-primary",
+                          "content": "Sarah Chen",
+                          "fontFamily": "$font-body",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rpP1Mt",
+                          "name": "Meta",
+                          "fill": "$text-muted",
+                          "content": "Active partner",
+                          "fontFamily": "$font-body",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rpP1Pri",
+                      "name": "Priority Badge",
+                      "fill": "$pastel-blue",
+                      "cornerRadius": 12,
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rpP1Pr",
+                          "name": "Priority",
+                          "fill": "$accent-blue",
+                          "content": "Priority 8",
+                          "fontFamily": "$font-body",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rpP2Row",
+                  "name": "Partner Row",
+                  "width": "fill_container",
+                  "stroke": "$border-subtle",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "gap": 12,
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rpP2CbCell",
+                      "name": "Checkbox Cell",
+                      "width": 24,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rpP2Cb",
+                          "name": "Checkbox",
+                          "width": 16,
+                          "height": 16,
+                          "fill": "$accent-blue",
+                          "cornerRadius": 4,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "rpP2Ck",
+                              "name": "Check",
+                              "width": 10,
+                              "height": 10,
+                              "icon": "check",
+                              "library": "phosphor",
+                              "fill": "#FFFFFF"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rpP2Av",
+                      "name": "Avatar",
+                      "width": 32,
+                      "height": 32,
+                      "fill": "$pastel-mint",
+                      "cornerRadius": 16,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rpP2In",
+                          "name": "Initials",
+                          "fill": "$accent-blue",
+                          "content": "MJ",
+                          "fontFamily": "$font-body",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rpP2Info",
+                      "name": "Partner Info",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rpP2Nm",
+                          "name": "Name",
+                          "fill": "$text-primary",
+                          "content": "Marcus Johnson",
+                          "fontFamily": "$font-body",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rpP2Mt",
+                          "name": "Meta",
+                          "fill": "$text-muted",
+                          "content": "Active partner",
+                          "fontFamily": "$font-body",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rpP2Pri",
+                      "name": "Priority Badge",
+                      "fill": "$pastel-blue",
+                      "cornerRadius": 12,
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rpP2Pr",
+                          "name": "Priority",
+                          "fill": "$accent-blue",
+                          "content": "Priority 7",
+                          "fontFamily": "$font-body",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rpP3Row",
+                  "name": "Partner Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rpP3CbCell",
+                      "name": "Checkbox Cell",
+                      "width": 24,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "rpP3Cb",
+                          "name": "Checkbox",
+                          "fill": "$bg-card",
+                          "width": 16,
+                          "height": 16,
+                          "stroke": "$border-subtle",
+                          "strokeWidth": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rpP3Av",
+                      "name": "Avatar",
+                      "width": 32,
+                      "height": 32,
+                      "fill": "$pastel-purple",
+                      "cornerRadius": 16,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rpP3In",
+                          "name": "Initials",
+                          "fill": "$accent-blue",
+                          "content": "ER",
+                          "fontFamily": "$font-body",
+                          "fontSize": 10,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rpP3Info",
+                      "name": "Partner Info",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rpP3Nm",
+                          "name": "Name",
+                          "fill": "$text-primary",
+                          "content": "Elena Rodriguez",
+                          "fontFamily": "$font-body",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rpP3Mt",
+                          "name": "Meta",
+                          "fill": "$text-muted",
+                          "content": "Active partner",
+                          "fontFamily": "$font-body",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rpP3Pri",
+                      "name": "Priority Badge",
+                      "fill": "$pastel-blue",
+                      "cornerRadius": 12,
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rpP3Pr",
+                          "name": "Priority",
+                          "fill": "$accent-blue",
+                          "content": "Priority 5",
+                          "fontFamily": "$font-body",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rpHntF",
+              "name": "Helper Text",
+              "width": "fill_container",
+              "padding": [
+                12,
+                24,
+                0,
+                24
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "rpHntT",
+                  "name": "Hint",
+                  "fill": "$text-muted",
+                  "content": "Only partners who can match at least one selected lead are shown.",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rpFtrF",
+              "name": "Modal Footer",
+              "width": "fill_container",
+              "gap": 10,
+              "padding": [
+                20,
+                24,
+                24,
+                24
+              ],
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rpCanB",
+                  "name": "Cancel Button",
+                  "fill": "$bg-page",
+                  "cornerRadius": 8,
+                  "stroke": "$border-subtle",
+                  "strokeWidth": 1,
+                  "padding": [
+                    10,
+                    18
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rpCanT",
+                      "name": "Label",
+                      "fill": "$text-secondary",
+                      "content": "Cancel",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rpGoB",
+                  "name": "Reprocess Button",
+                  "fill": "$accent-blue",
+                  "cornerRadius": 8,
+                  "gap": 6,
+                  "padding": [
+                    10,
+                    18
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "rpGoI",
+                      "name": "Icon",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "arrows-clockwise",
+                      "library": "phosphor",
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "rpGoT",
+                      "name": "Label",
+                      "fill": "#FFFFFF",
+                      "content": "Reprocess 5 leads",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {
