@@ -124,6 +124,8 @@ Admin UI: `/admin/settings` → **Lead categories** — multi-criteria editor; i
 
 There is **no** implicit fallback from `Intent` or partial `SRC` matching; unmatched payloads require admin review or new category rules.
 
+Creating or deleting an enabled category, changing criteria, or toggling `enabled` re-evaluates all non-finalized leads from their stored raw webhook payload with this same evaluator. Final statuses (`delivered`, `integrity_posted`, `aged_listed`, `dead`) are excluded. A newly unique match becomes `unmatched` and available for the normal reprocess flow; the category API itself does not immediately match or deliver it.
+
 ### Outbound field mapping (Internal → Integrity Connect / LeadConduit)
 
 | Internal field | LeadConduit parameter | Notes |

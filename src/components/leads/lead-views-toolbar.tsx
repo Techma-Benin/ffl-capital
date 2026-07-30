@@ -45,6 +45,7 @@ export function LeadViewsToolbar({
   views,
   activeView,
   catalog,
+  adminFilterSets,
   partnerMeta,
   filterSummary,
   exportSlot,
@@ -57,6 +58,7 @@ export function LeadViewsToolbar({
   views: ViewRecord[];
   activeView: ViewRecord;
   catalog: LeadColumnDef[];
+  adminFilterSets?: { id: string; name: string }[];
   partnerMeta?: {
     filterSets: { id: string; name: string }[];
     availableStates: string[];
@@ -270,6 +272,7 @@ export function LeadViewsToolbar({
         mode={editorMode}
         initial={editorInitial()}
         catalog={catalog}
+        adminFilterSets={adminFilterSets}
         partnerFilterSets={partnerMeta?.filterSets}
         onSave={saveView}
         pending={pending}

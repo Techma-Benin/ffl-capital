@@ -6,6 +6,7 @@ import {
   categoryCreateSchema,
   deriveCategoryType,
 } from "@/lib/lead-categories/flexible-lead-categories";
+import { reclassifyNonFinalizedLeads } from "@/lib/lead-categories/reclassify-leads";
 
 const categoryInclude = {
   criteria: {
@@ -81,7 +82,10 @@ export async function POST(request: NextRequest) {
       include: categoryInclude,
     });
 
-    return NextResponse.json({ category }, { status: 201 });
+    const reclassification = category.enabled
+      ? await reclassifyNonFinalizedLeads()
+      : null;
+    return NextResponse.json({ category, reclassification }, { status: 201 });
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

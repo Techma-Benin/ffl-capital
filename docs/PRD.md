@@ -284,8 +284,9 @@ Phase D — Migration Replit (livraison client)
 - Actions : approuver/rejeter inscription, activer/désactiver, modifier priorité (1–10), prix personnalisé, voir historique
 
 #### Gestion leads
-- Liste tous les leads avec filtres : statut, état, date, available, résolution catégorie
-- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity ; **diagnostics payload** (champs critères catégories) ; libellés **Unclassified** / **Multiple match** depuis la table catégories
+- Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live
+- Un type sélectionné inclut les leads résolus dans ce type et les leads à matchs multiples où ce type est candidat ; plusieurs types sont combinés en OR
+- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity ; **diagnostics payload** (champs critères catégories) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
 - Actions manuelles : reprocesser (relancer matching), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
 
 #### Remboursements
@@ -298,7 +299,7 @@ Phase D — Migration Replit (livraison client)
 #### Configuration globale
 - Prix lead temps réel par type (défaut IUL = 25 $)
 - Prix aged lead (défaut 5 $)
-- **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label`, prix par défaut ; clé interne `type` générée (non éditable)
+- **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label`, prix par défaut ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
 - *(Futur)* frais de retraitement
 
 #### Migration historique
@@ -319,6 +320,7 @@ Phase D — Migration Replit (livraison client)
 
 #### Mes leads
 - Liste des leads livrés (temps réel + aged achetés)
+- Vues sauvegardées avec périodes today / yesterday / 7 derniers jours / mois dernier / custom, appliquées à la date de livraison
 - Détail : contact, état, date, prix payé, certificat TrustedForm
 - Bouton **demander remboursement** (si delivery `refundable`)
 
@@ -643,6 +645,14 @@ Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste 
 
 - Fenêtre : **24 h** après entrée
 - Puis IntegrityCONNECT si toujours unmatched
+
+### Changement des règles de catégorie
+
+- Réévaluer par lots les leads non finalisés à partir du payload brut avec le même évaluateur exact que l’intake
+- Exclure les statuts `delivered`, `integrity_posted`, `aged_listed` et `dead`
+- Si une seule catégorie matche, synchroniser la classification et remettre le lead `unmatched` / disponible, sans matching ni livraison immédiate
+- Si zéro ou plusieurs catégories matchent, synchroniser la classification et placer le lead en `review` / indisponible
+- Ne jamais écraser un lead devenu final pendant la réévaluation
 
 ### Volume
 

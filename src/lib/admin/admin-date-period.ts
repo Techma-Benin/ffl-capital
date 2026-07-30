@@ -1,4 +1,8 @@
-import type { AdminDatePeriod, AdminLeadViewFilters } from "@/lib/leads/list-view-schema";
+import type {
+  AdminDatePeriod,
+  AdminLeadViewFilters,
+  PartnerLeadViewFilters,
+} from "@/lib/leads/list-view-schema";
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -227,6 +231,17 @@ export function resolveAdminReceivedAtRange(
   filters: Pick<AdminLeadViewFilters, "datePeriod" | "from" | "to">,
   now: Date = new Date(),
 ): { gte?: Date; lte?: Date } | null {
+  return resolveLeadViewDateRange(filters, now);
+}
+
+/** Resolve saved-view date filters to local-calendar bounds for any timestamp. */
+export function resolveLeadViewDateRange(
+  filters: Pick<
+    AdminLeadViewFilters | PartnerLeadViewFilters,
+    "datePeriod" | "from" | "to"
+  >,
+  now: Date = new Date(),
+): { gte?: Date; lte?: Date } | null {
   const period =
     filters.datePeriod ??
     (filters.from || filters.to ? ("custom" as const) : undefined);
@@ -254,11 +269,9 @@ export function resolveAdminReceivedAtRange(
     case "custom": {
       if (!filters.from && !filters.to) return null;
       const range: { gte?: Date; lte?: Date } = {};
-      if (filters.from) range.gte = new Date(filters.from);
+      if (filters.from) range.gte = startOfDay(adminParseYmd(filters.from));
       if (filters.to) {
-        const end = new Date(filters.to);
-        end.setHours(23, 59, 59, 999);
-        range.lte = end;
+        range.lte = endOfDay(adminParseYmd(filters.to));
       }
       return range;
     }

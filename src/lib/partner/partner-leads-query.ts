@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { resolveLeadViewDateRange } from "@/lib/admin/admin-date-period";
 import {
   parsePartnerFilters,
   type PartnerLeadViewFilters,
@@ -15,6 +16,7 @@ export async function buildPartnerLeadsWhere(
   const channels = f.channels ?? [];
   const types = f.types ?? [];
   const statuses = f.statuses ?? [];
+  const deliveredAt = resolveLeadViewDateRange(f);
 
   let validatedFilterSetId: string | null = null;
   if (f.filterSetId) {
@@ -53,6 +55,7 @@ export async function buildPartnerLeadsWhere(
     ...(validatedFilterSetId ? { filterSetId: validatedFilterSetId } : {}),
     ...(Object.keys(leadWhere).length ? { lead: leadWhere } : {}),
     ...(channels.length ? { channel: { in: channels } } : {}),
+    ...(deliveredAt ? { deliveredAt } : {}),
     ...(statuses.length && statuses.length < 3
       ? { OR: statusConditions }
       : {}),

@@ -46,6 +46,7 @@ export function AdminLeadsListClient({
   views,
   activeView,
   catalog,
+  filterSets,
   filterSummary,
   exportSlot,
   leads,
@@ -57,6 +58,7 @@ export function AdminLeadsListClient({
   views: ViewRecord[];
   activeView: ViewRecord;
   catalog: LeadColumnDef[];
+  filterSets: { id: string; name: string }[];
   filterSummary?: React.ReactNode;
   exportSlot?: React.ReactNode;
   leads: LeadRow[];
@@ -159,6 +161,7 @@ export function AdminLeadsListClient({
             views={views}
             activeView={activeView}
             catalog={catalog}
+            adminFilterSets={filterSets}
             filterSummary={filterSummary}
             exportSlot={exportSlot}
             displayControls={viewControls}

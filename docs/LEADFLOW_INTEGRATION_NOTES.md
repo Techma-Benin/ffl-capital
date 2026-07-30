@@ -19,6 +19,8 @@ Default SRC-based rules were backfilled from the former `lead_categories.src` co
 
 Admin configures categories at `/admin/settings` → **Lead categories**.
 
+Rule changes also re-evaluate existing non-finalized leads from `rawPayload` with the same evaluator. Creating/deleting an enabled category or changing criteria/`enabled` synchronizes `leadType`, resolution, candidates, status, and availability; `delivered`, `integrity_posted`, `aged_listed`, and `dead` leads are never changed. A newly unique match returns to `unmatched` / available for later reprocessing, without immediate matching or delivery.
+
 The client confirmed (call 13-7, minute 6:09) that high intent and regular IUL share the same Active Prospect flow; differentiation is via form/source fields. Either a separate Facebook page or distinct SRC values remain compatible — configure matching criteria in admin.
 
 ---

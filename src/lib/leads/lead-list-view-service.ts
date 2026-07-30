@@ -38,12 +38,11 @@ function validateViewPayload(
 ) {
   const parsedSort = leadViewSortSchema.parse(sort);
   const parsedColumns = zodColumns(columns, scope);
-  if (scope === LeadListViewScope.admin) {
-    adminLeadViewFiltersSchema.parse(filters);
-  } else {
-    partnerLeadViewFiltersSchema.parse(filters);
-  }
-  return { filters, sort: parsedSort, columns: parsedColumns };
+  const parsedFilters =
+    scope === LeadListViewScope.admin
+      ? adminLeadViewFiltersSchema.parse(filters)
+      : partnerLeadViewFiltersSchema.parse(filters);
+  return { filters: parsedFilters, sort: parsedSort, columns: parsedColumns };
 }
 
 function zodColumns(columns: unknown, scope: LeadListViewScope): LeadViewColumn[] {

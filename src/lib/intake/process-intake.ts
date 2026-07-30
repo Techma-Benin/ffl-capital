@@ -76,6 +76,7 @@ export async function processLeadIntake(
 
   const categories = await prisma.leadCategory.findMany({
     where: { enabled: true },
+    orderBy: { createdAt: "asc" },
     select: {
       type: true,
       label: true,

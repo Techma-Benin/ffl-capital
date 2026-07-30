@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import { categoryUpdateSchema } from "@/lib/lead-categories/flexible-lead-categories";
+import { reclassifyNonFinalizedLeads } from "@/lib/lead-categories/reclassify-leads";
 
 const categoryInclude = {
   criteria: {
@@ -43,6 +44,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
   }
 
+  const existingCriteria = existing.criteria
+    .map(({ field, value }) => ({ field, value }))
+    .sort((a, b) => a.field.localeCompare(b.field));
+  const nextCriteria = parsed.data.criteria
+    ?.map(({ field, value }) => ({ field, value }))
+    .sort((a, b) => a.field.localeCompare(b.field));
+  const classificationRulesChanged =
+    (parsed.data.enabled !== undefined &&
+      parsed.data.enabled !== existing.enabled) ||
+    (nextCriteria !== undefined &&
+      JSON.stringify(nextCriteria) !== JSON.stringify(existingCriteria));
+
   const category = await prisma.$transaction(async (tx) => {
     if (parsed.data.criteria) {
       await tx.leadCategoryCriterion.deleteMany({ where: { categoryId: id } });
@@ -71,7 +84,11 @@ export async function PATCH(
     });
   });
 
-  return NextResponse.json({ category });
+  const reclassification = classificationRulesChanged
+    ? await reclassifyNonFinalizedLeads()
+    : null;
+
+  return NextResponse.json({ category, reclassification });
 }
 
 /** DELETE /api/admin/lead-categories/[id] — blocked if any leads reference this type */
@@ -98,5 +115,8 @@ export async function DELETE(
   }
 
   await prisma.leadCategory.delete({ where: { id } });
-  return NextResponse.json({ deleted: true });
+  const reclassification = existing.enabled
+    ? await reclassifyNonFinalizedLeads()
+    : null;
+  return NextResponse.json({ deleted: true, reclassification });
 }

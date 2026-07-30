@@ -94,7 +94,7 @@ export default async function AdminLeadsPage({
 
   const searchQuery = filters.q?.trim();
 
-  const [leads, total, categories] = await Promise.all([
+  const [leads, total, categories, rawFilterSets] = await Promise.all([
     prisma.lead.findMany({
       where: whereClause,
       orderBy,
@@ -110,7 +110,22 @@ export default async function AdminLeadsPage({
     }),
     prisma.lead.count({ where: whereClause }),
     loadEnabledCategoryLabels(),
+    prisma.partnerFilterSet.findMany({
+      where: { isTemplate: false },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        partner: { select: { firstName: true, lastName: true } },
+      },
+    }),
   ]);
+  const filterSets = rawFilterSets.map((filterSet) => ({
+    id: filterSet.id,
+    name: filterSet.partner
+      ? `${filterSet.name} — ${filterSet.partner.firstName} ${filterSet.partner.lastName}`
+      : filterSet.name,
+  }));
 
   const paginationParams: Record<string, string | undefined> = {
     view: view.id,
@@ -125,7 +140,7 @@ export default async function AdminLeadsPage({
     ]),
   );
 
-  const filterChips = buildFilterChips(filters);
+  const filterChips = buildFilterChips(filters, filterSets);
 
   return (
     <div>
@@ -144,6 +159,7 @@ export default async function AdminLeadsPage({
         views={views}
         activeView={view}
         catalog={ADMIN_LEAD_COLUMNS}
+        filterSets={filterSets}
         filterSummary={
           filterChips.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 px-1 text-xs text-slate-500">
@@ -204,7 +220,10 @@ export default async function AdminLeadsPage({
   );
 }
 
-function buildFilterChips(filters: ReturnType<typeof parseAdminFilters>) {
+function buildFilterChips(
+  filters: ReturnType<typeof parseAdminFilters>,
+  filterSets: { id: string; name: string }[],
+) {
   const chips: string[] = [];
   if (filters.statusSlice && filters.statusSlice !== "all") {
     chips.push(`Status: ${filters.statusSlice.replace(/_/g, " ")}`);
@@ -215,6 +234,13 @@ function buildFilterChips(filters: ReturnType<typeof parseAdminFilters>) {
         ? filters.states.join(", ")
         : `${filters.states.length} states`;
     chips.push(`State: ${label}`);
+  }
+  if (filters.types?.length) {
+    chips.push(`Type: ${filters.types.join(", ")}`);
+  }
+  if (filters.filterSetId) {
+    const filterSet = filterSets.find((item) => item.id === filters.filterSetId);
+    chips.push(`Filter set: ${filterSet?.name ?? filters.filterSetId}`);
   }
   if (filters.datePeriod) {
     if (filters.datePeriod === "custom") {

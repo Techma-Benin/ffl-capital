@@ -18,10 +18,9 @@ export const adminStatusSliceSchema = z.enum([
   "aged_listed",
 ]);
 
-export const adminCategoryResolutionSchema = z.enum([
-  "no_match",
-  "multiple_matches",
-]);
+export const UNCLASSIFIED_TYPE_FILTER = "__unclassified__";
+export const MULTIPLE_CATEGORY_MATCH_TYPE_FILTER =
+  "__multiple_category_match__";
 
 export const adminDatePeriodSchema = z.enum([
   "today",
@@ -48,6 +47,25 @@ function preprocessAdminFilters(raw: unknown): unknown {
     o.states = [legacyState];
   }
   delete o.state;
+
+  const migratedTypes = new Set(
+    Array.isArray(o.types)
+      ? o.types.filter((value): value is string => typeof value === "string")
+      : [],
+  );
+  if (o.categoryResolution === "no_match") {
+    migratedTypes.add(UNCLASSIFIED_TYPE_FILTER);
+  } else if (o.categoryResolution === "multiple_matches") {
+    migratedTypes.add(MULTIPLE_CATEGORY_MATCH_TYPE_FILTER);
+  }
+  if (Array.isArray(o.categoryCandidateTypes)) {
+    for (const value of o.categoryCandidateTypes) {
+      if (typeof value === "string" && value) migratedTypes.add(value);
+    }
+  }
+  if (migratedTypes.size) o.types = Array.from(migratedTypes);
+  delete o.categoryResolution;
+  delete o.categoryCandidateTypes;
   return o;
 }
 
@@ -57,6 +75,10 @@ function normalizeAdminFiltersForSave(
   let out = f;
   if (!out.states?.length) {
     const { states: _states, ...rest } = out;
+    out = rest;
+  }
+  if (!out.types?.length) {
+    const { types: _types, ...rest } = out;
     out = rest;
   }
   if (out.datePeriod && out.datePeriod !== "custom") {
@@ -72,8 +94,8 @@ function normalizeAdminFiltersForSave(
 
 const adminLeadViewFiltersSchemaInner = z.object({
   statusSlice: adminStatusSliceSchema.default("all"),
-  categoryResolution: adminCategoryResolutionSchema.optional(),
-  categoryCandidateTypes: z.array(z.string().min(1)).optional(),
+  types: z.array(z.string().min(1)).optional(),
+  filterSetId: z.string().uuid().optional().nullable(),
   states: z.array(z.string().length(2)).optional(),
   datePeriod: adminDatePeriodSchema.optional(),
   from: z.string().optional(),
@@ -86,7 +108,7 @@ export const adminLeadViewFiltersSchema = z.preprocess(
   adminLeadViewFiltersSchemaInner.transform(normalizeAdminFiltersForSave),
 );
 
-export const partnerLeadViewFiltersSchema = z.object({
+const partnerLeadViewFiltersSchemaInner = z.object({
   filterSetId: z.string().uuid().optional().nullable(),
   locations: z.array(z.string()).optional(),
   channels: z.array(z.enum(["realtime", "aged"])).optional(),
@@ -94,7 +116,34 @@ export const partnerLeadViewFiltersSchema = z.object({
   statuses: z
     .array(z.enum(["active", "refund_pending", "refunded"]))
     .optional(),
+  datePeriod: adminDatePeriodSchema.optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
 });
+
+function preprocessPartnerFilters(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null) return raw ?? {};
+  const filters = { ...(raw as Record<string, unknown>) };
+  if ((filters.from || filters.to) && filters.datePeriod == null) {
+    filters.datePeriod = "custom";
+  }
+  return filters;
+}
+
+export const partnerLeadViewFiltersSchema = z.preprocess(
+  preprocessPartnerFilters,
+  partnerLeadViewFiltersSchemaInner.transform((filters) => {
+    if (filters.datePeriod && filters.datePeriod !== "custom") {
+      const { from: _from, to: _to, ...rest } = filters;
+      return rest;
+    }
+    if (!filters.datePeriod) {
+      const { from: _from, to: _to, ...rest } = filters;
+      return rest;
+    }
+    return filters;
+  }),
+);
 
 export const leadViewCreateSchema = z.object({
   name: z.string().min(1).max(100),
@@ -112,7 +161,9 @@ export const leadViewUpdateSchema = z.object({
 });
 
 export type AdminLeadViewFilters = z.infer<typeof adminLeadViewFiltersSchemaInner>;
-export type PartnerLeadViewFilters = z.infer<typeof partnerLeadViewFiltersSchema>;
+export type PartnerLeadViewFilters = z.infer<
+  typeof partnerLeadViewFiltersSchemaInner
+>;
 export type LeadViewSort = z.infer<typeof leadViewSortSchema>;
 export type LeadViewColumn = z.infer<typeof leadViewColumnSchema>;
 

@@ -66,6 +66,7 @@
 | `scripts/verify-cron.mjs` | ✅ |
 | `scripts/verify-backend.mjs` étendu | ✅ |
 | Catégories lead flexibles (`lead_category_criteria`, résolution intake) | ✅ migration `20260730170000` |
+| Reclassification automatique après changement des règles catégories | ✅ sans migration supplémentaire |
 
 ### Reporté / hors scope
 
@@ -161,9 +162,11 @@ Auth : session **admin** ou **partner** (routes miroir sous `/api/admin/lead-vie
 
 **Corps PATCH** — sous-ensemble optionnel de `name`, `filters`, `sort`, `columns`, `isDefault`. Le sélecteur de colonnes (admin + partner) persiste `{ "columns": [...] }` sur la vue active via `PATCH .../lead-views/[id]` (debounce côté client, flush à la fermeture du panneau). Le layout cartes/tableau reste en `localStorage` (`admin-leads-table-layout` / `partner-leads-table-layout`), pas les colonnes.
 
-**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `categoryResolution` (`no_match` \| `multiple_matches` — anomalies intake), optionnel `categoryCandidateTypes` (tableau de `type` internes), optionnel `states` (tableau de codes US 2 lettres ; vide ou absent = tous les états ; l’ancien champ `state` unique est migré à la lecture), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `custom`), et si `datePeriod` = `custom` optionnel `from` / `to` (dates ISO `YYYY-MM-DD`, bornes `receivedAt` en jours calendaires locaux), optionnel `q`. Les vues sans `datePeriod` mais avec `from`/`to` sont traitées comme `custom`.
+**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `types[]`, `filterSetId`, `states[]` (codes US 2 lettres), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `custom`), bornes custom `from` / `to` (`YYYY-MM-DD`, sur `Lead.receivedAt`), et `q`. `types` contient les types internes des catégories et deux sentinelles : `__unclassified__` (`no_match`) et `__multiple_category_match__` (`multiple_matches`). Un type normal matche soit un lead résolu avec ce `leadType`, soit un lead `multiple_matches` dont `categoryCandidateTypes` contient ce type ; toutes les sélections Type sont combinées en OR. `filterSetId` exige qu’au moins une `LeadDelivery` du lead soit attribuée à ce filter set ; l’UI ne propose que les sets live, avec libellé `nom — Partner` pour les sets possédés et le nom seul sinon.
 
-**Filtres partner** (`filters`) : optionnel `filterSetId`, `locations[]`, `channels[]` (`realtime` \| `aged`), `types[]`, `statuses[]` (`active` \| `refund_pending` \| `refunded`).
+Compatibilité admin : l’ancien `state` unique est migré vers `states[]`; les anciens `categoryResolution` / `categoryCandidateTypes` sont prétraités vers `types[]`, retirés du JSON normalisé à la prochaine sauvegarde. Des bornes `from`/`to` sans `datePeriod` impliquent `custom`.
+
+**Filtres partner** (`filters`) : optionnel `filterSetId`, `locations[]`, `channels[]` (`realtime` \| `aged`), `types[]`, `statuses[]` (`active` \| `refund_pending` \| `refunded`), `datePeriod` (mêmes presets admin) et bornes custom `from` / `to`. La période porte sur `LeadDelivery.deliveredAt`, pas sur `Lead.receivedAt`; des bornes sans preset impliquent `custom`.
 
 **Réponse** (GET liste / détail / mutations) : enregistrement Prisma `LeadListView` — `id`, `scope`, `partnerId`, `name`, `filters`, `sort`, `columns`, `isDefault`, `createdByClerkUserId`, `createdAt`, `updatedAt`.
 
@@ -283,15 +286,21 @@ UI : `/admin/settings` → onglet **Lead categories** (`LeadCategoryManager`). M
 | Méthode | Route | Description |
 |---------|-------|-------------|
 | GET | `/api/admin/lead-categories` | Liste (avec `criteria`) |
-| POST | `/api/admin/lead-categories` | Création — `type` **interdit** (généré snake_case depuis `label`) |
-| PATCH | `/api/admin/lead-categories/[id]` | `label`, `criteria`, `defaultPrice`, `enabled`, `integrityLabel` |
-| DELETE | `/api/admin/lead-categories/[id]` | Refusé si des leads référencent le `type` |
+| POST | `/api/admin/lead-categories` | Création — `type` **interdit** (généré snake_case depuis `label`) ; reclassification si créée active |
+| PATCH | `/api/admin/lead-categories/[id]` | `label`, `criteria`, `defaultPrice`, `enabled`, `integrityLabel` ; reclassification si `criteria` ou `enabled` change |
+| DELETE | `/api/admin/lead-categories/[id]` | Refusé si des leads référencent le `type` ; sinon reclassification si la catégorie était active |
 
 Schémas Zod : `categoryCreateSchema`, `categoryUpdateSchema`. Critères : au moins un par catégorie ; `field` unique par catégorie. `integrityLabel` alimente `lead_type_thom` à la revente Integrity.
 
+### Reclassification après changement des règles
+
+`reclassify-leads.ts` expose `reclassifyNonFinalizedLeads()` et réutilise exactement `evaluateLeadCategories`, comme l’intake. Le service parcourt les leads par lots de 100 à partir de `rawPayload` — y compris les leads assignés manuellement, dont les critères ont été inscrits dans ce payload — et exclut `delivered`, `integrity_posted`, `aged_listed` et `dead`.
+
+Quand la classification change, une transaction met à jour ensemble `leadType`, `categoryResolution`, `categoryCandidateTypes`, `status` et `available`. Une résolution unique repasse le lead en `unmatched` / `available=true`, sans lancer matching ni livraison dans cette requête ; zéro ou plusieurs matchs donnent `review` / `available=false`. Chaque écriture revalide que le statut n’est pas devenu final entre la lecture et l’update, puis émet l’événement existant `reprocessed` avec `reason=category_rules_changed`. Il n’existe ni FK Lead → catégorie ni migration dédiée à ce service.
+
 ### Présentation et libellés UI
 
-Modules : `category-presentation.ts`, `category-labels.ts`. Les libellés affichés (admin, partner, emails, filtres) viennent de la table `lead_categories`, pas de constantes IUL hardcodées. Anomalies intake : **Unclassified** (`no_match` / `leadType` vide) et **Multiple match** (avec chips des candidats). Helpers : `resolveLeadCategoryPresentation`, `loadEnabledCategoryLabels`, `buildCategoryFilterOptions`.
+Modules : `category-presentation.ts`, `category-labels.ts`. Les libellés des catégories affichées (admin, partner, emails, filtres) viennent de la table `lead_categories`, pas de constantes IUL hardcodées. Les libellés d’anomalie sont fixes : **Unclassified** (`no_match` / `leadType` vide) et **Multiple match** (avec chips candidats libellés depuis la table) ; le filtre Type affiche **Multiple category match**. Helpers : `resolveLeadCategoryPresentation`, `loadEnabledCategoryLabels`, `buildCategoryFilterOptions`.
 
 ### Diagnostics payload (détail lead admin)
 
@@ -521,3 +530,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-29 | Clerk Replit : handler local `tickets/accept` (fix page blanche invitations) ; admin invite → `/admin/sign-up` ; proxy FAPI skip sur ce chemin |
 | 2026-07-30 | Catégories lead flexibles : critères multi-champs, résolution intake (`category_resolution`), filtres vues admin, UI settings |
 | 2026-07-30 | Résolution catégorie complète : libellés UI dynamiques, diagnostics payload, assignation manuelle review, garde-fous reprocess, import/réparation, événement `category_assigned` |
+| 2026-07-30 | Vues leads : filtre Type admin unifié + attribution filter set ; périodes partner sur `deliveredAt` ; règles catégories → reclassification automatique des leads non finalisés |

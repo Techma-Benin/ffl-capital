@@ -7,6 +7,7 @@ import { PartnerLeadsListClient } from "@/components/partner/partner-leads-list-
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
 import { buildPartnerLeadsWhere } from "@/lib/partner/partner-leads-query";
+import { adminDatePeriodLabel } from "@/lib/admin/admin-date-period";
 import {
   PARTNER_LEAD_SORT_KEYS,
   buildPartnerLeadOrderBy,
@@ -233,5 +234,13 @@ function buildPartnerFilterChips(
   if (filters.channels?.length) chips.push(`Channel: ${filters.channels.join(", ")}`);
   if (filters.types?.length) chips.push(`Type: ${filters.types.join(", ")}`);
   if (filters.statuses?.length) chips.push(`Status: ${filters.statuses.join(", ")}`);
+  if (filters.datePeriod === "custom") {
+    if (filters.from) chips.push(`Delivered from: ${filters.from}`);
+    if (filters.to) chips.push(`Delivered to: ${filters.to}`);
+  } else if (filters.datePeriod) {
+    chips.push(
+      `Delivered: ${adminDatePeriodLabel(filters.datePeriod) ?? filters.datePeriod}`,
+    );
+  }
   return chips;
 }

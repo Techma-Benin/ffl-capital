@@ -36,6 +36,7 @@ export function LeadViewEditorSheet({
   mode,
   initial,
   catalog,
+  adminFilterSets,
   partnerFilterSets,
   onSave,
   pending,
@@ -46,6 +47,8 @@ export function LeadViewEditorSheet({
   mode: "create" | "edit";
   initial: LeadViewEditorState;
   catalog: LeadColumnDef[];
+  /** Admin scope only: actual delivery-attribution filter sets. */
+  adminFilterSets?: { id: string; name: string }[];
   /** Partner scope only: filter sets for the filter-set dropdown. */
   partnerFilterSets?: { id: string; name: string }[];
   onSave: (state: LeadViewEditorState) => Promise<void>;
@@ -110,6 +113,7 @@ export function LeadViewEditorSheet({
             {scope === "admin" && adminFilters && (
               <AdminLeadViewFilterFields
                 filters={adminFilters}
+                filterSets={adminFilterSets ?? []}
                 onChange={setFilters}
               />
             )}

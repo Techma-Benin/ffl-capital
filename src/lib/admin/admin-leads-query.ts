@@ -2,6 +2,8 @@ import { LeadCategoryResolution, LeadStatus, Prisma } from "@prisma/client";
 import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { resolveAdminReceivedAtRange } from "@/lib/admin/admin-date-period";
 import {
+  MULTIPLE_CATEGORY_MATCH_TYPE_FILTER,
+  UNCLASSIFIED_TYPE_FILTER,
   parseAdminFilters,
   type AdminLeadViewFilters,
 } from "@/lib/leads/list-view-schema";
@@ -52,14 +54,47 @@ export async function buildAdminLeadsWhere(
 
   if (f.states?.length) where.state = { in: f.states };
 
-  if (f.categoryResolution) {
-    where.categoryResolution =
-      f.categoryResolution === "no_match"
-        ? LeadCategoryResolution.no_match
-        : LeadCategoryResolution.multiple_matches;
+  if (f.types?.length) {
+    const normalTypes = f.types.filter(
+      (type) =>
+        type !== UNCLASSIFIED_TYPE_FILTER &&
+        type !== MULTIPLE_CATEGORY_MATCH_TYPE_FILTER,
+    );
+    const typeConditions: Prisma.LeadWhereInput[] = [];
+    if (normalTypes.length) {
+      typeConditions.push(
+        {
+          categoryResolution: LeadCategoryResolution.matched,
+          leadType: { in: normalTypes },
+        },
+        {
+          categoryResolution: LeadCategoryResolution.multiple_matches,
+          categoryCandidateTypes: { hasSome: normalTypes },
+        },
+      );
+    }
+    if (f.types.includes(UNCLASSIFIED_TYPE_FILTER)) {
+      typeConditions.push({
+        categoryResolution: LeadCategoryResolution.no_match,
+      });
+    }
+    if (f.types.includes(MULTIPLE_CATEGORY_MATCH_TYPE_FILTER)) {
+      typeConditions.push({
+        categoryResolution: LeadCategoryResolution.multiple_matches,
+      });
+    }
+    if (typeConditions.length) {
+      const existingAnd = where.AND
+        ? Array.isArray(where.AND)
+          ? where.AND
+          : [where.AND]
+        : [];
+      where.AND = [...existingAnd, { OR: typeConditions }];
+    }
   }
-  if (f.categoryCandidateTypes?.length) {
-    where.categoryCandidateTypes = { hasSome: f.categoryCandidateTypes };
+
+  if (f.filterSetId) {
+    where.leadDeliveries = { some: { filterSetId: f.filterSetId } };
   }
 
   const receivedRange = resolveAdminReceivedAtRange(f);

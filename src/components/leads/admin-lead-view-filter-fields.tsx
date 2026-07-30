@@ -9,6 +9,10 @@ import type {
   AdminDatePeriod,
   AdminLeadViewFilters,
 } from "@/lib/leads/list-view-schema";
+import {
+  MULTIPLE_CATEGORY_MATCH_TYPE_FILTER,
+  UNCLASSIFIED_TYPE_FILTER,
+} from "@/lib/leads/list-view-schema";
 import { ADMIN_DATE_PERIOD_OPTIONS } from "@/lib/admin/admin-date-period";
 import { FilterChipGroup } from "@/components/leads/filter-chip-group";
 
@@ -21,13 +25,15 @@ type CategoryOption = { type: string; label: string };
 
 export function AdminLeadViewFilterFields({
   filters,
+  filterSets,
   onChange,
 }: {
   filters: AdminLeadViewFilters;
+  filterSets: { id: string; name: string }[];
   onChange: (patch: Partial<AdminLeadViewFilters>) => void;
 }) {
   const selectedStates = filters.states ?? [];
-  const selectedCandidates = filters.categoryCandidateTypes ?? [];
+  const selectedTypes = filters.types ?? [];
   const [categories, setCategories] = useState<CategoryOption[]>([]);
 
   useEffect(() => {
@@ -45,7 +51,7 @@ export function AdminLeadViewFilterFields({
           })),
         );
       } catch {
-        // Non-blocking: candidate filter is optional.
+        // Non-blocking: type filter is optional.
       }
     })();
     return () => {
@@ -64,19 +70,26 @@ export function AdminLeadViewFilterFields({
     setStates(Array.from(next).sort());
   }
 
-  function toggleCandidate(type: string) {
-    const next = new Set(selectedCandidates);
+  function toggleType(type: string) {
+    const next = new Set(selectedTypes);
     if (next.has(type)) next.delete(type);
     else next.add(type);
     onChange({
-      categoryCandidateTypes: next.size ? Array.from(next).sort() : undefined,
+      types: next.size ? Array.from(next).sort() : undefined,
     });
   }
 
-  const candidateOptions = categories.map((category) => ({
-    value: category.type,
-    label: category.label,
-  }));
+  const typeOptions = [
+    ...categories.map((category) => ({
+      value: category.type,
+      label: category.label,
+    })),
+    { value: UNCLASSIFIED_TYPE_FILTER, label: "Unclassified" },
+    {
+      value: MULTIPLE_CATEGORY_MATCH_TYPE_FILTER,
+      label: "Multiple category match",
+    },
+  ];
 
   return (
     <>
@@ -102,34 +115,29 @@ export function AdminLeadViewFilterFields({
         </select>
       </div>
       <div>
-        <label className="form-label text-[10px]">Category resolution</label>
+        <label className="form-label text-[10px]">Filter set</label>
         <select
           className="form-select w-full text-sm"
-          value={filters.categoryResolution ?? ""}
-          onChange={(e) => {
-            const value = e.target.value;
-            onChange({
-              categoryResolution:
-                value === "no_match" || value === "multiple_matches"
-                  ? value
-                  : undefined,
-            });
-          }}
+          value={filters.filterSetId ?? ""}
+          onChange={(e) =>
+            onChange({ filterSetId: e.target.value || null })
+          }
         >
-          <option value="">Any</option>
-          <option value="no_match">No category match</option>
-          <option value="multiple_matches">Multiple category matches</option>
+          <option value="">All filter sets</option>
+          {filterSets.map((filterSet) => (
+            <option key={filterSet.id} value={filterSet.id}>
+              {filterSet.name}
+            </option>
+          ))}
         </select>
       </div>
-      {candidateOptions.length > 0 && (
-        <FilterChipGroup
-          label="Candidate categories"
-          options={candidateOptions}
-          selected={selectedCandidates}
-          onToggle={toggleCandidate}
-          scrollable
-        />
-      )}
+      <FilterChipGroup
+        label="Type"
+        options={typeOptions}
+        selected={selectedTypes}
+        onToggle={toggleType}
+        scrollable
+      />
       <FilterChipGroup
         label="States"
         options={STATE_OPTIONS}
