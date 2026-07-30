@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 /** Clerk FAPI path proxied at `/api/__clerk` in production. */
 export const CLERK_TICKET_ACCEPT_PATH = "/api/__clerk/v1/tickets/accept";
@@ -12,8 +12,8 @@ export function isClerkTicketAcceptRequest(request: NextRequest): boolean {
 
 /**
  * Whether incoming Frontend-API requests should be proxied to Clerk.
- * Ticket acceptance is handled locally — see
- * `src/app/api/__clerk/v1/tickets/accept/route.ts`.
+ * Ticket acceptance is handled locally in middleware — App Router cannot
+ * route folders starting with `_` (see `handleClerkTicketAccept`).
  */
 export function shouldProxyClerkFrontendApi(url: URL): boolean {
   if (process.env.NODE_ENV !== "production") return false;
@@ -62,11 +62,36 @@ function defaultSignUpPath(isAdmin: boolean): string {
 }
 
 function buildRedirect(origin: string, pathOrUrl: string, ticket: string): string {
-  const target = pathOrUrl.startsWith("http")
-    ? new URL(pathOrUrl)
-    : new URL(pathOrUrl, origin);
+  let target: URL;
+  if (pathOrUrl.startsWith("http")) {
+    const embedded = new URL(pathOrUrl);
+    // redirectUrl is set at invite time (may be localhost while the link is
+    // opened on Replit). Always land on the host that received the click.
+    target = new URL(`${embedded.pathname}${embedded.search}`, origin);
+  } else {
+    target = new URL(pathOrUrl, origin);
+  }
   target.searchParams.set("__clerk_ticket", ticket);
   return target.toString();
+}
+
+/**
+ * Handle `GET /api/__clerk/v1/tickets/accept` in middleware.
+ * Cannot use an App Router route file — `__clerk` starts with `_` (private folder → 404).
+ */
+export function handleClerkTicketAccept(request: NextRequest): NextResponse | null {
+  if (!isClerkTicketAcceptRequest(request)) return null;
+
+  const ticket = request.nextUrl.searchParams.get("ticket");
+  if (!ticket) {
+    return NextResponse.json({ error: "Missing ticket" }, { status: 400 });
+  }
+
+  const location =
+    resolveClerkTicketAcceptRedirectFromPayload(request.nextUrl.origin, ticket) ??
+    buildRedirect(request.nextUrl.origin, "/sign-up", ticket);
+
+  return NextResponse.redirect(location, 302);
 }
 
 /**

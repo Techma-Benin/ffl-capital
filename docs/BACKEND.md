@@ -321,8 +321,7 @@ Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/
 
 | Fichier | Rôle |
 |---------|------|
-| `src/app/api/__clerk/v1/tickets/accept/route.ts` | 302 → sign-up avec `__clerk_ticket` |
-| `src/lib/auth/clerk-ticket-accept.ts` | Skip proxy middleware + résolution JWT edge-safe |
+| `src/lib/auth/clerk-ticket-accept.ts` | Handler middleware + résolution JWT edge-safe (skip proxy) |
 | `src/lib/auth/clerk-ticket-accept-server.ts` | Fallback lookup invitation Clerk (Node) |
 
 `shouldProxyClerkFrontendApi` et route publique `CLERK_TICKET_ACCEPT_PATH` dans `src/middleware.ts`.

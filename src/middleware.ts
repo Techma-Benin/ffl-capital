@@ -1,6 +1,10 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { CLERK_TICKET_ACCEPT_PATH, shouldProxyClerkFrontendApi } from "@/lib/auth/clerk-ticket-accept";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
+import {
+  CLERK_TICKET_ACCEPT_PATH,
+  handleClerkTicketAccept,
+  shouldProxyClerkFrontendApi,
+} from "@/lib/auth/clerk-ticket-accept";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -48,17 +52,23 @@ const protectedMiddleware = clerkMiddleware(
     // domain (see src/app/api/__clerk) instead of a Clerk CNAME subdomain.
     // Proxying isn't supported for dev instances, so this stays off in dev.
     frontendApiProxy: {
-      // Skip proxying ticket acceptance — handled locally so Cloudflare never
-      // blocks invite links (see src/app/api/__clerk/v1/tickets/accept/route.ts).
+      // Skip proxying ticket acceptance — handled in middleware so Cloudflare
+      // never blocks invite links (see handleClerkTicketAccept).
       enabled: shouldProxyClerkFrontendApi,
       path: "/api/__clerk",
     },
   },
 );
 
-export default clerkEnabled
-  ? protectedMiddleware
-  : () => NextResponse.next();
+export default function middleware(request: NextRequest, event: NextFetchEvent) {
+  const ticketResponse = handleClerkTicketAccept(request);
+  if (ticketResponse) return ticketResponse;
+
+  if (clerkEnabled) {
+    return protectedMiddleware(request, event);
+  }
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [

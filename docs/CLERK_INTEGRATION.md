@@ -42,8 +42,7 @@ L'endpoint `tickets/accept` ne fait **qu'une redirection 302** (doc Clerk). On l
 
 | Composant | Rôle |
 |-----------|------|
-| `src/app/api/__clerk/v1/tickets/accept/route.ts` | Handler `GET` — redirige vers sign-up avec `__clerk_ticket` |
-| `src/lib/auth/clerk-ticket-accept.ts` | Logique edge-safe (JWT payload, skip proxy) |
+| `src/lib/auth/clerk-ticket-accept.ts` | Handler `GET` en middleware — redirige vers sign-up avec `__clerk_ticket` (pas de route App Router : dossier `__clerk` privé) |
 | `src/lib/auth/clerk-ticket-accept-server.ts` | Fallback Node : lookup invitation Clerk si JWT incomplet |
 | `src/middleware.ts` | `frontendApiProxy.enabled` = `shouldProxyClerkFrontendApi` (skip pour `tickets/accept`) ; route publique |
 
