@@ -9,6 +9,7 @@ import {
 } from "@/lib/crm-outbound/source-fields";
 import type { CrmOutboundConfigInput } from "@/lib/crm-outbound/schemas";
 import { ActionButton } from "@/components/ui/action-button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Switch } from "@/components/ui/switch";
 import { WarningCircle } from "@/lib/icons/client";
 import { notify } from "@/lib/notify";
@@ -351,6 +352,7 @@ export function PartnerCrmOutboundWizard({
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [configured, setConfigured] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [sampleJson, setSampleJson] = useState("");
@@ -438,13 +440,13 @@ export function PartnerCrmOutboundWizard({
 
   async function deleteConfig() {
     if (!configured) return;
-    if (!window.confirm("Remove CRM outbound configuration?")) return;
     setDeleting(true);
     try {
       const res = await fetch("/api/partners/me/crm-outbound", { method: "DELETE" });
       if (!res.ok) { const data = await res.json(); notify.error(data.error ?? "Delete failed"); return; }
       setConfigured(false);
       setForm(emptyForm());
+      setDeleteConfirmOpen(false);
       notify.success("CRM outbound configuration removed.");
     } catch {
       notify.error("Delete failed");
@@ -921,7 +923,7 @@ export function PartnerCrmOutboundWizard({
                     type="button"
                     variant="secondary"
                     loading={deleting}
-                    onClick={() => void deleteConfig()}
+                    onClick={() => setDeleteConfirmOpen(true)}
                     disabled={deleting}
                     className="text-red-500 hover:border-red-200"
                   >
@@ -977,6 +979,19 @@ export function PartnerCrmOutboundWizard({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteConfirmOpen(false);
+        }}
+        title="Remove CRM configuration?"
+        description="Remove CRM outbound configuration? You'll need to set it up again to post leads to your CRM."
+        confirmLabel="Remove configuration"
+        variant="danger"
+        loading={deleting}
+        onConfirm={() => void deleteConfig()}
+      />
     </section>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Lightning, Prohibit, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { notify } from "@/lib/notify";
 
 export function BlockPartnerButton({
@@ -14,6 +15,7 @@ export function BlockPartnerButton({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const canBlock = status === "active" || status === "pending_approval";
   const canActivate = status === "disabled" || status === "rejected";
@@ -22,12 +24,13 @@ export function BlockPartnerButton({
 
   function handleClick() {
     if (canBlock) {
-      const ok = confirm(
-        "Block this partner? They will no longer receive leads and filter sets will be deactivated.",
-      );
-      if (!ok) return;
+      setConfirmOpen(true);
+      return;
     }
+    runStatusUpdate();
+  }
 
+  function runStatusUpdate() {
     startTransition(async () => {
       const nextStatus = canBlock ? "disabled" : "active";
       const res = await fetch(`/api/admin/partners/${partnerId}`, {
@@ -46,20 +49,35 @@ export function BlockPartnerButton({
 
   if (canBlock) {
     return (
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={isPending}
-        className="group btn-danger btn-sm inline-flex items-center gap-1.5"
-      >
-        <Prohibit
-          size={14}
-          weight={ICON_WEIGHT_LINEAR}
-          className="opacity-90"
-          aria-hidden
+      <>
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={isPending}
+          className="group btn-danger btn-sm inline-flex items-center gap-1.5"
+        >
+          <Prohibit
+            size={14}
+            weight={ICON_WEIGHT_LINEAR}
+            className="opacity-90"
+            aria-hidden
+          />
+          {isPending ? "Blocking…" : "Block partner"}
+        </button>
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title="Block partner?"
+          description="They will no longer receive leads and filter sets will be deactivated."
+          confirmLabel="Block partner"
+          variant="danger"
+          loading={isPending}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            runStatusUpdate();
+          }}
         />
-        {isPending ? "Blocking…" : "Block partner"}
-      </button>
+      </>
     );
   }
 

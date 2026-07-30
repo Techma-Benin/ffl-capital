@@ -11,6 +11,7 @@ import {
   type LeadViewEditorState,
 } from "@/components/leads/lead-view-editor-sheet";
 import { LeadColumnSettings } from "@/components/leads/lead-column-settings";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { notify } from "@/lib/notify";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type { LeadViewSort } from "@/lib/leads/list-view-schema";
@@ -73,6 +74,7 @@ export function LeadViewsToolbar({
   const [editorMode, setEditorMode] = useState<"create" | "edit">("edit");
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const refresh = useCallback(() => router.refresh(), [router]);
 
@@ -193,7 +195,6 @@ export function LeadViewsToolbar({
   }
 
   async function deleteView() {
-    if (!confirm(`Delete view “${activeView.name}”?`)) return;
     setPending(true);
     try {
       const res = await fetch(`${apiBase}/${activeView.id}`, {
@@ -206,10 +207,15 @@ export function LeadViewsToolbar({
       }
       const fallback = views.find((v) => v.isDefault && v.id !== activeView.id);
       push(`${basePath}?view=${fallback?.id ?? views[0]?.id}`);
+      setDeleteConfirmOpen(false);
       refresh();
     } finally {
       setPending(false);
     }
+  }
+
+  function requestDeleteView() {
+    setDeleteConfirmOpen(true);
   }
 
   return (
@@ -227,7 +233,7 @@ export function LeadViewsToolbar({
             },
             onDuplicate: duplicateView,
             onSetDefault: setDefault,
-            onDelete: deleteView,
+            onDelete: requestDeleteView,
           }}
         />
         {selectionAction && (
@@ -246,7 +252,7 @@ export function LeadViewsToolbar({
             }}
             onDuplicate={duplicateView}
             onSetDefault={setDefault}
-            onDelete={deleteView}
+            onDelete={requestDeleteView}
             onNewView={() => {
               setEditorMode("create");
               setEditorOpen(true);
@@ -278,6 +284,19 @@ export function LeadViewsToolbar({
         catalog={catalog}
         columns={columns}
         onChange={saveColumns}
+      />
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open && !pending) setDeleteConfirmOpen(false);
+        }}
+        title="Delete view?"
+        description={`Delete view “${activeView.name}”? This cannot be undone.`}
+        confirmLabel="Delete view"
+        variant="danger"
+        loading={pending}
+        onConfirm={() => void deleteView()}
       />
     </div>
   );

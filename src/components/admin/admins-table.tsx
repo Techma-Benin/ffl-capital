@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { InviteAdminDialog } from "@/components/admin/invite-admin-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { notify } from "@/lib/notify";
 import { Crown, Trash, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
@@ -38,95 +39,71 @@ export function AdminsTable({
   viewerIsSuperAdmin?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirm, setConfirm] = useState<
+    | { kind: "remove"; row: AdminRow }
+    | { kind: "revoke"; row: AdminRow }
+    | { kind: "transfer"; row: AdminRow }
+    | null
+  >(null);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const allRows = [...admins, ...pendingInvites];
 
   function handleRemove(row: AdminRow) {
-    if (
-      !window.confirm(
-        `Remove admin access for ${row.email}? They'll keep their account but will no longer be able to sign in as an admin.`,
-      )
-    ) {
-      return;
-    }
-
-    setPendingActionId(row.id);
-    startTransition(async () => {
-      try {
-        const res = await fetch(
-          `/api/admin/administrators/${row.id}/remove`,
-          { method: "POST" },
-        );
-        const data = await res.json();
-        if (!res.ok) {
-          notify.error(data.error ?? "Failed to remove admin access.");
-          return;
-        }
-        notify.success(`Removed admin access for ${row.email}.`);
-        router.refresh();
-      } catch {
-        notify.error("Network error — please try again.");
-      } finally {
-        setPendingActionId(null);
-      }
-    });
+    setConfirm({ kind: "remove", row });
   }
 
   function handleRevokeInvite(row: AdminRow) {
-    if (
-      !window.confirm(
-        `Revoke the invitation sent to ${row.email}? The invite link will stop working.`,
-      )
-    ) {
-      return;
-    }
-
-    setPendingActionId(row.id);
-    startTransition(async () => {
-      try {
-        const res = await fetch(
-          `/api/admin/administrators/invitations/${row.id}`,
-          { method: "DELETE" },
-        );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          notify.error(data.error ?? "Failed to revoke invitation.");
-          return;
-        }
-        notify.success(`Revoked invitation to ${row.email}.`);
-        router.refresh();
-      } catch {
-        notify.error("Network error — please try again.");
-      } finally {
-        setPendingActionId(null);
-      }
-    });
+    setConfirm({ kind: "revoke", row });
   }
 
   function handleTransfer(row: AdminRow) {
-    if (
-      !window.confirm(
-        `Make ${row.email} the super admin? You'll immediately lose your own super admin title.`,
-      )
-    ) {
-      return;
-    }
+    setConfirm({ kind: "transfer", row });
+  }
+
+  function runConfirmedAction() {
+    if (!confirm) return;
+    const row = confirm.row;
 
     setPendingActionId(row.id);
     startTransition(async () => {
       try {
-        const res = await fetch(
-          `/api/admin/administrators/${row.id}/transfer-super-admin`,
-          { method: "POST" },
-        );
-        const data = await res.json();
-        if (!res.ok) {
-          notify.error(data.error ?? "Failed to transfer super admin.");
-          return;
+        if (confirm.kind === "remove") {
+          const res = await fetch(
+            `/api/admin/administrators/${row.id}/remove`,
+            { method: "POST" },
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            notify.error(data.error ?? "Failed to remove admin access.");
+            return;
+          }
+          notify.success(`Removed admin access for ${row.email}.`);
+        } else if (confirm.kind === "revoke") {
+          const res = await fetch(
+            `/api/admin/administrators/invitations/${row.id}`,
+            { method: "DELETE" },
+          );
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            notify.error(data.error ?? "Failed to revoke invitation.");
+            return;
+          }
+          notify.success(`Revoked invitation to ${row.email}.`);
+        } else {
+          const res = await fetch(
+            `/api/admin/administrators/${row.id}/transfer-super-admin`,
+            { method: "POST" },
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            notify.error(data.error ?? "Failed to transfer super admin.");
+            return;
+          }
+          notify.success(`${row.email} is now the super admin.`);
         }
-        notify.success(`${row.email} is now the super admin.`);
+        setConfirm(null);
         router.refresh();
       } catch {
         notify.error("Network error — please try again.");
@@ -135,6 +112,27 @@ export function AdminsTable({
       }
     });
   }
+
+  const confirmCopy =
+    confirm?.kind === "remove"
+      ? {
+          title: "Remove admin access?",
+          description: `Remove admin access for ${confirm.row.email}? They'll keep their account but will no longer be able to sign in as an admin.`,
+          confirmLabel: "Remove access",
+        }
+      : confirm?.kind === "revoke"
+        ? {
+            title: "Revoke invitation?",
+            description: `Revoke the invitation sent to ${confirm.row.email}? The invite link will stop working.`,
+            confirmLabel: "Revoke invitation",
+          }
+        : confirm?.kind === "transfer"
+          ? {
+              title: "Transfer super admin?",
+              description: `Make ${confirm.row.email} the super admin? You'll immediately lose your own super admin title.`,
+              confirmLabel: "Transfer role",
+            }
+          : null;
 
   return (
     <>
@@ -341,6 +339,21 @@ export function AdminsTable({
       </button>
 
       <InviteAdminDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+
+      {confirmCopy && (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open && !isPending) setConfirm(null);
+          }}
+          title={confirmCopy.title}
+          description={confirmCopy.description}
+          confirmLabel={confirmCopy.confirmLabel}
+          variant="danger"
+          loading={isPending}
+          onConfirm={runConfirmedAction}
+        />
+      )}
     </>
   );
 }

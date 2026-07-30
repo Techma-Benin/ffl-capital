@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import {
   Plus,
@@ -35,15 +36,9 @@ export function FilterSetTemplateManager({
   const [templates, setTemplates] = useState(initialTemplates);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   async function handleDelete(id: string) {
-    if (
-      !confirm(
-        "Delete this template? Filter sets already copied from it won't be affected.",
-      )
-    ) {
-      return;
-    }
     setDeletingId(id);
     setDeleteError("");
     try {
@@ -56,6 +51,7 @@ export function FilterSetTemplateManager({
         return;
       }
       setTemplates((prev) => prev.filter((t) => t.id !== id));
+      setConfirmDeleteId(null);
     } catch {
       setDeleteError("Request failed. Please try again.");
     } finally {
@@ -143,7 +139,7 @@ export function FilterSetTemplateManager({
                 type="button"
                 title="Delete"
                 disabled={deletingId === t.id}
-                onClick={() => handleDelete(t.id)}
+                onClick={() => setConfirmDeleteId(t.id)}
                 className="ml-4 flex-shrink-0 rounded p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
               >
                 <Trash size={14} weight={ICON_WEIGHT_LINEAR} />
@@ -158,6 +154,21 @@ export function FilterSetTemplateManager({
           {deleteError}
         </p>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setConfirmDeleteId(null);
+        }}
+        title="Delete template?"
+        description="Filter sets already copied from it won't be affected."
+        confirmLabel="Delete template"
+        variant="danger"
+        loading={deletingId !== null}
+        onConfirm={() => {
+          if (confirmDeleteId) void handleDelete(confirmDeleteId);
+        }}
+      />
     </div>
   );
 }

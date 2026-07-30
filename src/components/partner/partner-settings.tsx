@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { PartnerAvatar } from "@/components/admin/partner-avatar";
 import { PortalLink } from "@/components/ui/portal-link";
@@ -165,6 +166,7 @@ function FilterSetsSection() {
   const [loadError, setLoadError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -181,7 +183,6 @@ function FilterSetsSection() {
   }, [load]);
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this filter set? It cannot be undone.")) return;
     setDeletingId(id);
     setDeleteError("");
     try {
@@ -194,6 +195,7 @@ function FilterSetsSection() {
         return;
       }
       setFilterSets((prev) => prev?.filter((fs) => fs.id !== id) ?? null);
+      setConfirmDeleteId(null);
     } catch {
       setDeleteError("Request failed. Please try again.");
     } finally {
@@ -289,7 +291,7 @@ function FilterSetsSection() {
                       disabled={deletingId === fs.id}
                       onClick={(e) => {
                         e.stopPropagation();
-                        void handleDelete(fs.id);
+                        setConfirmDeleteId(fs.id);
                       }}
                       className="rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
                     >
@@ -307,6 +309,21 @@ function FilterSetsSection() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setConfirmDeleteId(null);
+        }}
+        title="Delete filter set?"
+        description="This cannot be undone."
+        confirmLabel="Delete filter set"
+        variant="danger"
+        loading={deletingId !== null}
+        onConfirm={() => {
+          if (confirmDeleteId) void handleDelete(confirmDeleteId);
+        }}
+      />
     </div>
   );
 }
