@@ -67,24 +67,23 @@ export function ConfirmDialog({
       />
 
       <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 id={titleId} className="text-base font-semibold text-slate-900">
-              {title}
-            </h2>
-            <p id={descriptionId} className="mt-2 text-sm leading-relaxed text-slate-500">
-              {description}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={loading}
-            className="flex-shrink-0 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
-            aria-label="Close"
-          >
-            <X size={18} weight={ICON_WEIGHT_LINEAR} aria-hidden />
-          </button>
+        <button
+          type="button"
+          onClick={handleClose}
+          disabled={loading}
+          className="absolute right-4 top-4 flex-shrink-0 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+          aria-label="Close"
+        >
+          <X size={18} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+        </button>
+
+        <div className="mb-4 text-center">
+          <h2 id={titleId} className="text-base font-semibold text-slate-900">
+            {title}
+          </h2>
+          <p id={descriptionId} className="mt-2 text-sm leading-relaxed text-slate-500">
+            {description}
+          </p>
         </div>
 
         <div className="flex justify-end gap-2">
