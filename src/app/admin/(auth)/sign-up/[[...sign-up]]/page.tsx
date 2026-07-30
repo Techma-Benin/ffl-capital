@@ -48,7 +48,7 @@ export default async function AdminSignUpPage() {
             Create your admin account
           </h2>
           <p className="mb-6 text-sm text-slate-500">
-            You've been invited to join as an administrator. Set a password to finish setting up your account.
+            You&apos;ve been invited to join as an administrator. Set a password to finish setting up your account.
           </p>
 
           <SignUp
