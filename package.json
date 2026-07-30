@@ -21,6 +21,9 @@
     "test:matching": "node scripts/test-matching.mjs",
     "test:outbound": "pnpm exec tsx scripts/test-outbound.ts",
     "test:aged-rules": "pnpm exec tsx scripts/test-aged-purchase-rules.ts",
+    "test:backend:current": "node --import tsx --test test/current/*.test.ts",
+    "test:backend:planned": "node --import tsx --test test/planned/*.test.ts",
+    "test:backend": "node --import tsx --test test/current/*.test.ts test/planned/*.test.ts",
     "verify": "node scripts/verify-backend.mjs",
     "verify:cron": "node scripts/verify-cron.mjs",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
