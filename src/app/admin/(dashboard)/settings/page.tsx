@@ -21,8 +21,11 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]["key"];
 
-/** Tabs that contain the settings form (have a saveable form) */
-const FORM_TABS = new Set<Tab>(["general", "lead-categories", "integrations"]);
+/** Tabs rendered by AdminSettingsForm */
+const SETTINGS_FORM_TABS = new Set<Tab>(["general", "lead-categories", "integrations"]);
+
+/** Tabs that show the global "Save all changes" button */
+const SAVE_FORM_TABS = new Set<Tab>(["general", "integrations"]);
 
 // ---------------------------------------------------------------------------
 // Page
@@ -91,7 +94,8 @@ export default async function AdminSettingsPage({
       }));
   }
 
-  const isFormTab = FORM_TABS.has(activeTab);
+  const showSettingsForm = SETTINGS_FORM_TABS.has(activeTab);
+  const showSaveButton = SAVE_FORM_TABS.has(activeTab);
 
   return (
     <div className="flex flex-col">
@@ -117,7 +121,7 @@ export default async function AdminSettingsPage({
         {/* spacer pushes save button to the right */}
         <span className="flex-1" />
 
-        {isFormTab && (
+        {showSaveButton && (
           <div className="flex items-center gap-2.5 py-2 pr-1">
             <button
               type="submit"
@@ -134,7 +138,7 @@ export default async function AdminSettingsPage({
       <div className="flex flex-col gap-4">
 
         {/* General / Lead categories / Integrations */}
-        {isFormTab && (
+        {showSettingsForm && (
           <AdminSettingsForm
             tab={activeTab as "general" | "lead-categories" | "integrations"}
             isDev={process.env.NODE_ENV !== "production"}

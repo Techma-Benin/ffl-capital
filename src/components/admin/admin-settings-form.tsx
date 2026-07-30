@@ -762,11 +762,6 @@ export function AdminSettingsForm({
           </div>
         )}
 
-        {/* ── LEAD CATEGORIES TAB ────────────────────────────────────────── */}
-        {tab === "lead-categories" && (
-          <LeadCategoryManager />
-        )}
-
         {/* ── INTEGRATIONS TAB — Resale vendors (saveable) ───────────────── */}
         {tab === "integrations" && (
           <div className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)] overflow-hidden">
@@ -920,6 +915,9 @@ export function AdminSettingsForm({
         )}
 
       </form>
+
+      {/* Lead categories — outside the form; saves via its own modal API calls */}
+      {tab === "lead-categories" && <LeadCategoryManager />}
 
       {/* Integrity Connect + Recent postings — outside the form, integrations tab only */}
       {tab === "integrations" && (
