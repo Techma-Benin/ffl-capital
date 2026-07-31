@@ -1,7 +1,7 @@
 import { PrismaClient, PartnerStatus } from "@prisma/client";
-import { readFileSync } from "fs";
-import { join, dirname } from "path";
+import { dirname } from "path";
 import { fileURLToPath } from "url";
+import { seedUnmatchedLeads } from "./seed-unmatched-leads.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -193,6 +193,9 @@ async function main() {
     },
   });
 
+  console.log("Seeding unmatched demo leads…");
+  const unmatchedLeads = await seedUnmatchedLeads(prisma);
+
   console.log("Seed complete:", {
     txHighPriority: txHighPriority.id,
     fifoOlder: fifoOlder.id,
@@ -201,6 +204,10 @@ async function main() {
     lowBalance: lowBalance.id,
     tooFewStates: tooFewStates.id,
     pendingPartner: pendingPartner.id,
+    unmatchedLeads: unmatchedLeads.map((l) => ({
+      name: l.name,
+      state: l.state,
+    })),
   });
 }
 

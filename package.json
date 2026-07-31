@@ -17,6 +17,7 @@
     "seed:lead": "node scripts/seed-lead.mjs",
     "seed:refunds-demo": "node scripts/seed-refunds-demo.mjs",
     "seed:aged-leads": "node scripts/seed-aged-leads.mjs",
+    "seed:unmatched-leads": "node scripts/seed-unmatched-leads.mjs",
     "prod:init": "node scripts/prod-init.mjs",
     "test:matching": "node scripts/test-matching.mjs",
     "test:outbound": "pnpm exec tsx scripts/test-outbound.ts",
