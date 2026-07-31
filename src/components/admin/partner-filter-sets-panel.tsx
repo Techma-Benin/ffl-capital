@@ -1,11 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { clsx } from "clsx";
 import { useEffect, useState } from "react";
 import { PencilSimple, Plus, Trash, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
 import { Badge } from "@/components/ui/badge";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 import { PortalLink } from "@/components/ui/portal-link";
+import { Spinner } from "@/components/ui/spinner";
+import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import {
   adminPartnerFilterSetEditPath,
   adminPartnerFilterSetNewPath,
@@ -42,9 +45,14 @@ export function PartnerFilterSetsPanel({
   /** `document` — bordered rows (P4/P5); `table` — legacy data table */
   layout?: "table" | "document";
 }) {
-  const router = useRouter();
+  const { push, router } = useNavigateWithPending();
+  const { pendingPath } = usePortal();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+
+  function navigateToEdit(filterSetId: string) {
+    push(adminPartnerFilterSetEditPath(partnerId, filterSetId));
+  }
 
   useEffect(() => {
     fetch("/api/admin/lead-categories")
@@ -108,21 +116,27 @@ export function PartnerFilterSetsPanel({
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               Active sets
             </p>
-            {filterSets.map((fs) => (
+            {filterSets.map((fs) => {
+              const editHref = adminPartnerFilterSetEditPath(partnerId, fs.id);
+              const pending = isNavigationPending(pendingPath, editHref);
+
+              return (
               <div
                 key={fs.id}
                 role="link"
                 tabIndex={0}
-                onClick={() =>
-                  router.push(adminPartnerFilterSetEditPath(partnerId, fs.id))
-                }
+                aria-busy={pending}
+                onClick={() => navigateToEdit(fs.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    router.push(adminPartnerFilterSetEditPath(partnerId, fs.id));
+                    navigateToEdit(fs.id);
                   }
                 }}
-                className="group flex cursor-pointer flex-col gap-3 rounded-lg border border-slate-100 p-3.5 transition-colors hover:border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between"
+                className={clsx(
+                  "group flex cursor-pointer flex-col gap-3 rounded-lg border border-slate-100 p-3.5 transition-colors hover:border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between",
+                  pending && "pointer-events-none opacity-70",
+                )}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -144,13 +158,16 @@ export function PartnerFilterSetsPanel({
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  {pending && <Spinner size="xs" variant="slate" />}
                   <InlineActionButton
                     tone="slate"
                     icon={<PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} />}
                     className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                    loading={pending}
+                    loadingText="Opening…"
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(adminPartnerFilterSetEditPath(partnerId, fs.id));
+                      navigateToEdit(fs.id);
                     }}
                   >
                     Edit
@@ -171,7 +188,8 @@ export function PartnerFilterSetsPanel({
                   )}
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         ) : (
           <table className="data-table">
@@ -188,7 +206,11 @@ export function PartnerFilterSetsPanel({
               </tr>
             </thead>
             <tbody>
-              {filterSets.map((fs) => (
+              {filterSets.map((fs) => {
+                const editHref = adminPartnerFilterSetEditPath(partnerId, fs.id);
+                const pending = isNavigationPending(pendingPath, editHref);
+
+                return (
                 <tr key={fs.id}>
                   <td className="font-medium">{fs.name}</td>
                   <td>
@@ -217,9 +239,9 @@ export function PartnerFilterSetsPanel({
                       <InlineActionButton
                         tone="slate"
                         icon={<PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} />}
-                        onClick={() =>
-                          router.push(adminPartnerFilterSetEditPath(partnerId, fs.id))
-                        }
+                        loading={pending}
+                        loadingText="Opening…"
+                        onClick={() => navigateToEdit(fs.id)}
                       >
                         Edit
                       </InlineActionButton>
@@ -237,7 +259,8 @@ export function PartnerFilterSetsPanel({
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         )}
