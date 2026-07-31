@@ -109,6 +109,7 @@ export function AdminLeadViewFilterFields({
           <option value="unmatched">Unmatched</option>
           <option value="integrity_posted">Integrity</option>
           <option value="aged_listed">Aged listed</option>
+          <option value="review">Review</option>
         </select>
       </div>
       <div>

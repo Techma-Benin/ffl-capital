@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   LeadCategoryResolution,
+  LeadStatus,
 } from "@prisma/client";
-import { buildAdminLeadsWhere } from "../../src/lib/admin/admin-leads-query";
+import {
+  buildAdminLeadsWhere,
+  legacyStatusToSlice,
+} from "../../src/lib/admin/admin-leads-query";
 import { buildPartnerLeadsWhere } from "../../src/lib/partner/partner-leads-query";
 import {
   MULTIPLE_CATEGORY_MATCH_TYPE_FILTER,
@@ -11,6 +15,23 @@ import {
   parseAdminFilters,
   parsePartnerFilters,
 } from "../../src/lib/leads/list-view-schema";
+
+describe("admin saved-view status slices", () => {
+  test("parses review statusSlice", () => {
+    assert.deepEqual(parseAdminFilters({ statusSlice: "review" }), {
+      statusSlice: "review",
+    });
+  });
+
+  test("filters leads with review status", async () => {
+    const where = await buildAdminLeadsWhere({ statusSlice: "review" });
+    assert.equal(where.status, LeadStatus.review);
+  });
+
+  test("maps legacy review tab param to statusSlice", () => {
+    assert.equal(legacyStatusToSlice("review"), "review");
+  });
+});
 
 describe("admin saved-view type filters", () => {
   test("migrates legacy resolution and candidate fields into unified types", () => {

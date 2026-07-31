@@ -50,6 +50,8 @@ export async function buildAdminLeadsWhere(
     where.status = LeadStatus.integrity_posted;
   } else if (slice === "aged_listed") {
     where = await buildAgedLeadWhere();
+  } else if (slice === "review") {
+    where.status = LeadStatus.review;
   }
 
   if (f.states?.length) where.state = { in: f.states };
@@ -117,6 +119,7 @@ export function legacyStatusToSlice(
     "unmatched",
     "integrity_posted",
     "aged_listed",
+    "review",
   ] as const;
   return allowed.includes(status as (typeof allowed)[number])
     ? (status as AdminLeadViewFilters["statusSlice"])

@@ -16,6 +16,7 @@ export const adminStatusSliceSchema = z.enum([
   "unmatched",
   "integrity_posted",
   "aged_listed",
+  "review",
 ]);
 
 export const UNCLASSIFIED_TYPE_FILTER = "__unclassified__";
