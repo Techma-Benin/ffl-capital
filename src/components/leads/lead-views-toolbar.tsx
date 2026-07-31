@@ -21,8 +21,10 @@ import {
   parsePartnerFilters,
   partnerLeadViewFiltersSchema,
 } from "@/lib/leads/list-view-schema";
+import { LeadViewDraftActions } from "@/components/leads/lead-view-draft-actions";
 import {
-  leadViewDraftsEqual,
+  buildLeadViewUrlWithoutDraft,
+  hasUnsavedAppliedLeadViewDraft,
   serializeLeadViewDraft,
 } from "@/lib/leads/lead-view-draft";
 
@@ -126,20 +128,32 @@ export function LeadViewsToolbar({
     columns,
   });
 
-  const hasUnsavedAppliedDraft =
-    !!appliedDraft &&
-    !leadViewDraftsEqual(scope, appliedDraft, persistedEditorState());
+  const hasUnsavedAppliedDraft = hasUnsavedAppliedLeadViewDraft(
+    scope,
+    appliedDraft,
+    persistedEditorState(),
+  );
 
   function pushDraft(draft: LeadViewEditorState | null) {
-    const params = new URLSearchParams(window.location.search);
-    params.set("view", activeView.id);
-    params.delete("page");
     if (draft) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("view", activeView.id);
+      params.delete("page");
       params.set("draft", serializeLeadViewDraft(draft));
-    } else {
-      params.delete("draft");
+      push(`${basePath}?${params.toString()}`);
+      return;
     }
-    push(`${basePath}?${params.toString()}`);
+    push(
+      buildLeadViewUrlWithoutDraft(
+        basePath,
+        activeView.id,
+        window.location.search,
+      ),
+    );
+  }
+
+  function clearAppliedDraft() {
+    pushDraft(null);
   }
 
   useEffect(() => {
@@ -293,14 +307,11 @@ export function LeadViewsToolbar({
           ) : null}
           {displayControls}
           {hasUnsavedAppliedDraft && (
-            <button
-              type="button"
-              className="btn-primary btn-sm"
-              disabled={pending}
-              onClick={() => void saveAppliedDraft()}
-            >
-              {pending ? "Saving…" : "Save view"}
-            </button>
+            <LeadViewDraftActions
+              pending={pending}
+              onSave={() => void saveAppliedDraft()}
+              onClear={clearAppliedDraft}
+            />
           )}
           <LeadViewActionsMenu
             isDefault={activeView.isDefault}

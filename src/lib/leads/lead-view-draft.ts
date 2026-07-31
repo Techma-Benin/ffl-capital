@@ -75,3 +75,28 @@ export function parseLeadViewDraft(
     return null;
   }
 }
+
+/** True when an applied draft differs from the last persisted view state. */
+export function hasUnsavedAppliedLeadViewDraft(
+  scope: LeadViewDraftScope,
+  appliedDraft: LeadViewDraft | null | undefined,
+  persisted: LeadViewDraft,
+): boolean {
+  return (
+    !!appliedDraft && !leadViewDraftsEqual(scope, appliedDraft, persisted)
+  );
+}
+
+/** URL that drops the draft param and keeps the active view (revert applied changes). */
+export function buildLeadViewUrlWithoutDraft(
+  basePath: string,
+  viewId: string,
+  search: string,
+): string {
+  const params = new URLSearchParams(search);
+  params.set("view", viewId);
+  params.delete("page");
+  params.delete("draft");
+  const query = params.toString();
+  return query ? `${basePath}?${query}` : basePath;
+}

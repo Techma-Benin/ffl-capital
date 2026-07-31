@@ -16,6 +16,8 @@ import {
   parsePartnerFilters,
 } from "../../src/lib/leads/list-view-schema";
 import {
+  buildLeadViewUrlWithoutDraft,
+  hasUnsavedAppliedLeadViewDraft,
   leadViewDraftsEqual,
   parseLeadViewDraft,
 } from "../../src/lib/leads/lead-view-draft";
@@ -214,6 +216,38 @@ describe("lead view draft state", () => {
         }),
       ),
       null,
+    );
+  });
+
+  test("detects unsaved applied drafts", () => {
+    const persisted = {
+      name: "All leads",
+      filters: { statusSlice: "all" },
+      columns,
+    };
+    assert.equal(hasUnsavedAppliedLeadViewDraft("admin", null, persisted), false);
+    assert.equal(
+      hasUnsavedAppliedLeadViewDraft("admin", persisted, persisted),
+      false,
+    );
+    assert.equal(
+      hasUnsavedAppliedLeadViewDraft(
+        "admin",
+        { ...persisted, filters: { statusSlice: "review" } },
+        persisted,
+      ),
+      true,
+    );
+  });
+
+  test("buildLeadViewUrlWithoutDraft drops draft and page params", () => {
+    assert.equal(
+      buildLeadViewUrlWithoutDraft(
+        "/admin/leads",
+        "view-1",
+        "view=view-1&page=3&draft=%7B%22name%22%3A%22x%22%7D&sort=receivedAt",
+      ),
+      "/admin/leads?view=view-1&sort=receivedAt",
     );
   });
 });
