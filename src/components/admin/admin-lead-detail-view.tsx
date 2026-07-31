@@ -288,7 +288,7 @@ export function AdminLeadDetailView({
             )}
 
             {lead.rawPayload != null && (
-              <details className="card p-4 sm:p-6" open>
+              <details className="card p-4 sm:p-6" open={lead.status === "review"}>
                 <summary className="cursor-pointer text-sm font-semibold text-slate-900">
                   Raw Payload (audit trail)
                 </summary>
