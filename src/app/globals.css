@@ -17,6 +17,10 @@
     --app-dot-color-bright: var(--app-pattern-line-bright);
     --app-spotlight-x: 50%;
     --app-spotlight-y: 50%;
+    /* document.body portal layers: sheets < transient popovers */
+    --z-layer-sheet: 80;
+    --z-layer-popover-backdrop: 90;
+    --z-layer-popover: 100;
   }
 
   * {

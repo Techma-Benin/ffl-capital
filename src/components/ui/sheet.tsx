@@ -64,7 +64,7 @@ export function Sheet({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex justify-end motion-safe:animate-sheet-backdrop-in motion-reduce:animate-none bg-slate-900/40 backdrop-blur-[1px]"
+      className="fixed inset-0 z-[var(--z-layer-sheet)] flex justify-end motion-safe:animate-sheet-backdrop-in motion-reduce:animate-none bg-slate-900/40 backdrop-blur-[1px]"
       onMouseDown={onBackdropClick}
       aria-hidden={false}
     >
