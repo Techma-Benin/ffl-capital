@@ -136,7 +136,6 @@ export function AdminLeadViewFilterFields({
         options={typeOptions}
         selected={selectedTypes}
         onToggle={toggleType}
-        scrollable
       />
       <FilterChipGroup
         label="States"
