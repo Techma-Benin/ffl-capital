@@ -2,12 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
-import type {
-  AdminDatePeriod,
-  PartnerLeadViewFilters,
-} from "@/lib/leads/list-view-schema";
-import { ADMIN_DATE_PERIOD_OPTIONS } from "@/lib/admin/admin-date-period";
+import type { PartnerLeadViewFilters } from "@/lib/leads/list-view-schema";
 import { FilterChipGroup } from "@/components/leads/filter-chip-group";
+import { LeadViewDatePeriodFilter } from "@/components/leads/lead-view-date-period-filter";
 
 const LOCATION_OPTIONS = US_STATE_CODES.map((code) => ({
   value: code,
@@ -124,61 +121,12 @@ export function PartnerLeadViewFilterFields({
         selected={filters.statuses ?? []}
         onToggle={(v) => toggleArray("statuses", v)}
       />
-      <div>
-        <label className="form-label text-[10px]">Date period</label>
-        <select
-          className="form-select w-full text-sm"
-          value={filters.datePeriod ?? ""}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (!value) {
-              onChange({
-                datePeriod: undefined,
-                from: undefined,
-                to: undefined,
-              });
-            } else if (value === "custom") {
-              onChange({ datePeriod: "custom" });
-            } else {
-              onChange({
-                datePeriod: value as AdminDatePeriod,
-                from: undefined,
-                to: undefined,
-              });
-            }
-          }}
-        >
-          {ADMIN_DATE_PERIOD_OPTIONS.map((option) => (
-            <option key={option.value || "none"} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      {filters.datePeriod === "custom" && (
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="form-label text-[10px]">From</label>
-            <input
-              type="date"
-              className="form-input w-full text-sm"
-              value={filters.from ?? ""}
-              onChange={(e) =>
-                onChange({ from: e.target.value || undefined })
-              }
-            />
-          </div>
-          <div>
-            <label className="form-label text-[10px]">To</label>
-            <input
-              type="date"
-              className="form-input w-full text-sm"
-              value={filters.to ?? ""}
-              onChange={(e) => onChange({ to: e.target.value || undefined })}
-            />
-          </div>
-        </div>
-      )}
+      <LeadViewDatePeriodFilter
+        datePeriod={filters.datePeriod}
+        from={filters.from}
+        to={filters.to}
+        onChange={onChange}
+      />
     </>
   );
 }

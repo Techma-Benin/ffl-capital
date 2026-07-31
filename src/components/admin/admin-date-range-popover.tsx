@@ -96,10 +96,11 @@ export function AdminDateRangePopover({
   onOpenChange,
   hideTrigger = false,
   anchorRef,
+  allowPartialRange = false,
 }: {
   from?: string;
   to?: string;
-  onApply: (from: string, to: string) => void;
+  onApply: (from?: string, to?: string) => void;
   onCancel?: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -107,6 +108,8 @@ export function AdminDateRangePopover({
   hideTrigger?: boolean;
   /** Anchor element for positioned modal when `hideTrigger` is true. */
   anchorRef?: RefObject<HTMLElement | null>;
+  /** Preserve a one-sided range instead of treating it as a single-day range. */
+  allowPartialRange?: boolean;
 }) {
   const dialogId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -372,9 +375,17 @@ export function AdminDateRangePopover({
 
   function handleApply() {
     const clamped = clampAdminDateRangeToToday(start, end);
-    if (!clamped.start) return;
-    const endDate = clamped.end ?? clamped.start;
-    onApply(adminDateToYmd(clamped.start), adminDateToYmd(endDate));
+    if (allowPartialRange) {
+      if (!clamped.start && !clamped.end) return;
+      onApply(
+        clamped.start ? adminDateToYmd(clamped.start) : undefined,
+        clamped.end ? adminDateToYmd(clamped.end) : undefined,
+      );
+    } else {
+      if (!clamped.start) return;
+      const endDate = clamped.end ?? clamped.start;
+      onApply(adminDateToYmd(clamped.start), adminDateToYmd(endDate));
+    }
     if (hideTrigger) {
       setOpen(false);
     } else {
@@ -652,7 +663,7 @@ export function AdminDateRangePopover({
           <button
             type="button"
             className="rounded-[10px] border border-transparent bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!start}
+            disabled={allowPartialRange ? !start && !end : !start}
             onClick={handleApply}
           >
             Apply
