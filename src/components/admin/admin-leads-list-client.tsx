@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, ArrowsClockwise } from "@/lib/icons/client";
 import { EmptyState } from "@/components/ui/empty-state";
+import { notify } from "@/lib/notify";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import { LeadListTableShell } from "@/components/leads/lead-list-table-shell";
 import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
@@ -83,9 +84,29 @@ export function AdminLeadsListClient({
     setSelectedIds(ids);
   }, []);
 
-  function handleBulkReprocessClick() {
-    if (selectedIds.size === 0) return;
-    setReprocessDialogOpen(true);
+  const reprocessLeadIds = useMemo(
+    () => Array.from(selectedIds).sort(),
+    [selectedIds],
+  );
+
+  async function handleBulkReprocessClick() {
+    if (reprocessLeadIds.length === 0) return;
+    try {
+      const res = await fetch("/api/admin/leads/bulk-reprocess/hold", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds: reprocessLeadIds }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "Failed to reserve leads for reprocessing");
+      }
+      setReprocessDialogOpen(true);
+    } catch (err) {
+      notify.error(
+        err instanceof Error ? err.message : "Failed to start reprocess. Please try again.",
+      );
+    }
   }
 
   function handleReprocessSuccess() {
@@ -169,8 +190,8 @@ export function AdminLeadsListClient({
       <BulkReprocessPartnersDialog
         open={reprocessDialogOpen}
         onOpenChange={setReprocessDialogOpen}
-        leadIds={Array.from(selectedIds)}
-        leadCount={selectedIds.size}
+        leadIds={reprocessLeadIds}
+        leadCount={reprocessLeadIds.length}
         onSuccess={handleReprocessSuccess}
       />
     </LeadColumnSettingsBridge>

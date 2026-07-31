@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/session";
 import { reprocessSingleLead } from "@/lib/jobs/reprocess-unmatched";
+import { releaseLeadsFromReprocessHold } from "@/lib/jobs/reprocess-hold";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAdmin();
@@ -33,21 +34,25 @@ export async function POST(request: NextRequest) {
   let unmatched = 0;
   let errors = 0;
 
-  for (const id of leadIds) {
-    try {
-      const result = await reprocessSingleLead(id, {
-        includePartnerIds: partnerIds,
-        mode: "manual",
-      });
-      processed++;
-      if (result.matched) {
-        matched++;
-      } else {
-        unmatched++;
+  try {
+    for (const id of leadIds) {
+      try {
+        const result = await reprocessSingleLead(id, {
+          includePartnerIds: partnerIds,
+          mode: "manual",
+        });
+        processed++;
+        if (result.matched) {
+          matched++;
+        } else {
+          unmatched++;
+        }
+      } catch {
+        errors++;
       }
-    } catch {
-      errors++;
     }
+  } finally {
+    releaseLeadsFromReprocessHold(leadIds);
   }
 
   return NextResponse.json({ processed, matched, errors, unmatched });

@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 30 juillet 2026
+> Dernière mise à jour : 31 juillet 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -322,6 +322,8 @@ UI : `admin-lead-category-assign-panel.tsx` (chips candidats + sélecteur catég
 
 `reprocess-eligibility.ts` — `getReprocessEligibility` : refuse le reprocess si `category_resolution` est `no_match` ou `multiple_matches`, si `leadType` absent, ou si lead non `unmatched`/`available`. Branché dans `reprocess-unmatched.ts`.
 
+**Hold bulk manuel** (`reprocess-hold.ts`) : verrou en mémoire (TTL 10 min, renouvelé à chaque hold) pour éviter qu’un cron ou un reprocess ligne à ligne ne matche un lead pendant que l’admin choisit les partenaires dans le modal bulk. Le cron `reprocessUnmatchedLeads` ignore les leads tenus ; `reprocessSingleLead` sans `includePartnerIds` renvoie une erreur si le lead est tenu. Libération via `POST …/release-hold` (annulation modal) ou automatiquement dans le `finally` de `POST …/bulk-reprocess`. État **par processus Node** (pas partagé entre instances).
+
 ### Import et réparation historique
 
 - **Import CSV** : `import-category-classification.ts` + `map-csv-row-to-lead.ts` — même `evaluateLeadCategories` qu’à l’intake ; plus de fallback Traditional/High Intent depuis `SRC` seul.
@@ -423,13 +425,17 @@ Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`
 
 ### Reprocess admin (manuel vs cron)
 
+**Flux bulk UI** : clic Reprocess → `POST …/bulk-reprocess/hold` → modal → `POST …/eligible-partners` (renouvelle le hold) → confirmation → `POST …/bulk-reprocess` (libère le hold). Fermeture / annulation du modal → `POST …/release-hold`.
+
 | Route | Body | Réponse | Comportement |
 |-------|------|---------|--------------|
-| `POST /api/admin/leads/bulk-reprocess/eligible-partners` | `{ leadIds: string[] }` | `{ partners: [{ id, firstName, lastName, priority, matchCount }] }` | Partenaires actifs éligibles pour ≥1 lead (règles complètes filter set + limites). 400 si lead absent ou non `unmatched`+`available`. |
-| `POST /api/admin/leads/bulk-reprocess` | `{ leadIds: string[], partnerIds: string[] }` | `{ processed, matched, errors, unmatched }` | Reprocess manuel : `matchLead` restreint à `partnerIds` ; **pas** de fallback Integrity. |
-| `POST /api/admin/leads/:id/reprocess` | — | résultat `reprocessSingleLead` | Idem mode **manual** (match only). |
+| `POST /api/admin/leads/bulk-reprocess/hold` | `{ leadIds: string[] }` | `{ held: number }` | Pose un hold reprocess sur les leads (validation `unmatched`+`available`). |
+| `POST /api/admin/leads/bulk-reprocess/release-hold` | `{ leadIds: string[] }` | `{ released: number }` | Libère le hold (ex. modal fermé sans confirmer). |
+| `POST /api/admin/leads/bulk-reprocess/eligible-partners` | `{ leadIds: string[] }` | `{ partners: [{ id, firstName, lastName, priority, matchCount }] }` | Partenaires actifs éligibles pour ≥1 lead (règles complètes filter set + limites). Renouvelle le hold. 400 si lead absent ou non `unmatched`+`available`. |
+| `POST /api/admin/leads/bulk-reprocess` | `{ leadIds: string[], partnerIds: string[] }` | `{ processed, matched, errors, unmatched }` | Reprocess manuel : `matchLead` restreint à `partnerIds` ; **pas** de fallback Integrity. Libère le hold en `finally`. |
+| `POST /api/admin/leads/:id/reprocess` | — | résultat `reprocessSingleLead` | Idem mode **manual** (match only). Refusé si lead en hold bulk (sans allowlist). |
 
-Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads au-delà du délai configuré. `matchLead` accepte `includePartnerIds` (allowlist) via `findEligibleFilterSets`.
+Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads au-delà du délai configuré et **ignore** les leads en hold. `matchLead` accepte `includePartnerIds` (allowlist) via `findEligibleFilterSets`.
 
 ---
 
@@ -543,3 +549,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-30 | Catégories lead flexibles : critères multi-champs, résolution intake (`category_resolution`), filtres vues admin, UI settings |
 | 2026-07-30 | Résolution catégorie complète : libellés UI dynamiques, diagnostics payload, assignation manuelle review, garde-fous reprocess, import/réparation, événement `category_assigned` |
 | 2026-07-30 | Vues leads : filtre Type admin unifié + attribution filter set ; périodes partner sur `deliveredAt` ; règles catégories → reclassification automatique des leads non finalisés |
+| 2026-07-31 | Bulk reprocess : hold/release en mémoire pour éviter course cron / reprocess ligne pendant sélection partenaires ; routes `hold` et `release-hold` |

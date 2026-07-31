@@ -12,6 +12,7 @@ import {
   isIntegrityReprocessEnabled,
 } from "@/lib/settings/app-settings";
 import { getReprocessEligibility } from "@/lib/jobs/reprocess-eligibility";
+import { isLeadHeldForReprocess } from "@/lib/jobs/reprocess-hold";
 
 export interface ReprocessJobResult {
   attempted: number;
@@ -59,6 +60,10 @@ export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
 
   for (const lead of leads) {
     try {
+      if (isLeadHeldForReprocess(lead.id)) {
+        continue;
+      }
+
       if (lead.receivedAt > windowStart) {
         const result = await matchLead(lead.id);
         if (result.matched && result.deliveryId) {
@@ -114,6 +119,10 @@ export async function reprocessSingleLead(
   });
   if (!eligibility.eligible) {
     throw new Error(eligibility.reason ?? "Lead is not available for reprocessing");
+  }
+
+  if (isLeadHeldForReprocess(leadId) && !options?.includePartnerIds?.length) {
+    throw new Error("Lead is reserved for manual reprocessing");
   }
 
   const result = await matchLead(leadId, {

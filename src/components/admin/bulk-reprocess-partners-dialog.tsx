@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { notify } from "@/lib/notify";
@@ -36,6 +36,18 @@ export function BulkReprocessPartnersDialog({
   const [partners, setPartners] = useState<EligiblePartner[]>([]);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const leadIdsKey = useMemo(() => leadIds.join(","), [leadIds]);
+
+  function releaseHold(leadIdsToRelease: string[]) {
+    if (leadIdsToRelease.length === 0) return;
+    void fetch("/api/admin/leads/bulk-reprocess/release-hold", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leadIds: leadIdsToRelease }),
+      keepalive: true,
+    });
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -83,10 +95,11 @@ export function BulkReprocessPartnersDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, leadIds]);
+  }, [open, leadIdsKey, leadIds]);
 
   function handleClose() {
     if (submitting) return;
+    releaseHold(leadIds);
     onOpenChange(false);
   }
 

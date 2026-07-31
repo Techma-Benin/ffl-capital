@@ -6,6 +6,7 @@ import {
   isWithinLimits,
 } from "@/lib/matching/eligibility";
 import { getDefaultRealtimePrice } from "@/lib/settings/app-settings";
+import { holdLeadsForReprocess } from "@/lib/jobs/reprocess-hold";
 
 export type EligibleReprocessPartner = {
   id: string;
@@ -45,6 +46,8 @@ export async function getEligiblePartnersForReprocess(
       `${invalid.length} lead(s) are not available for reprocessing`,
     );
   }
+
+  holdLeadsForReprocess(leadIds);
 
   const defaultPrice = await getDefaultRealtimePrice();
 
