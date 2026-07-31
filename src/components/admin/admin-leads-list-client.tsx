@@ -14,6 +14,7 @@ import { useAdminLeadsTableLayout } from "@/components/admin/use-admin-leads-tab
 import { LeadToolbarColumnSettingsButton } from "@/components/leads/lead-table-column-picker-button";
 import { notify } from "@/lib/notify";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
+import type { LeadViewEditorState } from "@/components/leads/lead-view-editor-sheet";
 
 type ViewRecord = {
   id: string;
@@ -45,6 +46,7 @@ export function AdminLeadsListClient({
   basePath,
   views,
   activeView,
+  appliedDraft,
   catalog,
   filterSets,
   filterSummary,
@@ -57,6 +59,7 @@ export function AdminLeadsListClient({
   basePath: string;
   views: ViewRecord[];
   activeView: ViewRecord;
+  appliedDraft?: LeadViewEditorState | null;
   catalog: LeadColumnDef[];
   filterSets: { id: string; name: string }[];
   filterSummary?: React.ReactNode;
@@ -160,6 +163,7 @@ export function AdminLeadsListClient({
             basePath={basePath}
             views={views}
             activeView={activeView}
+            appliedDraft={appliedDraft}
             catalog={catalog}
             adminFilterSets={filterSets}
             filterSummary={filterSummary}

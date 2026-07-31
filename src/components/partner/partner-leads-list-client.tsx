@@ -12,6 +12,7 @@ import { LeadToolbarColumnSettingsButton } from "@/components/leads/lead-table-c
 import { usePortalDataTableLayout } from "@/hooks/use-portal-data-table-layout";
 import { PARTNER_LEADS_TABLE_LAYOUT_KEY } from "@/lib/partner/partner-leads-table-display";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
+import type { LeadViewEditorState } from "@/components/leads/lead-view-editor-sheet";
 
 type ViewRecord = {
   id: string;
@@ -50,6 +51,7 @@ export function PartnerLeadsListClient({
   basePath,
   views,
   activeView,
+  appliedDraft,
   catalog,
   partnerMeta,
   filterSummary,
@@ -61,6 +63,7 @@ export function PartnerLeadsListClient({
   basePath: string;
   views: ViewRecord[];
   activeView: ViewRecord;
+  appliedDraft?: LeadViewEditorState | null;
   catalog: LeadColumnDef[];
   partnerMeta: {
     filterSets: { id: string; name: string }[];
@@ -106,6 +109,7 @@ export function PartnerLeadsListClient({
             basePath={basePath}
             views={views}
             activeView={activeView}
+            appliedDraft={appliedDraft}
             catalog={catalog}
             partnerMeta={partnerMeta}
             filterSummary={filterSummary}
