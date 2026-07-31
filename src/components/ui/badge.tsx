@@ -1,12 +1,28 @@
 import { clsx } from "clsx";
 
-type BadgeVariant = "green" | "yellow" | "red" | "blue" | "slate" | "purple";
+export type BadgeVariant =
+  | "green"
+  | "yellow"
+  | "red"
+  | "blue"
+  | "sky"
+  | "indigo"
+  | "cyan"
+  | "teal"
+  | "steel"
+  | "slate"
+  | "purple";
 
 const variantClasses: Record<BadgeVariant, string> = {
   green:  "badge-green",
   yellow: "badge-yellow",
   red:    "badge-red",
   blue:   "badge-blue",
+  sky:    "badge-sky",
+  indigo: "badge-indigo",
+  cyan:   "badge-cyan",
+  teal:   "badge-teal",
+  steel:  "badge-steel",
   slate:  "badge-slate",
   purple: "badge-purple",
 };

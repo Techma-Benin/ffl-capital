@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { Badge } from "@/components/ui/badge";
+import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import {
   DotsThreeVertical,
   Eye,
@@ -357,9 +358,9 @@ export function PartnerLeadsTable({
       case "type":
         return (
           <td key={key} className={cellClass({ first, last })}>
-            <Badge variant="purple">
+            <LeadCategoryBadge leadType={d.lead.leadType || null}>
               {d.lead.leadTypeLabel}
-            </Badge>
+            </LeadCategoryBadge>
           </td>
         );
       case "channel":

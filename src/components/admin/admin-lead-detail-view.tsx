@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { clsx } from "clsx";
 import { Badge } from "@/components/ui/badge";
+import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
+import type { LeadCategoryResolution } from "@/lib/lead-categories/category-badge-variant";
 import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
 import { LeadRedeliverButton } from "@/components/admin/lead-redeliver-button";
 import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-button";
@@ -71,7 +73,7 @@ export type AdminLeadDetailLead = LeadDetailPanelLead & {
   available: boolean;
   refundable: boolean;
   leadType: string;
-  categoryResolution?: string;
+  categoryResolution?: LeadCategoryResolution;
   candidateLabels?: string[];
   categoryCandidateTypes?: string[];
   payloadDiagnostics?: DiagnosticField[];
@@ -143,7 +145,13 @@ export function AdminLeadDetailView({
         badges={
           <>
             <LeadStatusBadge status={lead.status} />
-            <Badge variant="purple">{lead.leadTypeLabel}</Badge>
+            <LeadCategoryBadge
+              leadType={lead.leadType || null}
+              categoryResolution={lead.categoryResolution}
+              leadTypeLabel={lead.leadTypeLabel}
+            >
+              {lead.leadTypeLabel}
+            </LeadCategoryBadge>
             {lead.candidateLabels && lead.candidateLabels.length > 0 && (
               <>
                 {lead.candidateLabels.map((label) => (

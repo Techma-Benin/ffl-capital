@@ -3,7 +3,7 @@
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
+import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
 import { ShoppingBag, Funnel, Clock } from "@/lib/icons/client";
@@ -409,9 +409,9 @@ export function PartnerAgedView({
                         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
                           {lead.state}
                         </span>
-                        <Badge variant="blue">
+                        <LeadCategoryBadge leadType={lead.leadType || null}>
                           {lead.leadTypeLabel}
-                        </Badge>
+                        </LeadCategoryBadge>
                         <span className={ageChip.chip}>
                           <Clock size={11} className={ageChip.icon} aria-hidden />
                           {ageDays}d

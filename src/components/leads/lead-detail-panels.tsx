@@ -1,4 +1,5 @@
-import { Badge } from "@/components/ui/badge";
+import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
+import type { LeadCategoryResolution } from "@/lib/lead-categories/category-badge-variant";
 import { formatDateTimeLong } from "@/lib/format-datetime";
 import {
   LeadDetailFieldList,
@@ -27,7 +28,13 @@ export function LeadDetailIulPanel({ lead }: { lead: LeadDetailPanelLead }) {
       <div className="flex justify-between gap-4 text-sm">
         <dt className="text-slate-500">Lead Type</dt>
         <dd>
-          <Badge variant="purple">{lead.leadTypeLabel}</Badge>
+          <LeadCategoryBadge
+            leadType={lead.leadType ?? null}
+            categoryResolution={lead.categoryResolution}
+            leadTypeLabel={lead.leadTypeLabel}
+          >
+            {lead.leadTypeLabel}
+          </LeadCategoryBadge>
         </dd>
       </div>
       <LeadDetailFieldRow label="Intent" value={lead.intent} />

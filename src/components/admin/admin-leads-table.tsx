@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { Badge } from "@/components/ui/badge";
+import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import {
   PortalDataTable,
   portalTableCell,
@@ -295,7 +296,9 @@ export function AdminLeadsTable({
       case "type":
         return (
           <td key={key} className={cellClass({ first, last })}>
-            <Badge variant="purple">{lead.leadTypeLabel}</Badge>
+            <LeadCategoryBadge leadType={lead.leadType || null}>
+              {lead.leadTypeLabel}
+            </LeadCategoryBadge>
           </td>
         );
       case "status":

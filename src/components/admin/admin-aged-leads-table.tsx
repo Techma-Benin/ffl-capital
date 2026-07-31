@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { clsx } from "clsx";
-import { Badge } from "@/components/ui/badge";
+import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import {
   PortalSortableHeaderCell,
   PortalTableHeaderCell,
@@ -104,9 +104,9 @@ export function AdminAgedLeadsTable({
               </td>
               <td>{lead.state}</td>
               <td>
-                <Badge variant="blue">
+                <LeadCategoryBadge leadType={lead.leadType || null}>
                   {lead.leadTypeLabel}
-                </Badge>
+                </LeadCategoryBadge>
               </td>
               <td className="capitalize">{lead.status.replace("_", " ")}</td>
               <td>{lead.ageDays}d</td>

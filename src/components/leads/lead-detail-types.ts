@@ -15,6 +15,8 @@ export type LeadDetailPanelLead = {
   zip: string | null;
   dob: string | null;
   age: string | null;
+  leadType?: string | null;
+  categoryResolution?: LeadCategoryResolution;
   leadTypeLabel: string;
   intent: string | null;
   haveIul: string | null;

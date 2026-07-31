@@ -3,6 +3,7 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
+import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PortalLink } from "@/components/ui/portal-link";
 import { usePartner } from "@/components/partner/partner-provider";
@@ -131,9 +132,9 @@ export function PartnerDashboard({ stats }: { stats: DashboardStats }) {
                       </span>
                     </td>
                     <td>
-                      <Badge variant="blue">
+                      <LeadCategoryBadge leadType={d.lead.leadType || null}>
                         {d.lead.leadTypeLabel}
-                      </Badge>
+                      </LeadCategoryBadge>
                     </td>
                     <td>
                       <Badge variant={d.channel === "realtime" ? "green" : "slate"}>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { PartnerRefundButton } from "@/components/partner/partner-refund-button";
 import { formatDateTimeLong } from "@/lib/format-datetime";
 import {
@@ -93,7 +94,13 @@ export function PartnerLeadDetailView({
         }
         badges={
           <>
-            <Badge variant="purple">{lead.leadTypeLabel}</Badge>
+            <LeadCategoryBadge
+              leadType={lead.leadType ?? null}
+              categoryResolution={lead.categoryResolution}
+              leadTypeLabel={lead.leadTypeLabel}
+            >
+              {lead.leadTypeLabel}
+            </LeadCategoryBadge>
             <Badge variant={channel === "realtime" ? "green" : "purple"}>
               {channelBadgeLabel}
             </Badge>

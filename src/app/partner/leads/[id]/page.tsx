@@ -108,6 +108,8 @@ export default async function PartnerLeadDetailPage({
         zip: lead.zip,
         dob: lead.dob,
         age: lead.age,
+        leadType: lead.leadType,
+        categoryResolution: lead.categoryResolution,
         leadTypeLabel,
         intent: lead.intent,
         haveIul: lead.haveIul,

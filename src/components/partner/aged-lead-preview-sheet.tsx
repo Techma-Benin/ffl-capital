@@ -2,6 +2,7 @@
 
 import { clsx } from "clsx";
 import { Badge } from "@/components/ui/badge";
+import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { Clock } from "@/lib/icons/client";
 import { formatUsd, moneyValueClassName } from "@/lib/format-money";
@@ -64,7 +65,9 @@ export function AgedLeadPreviewSheet({
             </span>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge variant="blue">{lead.leadTypeLabel}</Badge>
+            <LeadCategoryBadge leadType={lead.leadType || null}>
+              {lead.leadTypeLabel}
+            </LeadCategoryBadge>
             {lead.intent ? (
               <Badge variant={lead.leadType === "high_intent_iul" ? "green" : "yellow"}>
                 {lead.intent}
