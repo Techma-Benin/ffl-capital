@@ -400,6 +400,7 @@ export function AdminSettingsForm({
     duplicateCheckWindowDays: 30,
     integrityPostDelayHours: 24,
     integrityReprocessEnabled: true,
+    reprocessPartnerPickerEnabled: false,
   });
 
   const [resaleVendors, setResaleVendors] = useState<ResaleVendorRow[]>([]);
@@ -426,6 +427,9 @@ export function AdminSettingsForm({
           duplicateCheckWindowDays: Number(s.duplicate_check_window_days ?? 30),
           integrityPostDelayHours: Number(s.integrity_post_delay_hours ?? 24),
           integrityReprocessEnabled: Boolean(s.integrity_reprocess_enabled ?? true),
+          reprocessPartnerPickerEnabled: Boolean(
+            s.reprocess_partner_picker_enabled ?? false,
+          ),
         });
         setResaleVendors(
           buildResaleRows(
@@ -456,6 +460,7 @@ export function AdminSettingsForm({
         resaleVendorConfigs,
         integrityPostDelayHours: form.integrityPostDelayHours,
         integrityReprocessEnabled: form.integrityReprocessEnabled,
+        reprocessPartnerPickerEnabled: form.reprocessPartnerPickerEnabled,
       };
       if (isDev) {
         payload.integrationsMode = form.integrationsMode;
@@ -714,6 +719,14 @@ export function AdminSettingsForm({
                   description="Every 15 min: retry matching unmatched leads, then escalate old ones to Integrity. Turn off to pause the whole flow."
                   checked={form.integrityReprocessEnabled}
                   onChange={(v) => setForm({ ...form, integrityReprocessEnabled: v })}
+                />
+                <ToggleRow
+                  label="Partner picker on reprocess"
+                  description="When on, Reprocess opens a modal to choose partners. When off, reprocess runs immediately against all eligible partners."
+                  checked={form.reprocessPartnerPickerEnabled}
+                  onChange={(v) =>
+                    setForm({ ...form, reprocessPartnerPickerEnabled: v })
+                  }
                 />
                 <ToggleRow
                   label="TrustedForm validation on intake"

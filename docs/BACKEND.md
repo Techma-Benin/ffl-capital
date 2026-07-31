@@ -425,14 +425,18 @@ Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`
 
 ### Reprocess admin (manuel vs cron)
 
-**Flux bulk UI** : clic Reprocess → `POST …/bulk-reprocess/hold` → modal → `POST …/eligible-partners` (renouvelle le hold) → confirmation → `POST …/bulk-reprocess` (libère le hold). Fermeture / annulation du modal → `POST …/release-hold`.
+**Flux bulk UI (partner picker ON)** : clic Reprocess → `POST …/bulk-reprocess/hold` → modal → `POST …/eligible-partners` (renouvelle le hold) → confirmation → `POST …/bulk-reprocess` (libère le hold). Fermeture / annulation du modal → `POST …/release-hold`.
+
+**Flux direct (partner picker OFF, défaut)** : clic Reprocess → `POST …/bulk-reprocess` sans `partnerIds` (match tous les partenaires éligibles, pas de modal ni hold).
+
+Setting admin : `reprocess_partner_picker_enabled` (`app_settings`, défaut `false`) — toggle « Partner picker on reprocess » dans Settings → General → Lead lifecycle.
 
 | Route | Body | Réponse | Comportement |
 |-------|------|---------|--------------|
 | `POST /api/admin/leads/bulk-reprocess/hold` | `{ leadIds: string[] }` | `{ held: number }` | Pose un hold reprocess sur les leads (validation `unmatched`+`available`). |
 | `POST /api/admin/leads/bulk-reprocess/release-hold` | `{ leadIds: string[] }` | `{ released: number }` | Libère le hold (ex. modal fermé sans confirmer). |
 | `POST /api/admin/leads/bulk-reprocess/eligible-partners` | `{ leadIds: string[] }` | `{ partners: [{ id, firstName, lastName, priority, matchCount }] }` | Partenaires actifs éligibles pour ≥1 lead (règles complètes filter set + limites). Renouvelle le hold. 400 si lead absent ou non `unmatched`+`available`. |
-| `POST /api/admin/leads/bulk-reprocess` | `{ leadIds: string[], partnerIds: string[] }` | `{ processed, matched, errors, unmatched }` | Reprocess manuel : `matchLead` restreint à `partnerIds` ; **pas** de fallback Integrity. Libère le hold en `finally`. |
+| `POST /api/admin/leads/bulk-reprocess` | `{ leadIds: string[], partnerIds?: string[] }` | `{ processed, matched, errors, unmatched }` | Reprocess manuel : `matchLead` restreint à `partnerIds` si fourni ; sinon tous les partenaires éligibles. **Pas** de fallback Integrity. Libère le hold en `finally`. |
 | `POST /api/admin/leads/:id/reprocess` | — | résultat `reprocessSingleLead` | Idem mode **manual** (match only). Refusé si lead en hold bulk (sans allowlist). |
 
 Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads au-delà du délai configuré et **ignore** les leads en hold. `matchLead` accepte `includePartnerIds` (allowlist) via `findEligibleFilterSets`.

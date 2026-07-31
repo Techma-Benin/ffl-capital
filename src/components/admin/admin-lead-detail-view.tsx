@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import type { LeadCategoryResolution } from "@/lib/lead-categories/category-badge-variant";
 import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
+import { useAdminReprocess } from "@/components/admin/use-admin-reprocess";
 import { LeadRedeliverButton } from "@/components/admin/lead-redeliver-button";
 import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-button";
 import { AdminLeadEditModal } from "@/components/admin/admin-lead-edit-form";
@@ -13,7 +14,7 @@ import { AdminLeadDeadButton } from "@/components/admin/admin-lead-dead-button";
 import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
 import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
-import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyValueClassName } from "@/lib/format-money";
+import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyStatValueClassName } from "@/lib/format-money";
 import { LeadDetailEventsPanel } from "@/components/leads/lead-detail-events-panel";
 import {
   LeadDetailCompliancePanel,
@@ -110,6 +111,7 @@ export function AdminLeadDetailView({
   events,
   grossSold,
   actions,
+  reprocessPartnerPickerEnabled,
 }: {
   lead: AdminLeadDetailLead;
   deliveries: AdminLeadDetailDelivery[];
@@ -117,12 +119,20 @@ export function AdminLeadDetailView({
   events: AdminLeadDetailEvent[];
   grossSold: number;
   actions: AdminLeadDetailActions;
+  reprocessPartnerPickerEnabled: boolean;
 }) {
   const [tab, setTab] = useState<TabId>("contact");
   const [partnerSheet, setPartnerSheet] = useState<RefundPartnerSnapshot | null>(
     null,
   );
   const [partnerSheetOpen, setPartnerSheetOpen] = useState(false);
+
+  const { reprocessLeads, reprocessDialog, pending: reprocessPending } =
+    useAdminReprocess({ reprocessPartnerPickerEnabled });
+
+  function handleReprocess() {
+    return reprocessLeads([lead.id]);
+  }
 
   function openPartnerSheet(partner: RefundPartnerSnapshot) {
     setPartnerSheet(partner);
@@ -171,7 +181,12 @@ export function AdminLeadDetailView({
         }
         actions={
           <>
-            {actions.showReprocess && <LeadReprocessButton leadId={lead.id} />}
+            {actions.showReprocess && (
+              <LeadReprocessButton
+                pending={reprocessPending}
+                onReprocess={handleReprocess}
+              />
+            )}
             {actions.showRedeliver && (
               <LeadRedeliverButton
                 leadId={lead.id}
@@ -194,7 +209,7 @@ export function AdminLeadDetailView({
             <LeadDetailKpiTile
               label="Gross sold"
               value={formatUsd(grossSold)}
-              valueClassName={clsx("text-emerald-600", moneyValueClassName)}
+              valueClassName={clsx("text-emerald-600", moneyStatValueClassName)}
             />
             <LeadDetailKpiTile
               label="Refundable"
@@ -330,6 +345,7 @@ export function AdminLeadDetailView({
         open={partnerSheetOpen}
         onOpenChange={setPartnerSheetOpen}
       />
+      {reprocessDialog}
     </div>
   );
 }

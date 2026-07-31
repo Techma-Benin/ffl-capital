@@ -25,6 +25,7 @@ export const APP_SETTING_KEYS = {
   resaleVendorConfigs: "resale_vendor_configs",
   integrityPostDelayHours: "integrity_post_delay_hours",
   integrityReprocessEnabled: "integrity_reprocess_enabled",
+  reprocessPartnerPickerEnabled: "reprocess_partner_picker_enabled",
 } as const;
 
 async function getSetting<T>(key: string, fallback: T): Promise<T> {
@@ -156,6 +157,14 @@ export async function isIntegrityReprocessEnabled(): Promise<boolean> {
   return getSetting(APP_SETTING_KEYS.integrityReprocessEnabled, true);
 }
 
+/**
+ * When enabled, admin Reprocess actions open a partner picker modal.
+ * When disabled (default), reprocess runs immediately against all eligible partners.
+ */
+export async function isReprocessPartnerPickerEnabled(): Promise<boolean> {
+  return getSetting(APP_SETTING_KEYS.reprocessPartnerPickerEnabled, false);
+}
+
 export async function seedAppSettings(): Promise<void> {
   const defaults: Array<{ key: string; value: Prisma.InputJsonValue }> = [
     { key: APP_SETTING_KEYS.defaultRealtimePrice, value: 25 },
@@ -172,6 +181,7 @@ export async function seedAppSettings(): Promise<void> {
     },
     { key: APP_SETTING_KEYS.integrityPostDelayHours, value: 24 },
     { key: APP_SETTING_KEYS.integrityReprocessEnabled, value: true },
+    { key: APP_SETTING_KEYS.reprocessPartnerPickerEnabled, value: false },
   ];
 
   for (const { key, value } of defaults) {

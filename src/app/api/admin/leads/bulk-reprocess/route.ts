@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { leadIds, partnerIds } = body as {
     leadIds: string[];
-    partnerIds: string[];
+    partnerIds?: string[];
   };
 
   if (!Array.isArray(leadIds) || leadIds.length === 0) {
@@ -22,12 +22,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!Array.isArray(partnerIds) || partnerIds.length === 0) {
-    return NextResponse.json(
-      { error: "partnerIds must be a non-empty array" },
-      { status: 400 },
-    );
-  }
+  const includePartnerIds =
+    Array.isArray(partnerIds) && partnerIds.length > 0 ? partnerIds : undefined;
 
   let processed = 0;
   let matched = 0;
@@ -38,7 +34,7 @@ export async function POST(request: NextRequest) {
     for (const id of leadIds) {
       try {
         const result = await reprocessSingleLead(id, {
-          includePartnerIds: partnerIds,
+          includePartnerIds,
           mode: "manual",
         });
         processed++;

@@ -121,16 +121,17 @@ export function BulkReprocessPartnersDialog({
   }
 
   async function handleConfirm() {
-    if (submitting || checkedIds.size === 0) return;
+    if (submitting) return;
     setSubmitting(true);
     try {
+      const payload: { leadIds: string[]; partnerIds?: string[] } = { leadIds };
+      if (checkedIds.size > 0) {
+        payload.partnerIds = Array.from(checkedIds);
+      }
       const res = await fetch("/api/admin/leads/bulk-reprocess", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadIds,
-          partnerIds: Array.from(checkedIds),
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -277,7 +278,7 @@ export function BulkReprocessPartnersDialog({
           <button
             type="button"
             onClick={() => void handleConfirm()}
-            disabled={submitting || loading || checkedIds.size === 0 || partners.length === 0}
+            disabled={submitting}
             className="btn-primary btn-sm"
           >
             {submitting ? "Processing…" : "Reprocess"}

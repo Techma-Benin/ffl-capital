@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { FileText, ArrowsClockwise } from "@/lib/icons/client";
 import { EmptyState } from "@/components/ui/empty-state";
-import { notify } from "@/lib/notify";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import { LeadListTableShell } from "@/components/leads/lead-list-table-shell";
 import { LeadColumnSettingsBridge } from "@/components/leads/lead-column-settings-bridge";
@@ -13,7 +11,7 @@ import { AdminLeadsTable } from "@/components/admin/admin-leads-table";
 import { PartnersTableLayoutToggle } from "@/components/admin/partners-table-layout-toggle";
 import { useAdminLeadsTableLayout } from "@/components/admin/use-admin-leads-table-layout";
 import { LeadToolbarColumnSettingsButton } from "@/components/leads/lead-table-column-picker-button";
-import { BulkReprocessPartnersDialog } from "@/components/admin/bulk-reprocess-partners-dialog";
+import { useAdminReprocess } from "@/components/admin/use-admin-reprocess";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type { LeadViewEditorState } from "@/components/leads/lead-view-editor-sheet";
 
@@ -56,6 +54,7 @@ export function AdminLeadsListClient({
   columns,
   sort,
   pagination,
+  reprocessPartnerPickerEnabled,
 }: {
   basePath: string;
   views: ViewRecord[];
@@ -73,12 +72,11 @@ export function AdminLeadsListClient({
     hrefBySortKey: Record<string, string>;
   };
   pagination?: React.ReactNode;
+  reprocessPartnerPickerEnabled: boolean;
 }) {
   const { layout, setLayout } = useAdminLeadsTableLayout();
-  const router = useRouter();
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [reprocessDialogOpen, setReprocessDialogOpen] = useState(false);
 
   const handleSelectedChange = useCallback((ids: Set<string>) => {
     setSelectedIds(ids);
@@ -89,30 +87,24 @@ export function AdminLeadsListClient({
     [selectedIds],
   );
 
-  async function handleBulkReprocessClick() {
-    if (reprocessLeadIds.length === 0) return;
-    try {
-      const res = await fetch("/api/admin/leads/bulk-reprocess/hold", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: reprocessLeadIds }),
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? "Failed to reserve leads for reprocessing");
-      }
-      setReprocessDialogOpen(true);
-    } catch (err) {
-      notify.error(
-        err instanceof Error ? err.message : "Failed to start reprocess. Please try again.",
-      );
-    }
-  }
-
-  function handleReprocessSuccess() {
+  const handleReprocessSuccess = useCallback(() => {
     setSelectedIds(new Set());
-    router.refresh();
-  }
+  }, []);
+
+  const { reprocessLeads, reprocessDialog, pending: reprocessPending } =
+    useAdminReprocess({
+      reprocessPartnerPickerEnabled,
+      onSuccess: handleReprocessSuccess,
+    });
+
+  const handleBulkReprocessClick = useCallback(() => {
+    void reprocessLeads(reprocessLeadIds);
+  }, [reprocessLeadIds, reprocessLeads]);
+
+  const handleRowReprocess = useCallback(
+    (leadId: string) => reprocessLeads([leadId]),
+    [reprocessLeads],
+  );
 
   const selectionAction =
     selectedIds.size > 0 ? (
@@ -122,12 +114,12 @@ export function AdminLeadsListClient({
         </span>
         <button
           type="button"
-          disabled={reprocessDialogOpen}
+          disabled={reprocessPending}
           onClick={handleBulkReprocessClick}
           className="flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60"
         >
           <ArrowsClockwise size={13} />
-          {`Reprocess (${selectedIds.size})`}
+          {reprocessPending ? "Processing…" : `Reprocess (${selectedIds.size})`}
         </button>
         <button
           type="button"
@@ -185,15 +177,10 @@ export function AdminLeadsListClient({
           tableFooter={layout === "table" ? pagination : undefined}
           selectedIds={selectedIds}
           onSelectedChange={handleSelectedChange}
+          onReprocessLead={handleRowReprocess}
         />
       </LeadListTableShell>
-      <BulkReprocessPartnersDialog
-        open={reprocessDialogOpen}
-        onOpenChange={setReprocessDialogOpen}
-        leadIds={reprocessLeadIds}
-        leadCount={reprocessLeadIds.length}
-        onSuccess={handleReprocessSuccess}
-      />
+      {reprocessDialog}
     </LeadColumnSettingsBridge>
   );
 }

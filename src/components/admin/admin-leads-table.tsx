@@ -56,13 +56,13 @@ function adminLeadHasExtraRowActions(lead: LeadRow): boolean {
 function AdminLeadRowMenu({
   lead,
   layout,
-  onReprocessed,
+  onReprocessLead,
 }: {
   lead: LeadRow;
   layout: PortalDataTableLayout;
-  onReprocessed?: () => void;
+  onReprocessLead?: (leadId: string) => void | Promise<void>;
 }) {
-  const { push, router } = useNavigateWithPending();
+  const { push } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
   const [reprocessPending, setReprocessPending] = useState(false);
   const closeMenu = useCallback(() => setOpen(false), []);
@@ -79,15 +79,11 @@ function AdminLeadRowMenu({
   });
 
   async function handleReprocess() {
+    if (!onReprocessLead) return;
     setReprocessPending(true);
     try {
-      const res = await fetch(`/api/admin/leads/${lead.id}/reprocess`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error("Request failed");
+      await onReprocessLead(lead.id);
       setOpen(false);
-      if (onReprocessed) onReprocessed();
-      else router.refresh();
     } catch {
       // allow retry
     } finally {
@@ -169,6 +165,7 @@ export function AdminLeadsTable({
   tableFooter,
   selectedIds,
   onSelectedChange,
+  onReprocessLead,
 }: {
   leads: LeadRow[];
   columns: PortalDataTableColumn[];
@@ -181,9 +178,8 @@ export function AdminLeadsTable({
   tableFooter?: React.ReactNode;
   selectedIds: Set<string>;
   onSelectedChange: (ids: Set<string>) => void;
+  onReprocessLead?: (leadId: string) => void | Promise<void>;
 }) {
-  const { router } = useNavigateWithPending();
-
   const eligibleLeads = leads.filter(isEligibleForReprocess);
   const eligibleIds = new Set(eligibleLeads.map((l) => l.id));
 
@@ -384,7 +380,7 @@ export function AdminLeadsTable({
               <AdminLeadRowMenu
                 lead={lead}
                 layout={layout}
-                onReprocessed={() => router.refresh()}
+                onReprocessLead={onReprocessLead}
               />
             ) : null}
           </td>

@@ -13,6 +13,7 @@ import {
   legacyStatusToSlice,
 } from "@/lib/admin/admin-leads-query";
 import { loadEnabledCategoryLabels, resolveLeadTypeDisplay } from "@/lib/lead-categories/category-labels";
+import { isReprocessPartnerPickerEnabled } from "@/lib/settings/app-settings";
 import {
   findAdminViewByStatusSlice,
   getDefaultLeadView,
@@ -115,7 +116,8 @@ export default async function AdminLeadsPage({
 
   const searchQuery = filters.q?.trim();
 
-  const [leads, total, categories, rawFilterSets] = await Promise.all([
+  const [leads, total, categories, rawFilterSets, reprocessPartnerPickerEnabled] =
+    await Promise.all([
     prisma.lead.findMany({
       where: whereClause,
       orderBy,
@@ -140,6 +142,7 @@ export default async function AdminLeadsPage({
         partner: { select: { firstName: true, lastName: true } },
       },
     }),
+    isReprocessPartnerPickerEnabled(),
   ]);
   const filterSets = rawFilterSets.map((filterSet) => ({
     id: filterSet.id,
@@ -238,6 +241,7 @@ export default async function AdminLeadsPage({
             searchParams={paginationParams}
           />
         }
+        reprocessPartnerPickerEnabled={reprocessPartnerPickerEnabled}
       />
     </div>
   );

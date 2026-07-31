@@ -1,32 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { ArrowCounterClockwise, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
-export function LeadReprocessButton({ leadId }: { leadId: string }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-
-  async function handleReprocess() {
-    setPending(true);
-    try {
-      const res = await fetch(`/api/admin/leads/${leadId}/reprocess`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error("Request failed");
-      router.refresh();
-    } catch {
-      // allow retry
-    } finally {
-      setPending(false);
-    }
-  }
-
+export function LeadReprocessButton({
+  pending,
+  onReprocess,
+}: {
+  pending?: boolean;
+  onReprocess: () => void | Promise<void>;
+}) {
   return (
     <button
       type="button"
-      onClick={handleReprocess}
+      onClick={() => void onReprocess()}
       disabled={pending}
       className="inline-flex items-center gap-1 rounded-md bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors disabled:opacity-50"
     >

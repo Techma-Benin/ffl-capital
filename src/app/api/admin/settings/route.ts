@@ -25,6 +25,7 @@ const settingsSchema = z.object({
   })).optional(),
   integrityPostDelayHours: z.number().int().min(1).optional(),
   integrityReprocessEnabled: z.boolean().optional(),
+  reprocessPartnerPickerEnabled: z.boolean().optional(),
 });
 
 const KEY_MAP: Record<string, string> = {
@@ -39,6 +40,7 @@ const KEY_MAP: Record<string, string> = {
   resaleVendorConfigs: APP_SETTING_KEYS.resaleVendorConfigs,
   integrityPostDelayHours: APP_SETTING_KEYS.integrityPostDelayHours,
   integrityReprocessEnabled: APP_SETTING_KEYS.integrityReprocessEnabled,
+  reprocessPartnerPickerEnabled: APP_SETTING_KEYS.reprocessPartnerPickerEnabled,
 };
 
 export async function GET() {

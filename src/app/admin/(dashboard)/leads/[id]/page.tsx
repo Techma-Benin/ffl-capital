@@ -10,6 +10,7 @@ import {
 } from "@/lib/lead-categories/category-labels";
 import { buildCategoryPayloadDiagnostics } from "@/lib/lead-categories/payload-diagnostics";
 import { getReprocessEligibility } from "@/lib/jobs/reprocess-eligibility";
+import { isReprocessPartnerPickerEnabled } from "@/lib/settings/app-settings";
 
 const PARTNER_SHEET_AVATAR_PX = 48;
 import {
@@ -70,6 +71,7 @@ export default async function AdminLeadDetailPage({
     categoryResolution: lead.categoryResolution,
     leadType: lead.leadType,
   });
+  const reprocessPartnerPickerEnabled = await isReprocessPartnerPickerEnabled();
 
   const leadEvents = await getLeadEvents(id);
 
@@ -212,6 +214,7 @@ export default async function AdminLeadDetailPage({
           primaryGoal: lead.primaryGoal,
         },
       }}
+      reprocessPartnerPickerEnabled={reprocessPartnerPickerEnabled}
     />
   );
 }
