@@ -284,7 +284,7 @@ Phase D — Migration Replit (livraison client)
 - Actions : approuver/rejeter inscription, activer/désactiver, modifier priorité (1–10), prix personnalisé, voir historique
 
 #### Gestion leads
-- Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live
+- Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live. L’éditeur peut **Apply** un brouillon sans le persister ; la liste l’utilise immédiatement, l’éditeur se ferme, et une action **Save view** reste visible jusqu’à l’enregistrement.
 - Un type sélectionné inclut les leads résolus dans ce type et les leads à matchs multiples où ce type est candidat ; plusieurs types sont combinés en OR
 - Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity ; **diagnostics payload** (champs critères catégories) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
 - Actions manuelles : reprocesser (relancer matching), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
@@ -320,7 +320,7 @@ Phase D — Migration Replit (livraison client)
 
 #### Mes leads
 - Liste des leads livrés (temps réel + aged achetés)
-- Vues sauvegardées avec périodes today / yesterday / 7 derniers jours / mois dernier / custom, appliquées à la date de livraison
+- Vues sauvegardées avec périodes today / yesterday / 7 derniers jours / mois dernier / custom, appliquées à la date de livraison ; un brouillon appliqué reste disponible à la réouverture de l’éditeur et ne devient persistant qu’avec **Save view**
 - Détail : contact, état, date, prix payé, certificat TrustedForm
 - Bouton **demander remboursement** (si delivery `refundable`)
 

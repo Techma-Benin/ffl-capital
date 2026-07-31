@@ -15,6 +15,10 @@ import {
   parseAdminFilters,
   parsePartnerFilters,
 } from "../../src/lib/leads/list-view-schema";
+import {
+  leadViewDraftsEqual,
+  parseLeadViewDraft,
+} from "../../src/lib/leads/lead-view-draft";
 
 describe("admin saved-view status slices", () => {
   test("parses review statusSlice", () => {
@@ -136,5 +140,80 @@ describe("partner saved-view delivery periods", () => {
       parsed,
     );
     assert.ok(where.deliveredAt);
+  });
+});
+
+describe("lead view draft state", () => {
+  const columns = [
+    { key: "firstName", visible: true },
+    { key: "email", visible: false },
+  ];
+
+  test("treats normalized filters as unchanged", () => {
+    assert.equal(
+      leadViewDraftsEqual(
+        "admin",
+        {
+          name: " All leads ",
+          filters: { statusSlice: "all", states: [] },
+          columns,
+        },
+        {
+          name: "All leads",
+          filters: { statusSlice: "all" },
+          columns,
+        },
+      ),
+      true,
+    );
+  });
+
+  test("detects name, filter, and column changes", () => {
+    const saved = {
+      name: "All leads",
+      filters: { statusSlice: "all" },
+      columns,
+    };
+    assert.equal(
+      leadViewDraftsEqual("admin", { ...saved, name: "Reviewed" }, saved),
+      false,
+    );
+    assert.equal(
+      leadViewDraftsEqual(
+        "admin",
+        { ...saved, filters: { statusSlice: "review" } },
+        saved,
+      ),
+      false,
+    );
+    assert.equal(
+      leadViewDraftsEqual(
+        "admin",
+        {
+          ...saved,
+          columns: [
+            { key: "firstName", visible: false },
+            { key: "email", visible: false },
+          ],
+        },
+        saved,
+      ),
+      false,
+    );
+  });
+
+  test("rejects malformed URL draft payloads", () => {
+    assert.equal(parseLeadViewDraft("partner", "{not json"), null);
+    assert.equal(
+      parseLeadViewDraft(
+        "partner",
+        JSON.stringify({
+          name: "Partner leads",
+          filters: {},
+          columns: [{ key: "lead", visible: "yes" }],
+        }),
+      ),
+      null,
+    );
   });
 });

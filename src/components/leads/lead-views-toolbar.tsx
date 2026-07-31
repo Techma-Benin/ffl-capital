@@ -21,6 +21,10 @@ import {
   parsePartnerFilters,
   partnerLeadViewFiltersSchema,
 } from "@/lib/leads/list-view-schema";
+import {
+  leadViewDraftsEqual,
+  serializeLeadViewDraft,
+} from "@/lib/leads/lead-view-draft";
 
 type ViewRecord = {
   id: string;
@@ -51,6 +55,7 @@ export function LeadViewsToolbar({
   exportSlot,
   displayControls,
   selectionAction,
+  appliedDraft,
 }: {
   scope: "admin" | "partner";
   apiBase: string;
@@ -69,6 +74,8 @@ export function LeadViewsToolbar({
   displayControls?: React.ReactNode;
   /** Bulk selection chip + action buttons rendered in the toolbar row when rows are selected. */
   selectionAction?: React.ReactNode;
+  /** A temporary configuration currently applied to the list, but not saved. */
+  appliedDraft?: LeadViewEditorState | null;
 }) {
   const { push, router } = useNavigateWithPending();
   const columnSettingsBridge = useLeadColumnSettingsBridge();
@@ -99,6 +106,7 @@ export function LeadViewsToolbar({
         columns,
       };
     }
+    if (appliedDraft) return appliedDraft;
     return {
       name: activeView.name,
       filters:
@@ -108,6 +116,31 @@ export function LeadViewsToolbar({
       columns,
     };
   };
+
+  const persistedEditorState = (): LeadViewEditorState => ({
+    name: activeView.name,
+    filters:
+      scope === "admin"
+        ? parseAdminFilters(activeView.filters)
+        : parsePartnerFilters(activeView.filters),
+    columns,
+  });
+
+  const hasUnsavedAppliedDraft =
+    !!appliedDraft &&
+    !leadViewDraftsEqual(scope, appliedDraft, persistedEditorState());
+
+  function pushDraft(draft: LeadViewEditorState | null) {
+    const params = new URLSearchParams(window.location.search);
+    params.set("view", activeView.id);
+    params.delete("page");
+    if (draft) {
+      params.set("draft", serializeLeadViewDraft(draft));
+    } else {
+      params.delete("draft");
+    }
+    push(`${basePath}?${params.toString()}`);
+  }
 
   useEffect(() => {
     if (!columnSettingsBridge) return;
@@ -129,7 +162,10 @@ export function LeadViewsToolbar({
     return res.json();
   }
 
-  async function saveView(state: LeadViewEditorState) {
+  async function saveView(
+    state: LeadViewEditorState,
+    mode: "create" | "edit" = editorMode,
+  ) {
     setPending(true);
     try {
       const filters =
@@ -137,7 +173,7 @@ export function LeadViewsToolbar({
           ? adminLeadViewFiltersSchema.parse(state.filters)
           : partnerLeadViewFiltersSchema.parse(state.filters);
 
-      if (editorMode === "create") {
+      if (mode === "create") {
         const res = await fetch(apiBase, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -157,10 +193,20 @@ export function LeadViewsToolbar({
           filters,
           columns: state.columns,
         });
-        refresh();
+        pushDraft(null);
       }
     } finally {
       setPending(false);
+    }
+  }
+
+  async function saveAppliedDraft() {
+    if (!appliedDraft) return;
+    try {
+      await saveView(appliedDraft, "edit");
+      notify.success("View saved");
+    } catch {
+      notify.error("Could not save view");
     }
   }
 
@@ -246,6 +292,16 @@ export function LeadViewsToolbar({
             <div className="flex items-center gap-1">{exportSlot}</div>
           ) : null}
           {displayControls}
+          {hasUnsavedAppliedDraft && (
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              disabled={pending}
+              onClick={() => void saveAppliedDraft()}
+            >
+              {pending ? "Saving…" : "Save view"}
+            </button>
+          )}
           <LeadViewActionsMenu
             isDefault={activeView.isDefault}
             onRename={() => {
@@ -275,6 +331,7 @@ export function LeadViewsToolbar({
         adminFilterSets={adminFilterSets}
         partnerFilterSets={partnerMeta?.filterSets}
         onSave={saveView}
+        onApply={(state) => pushDraft(state)}
         pending={pending}
       />
 

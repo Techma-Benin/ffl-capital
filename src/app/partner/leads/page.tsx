@@ -34,6 +34,10 @@ import {
   parsePartnerFilters,
   type LeadViewColumn,
 } from "@/lib/leads/list-view-schema";
+import {
+  leadViewDraftsEqual,
+  parseLeadViewDraft,
+} from "@/lib/leads/lead-view-draft";
 
 const BASE_PATH = "/partner/leads";
 
@@ -46,6 +50,7 @@ export default async function PartnerLeadsPage({
     pageSize?: string;
     sort?: string;
     dir?: string;
+    draft?: string;
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
@@ -78,12 +83,28 @@ export default async function PartnerLeadsPage({
   }
 
   const views = await listLeadViews(LeadListViewScope.partner, partnerId);
-  const filters = parsePartnerFilters(view.filters);
+  const savedFilters = parsePartnerFilters(view.filters);
   const sortJson = leadViewSortSchema.parse(view.sort);
-  const columns = mergeColumnsWithCatalog(
+  const savedColumns = mergeColumnsWithCatalog(
     PARTNER_LEAD_COLUMNS,
     view.columns as LeadViewColumn[],
   );
+  const draft = parseLeadViewDraft("partner", resolvedSearchParams.draft);
+  const appliedDraft =
+    draft &&
+    !leadViewDraftsEqual("partner", draft, {
+      name: view.name,
+      filters: savedFilters,
+      columns: savedColumns,
+    })
+      ? draft
+      : null;
+  const filters = appliedDraft
+    ? parsePartnerFilters(appliedDraft.filters)
+    : savedFilters;
+  const columns = appliedDraft
+    ? mergeColumnsWithCatalog(PARTNER_LEAD_COLUMNS, appliedDraft.columns)
+    : savedColumns;
   const tableColumns = portalColumnsFromView(PARTNER_LEAD_COLUMNS, columns);
 
   const { page, pageSize, skip } = parsePageParams(resolvedSearchParams);
@@ -122,6 +143,7 @@ export default async function PartnerLeadsPage({
     view: view.id,
     sort: resolvedSearchParams.sort,
     dir: resolvedSearchParams.dir,
+    draft: appliedDraft ? resolvedSearchParams.draft : undefined,
   };
 
   const sortHrefMap = Object.fromEntries(
@@ -149,6 +171,7 @@ export default async function PartnerLeadsPage({
         basePath={BASE_PATH}
         views={views}
         activeView={view}
+        appliedDraft={appliedDraft ? { name: appliedDraft.name, filters, columns } : null}
         catalog={PARTNER_LEAD_COLUMNS}
         partnerMeta={{ filterSets, availableStates }}
         filterSummary={

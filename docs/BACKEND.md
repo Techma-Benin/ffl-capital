@@ -168,6 +168,8 @@ Compatibilité admin : l’ancien `state` unique est migré vers `states[]`; les
 
 **Filtres partner** (`filters`) : optionnel `filterSetId`, `locations[]`, `channels[]` (`realtime` \| `aged`), `types[]`, `statuses[]` (`active` \| `refund_pending` \| `refunded`), `datePeriod` (mêmes presets admin) et bornes custom `from` / `to`. La période porte sur `LeadDelivery.deliveredAt`, pas sur `Lead.receivedAt`; des bornes sans preset impliquent `custom`.
 
+**Brouillon appliqué (UI)** : les pages `/admin/leads` et `/partner/leads` acceptent `?draft=<JSON encodé>` en plus de `?view=<uuid>`. Il contient `name`, `filters` et `columns`, est validé avec le schéma du scope, puis appliqué à la liste sans écriture API. Un brouillon qui diffère de la vue persistée affiche l’action page-level **Save view** ; sa sauvegarde fait le `PATCH` habituel et retire `draft` de l’URL. Les liens de tri et la pagination conservent le brouillon. Un `draft` invalide ou identique à la vue est ignoré.
+
 **Réponse** (GET liste / détail / mutations) : enregistrement Prisma `LeadListView` — `id`, `scope`, `partnerId`, `name`, `filters`, `sort`, `columns`, `isDefault`, `createdByClerkUserId`, `createdAt`, `updatedAt`.
 
 **Export CSV admin** : `GET /api/admin/leads/export?viewId=<uuid>` applique filtres + tri de la vue (colonnes export inchangées côté serveur).

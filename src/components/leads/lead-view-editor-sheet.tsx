@@ -12,6 +12,10 @@ import { LeadColumnSettings } from "@/components/leads/lead-column-settings";
 import { AdminLeadViewFilterFields } from "@/components/leads/admin-lead-view-filter-fields";
 import { PartnerLeadViewFilterFields } from "@/components/leads/partner-lead-view-filter-fields";
 import { notify } from "@/lib/notify";
+import {
+  leadViewDraftsEqual,
+  type LeadViewDraft,
+} from "@/lib/leads/lead-view-draft";
 
 type Scope = "admin" | "partner";
 
@@ -39,6 +43,7 @@ export function LeadViewEditorSheet({
   adminFilterSets,
   partnerFilterSets,
   onSave,
+  onApply,
   pending,
 }: {
   open: boolean;
@@ -52,6 +57,7 @@ export function LeadViewEditorSheet({
   /** Partner scope only: filter sets for the filter-set dropdown. */
   partnerFilterSets?: { id: string; name: string }[];
   onSave: (state: LeadViewEditorState) => Promise<void>;
+  onApply?: (state: LeadViewEditorState) => void;
   pending?: boolean;
 }) {
   const [state, setState] = useState(() => cloneEditorState(initial));
@@ -85,9 +91,26 @@ export function LeadViewEditorSheet({
     }
   }
 
+  function apply() {
+    if (!state.name.trim()) {
+      notify.error("Name is required");
+      return;
+    }
+    onApply?.(state);
+    notify.success("View applied");
+    onOpenChange(false);
+  }
+
   const adminFilters = scope === "admin" ? (state.filters as AdminLeadViewFilters) : null;
   const partnerFilters =
     scope === "partner" ? (state.filters as PartnerLeadViewFilters) : null;
+  const hasAppliedChanges =
+    mode === "edit" &&
+    !leadViewDraftsEqual(
+      scope,
+      state as LeadViewDraft,
+      initial as LeadViewDraft,
+    );
 
   return (
     <>
@@ -144,12 +167,21 @@ export function LeadViewEditorSheet({
               </button>
               <button
                 type="button"
-                className="btn-primary btn-sm"
+                className={hasAppliedChanges ? "btn-secondary btn-sm" : "btn-primary btn-sm"}
                 disabled={pending}
                 onClick={submit}
               >
                 {pending ? "Saving…" : "Save view"}
               </button>
+              {hasAppliedChanges && (
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  onClick={apply}
+                >
+                  Apply
+                </button>
+              )}
             </div>
           </div>
         </SheetBody>

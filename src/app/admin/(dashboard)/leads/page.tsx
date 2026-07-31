@@ -35,6 +35,10 @@ import {
   parseAdminFilters,
   type LeadViewColumn,
 } from "@/lib/leads/list-view-schema";
+import {
+  leadViewDraftsEqual,
+  parseLeadViewDraft,
+} from "@/lib/leads/lead-view-draft";
 
 const BASE_PATH = "/admin/leads";
 
@@ -48,6 +52,7 @@ export default async function AdminLeadsPage({
     pageSize?: string;
     sort?: string;
     dir?: string;
+    draft?: string;
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
@@ -79,12 +84,28 @@ export default async function AdminLeadsPage({
   }
 
   const views = await listLeadViews(LeadListViewScope.admin);
-  const filters = parseAdminFilters(view.filters);
+  const savedFilters = parseAdminFilters(view.filters);
   const sortJson = leadViewSortSchema.parse(view.sort);
-  const columns = mergeColumnsWithCatalog(
+  const savedColumns = mergeColumnsWithCatalog(
     ADMIN_LEAD_COLUMNS,
     view.columns as LeadViewColumn[],
   );
+  const draft = parseLeadViewDraft("admin", resolvedSearchParams.draft);
+  const appliedDraft =
+    draft &&
+    !leadViewDraftsEqual("admin", draft, {
+      name: view.name,
+      filters: savedFilters,
+      columns: savedColumns,
+    })
+      ? draft
+      : null;
+  const filters = appliedDraft
+    ? parseAdminFilters(appliedDraft.filters)
+    : savedFilters;
+  const columns = appliedDraft
+    ? mergeColumnsWithCatalog(ADMIN_LEAD_COLUMNS, appliedDraft.columns)
+    : savedColumns;
   const tableColumns = portalColumnsFromView(ADMIN_LEAD_COLUMNS, columns);
 
   const { page, pageSize, skip } = parsePageParams(resolvedSearchParams);
@@ -131,6 +152,7 @@ export default async function AdminLeadsPage({
     view: view.id,
     sort: resolvedSearchParams.sort,
     dir: resolvedSearchParams.dir,
+    draft: appliedDraft ? resolvedSearchParams.draft : undefined,
   };
 
   const sortHrefMap = Object.fromEntries(
@@ -158,6 +180,7 @@ export default async function AdminLeadsPage({
         basePath={BASE_PATH}
         views={views}
         activeView={view}
+        appliedDraft={appliedDraft ? { name: appliedDraft.name, filters, columns } : null}
         catalog={ADMIN_LEAD_COLUMNS}
         filterSets={filterSets}
         filterSummary={
