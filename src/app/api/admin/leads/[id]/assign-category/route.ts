@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { LeadEventType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { requireAdmin } from "@/lib/auth/session";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { prepareManualCategoryAssignment } from "@/lib/lead-categories/manual-category-assignment";
@@ -68,33 +69,41 @@ export async function POST(
     );
   }
 
-  await prisma.lead.update({
-    where: { id },
-    data: {
-      leadType: assignment.update.leadType,
-      categoryResolution: assignment.update.categoryResolution,
-      categoryCandidateTypes: assignment.update.categoryCandidateTypes,
-      status: assignment.update.status,
-      available: assignment.update.available,
-      rawPayload: assignment.update.rawPayload as Prisma.InputJsonValue,
-      ...(assignment.update.source !== undefined
-        ? { source: assignment.update.source }
-        : {}),
-      ...(assignment.update.intent !== undefined
-        ? { intent: assignment.update.intent }
-        : {}),
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    await tx.lead.update({
+      where: { id },
+      data: {
+        leadType: assignment.update.leadType,
+        categoryResolution: assignment.update.categoryResolution,
+        categoryCandidateTypes: assignment.update.categoryCandidateTypes,
+        status: assignment.update.status,
+        available: assignment.update.available,
+        rawPayload: assignment.update.rawPayload as Prisma.InputJsonValue,
+        ...(assignment.update.source !== undefined
+          ? { source: assignment.update.source }
+          : {}),
+        ...(assignment.update.intent !== undefined
+          ? { intent: assignment.update.intent }
+          : {}),
+      },
+    });
 
-  await emitLeadEvent(id, LeadEventType.category_assigned, {
-    previousResolution: lead.categoryResolution,
-    previousLeadType: lead.leadType,
-    previousCandidateTypes: lead.categoryCandidateTypes,
-    categoryType: category.type,
-    categoryLabel: category.label,
-    overwrittenCriteria: assignment.overwrittenCriteria,
-    adminUserId: authResult.userId,
-  });
+    await emitLeadEvent(
+      id,
+      LeadEventType.category_assigned,
+      {
+        previousResolution: lead.categoryResolution,
+        previousLeadType: lead.leadType,
+        previousCandidateTypes: lead.categoryCandidateTypes,
+        categoryType: category.type,
+        categoryLabel: category.label,
+        overwrittenCriteria: assignment.overwrittenCriteria,
+        adminUserId: authResult.userId,
+      },
+      undefined,
+      tx,
+    );
+  }, PRISMA_TX_OPTIONS);
 
   return NextResponse.json({
     success: true,
