@@ -110,7 +110,7 @@ export function LeadDetailKpiTile({
 }) {
   return (
     <div className="rounded-lg bg-slate-50 px-2.5 py-2">
-      <p className={clsx("text-sm font-bold text-slate-900", valueClassName)}>
+      <p className={clsx("text-left text-sm font-bold text-slate-900", valueClassName)}>
         {value}
       </p>
       <p className="text-[11px] font-medium text-slate-500">{label}</p>
