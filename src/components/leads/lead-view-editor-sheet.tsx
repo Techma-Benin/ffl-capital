@@ -112,6 +112,35 @@ export function LeadViewEditorSheet({
       initial as LeadViewDraft,
     );
 
+  const headerActions = (
+    <>
+      <button
+        type="button"
+        className="btn-secondary btn-sm"
+        onClick={() => onOpenChange(false)}
+      >
+        Cancel
+      </button>
+      {hasAppliedChanges && (
+        <button
+          type="button"
+          className="btn-primary btn-sm"
+          onClick={apply}
+        >
+          Apply
+        </button>
+      )}
+      <button
+        type="button"
+        className={hasAppliedChanges ? "btn-secondary btn-sm" : "btn-primary btn-sm"}
+        disabled={pending}
+        onClick={submit}
+      >
+        {pending ? "Saving…" : "Save view"}
+      </button>
+    </>
+  );
+
   return (
     <>
       <Sheet
@@ -119,6 +148,7 @@ export function LeadViewEditorSheet({
         onOpenChange={onOpenChange}
         title={mode === "create" ? "New view" : "Edit view"}
         description="Configure filters and columns for this list view"
+        headerActions={headerActions}
       >
         <SheetBody>
           <div className="space-y-4">
@@ -156,33 +186,6 @@ export function LeadViewEditorSheet({
             >
               Configure columns…
             </button>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                className="btn-secondary btn-sm"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={hasAppliedChanges ? "btn-secondary btn-sm" : "btn-primary btn-sm"}
-                disabled={pending}
-                onClick={submit}
-              >
-                {pending ? "Saving…" : "Save view"}
-              </button>
-              {hasAppliedChanges && (
-                <button
-                  type="button"
-                  className="btn-primary btn-sm"
-                  onClick={apply}
-                >
-                  Apply
-                </button>
-              )}
-            </div>
           </div>
         </SheetBody>
       </Sheet>

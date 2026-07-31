@@ -19,6 +19,8 @@ type SheetProps = {
   title: string;
   /** Optional description id target for aria-describedby. */
   description?: string;
+  /** Optional actions rendered in the header beside the title. */
+  headerActions?: ReactNode;
 };
 
 export function Sheet({
@@ -27,6 +29,7 @@ export function Sheet({
   children,
   title,
   description,
+  headerActions,
 }: SheetProps) {
   const titleId = useId();
   const descId = useId();
@@ -80,7 +83,7 @@ export function Sheet({
         )}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-5 py-4">
+        <div className="flex shrink-0 items-center gap-2 border-b border-slate-100 px-4 py-3 sm:gap-3 sm:px-5 sm:py-4">
           <button
             ref={closeRef}
             type="button"
@@ -93,6 +96,11 @@ export function Sheet({
           <h2 id={titleId} className="min-w-0 flex-1 truncate text-base font-semibold text-slate-900">
             {title}
           </h2>
+          {headerActions ? (
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              {headerActions}
+            </div>
+          ) : null}
         </div>
         {description ? (
           <p id={descId} className="sr-only">
