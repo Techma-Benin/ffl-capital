@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { ArrowLeft, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 
 export function LeadDetailPageHeader({
@@ -26,9 +27,30 @@ export function LeadDetailBackLink({
   href: string;
   label: string;
 }) {
+  const router = useRouter();
+
+  function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      event.button !== 0
+    ) {
+      return;
+    }
+    event.preventDefault();
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push(href);
+  }
+
   return (
     <Link
       href={href}
+      onClick={handleClick}
       className="group inline-flex shrink-0 items-center gap-1 text-sm font-medium text-slate-600 transition-colors hover:text-orange-600"
     >
       <ArrowLeft
