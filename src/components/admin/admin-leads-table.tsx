@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
+import { PortalAnchoredMenuContent } from "@/components/ui/portal-anchored-menu-content";
+import { usePortalAnchoredMenu } from "@/hooks/use-portal-anchored-menu";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { Badge } from "@/components/ui/badge";
 import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
@@ -63,18 +65,18 @@ function AdminLeadRowMenu({
   const { push, router } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
   const [reprocessPending, setReprocessPending] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => setOpen(false), []);
 
   const canReprocess = isEligibleForReprocess(lead);
-
-  useEffect(() => {
-    if (!open) return;
-    function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [open]);
+  const menuItemCount =
+    1 + (lead.trustedformCertUrl ? 1 : 0) + (canReprocess ? 1 : 0);
+  const { buttonRef, menuRef, menuStyle } = usePortalAnchoredMenu({
+    open,
+    onClose: closeMenu,
+    estimatedMenuWidth: 176,
+    estimatedMenuHeight: menuItemCount * 40 + 12,
+    repositionKey: `${menuItemCount}-${reprocessPending}`,
+  });
 
   async function handleReprocess() {
     setReprocessPending(true);
@@ -94,10 +96,14 @@ function AdminLeadRowMenu({
   }
 
   return (
-    <div ref={ref} className="relative flex justify-end" onClick={(e) => e.stopPropagation()}>
+    <>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
         className={portalRowKebabTriggerClassName(layout, { revealed: open })}
         aria-label="Lead actions"
         aria-expanded={open}
@@ -105,50 +111,53 @@ function AdminLeadRowMenu({
         <DotsThreeVertical size={18} weight={ICON_WEIGHT_LINEAR} />
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-10 z-30 w-44 rounded-xl border border-slate-100 bg-white py-1.5 shadow-lg">
+      <PortalAnchoredMenuContent
+        open={open}
+        menuRef={menuRef}
+        menuStyle={menuStyle}
+        className="fixed z-50 w-44 rounded-xl border border-slate-100 bg-white py-1.5 shadow-lg"
+      >
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+          onClick={() => {
+            setOpen(false);
+            push(`/admin/leads/${lead.id}`);
+          }}
+        >
+          <Eye size={14} className="text-slate-400" />
+          View lead
+        </button>
+
+        {lead.trustedformCertUrl && (
+          <a
+            href={lead.trustedformCertUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            onClick={() => setOpen(false)}
+          >
+            <ArrowUpRight size={14} className="text-slate-400" />
+            TrustedForm cert
+          </a>
+        )}
+
+        {canReprocess && (
           <button
             type="button"
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-            onClick={() => {
-              setOpen(false);
-              push(`/admin/leads/${lead.id}`);
-            }}
+            disabled={reprocessPending}
+            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-50"
+            onClick={handleReprocess}
           >
-            <Eye size={14} className="text-slate-400" />
-            View lead
+            <ArrowsClockwise
+              size={14}
+              className={`text-brand-600 ${reprocessPending ? "animate-spin" : ""}`}
+            />
+            {reprocessPending ? "Processing…" : "Reprocess"}
           </button>
-
-          {lead.trustedformCertUrl && (
-            <a
-              href={lead.trustedformCertUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-              onClick={() => setOpen(false)}
-            >
-              <ArrowUpRight size={14} className="text-slate-400" />
-              TrustedForm cert
-            </a>
-          )}
-
-          {canReprocess && (
-            <button
-              type="button"
-              disabled={reprocessPending}
-              className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-50"
-              onClick={handleReprocess}
-            >
-              <ArrowsClockwise
-                size={14}
-                className={`text-brand-600 ${reprocessPending ? "animate-spin" : ""}`}
-              />
-              {reprocessPending ? "Processing…" : "Reprocess"}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+        )}
+      </PortalAnchoredMenuContent>
+    </>
   );
 }
 

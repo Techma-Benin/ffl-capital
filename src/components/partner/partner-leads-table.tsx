@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { PortalAnchoredMenuContent } from "@/components/ui/portal-anchored-menu-content";
+import { usePortalAnchoredMenu } from "@/hooks/use-portal-anchored-menu";
 import { useRouter } from "next/navigation";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
 import { Badge } from "@/components/ui/badge";
@@ -94,26 +96,25 @@ function RowMenu({
 }) {
   const { push } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [open]);
+  const closeMenu = useCallback(() => setOpen(false), []);
+  const menuItemCount = 1 + (delivery.canRefund ? 1 : 0);
+  const { buttonRef, menuRef, menuStyle } = usePortalAnchoredMenu({
+    open,
+    onClose: closeMenu,
+    estimatedMenuWidth: 176,
+    estimatedMenuHeight: menuItemCount * 40 + 12,
+    repositionKey: menuItemCount,
+  });
 
   return (
-    <div
-      ref={ref}
-      className="relative flex justify-end"
-      onClick={(e) => e.stopPropagation()}
-    >
+    <>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
         className={portalRowKebabTriggerClassName(layout, { revealed: open })}
         aria-label="Lead actions"
         aria-expanded={open}
@@ -121,40 +122,43 @@ function RowMenu({
         <DotsThreeVertical size={18} weight={ICON_WEIGHT_LINEAR} />
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-10 z-30 w-44 rounded-xl border border-slate-100 bg-white py-1.5 shadow-lg">
+      <PortalAnchoredMenuContent
+        open={open}
+        menuRef={menuRef}
+        menuStyle={menuStyle}
+        className="fixed z-50 w-44 rounded-xl border border-slate-100 bg-white py-1.5 shadow-lg"
+      >
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+          onClick={() => {
+            setOpen(false);
+            push(`/partner/leads/${delivery.id}`);
+          }}
+        >
+          <Eye size={14} className="text-slate-400" />
+          View lead
+        </button>
+
+        {delivery.canRefund && (
           <button
             type="button"
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-amber-700 hover:bg-amber-50 transition-colors"
             onClick={() => {
               setOpen(false);
-              push(`/partner/leads/${delivery.id}`);
+              onRefund();
             }}
           >
-            <Eye size={14} className="text-slate-400" />
-            View lead
+            <Wallet
+              size={14}
+              weight={ICON_WEIGHT_LINEAR}
+              className="shrink-0 text-amber-500"
+            />
+            Report invalid number
           </button>
-
-          {delivery.canRefund && (
-            <button
-              type="button"
-              className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-amber-700 hover:bg-amber-50 transition-colors"
-              onClick={() => {
-                setOpen(false);
-                onRefund();
-              }}
-            >
-              <Wallet
-                size={14}
-                weight={ICON_WEIGHT_LINEAR}
-                className="shrink-0 text-amber-500"
-              />
-              Report invalid number
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+        )}
+      </PortalAnchoredMenuContent>
+    </>
   );
 }
 
