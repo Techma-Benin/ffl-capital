@@ -55,6 +55,11 @@ async function resolveDenialReason(): Promise<"partner" | "orphan" | "unauthenti
     await client.users.deleteUser(userId);
   } catch (err) {
     console.error("[admin/access-denied] failed to remove orphan account", err);
+    // #region agent log
+    const dbgLine = JSON.stringify({ sessionId: "a7fa28", location: "access-denied/page.tsx:57", message: "orphan account cleanup failed", data: { userId, error: String(err) }, hypothesisId: "H3", timestamp: Date.now() });
+    console.error(`[debug-a7fa28] ${dbgLine}`);
+    try { const { appendFile } = await import("node:fs/promises"); await appendFile("/home/acer/Nextcloud/Techma AI/FFL Capital/.cursor/debug-a7fa28.log", dbgLine + "\n"); } catch {}
+    // #endregion
   }
   return "orphan";
 }

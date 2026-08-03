@@ -4,6 +4,19 @@ import { isClerkAPIResponseError } from "@clerk/shared/error";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 
+// #region agent log
+const DBG_LOG_PATH = "/home/acer/Nextcloud/Techma AI/FFL Capital/.cursor/debug-a7fa28.log";
+async function dbgLog(location: string, message: string, data: unknown, hypothesisId: string) {
+  const line = JSON.stringify({ sessionId: "a7fa28", location, message, data, hypothesisId, timestamp: Date.now() });
+  console.error(`[debug-a7fa28] ${line}`);
+  fetch('http://127.0.0.1:7575/ingest/da5b7b85-ca12-43aa-a6b4-69544ae191ca',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a7fa28'},body:line}).catch(()=>{});
+  try {
+    const { appendFile } = await import("node:fs/promises");
+    await appendFile(DBG_LOG_PATH, line + "\n");
+  } catch {}
+}
+// #endregion
+
 const inviteSchema = z.object({
   email: z.string().email(),
 });
@@ -37,6 +50,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ invitation }, { status: 201 });
   } catch (err) {
     if (isClerkAPIResponseError(err)) {
+      // #region agent log
+      const dbgUsers = await client.users.getUserList({ emailAddress: [email], limit: 10 }).then(r => r.data.map(u => ({ id: u.id, emails: u.emailAddresses.map(e => e.emailAddress), role: (u.publicMetadata as Record<string, unknown>)?.role ?? null, partnerId: (u.publicMetadata as Record<string, unknown>)?.partnerId ?? null }))).catch(() => null);
+      const dbgInvs = await client.invitations.getInvitationList({ limit: 100 }).then(r => r.data.filter(i => i.emailAddress?.toLowerCase() === email.toLowerCase()).map(i => ({ id: i.id, status: i.status, email: i.emailAddress, role: (i.publicMetadata as Record<string, unknown>)?.role ?? null }))).catch(() => null);
+      await dbgLog('invite/route.ts:40', 'invite failed — clerk errors + matching users/invitations', { email, clerkErrors: err.errors.map(e => ({ code: e.code, message: e.message, longMessage: e.longMessage })), matchingUsers: dbgUsers, matchingInvitations: dbgInvs }, 'H1,H2,H4,H5');
+      // #endregion
       const alreadyExists = err.errors.some(
         (e) => e.code === "form_identifier_exists" || e.code === "duplicate_record",
       );
