@@ -456,7 +456,7 @@ export function AdminTransactionsView({
         />
 
         {/* Summary cards */}
-        <div className="mb-5 grid gap-4 sm:grid-cols-5">
+        <div className="mb-5 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
           <StatCard
             label="Funding"
             value={formatUsd(summary.funding)}
