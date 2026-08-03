@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition, forwardRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
 import { PageHeader } from "@/components/ui/page-header";
@@ -14,7 +14,6 @@ import {
   TrendUp,
   TrendDown,
   DownloadSimple,
-  List,
   Funnel,
 } from "@/lib/icons/client";
 import { formatUsd } from "@/lib/format-money";
@@ -435,6 +434,14 @@ export function AdminTransactionsView({
         <PageHeader
           title="Transactions"
           subtitle="All wallet activity across every partner"
+          badge={
+            <span
+              title={`${summary.count.toLocaleString()} transactions`}
+              className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-teal-200 bg-teal-50 px-1 text-xs font-semibold tabular-nums text-teal-700"
+            >
+              {summary.count.toLocaleString()}
+            </span>
+          }
           action={
             <div className="flex items-center gap-2">
               <button
@@ -456,7 +463,7 @@ export function AdminTransactionsView({
         />
 
         {/* Summary cards */}
-        <div className="mb-5 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Funding"
             value={formatUsd(summary.funding)}
@@ -481,14 +488,6 @@ export function AdminTransactionsView({
             icon={summary.net >= 0 ? TrendUp : TrendDown}
             accent={summary.net >= 0 ? "mint" : "red"}
             valueClassName={summary.net >= 0 ? "text-teal-700" : "text-red-600"}
-          />
-          <StatCard
-            label="Count"
-            value={summary.count.toLocaleString()}
-            icon={forwardRef(function ListDuotone(props, ref) {
-              return <List ref={ref as any} {...props} weight="BoldDuotone" />;
-            })}
-            accent="cyan"
           />
         </div>
 
