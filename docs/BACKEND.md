@@ -194,6 +194,8 @@ Compatibilité admin : l’ancien `state` unique est migré vers `states[]`; les
 
 **Lead Intake (graphique)** : granularité adaptative selon le nombre de jours calendaires inclusifs de la plage (`resolveChartGranularity`) — ≤1 j → horaire (« Hourly volume ») ; 2–60 j → journalier (« Daily volume », ex. `last_month` ~30 points) ; 61–90 j → fenêtres glissantes de 7 jours depuis le début de plage (pas Mon–Sun calendaire, « Weekly volume ») ; >90 j → mensuel. Libellés weekly = **date unique** (début de bucket, ex. `May 5`), pas de plage `A–B`. Buckets vides conservés à zéro ; jours calendaires locaux.
 
+**Delivering (donut)** : taux de livraison parmi les leads **entrés** sur la période (`Lead.receivedAt` dans la plage). Segments = Delivered vs Not delivered — Delivered = leads entrés dont `status = delivered` (**compte leads**, pas lignes `LeadDelivery`). Centre = `deliveryRatePercent` (arrondi) + label « Delivered » ; aucun lead entré → donut vide (« No leads yet »). Le KPI livraisons (`deliveriesInPeriod`) reste un **compte d’événements** `LeadDelivery` — distinct du donut. Agrégats : `computeAdminDashboardChartData` → `deliveringDonut` + `deliveryRatePercent`.
+
 Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardNeedsServerRefetch`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Données + agrégats : `fetchAdminDashboardRawData`, `computeAdminDashboardView` (`src/lib/admin/dashboard-stats.ts`). API : `src/app/api/admin/dashboard/route.ts`. UI : `AdminDashboardView` + `AdminDashboardPeriodFilter` ; **Custom** ouvre `AdminDateRangePopover` en panneau **modal** ancré en-tête (`hideTrigger`, backdrop) — l’URL `period=custom&from&to` n’est écrite qu’au **Apply** (le choix Custom seul ne laisse pas une URL custom incomplète) ; plage custom plafonnée au **jour calendaire local courant** (pas de dates futures). Cache client : clé `admin-dashboard` via `src/lib/client-store`.
 
 ### Client store (load-once / SWR léger)
@@ -550,6 +552,7 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-21 | Vues liste leads (`lead_list_views`) — remplace onglets statut admin ; CRUD admin/partner |
 | 2026-07-23 | Colonnes liste leads — persistance `columns` sur la vue (PATCH) ; plus de `admin-leads-visible-columns` |
 | 2026-08-03 | Dashboard admin — presets last_month / all_time ; refetch API hors fenêtre 90 j ; Lead Intake granularité adaptative (h/j/sem/mois) |
+| 2026-08-03 | Dashboard admin — donut Delivering = taux livraison (leads entrés / status delivered), plus mix canal Real-time vs Aged |
 | 2026-08-03 | Lead Intake — seuils révisés (≤1 h ; 2–60 j ; 61–90 sem ; >90 mois) ; labels weekly = date début bucket |
 | 2026-07-23 | Dashboard admin — charge 90j une fois, filtre période client ; URL canonique, custom modal |
 | 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |
