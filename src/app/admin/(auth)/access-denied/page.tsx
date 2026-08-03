@@ -1,10 +1,10 @@
-import { SignOutButton } from "@clerk/nextjs";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { isClerkAPIResponseError } from "@clerk/shared/error";
 import { ShieldWarning } from "@/lib/icons/ssr";
 import Link from "next/link";
 import { getRoleFromMetadata } from "@/lib/auth/roles";
 import { getPartnerId } from "@/lib/partner/session";
+import { AccessDeniedSignOutButton } from "./sign-out-button";
 
 /**
  * Reached whenever a signed-in user isn't an admin (either right after
@@ -17,7 +17,7 @@ import { getPartnerId } from "@/lib/partner/session";
  * an account). Partner accounts are never touched.
  */
 async function resolveDenialReason(): Promise<"partner" | "orphan" | "unauthenticated"> {
-  const { userId } = await auth();
+  const { userId, sessionId } = await auth();
   if (!userId) return "unauthenticated";
 
   let user;
@@ -43,6 +43,15 @@ async function resolveDenialReason(): Promise<"partner" | "orphan" | "unauthenti
 
   try {
     const client = await clerkClient();
+    // Revoke the browser session before deleting the user so client-side
+    // sign-out / redirect is not stuck on a zombie JWT for a missing user.
+    if (sessionId) {
+      try {
+        await client.sessions.revokeSession(sessionId);
+      } catch (err) {
+        console.error("[admin/access-denied] failed to revoke orphan session", err);
+      }
+    }
     await client.users.deleteUser(userId);
   } catch (err) {
     console.error("[admin/access-denied] failed to remove orphan account", err);
@@ -72,11 +81,7 @@ export default async function AdminAccessDeniedPage() {
               Partner portal sign in
             </Link>
           )}
-          <SignOutButton>
-            <button type="button" className="btn-ghost justify-center text-sm text-slate-600">
-              Sign out and try another account
-            </button>
-          </SignOutButton>
+          <AccessDeniedSignOutButton className="btn-ghost justify-center text-sm text-slate-600" />
         </div>
       </div>
     </div>
