@@ -162,7 +162,7 @@ Auth : session **admin** ou **partner** (routes miroir sous `/api/admin/lead-vie
 
 **Corps PATCH** — sous-ensemble optionnel de `name`, `filters`, `sort`, `columns`, `isDefault`. Le sélecteur de colonnes (admin + partner) persiste `{ "columns": [...] }` sur la vue active via `PATCH .../lead-views/[id]` (debounce côté client, flush à la fermeture du panneau). Le layout cartes/tableau reste en `localStorage` (`admin-leads-table-layout` / `partner-leads-table-layout`), pas les colonnes.
 
-**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `types[]`, `filterSetId`, `states[]` (codes US 2 lettres), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `custom`), bornes custom `from` / `to` (`YYYY-MM-DD`, sur `Lead.receivedAt`), et `q`. `types` contient les types internes des catégories et deux sentinelles : `__unclassified__` (`no_match`) et `__multiple_category_match__` (`multiple_matches`). Un type normal matche soit un lead résolu avec ce `leadType`, soit un lead `multiple_matches` dont `categoryCandidateTypes` contient ce type ; toutes les sélections Type sont combinées en OR. `filterSetId` exige qu’au moins une `LeadDelivery` du lead soit attribuée à ce filter set ; l’UI ne propose que les sets live, avec libellé `nom — Partner` pour les sets possédés et le nom seul sinon.
+**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `types[]`, `filterSetId`, `states[]` (codes US 2 lettres), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `all_time` \| `custom`), bornes custom `from` / `to` (`YYYY-MM-DD`, sur `Lead.receivedAt`), et `q`. `all_time` = pas de `gte`, `lte` = fin du jour courant (`resolveLeadViewDateRange`). L’UI listes leads expose les presets sans `all_time` (réservé au dashboard). `types` contient les types internes des catégories et deux sentinelles : `__unclassified__` (`no_match`) et `__multiple_category_match__` (`multiple_matches`). Un type normal matche soit un lead résolu avec ce `leadType`, soit un lead `multiple_matches` dont `categoryCandidateTypes` contient ce type ; toutes les sélections Type sont combinées en OR. `filterSetId` exige qu’au moins une `LeadDelivery` du lead soit attribuée à ce filter set ; l’UI ne propose que les sets live, avec libellé `nom — Partner` pour les sets possédés et le nom seul sinon.
 
 Compatibilité admin : l’ancien `state` unique est migré vers `states[]`; les anciens `categoryResolution` / `categoryCandidateTypes` sont prétraités vers `types[]`, retirés du JSON normalisé à la prochaine sauvegarde. Des bornes `from`/`to` sans `datePeriod` impliquent `custom`.
 
@@ -178,17 +178,23 @@ Compatibilité admin : l’ancien `state` unique est migré vers `states[]`; les
 
 ### Dashboard admin (`/admin`)
 
-Pas d’API dédiée — **une charge SSR** (`fetchAdminDashboardRawData`) sur les **90 derniers jours** calendaires (`ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS`), puis filtre période **côté client** (`computeAdminDashboardView`) sans nouvelle requête DB quand l’utilisateur change le preset / custom. L’URL est mise à jour via `history.replaceState` (partageable) ; rechargement complet ou nouvelle visite = nouvelle charge DB.
+**Charge SSR par défaut** : `fetchAdminDashboardRawData` sur les **90 derniers jours** calendaires (`ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS`). Les presets courts (today, yesterday, last 7 days, last month) et les plages custom dont le début reste **dans** cette fenêtre filtrent **côté client** (`computeAdminDashboardView`) sans nouvelle requête DB. L’URL est mise à jour via `history.replaceState` (partageable).
+
+**Refetch serveur** quand `adminDashboardNeedsServerRefetch` est vrai — `all_time`, ou `custom` dont `from` est **avant** le `windowStart` 90 j :
+- Client : `GET /api/admin/dashboard?period=&from=&to=` (auth admin) → payload brut pour la plage demandée
+- SSR : si l’URL d’atterrissage nécessite une plage étendue, charge étendue en parallèle (même helper) au lieu de se limiter aux 90 j
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|
-| `period` | `today` \| `yesterday` \| `last_7_days` \| `custom` | Preset calendaire local sur `receivedAt` / `deliveredAt` |
+| `period` | `today` \| `yesterday` \| `last_7_days` \| `last_month` \| `all_time` \| `custom` | Preset calendaire local sur `receivedAt` / `deliveredAt` ; `all_time` = pas de `gte`, `lte` = fin du jour |
 | `from`, `to` | `YYYY-MM-DD` | Requis pour bornes en mode `custom` (ou seuls → `custom` implicite) |
 | *(absent)* | — | Défaut `last_7_days` |
 
 **URL canonique** : si la période n’est pas « explicite » (`adminDashboardHasExplicitPeriod` — ex. `/admin` nu, ou `period=custom` sans `from`/`to`), la page SSR **redirige** vers `/admin?period=last_7_days`. Les données suivent le même défaut via `parseAdminDashboardPeriod`.
 
-Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Données + agrégats : `fetchAdminDashboardRawData`, `computeAdminDashboardView` (`src/lib/admin/dashboard-stats.ts`). UI : `AdminDashboardView` + `AdminDashboardPeriodFilter` ; **Custom** ouvre `AdminDateRangePopover` en panneau **modal** ancré en-tête (`hideTrigger`, backdrop) — l’URL `period=custom&from&to` n’est écrite qu’au **Apply** (le choix Custom seul ne laisse pas une URL custom incomplète) ; plage custom plafonnée au **jour calendaire local courant** (pas de dates futures). Custom au-delà de 90 jours : seule la partie dans la fenêtre chargée compte. Cache client : clé `admin-dashboard` via `src/lib/client-store`.
+**Lead Intake (graphique)** : granularité adaptative selon le nombre de jours calendaires inclusifs de la plage (`resolveChartGranularity`) — ≤1 j → horaire (« Hourly volume ») ; 2–14 j → journalier ; 15–90 j → fenêtres glissantes de 7 jours depuis le début de plage (pas Mon–Sun calendaire, « Weekly volume ») ; >90 j → mensuel. Buckets vides conservés à zéro ; jours calendaires locaux.
+
+Helpers : `parseAdminDashboardPeriod`, `resolveAdminDashboardReceivedAtRange`, `adminDashboardNeedsServerRefetch`, `adminDashboardPeriodDisplayLabel` (`src/lib/admin/admin-date-period.ts`). Données + agrégats : `fetchAdminDashboardRawData`, `computeAdminDashboardView` (`src/lib/admin/dashboard-stats.ts`). API : `src/app/api/admin/dashboard/route.ts`. UI : `AdminDashboardView` + `AdminDashboardPeriodFilter` ; **Custom** ouvre `AdminDateRangePopover` en panneau **modal** ancré en-tête (`hideTrigger`, backdrop) — l’URL `period=custom&from&to` n’est écrite qu’au **Apply** (le choix Custom seul ne laisse pas une URL custom incomplète) ; plage custom plafonnée au **jour calendaire local courant** (pas de dates futures). Cache client : clé `admin-dashboard` via `src/lib/client-store`.
 
 ### Client store (load-once / SWR léger)
 
@@ -196,7 +202,7 @@ Module `src/lib/client-store` (pas de dépendance Zustand/SWR) : cache mémoire 
 
 | Page | Approche | Skip / notes |
 |------|----------|--------------|
-| `/admin` dashboard | Charge 90 j + filtre client + store | — |
+| `/admin` dashboard | Charge 90 j + filtre client + store ; refetch `GET /api/admin/dashboard` si all_time / custom hors fenêtre | — |
 | `/admin/partners` | Charge jusqu’à 2000 partners + filtre/tri/page client + store | Cap `ADMIN_PARTNERS_CLIENT_LOAD_LIMIT` |
 | `/admin/filter-list` | SSR sets live + templates ; store ; édition via pages dédiées (pas de modal) | — |
 | `/admin/refunds` | SSR pending + 30 history + store ; filtres déjà client | — |
@@ -543,6 +549,7 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-10 | Core backend 9 phases implémentées — voir journal ci-dessus |
 | 2026-07-21 | Vues liste leads (`lead_list_views`) — remplace onglets statut admin ; CRUD admin/partner |
 | 2026-07-23 | Colonnes liste leads — persistance `columns` sur la vue (PATCH) ; plus de `admin-leads-visible-columns` |
+| 2026-08-03 | Dashboard admin — presets last_month / all_time ; refetch API hors fenêtre 90 j ; Lead Intake granularité adaptative (h/j/sem/mois) |
 | 2026-07-23 | Dashboard admin — charge 90j une fois, filtre période client ; URL canonique, custom modal |
 | 2026-07-22 | Dashboard admin — filtre période URL + stats/graphiques/leads récents |
 | 2026-07-22 | Admin aged — tableau tri URL + pagination + mark dead (UI) |
