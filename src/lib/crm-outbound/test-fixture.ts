@@ -30,6 +30,8 @@ export function buildCrmOutboundTestSourcePayload(partnerId: string, partnerEmai
     dob: "1985-01-01",
     age: "41",
     leadType: "high_intent_iul",
+    categoryResolution: "matched" as const,
+    categoryCandidateTypes: [],
     intent: "Life insurance",
     haveIul: "No",
     primaryGoal: "Retirement",

@@ -75,7 +75,7 @@ export async function getEligiblePartnersForReprocess(
             filterSet,
             partner,
             lead.state,
-            lead.leadType,
+            lead.leadType ?? "",
             effectivePrice,
             lead,
           )

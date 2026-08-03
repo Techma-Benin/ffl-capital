@@ -11,7 +11,7 @@ export function PortalAnchoredMenuContent({
   children,
 }: {
   open: boolean;
-  menuRef: React.RefObject<HTMLDivElement | null>;
+  menuRef: React.Ref<HTMLDivElement>;
   menuStyle: PortalAnchoredMenuStyle | null;
   className?: string;
   children: React.ReactNode;

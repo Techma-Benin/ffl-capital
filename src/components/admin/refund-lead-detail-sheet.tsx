@@ -49,7 +49,7 @@ export function RefundLeadDetailSheet({ lead, open, onOpenChange }: Props) {
 
         <dl className="grid gap-3 sm:grid-cols-2">
           {[
-            { label: "Lead type", value: lead.leadType },
+            { label: "Lead type", value: lead.leadType ?? "Unclassified" },
             {
               label: "Delivery price",
               value: formatUsd(lead.delivery.price),

@@ -1,3 +1,5 @@
+import type { LeadCategoryResolution } from "@/lib/lead-categories/category-badge-variant";
+
 export type LeadDetailTimelineItem = {
   at: string;
   label: string;

@@ -31,13 +31,15 @@ export function Badge({
   variant = "slate",
   children,
   className,
+  title,
 }: {
   variant?: BadgeVariant;
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }) {
   return (
-    <span className={clsx(variantClasses[variant], className)}>
+    <span className={clsx(variantClasses[variant], className)} title={title}>
       {children}
     </span>
   );

@@ -39,6 +39,7 @@ type DeliveryRow = {
     state: string;
     address: string | null;
     leadType: string;
+    leadTypeLabel: string;
     intent: string | null;
     haveIul: string | null;
     primaryGoal: string | null;

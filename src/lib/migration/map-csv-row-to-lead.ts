@@ -25,7 +25,7 @@ export function mapCsvRowToLead(
     .toUpperCase()
     .slice(0, 2);
 
-  const rawPayload: Record<string, unknown> = { ...row };
+  const rawPayload: Record<string, string> = { ...row };
   const classification = classifyImportedLead(rawPayload, categories);
 
   return {

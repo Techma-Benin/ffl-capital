@@ -9,6 +9,7 @@ import {
   resolveLeadTypeDisplay,
 } from "@/lib/lead-categories/category-labels";
 import { formatUsd } from "@/lib/format-money";
+import { formatDateTimeLong } from "@/lib/format-datetime";
 
 export default async function PartnerLeadDetailPage({
   params,

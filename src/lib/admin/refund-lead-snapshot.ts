@@ -3,7 +3,7 @@ export type RefundLeadSnapshot = {
   id: string;
   name: string;
   state: string;
-  leadType: string;
+  leadType: string | null;
   status: string;
   receivedAt: string;
   partner: {
@@ -49,7 +49,7 @@ type LeadRowSource = {
   firstName: string;
   lastName: string;
   state: string;
-  leadType: string;
+  leadType: string | null;
   status: string;
   receivedAt: Date;
 };
