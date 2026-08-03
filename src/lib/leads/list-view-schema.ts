@@ -28,6 +28,7 @@ export const adminDatePeriodSchema = z.enum([
   "yesterday",
   "last_7_days",
   "last_month",
+  "all_time",
   "custom",
 ]);
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { AdminDatePeriod } from "@/lib/leads/list-view-schema";
 import {
+  adminDashboardNeedsServerRefetch,
   adminDashboardPeriodDisplayLabel,
   resolveAdminDashboardReceivedAtRange,
 } from "@/lib/admin/admin-date-period";
@@ -34,11 +35,29 @@ function syncDashboardUrl(pathname: string, state: PeriodState) {
   window.history.replaceState(window.history.state, "", href);
 }
 
+async function fetchDashboardRaw(period: PeriodState): Promise<AdminDashboardRawData> {
+  const params = new URLSearchParams();
+  params.set("period", period.datePeriod);
+  if (period.datePeriod === "custom") {
+    if (period.from) params.set("from", period.from);
+    if (period.to) params.set("to", period.to);
+  }
+  const res = await fetch(`/api/admin/dashboard?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error("Failed to load dashboard data");
+  }
+  return res.json() as Promise<AdminDashboardRawData>;
+}
+
 export function AdminDashboardView({
   raw: initialRaw,
+  initialExtended = null,
   initialPeriod,
 }: {
+  /** Always the 90-day lookback payload for short preset client filtering. */
   raw: AdminDashboardRawData;
+  /** SSR-fetched payload when the landing URL needs All time / long custom. */
+  initialExtended?: AdminDashboardRawData | null;
   initialPeriod: PeriodState;
 }) {
   const pathname = usePathname();
@@ -47,6 +66,11 @@ export function AdminDashboardView({
     { initialData: initialRaw },
   );
   const [period, setPeriod] = useState<PeriodState>(initialPeriod);
+  const [extendedRaw, setExtendedRaw] = useState<AdminDashboardRawData | null>(
+    initialExtended,
+  );
+  const [extendedLoading, setExtendedLoading] = useState(false);
+  const [extendedError, setExtendedError] = useState<string | null>(null);
 
   const onPeriodChange = useCallback(
     (next: {
@@ -83,6 +107,70 @@ export function AdminDashboardView({
     [period],
   );
 
+  const baseRaw = raw ?? initialRaw;
+
+  const needsExtended = useMemo(
+    () =>
+      adminDashboardNeedsServerRefetch(
+        period.datePeriod,
+        period.from,
+        baseRaw.windowStart,
+      ),
+    [period.datePeriod, period.from, baseRaw.windowStart],
+  );
+
+  useEffect(() => {
+    if (!needsExtended) {
+      setExtendedRaw(null);
+      setExtendedError(null);
+      setExtendedLoading(false);
+      return;
+    }
+
+    // Reuse SSR extended payload when it still matches the current period.
+    if (
+      initialExtended &&
+      period.datePeriod === initialPeriod.datePeriod &&
+      period.from === initialPeriod.from &&
+      period.to === initialPeriod.to
+    ) {
+      setExtendedRaw(initialExtended);
+      setExtendedLoading(false);
+      setExtendedError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setExtendedLoading(true);
+    setExtendedError(null);
+    setExtendedRaw(null);
+
+    void fetchDashboardRaw(period)
+      .then((data) => {
+        if (cancelled) return;
+        setExtendedRaw(data);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setExtendedError("Could not load this period. Try again.");
+        setExtendedRaw(null);
+      })
+      .finally(() => {
+        if (!cancelled) setExtendedLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    needsExtended,
+    period,
+    initialExtended,
+    initialPeriod.datePeriod,
+    initialPeriod.from,
+    initialPeriod.to,
+  ]);
+
   const receivedRange = useMemo(
     () => resolveAdminDashboardReceivedAtRange(searchShape),
     [searchShape],
@@ -97,10 +185,12 @@ export function AdminDashboardView({
         )
       : undefined;
 
-  const view = useMemo(
-    () => computeAdminDashboardView(raw ?? initialRaw, receivedRange),
-    [raw, initialRaw, receivedRange],
-  );
+  const activeRaw = needsExtended ? extendedRaw : baseRaw;
+
+  const view = useMemo(() => {
+    if (!activeRaw) return null;
+    return computeAdminDashboardView(activeRaw, receivedRange);
+  }, [activeRaw, receivedRange]);
 
   return (
     <div>
@@ -118,13 +208,26 @@ export function AdminDashboardView({
         }
       />
 
-      <AdminDashboardCharts
-        intakeByDay={view.chartData.intakeByDay}
-        sparkByDay={view.chartData.sparkByDay}
-        deliveringDonut={view.chartData.deliveringDonut}
-        kpis={view.kpis}
-        recentLeads={view.recentLeads}
-      />
+      {needsExtended && extendedLoading && !view ? (
+        <p className="mt-8 text-sm text-slate-500">Loading period data…</p>
+      ) : null}
+
+      {extendedError ? (
+        <p className="mt-4 text-sm text-red-600" role="alert">
+          {extendedError}
+        </p>
+      ) : null}
+
+      {view ? (
+        <AdminDashboardCharts
+          intakeByDay={view.chartData.intakeByDay}
+          sparkByDay={view.chartData.sparkByDay}
+          intakeVolumeLabel={view.chartData.volumeLabel}
+          deliveringDonut={view.chartData.deliveringDonut}
+          kpis={view.kpis}
+          recentLeads={view.recentLeads}
+        />
+      ) : null}
     </div>
   );
 }

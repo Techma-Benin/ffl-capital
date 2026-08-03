@@ -14,6 +14,7 @@ type RecentLead = {
   lastName: string;
   state: string;
   leadType: string;
+  leadTypeLabel: string;
   status: string;
   receivedAt: string;
   partnerName: string | null;
@@ -22,12 +23,14 @@ type RecentLead = {
 export function AdminDashboardCharts({
   intakeByDay,
   sparkByDay,
+  intakeVolumeLabel = "Daily volume",
   deliveringDonut,
   kpis,
   recentLeads,
 }: {
   intakeByDay: Array<{ label: string; leads: number }>;
   sparkByDay: Array<{ value: number }>;
+  intakeVolumeLabel?: string;
   deliveringDonut: Array<{ name: string; value: number }>;
   kpis: {
     leadsInPeriod: number;
@@ -52,7 +55,7 @@ export function AdminDashboardCharts({
         <div className="card p-5 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Lead Intake</h2>
-            <span className="text-xs text-slate-400">Daily volume</span>
+            <span className="text-xs text-slate-400">{intakeVolumeLabel}</span>
           </div>
           <IntakeAreaChart data={intakeByDay} height={300} />
         </div>

@@ -36,6 +36,8 @@ export const ADMIN_DASHBOARD_PERIOD_OPTIONS: {
   { value: "today", label: "Today" },
   { value: "yesterday", label: "Yesterday" },
   { value: "last_7_days", label: "Last 7 days" },
+  { value: "last_month", label: "Last month" },
+  { value: "all_time", label: "All time" },
   { value: "custom", label: "Custom period" },
 ];
 
@@ -114,7 +116,7 @@ export function parseAdminDashboardPeriod(searchParams: {
 export function resolveAdminDashboardReceivedAtRange(
   searchParams: { period?: string; from?: string; to?: string },
   now: Date = new Date(),
-): { gte: Date; lte: Date } {
+): { gte?: Date; lte: Date } {
   const filters = parseAdminDashboardPeriod(searchParams);
   const range =
     resolveAdminReceivedAtRange(filters, now) ??
@@ -122,7 +124,23 @@ export function resolveAdminDashboardReceivedAtRange(
       { datePeriod: ADMIN_DASHBOARD_DEFAULT_PERIOD },
       now,
     )!;
-  return { gte: range.gte!, lte: range.lte! };
+  return { gte: range.gte, lte: range.lte ?? endOfDay(now) };
+}
+
+/**
+ * True when the selected period cannot be answered from the 90-day client
+ * payload (All time, or a custom range that starts before the loaded window).
+ */
+export function adminDashboardNeedsServerRefetch(
+  datePeriod: AdminDatePeriod,
+  from: string | undefined,
+  windowStartIso: string,
+): boolean {
+  if (datePeriod === "all_time") return true;
+  if (datePeriod !== "custom" || !from) return false;
+  const fromStart = startOfDay(adminParseYmd(from));
+  const windowStart = new Date(windowStartIso);
+  return fromStart.getTime() < windowStart.getTime();
 }
 
 export function adminDatePeriodLabel(
@@ -266,6 +284,8 @@ export function resolveLeadViewDateRange(
       const last = new Date(now.getFullYear(), now.getMonth(), 0);
       return { gte: startOfDay(first), lte: endOfDay(last) };
     }
+    case "all_time":
+      return { lte: endOfDay(now) };
     case "custom": {
       if (!filters.from && !filters.to) return null;
       const range: { gte?: Date; lte?: Date } = {};

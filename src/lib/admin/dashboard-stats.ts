@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
 import { PartnerStatus } from "@prisma/client";
-import { resolveAdminDashboardLookbackWindow } from "@/lib/admin/admin-date-period";
+import {
+  ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS,
+  resolveAdminDashboardLookbackWindow,
+} from "@/lib/admin/admin-date-period";
 import {
   loadEnabledCategoryLabels,
   resolveLeadTypeDisplay,
@@ -12,21 +15,179 @@ function startOfDay(d: Date): Date {
   return x;
 }
 
-function dayBuckets(gte: Date, lte: Date): Date[] {
-  const start = startOfDay(gte);
-  const end = startOfDay(lte);
-  const days: Date[] = [];
-  const cursor = new Date(start);
-  while (cursor <= end) {
-    days.push(new Date(cursor));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return days;
+function endOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
 }
 
-function inRange(iso: string, gte: Date, lte: Date): boolean {
+function startOfHour(d: Date): Date {
+  const x = new Date(d);
+  x.setMinutes(0, 0, 0);
+  return x;
+}
+
+function inclusiveCalendarDays(gte: Date, lte: Date): number {
+  const start = startOfDay(gte).getTime();
+  const end = startOfDay(lte).getTime();
+  return Math.floor((end - start) / 86_400_000) + 1;
+}
+
+export type ChartGranularity = "hour" | "day" | "week" | "month";
+
+export function resolveChartGranularity(
+  gte: Date,
+  lte: Date,
+): ChartGranularity {
+  const days = inclusiveCalendarDays(gte, lte);
+  if (days <= 1) return "hour";
+  if (days <= 14) return "day";
+  if (days <= 90) return "week";
+  return "month";
+}
+
+export function chartVolumeLabel(granularity: ChartGranularity): string {
+  switch (granularity) {
+    case "hour":
+      return "Hourly volume";
+    case "day":
+      return "Daily volume";
+    case "week":
+      return "Weekly volume";
+    case "month":
+      return "Monthly volume";
+  }
+}
+
+type ChartBucket = { start: Date; end: Date; label: string };
+
+const MONTHS_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+function formatHourLabel(d: Date): string {
+  const h = d.getHours();
+  const suffix = h < 12 ? "AM" : "PM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12} ${suffix}`;
+}
+
+function formatDayLabel(d: Date, singleDay: boolean): string {
+  if (singleDay) {
+    return d.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  }
+  return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric" });
+}
+
+function formatWeekLabel(start: Date, endExclusive: Date): string {
+  const last = new Date(endExclusive);
+  last.setMilliseconds(last.getMilliseconds() - 1);
+  const s = `${MONTHS_SHORT[start.getMonth()]} ${start.getDate()}`;
+  const e = `${MONTHS_SHORT[last.getMonth()]} ${last.getDate()}`;
+  return s === e ? s : `${s}–${e}`;
+}
+
+function formatMonthLabel(d: Date): string {
+  return `${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** Build inclusive timeline buckets; empty buckets keep zeros so the axis stays continuous. */
+export function buildBuckets(
+  gte: Date,
+  lte: Date,
+  granularity: ChartGranularity,
+): ChartBucket[] {
+  const rangeEnd = endOfDay(lte);
+  const buckets: ChartBucket[] = [];
+
+  if (granularity === "hour") {
+    let cursor = startOfHour(gte);
+    const lastHour = startOfHour(rangeEnd);
+    while (cursor <= lastHour) {
+      const next = new Date(cursor);
+      next.setHours(next.getHours() + 1);
+      buckets.push({
+        start: new Date(cursor),
+        end: next,
+        label: formatHourLabel(cursor),
+      });
+      cursor = next;
+    }
+    return buckets;
+  }
+
+  if (granularity === "day") {
+    let cursor = startOfDay(gte);
+    const lastDay = startOfDay(rangeEnd);
+    const single = cursor.getTime() === lastDay.getTime();
+    while (cursor <= lastDay) {
+      const next = new Date(cursor);
+      next.setDate(next.getDate() + 1);
+      buckets.push({
+        start: new Date(cursor),
+        end: next,
+        label: formatDayLabel(cursor, single),
+      });
+      cursor = next;
+    }
+    return buckets;
+  }
+
+  if (granularity === "week") {
+    // Rolling 7-day windows from range start (not calendar Mon–Sun).
+    let cursor = startOfDay(gte);
+    const lastDay = startOfDay(rangeEnd);
+    while (cursor <= lastDay) {
+      const next = new Date(cursor);
+      next.setDate(next.getDate() + 7);
+      const end =
+        next.getTime() > rangeEnd.getTime() + 1
+          ? new Date(rangeEnd.getTime() + 1)
+          : next;
+      buckets.push({
+        start: new Date(cursor),
+        end,
+        label: formatWeekLabel(cursor, end),
+      });
+      cursor = next;
+    }
+    return buckets;
+  }
+
+  // month — calendar months covering the range
+  let cursor = new Date(gte.getFullYear(), gte.getMonth(), 1);
+  const lastMonth = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
+  while (cursor <= lastMonth) {
+    const next = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    buckets.push({
+      start: new Date(cursor),
+      end: next,
+      label: formatMonthLabel(cursor),
+    });
+    cursor = next;
+  }
+  return buckets;
+}
+
+function inRange(iso: string, gte: Date | undefined, lte: Date): boolean {
   const t = new Date(iso).getTime();
-  return t >= gte.getTime() && t <= lte.getTime();
+  if (gte && t < gte.getTime()) return false;
+  return t <= lte.getTime();
 }
 
 export type AdminDashboardRawLead = {
@@ -56,16 +217,35 @@ export type AdminDashboardRawData = {
   unmatchedLeads: number;
 };
 
+export type FetchAdminDashboardRawOptions = {
+  now?: Date;
+  /**
+   * Load this receivedAt/deliveredAt window instead of the default 90-day
+   * lookback. Omit `gte` for all-time (no lower bound).
+   */
+  range?: { gte?: Date; lte: Date };
+};
+
 export async function fetchAdminDashboardRawData(
-  now: Date = new Date(),
+  options: FetchAdminDashboardRawOptions = {},
 ): Promise<AdminDashboardRawData> {
-  const window = resolveAdminDashboardLookbackWindow(now);
+  const now = options.now ?? new Date();
+  const window = options.range
+    ? { gte: options.range.gte, lte: options.range.lte }
+    : resolveAdminDashboardLookbackWindow(now);
+
+  const receivedAtFilter = window.gte
+    ? { gte: window.gte, lte: window.lte }
+    : { lte: window.lte };
+  const deliveredAtFilter = window.gte
+    ? { gte: window.gte, lte: window.lte }
+    : { lte: window.lte };
 
   const [leadRows, deliveryRows, activePartners, unmatchedLeads, categories] =
     await Promise.all([
       prisma.lead.findMany({
         where: {
-          receivedAt: { gte: window.gte, lte: window.lte },
+          receivedAt: receivedAtFilter,
         },
         orderBy: { receivedAt: "desc" },
         include: {
@@ -78,7 +258,7 @@ export async function fetchAdminDashboardRawData(
       }),
       prisma.leadDelivery.findMany({
         where: {
-          deliveredAt: { gte: window.gte, lte: window.lte },
+          deliveredAt: deliveredAtFilter,
         },
         select: { deliveredAt: true, channel: true },
       }),
@@ -89,13 +269,23 @@ export async function fetchAdminDashboardRawData(
       loadEnabledCategoryLabels(),
     ]);
 
-  const { ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS } = await import(
-    "@/lib/admin/admin-date-period"
-  );
+  const lookbackDays = options.range
+    ? window.gte
+      ? inclusiveCalendarDays(window.gte, window.lte)
+      : 0
+    : ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS;
+
+  const windowStart =
+    window.gte?.toISOString() ??
+    leadRows.reduce<string | null>((min, lead) => {
+      const iso = lead.receivedAt.toISOString();
+      return min == null || iso < min ? iso : min;
+    }, null) ??
+    startOfDay(now).toISOString();
 
   return {
-    lookbackDays: ADMIN_DASHBOARD_CLIENT_FILTER_LOOKBACK_DAYS,
-    windowStart: window.gte.toISOString(),
+    lookbackDays,
+    windowStart,
     windowEnd: window.lte.toISOString(),
     leads: leadRows.map((lead) => {
       const delivery = lead.leadDeliveries[0];
@@ -127,12 +317,36 @@ export async function fetchAdminDashboardRawData(
   };
 }
 
+/** Concrete chart bounds when period has no lower bound (all time). */
+export function resolveDashboardChartRange(
+  range: { gte?: Date; lte: Date },
+  raw: Pick<AdminDashboardRawData, "leads" | "deliveries" | "windowStart">,
+): { gte: Date; lte: Date } {
+  if (range.gte) return { gte: range.gte, lte: range.lte };
+
+  let earliest = Number.POSITIVE_INFINITY;
+  for (const l of raw.leads) {
+    earliest = Math.min(earliest, new Date(l.receivedAt).getTime());
+  }
+  for (const d of raw.deliveries) {
+    earliest = Math.min(earliest, new Date(d.deliveredAt).getTime());
+  }
+  if (!Number.isFinite(earliest)) {
+    earliest = new Date(raw.windowStart).getTime();
+  }
+  if (!Number.isFinite(earliest)) {
+    earliest = startOfDay(range.lte).getTime();
+  }
+  return { gte: startOfDay(new Date(earliest)), lte: range.lte };
+}
+
 export function computeAdminDashboardChartData(
   leads: AdminDashboardRawLead[],
   deliveries: AdminDashboardRawDelivery[],
   range: { gte: Date; lte: Date },
 ) {
-  const buckets = dayBuckets(range.gte, range.lte);
+  const granularity = resolveChartGranularity(range.gte, range.lte);
+  const buckets = buildBuckets(range.gte, range.lte, granularity);
   const periodLeads = leads.filter((l) =>
     inRange(l.receivedAt, range.gte, range.lte),
   );
@@ -143,25 +357,13 @@ export function computeAdminDashboardChartData(
   const intakeByDay: Array<{ label: string; leads: number }> = [];
   const sparkByDay: Array<{ value: number }> = [];
 
-  for (const day of buckets) {
-    const next = new Date(day);
-    next.setDate(day.getDate() + 1);
-
+  for (const bucket of buckets) {
     const count = periodLeads.filter((l) => {
-      const t = new Date(l.receivedAt);
-      return t >= day && t < next;
+      const t = new Date(l.receivedAt).getTime();
+      return t >= bucket.start.getTime() && t < bucket.end.getTime();
     }).length;
 
-    const label =
-      buckets.length === 1
-        ? day.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          })
-        : day.toLocaleDateString("en-US", { weekday: "short" });
-
-    intakeByDay.push({ label, leads: count });
+    intakeByDay.push({ label: bucket.label, leads: count });
     sparkByDay.push({ value: count });
   }
 
@@ -184,13 +386,21 @@ export function computeAdminDashboardChartData(
       .map(([name, value]) => ({ name, value })),
   ];
 
-  return { intakeByDay, sparkByDay, deliveringDonut };
+  return {
+    intakeByDay,
+    sparkByDay,
+    deliveringDonut,
+    granularity,
+    volumeLabel: chartVolumeLabel(granularity),
+  };
 }
 
 export function computeAdminDashboardView(
   raw: AdminDashboardRawData,
-  range: { gte: Date; lte: Date },
+  range: { gte?: Date; lte: Date },
 ) {
+  const chartRange = resolveDashboardChartRange(range, raw);
+
   const leadsInPeriod = raw.leads.filter((l) =>
     inRange(l.receivedAt, range.gte, range.lte),
   ).length;
@@ -201,7 +411,7 @@ export function computeAdminDashboardView(
   const chartData = computeAdminDashboardChartData(
     raw.leads,
     raw.deliveries,
-    range,
+    chartRange,
   );
 
   const recentLeads = raw.leads
