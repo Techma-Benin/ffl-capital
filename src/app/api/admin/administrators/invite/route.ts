@@ -4,22 +4,13 @@ import { isClerkAPIResponseError } from "@clerk/shared/error";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 
-// #region agent log
-const DBG_LOG_PATH = "/home/acer/Nextcloud/Techma AI/FFL Capital/.cursor/debug-a7fa28.log";
-async function dbgLog(location: string, message: string, data: unknown, hypothesisId: string) {
-  const line = JSON.stringify({ sessionId: "a7fa28", location, message, data, hypothesisId, timestamp: Date.now() });
-  console.error(`[debug-a7fa28] ${line}`);
-  fetch('http://127.0.0.1:7575/ingest/da5b7b85-ca12-43aa-a6b4-69544ae191ca',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a7fa28'},body:line}).catch(()=>{});
-  try {
-    const { appendFile } = await import("node:fs/promises");
-    await appendFile(DBG_LOG_PATH, line + "\n");
-  } catch {}
-}
-// #endregion
-
 const inviteSchema = z.object({
   email: z.string().email(),
 });
+
+function logInvite(event: string, data: Record<string, unknown>) {
+  console.error(`[admin/administrators/invite] ${event}`, JSON.stringify(data));
+}
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAdmin();
@@ -47,47 +38,118 @@ export async function POST(request: NextRequest) {
       redirectUrl,
     });
 
+    logInvite("invitation_created", { email, invitationId: invitation.id });
     return NextResponse.json({ invitation }, { status: 201 });
   } catch (err) {
     if (isClerkAPIResponseError(err)) {
-      // #region agent log
-      const dbgUsers = await client.users.getUserList({ emailAddress: [email], limit: 10 }).then(r => r.data.map(u => ({ id: u.id, emails: u.emailAddresses.map(e => e.emailAddress), role: (u.publicMetadata as Record<string, unknown>)?.role ?? null, partnerId: (u.publicMetadata as Record<string, unknown>)?.partnerId ?? null }))).catch(() => null);
-      const dbgInvs = await client.invitations.getInvitationList({ limit: 100 }).then(r => r.data.filter(i => i.emailAddress?.toLowerCase() === email.toLowerCase()).map(i => ({ id: i.id, status: i.status, email: i.emailAddress, role: (i.publicMetadata as Record<string, unknown>)?.role ?? null }))).catch(() => null);
-      await dbgLog('invite/route.ts:40', 'invite failed — clerk errors + matching users/invitations', { email, clerkErrors: err.errors.map(e => ({ code: e.code, message: e.message, longMessage: e.longMessage })), matchingUsers: dbgUsers, matchingInvitations: dbgInvs }, 'H1,H2,H4,H5');
-      // #endregion
+      const clerkErrors = err.errors.map((e) => ({
+        code: e.code,
+        message: e.message,
+        longMessage: e.longMessage,
+      }));
       const alreadyExists = err.errors.some(
         (e) => e.code === "form_identifier_exists" || e.code === "duplicate_record",
       );
+
       if (alreadyExists) {
         // Clerk blocks re-inviting an email that has ANY lingering invitation
-        // record — even an already-accepted one from a removed account. Those
-        // stale invitations are invisible in the admin UI (which only lists
-        // pending ones). If no actual user account exists for this email,
-        // revoke every lingering invitation and retry once with a fresh invite.
+        // record — even an already-accepted one from a removed account — OR
+        // that already belongs to a live user (partner / orphan). Diagnose both
+        // and recover when we can.
         const existingUsers = await client.users
           .getUserList({ emailAddress: [email], limit: 10 })
-          .catch(() => null);
+          .catch((lookupErr) => {
+            logInvite("user_lookup_failed", {
+              email,
+              error: String(lookupErr),
+            });
+            return null;
+          });
+
+        const matchingUsers =
+          existingUsers?.data.map((u) => ({
+            id: u.id,
+            emails: u.emailAddresses.map((e) => e.emailAddress),
+            role:
+              (u.publicMetadata as Record<string, unknown>)?.role ?? null,
+            partnerId:
+              (u.publicMetadata as Record<string, unknown>)?.partnerId ?? null,
+          })) ?? [];
+
+        const matchingInvitations = await client.invitations
+          .getInvitationList({ limit: 100 })
+          .then((r) =>
+            r.data
+              .filter(
+                (i) =>
+                  i.emailAddress?.toLowerCase() === email.toLowerCase(),
+              )
+              .map((i) => ({
+                id: i.id,
+                status: i.status,
+                email: i.emailAddress,
+                role:
+                  (i.publicMetadata as Record<string, unknown>)?.role ?? null,
+              })),
+          )
+          .catch((lookupErr) => {
+            logInvite("invitation_lookup_failed", {
+              email,
+              error: String(lookupErr),
+            });
+            return [];
+          });
+
+        logInvite("invite_conflict", {
+          email,
+          clerkErrors,
+          matchingUsers,
+          matchingInvitations,
+        });
+
+        // Case 1: live non-admin account (e.g. partner) → promote in place.
+        if (existingUsers && existingUsers.data.length > 0) {
+          const existing = existingUsers.data[0];
+          const existingMetadata =
+            (existing.publicMetadata as Record<string, unknown>) ?? {};
+          if (existingMetadata.role === "admin") {
+            logInvite("already_admin", { email, userId: existing.id });
+            return NextResponse.json(
+              { error: "This email is already an administrator." },
+              { status: 409 },
+            );
+          }
+          await client.users.updateUserMetadata(existing.id, {
+            publicMetadata: { ...existingMetadata, role: "admin" },
+          });
+          logInvite("promoted_existing_user", {
+            email,
+            userId: existing.id,
+            previousRole: existingMetadata.role ?? null,
+            partnerId: existingMetadata.partnerId ?? null,
+          });
+          return NextResponse.json(
+            { promoted: true, userId: existing.id },
+            { status: 200 },
+          );
+        }
+
+        // Case 2: no user, but stale invitation records → revoke + retry.
         if (existingUsers && existingUsers.data.length === 0) {
-          const staleInvitations = await client.invitations
-            .getInvitationList({ limit: 100 })
-            .then((r) =>
-              r.data.filter(
-                (i) => i.emailAddress?.toLowerCase() === email.toLowerCase(),
-              ),
-            )
-            .catch(() => []);
-          // #region agent log
-          await dbgLog('invite/route.ts:62', 'duplicate invite — revoking stale invitations and retrying', { email, revokingIds: staleInvitations.map(i => ({ id: i.id, status: i.status })) }, 'H2');
-          // #endregion
-          for (const inv of staleInvitations) {
+          logInvite("revoking_stale_invitations", {
+            email,
+            revoking: matchingInvitations,
+          });
+          for (const inv of matchingInvitations) {
             await client.invitations
               .revokeInvitation(inv.id)
               .catch((revokeErr) =>
-                console.error(
-                  "[admin/administrators/invite] failed to revoke stale invitation",
-                  inv.id,
-                  revokeErr,
-                ),
+                logInvite("revoke_stale_invitation_failed", {
+                  email,
+                  invitationId: inv.id,
+                  status: inv.status,
+                  error: String(revokeErr),
+                }),
               );
           }
           try {
@@ -96,20 +158,26 @@ export async function POST(request: NextRequest) {
               publicMetadata: { role: "admin" },
               redirectUrl,
             });
-            // #region agent log
-            await dbgLog('invite/route.ts:85', 're-invite after revoking stale invitations succeeded', { email, invitationId: invitation.id }, 'H2');
-            // #endregion
+            logInvite("reinvite_after_revoke_succeeded", {
+              email,
+              invitationId: invitation.id,
+            });
             return NextResponse.json({ invitation }, { status: 201 });
           } catch (retryErr) {
-            // #region agent log
-            await dbgLog('invite/route.ts:88', 're-invite after revoking stale invitations failed', { email, error: String(retryErr) }, 'H2');
-            // #endregion
-            console.error(
-              "[admin/administrators/invite] retry after revoking stale invitations failed",
-              retryErr,
-            );
+            const retryErrors = isClerkAPIResponseError(retryErr)
+              ? retryErr.errors.map((e) => ({
+                  code: e.code,
+                  message: e.message,
+                  longMessage: e.longMessage,
+                }))
+              : [{ message: String(retryErr) }];
+            logInvite("reinvite_after_revoke_failed", {
+              email,
+              retryErrors,
+            });
           }
         }
+
         return NextResponse.json(
           {
             error:
@@ -118,6 +186,8 @@ export async function POST(request: NextRequest) {
           { status: 409 },
         );
       }
+
+      logInvite("clerk_invite_rejected", { email, clerkErrors });
       const message = err.errors[0]?.longMessage ?? err.errors[0]?.message;
       return NextResponse.json(
         { error: message ?? "Failed to send invitation." },
@@ -125,7 +195,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error("[admin/administrators/invite] unexpected error", err);
+    logInvite("unexpected_error", { email, error: String(err) });
     return NextResponse.json(
       { error: "Failed to send invitation. Please try again." },
       { status: 500 },

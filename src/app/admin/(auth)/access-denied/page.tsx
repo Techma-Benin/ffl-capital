@@ -49,17 +49,40 @@ async function resolveDenialReason(): Promise<"partner" | "orphan" | "unauthenti
       try {
         await client.sessions.revokeSession(sessionId);
       } catch (err) {
-        console.error("[admin/access-denied] failed to revoke orphan session", err);
+        console.error(
+          "[admin/access-denied] orphan_session_revoke_failed",
+          JSON.stringify({ userId, sessionId, error: String(err) }),
+        );
       }
     }
     await client.users.deleteUser(userId);
+    console.error(
+      "[admin/access-denied] orphan_account_removed",
+      JSON.stringify({
+        userId,
+        email:
+          user?.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)
+            ?.emailAddress ??
+          user?.emailAddresses[0]?.emailAddress ??
+          null,
+        role,
+      }),
+    );
   } catch (err) {
-    console.error("[admin/access-denied] failed to remove orphan account", err);
-    // #region agent log
-    const dbgLine = JSON.stringify({ sessionId: "a7fa28", location: "access-denied/page.tsx:57", message: "orphan account cleanup failed", data: { userId, error: String(err) }, hypothesisId: "H3", timestamp: Date.now() });
-    console.error(`[debug-a7fa28] ${dbgLine}`);
-    try { const { appendFile } = await import("node:fs/promises"); await appendFile("/home/acer/Nextcloud/Techma AI/FFL Capital/.cursor/debug-a7fa28.log", dbgLine + "\n"); } catch {}
-    // #endregion
+    console.error(
+      "[admin/access-denied] orphan_cleanup_failed",
+      JSON.stringify({
+        userId,
+        error: String(err),
+        clerkErrors: isClerkAPIResponseError(err)
+          ? err.errors.map((e) => ({
+              code: e.code,
+              message: e.message,
+              longMessage: e.longMessage,
+            }))
+          : null,
+      }),
+    );
   }
   return "orphan";
 }

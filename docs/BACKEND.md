@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 31 juillet 2026
+> Dernière mise à jour : 3 août 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -385,11 +385,17 @@ Transaction atomique à la livraison :
 
 ## Auth admin
 
-- Comptes **admin** et **partner** sont **séparés** (URLs et flux Clerk distincts).
+- Comptes **admin** et **partner** ont des **portails séparés** (URLs et flux Clerk distincts).
 - Admin : allowlist email `ADMIN_EMAILS` → promotion automatique au login (`promote-admin.ts`).
-- **Pas de promotion** partner → admin — une personne qui a les deux rôles a deux comptes.
 - **Admin invite-only** : pas de signup public ; `POST /api/admin/administrators/invite` → Clerk `createInvitation` avec `redirectUrl: ${origin}/admin/sign-up` et `publicMetadata.role = admin`.
 - Page acceptation : `/admin/sign-up` — `<SignUp routing="path" path="/admin/sign-up" signInUrl="/admin/sign-in" />` (ticket d'invitation ; pas de lien UI vers cette page).
+- **Liste admins** : `GET /api/admin/administrators` renvoie les users `role=admin` + **toutes** les invitations admin (pending / accepted / revoked / expired) avec badge de statut — permet de révoquer les enregistrements stale qui bloquent une ré-invitation.
+- **Récupération invite** (conflit Clerk `form_identifier_exists` / `duplicate_record`) :
+  1. User live non-admin (ex. partner) → `publicMetadata.role = "admin"` en place ; réponse `{ promoted: true }` (200).
+  2. Déjà admin → 409 « already an administrator ».
+  3. Pas de user, invitations stale → revoke puis un retry `createInvitation`.
+  4. Sinon → 409 avec message de récupération.
+- Logs structurés `console.error` sous `[admin/administrators/invite]` (conflits, promotions, revoke/retry, échecs).
 
 ### Clerk Frontend API proxy (Replit prod)
 
@@ -561,6 +567,7 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-24 | Templates filter set unifiés dans `partner_filter_sets` (`isTemplate`) ; matching exclut les templates ; APIs `/filter-set-templates` inchangées |
 | 2026-07-24 | Intent / Have IUL : multi-select + `"empty"` ; Attribution retirée de l’onboarding (aligné filter sets) ; options critères préfetch SSR |
 | 2026-07-29 | Clerk Replit : handler local `tickets/accept` (fix page blanche invitations) ; admin invite → `/admin/sign-up` ; proxy FAPI skip sur ce chemin |
+| 2026-08-03 | Admin invite recovery : promote user non-admin existant ; revoke+retry invitations stale ; liste admins affiche tous les statuts d'invitation |
 | 2026-07-30 | Catégories lead flexibles : critères multi-champs, résolution intake (`category_resolution`), filtres vues admin, UI settings |
 | 2026-07-30 | Résolution catégorie complète : libellés UI dynamiques, diagnostics payload, assignation manuelle review, garde-fous reprocess, import/réparation, événement `category_assigned` |
 | 2026-07-30 | Vues leads : filtre Type admin unifié + attribution filter set ; périodes partner sur `deliveredAt` ; règles catégories → reclassification automatique des leads non finalisés |

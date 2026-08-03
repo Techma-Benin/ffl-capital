@@ -51,7 +51,11 @@ export function InviteAdminDialog({
           notify.error(data.error ?? "Failed to send invitation.");
           return;
         }
-        notify.success(`Invitation sent to ${email}.`);
+        notify.success(
+          data.promoted
+            ? `${email} already had an account — it's now an administrator.`
+            : `Invitation sent to ${email}.`,
+        );
         setEmail("");
         onOpenChange(false);
         router.refresh();

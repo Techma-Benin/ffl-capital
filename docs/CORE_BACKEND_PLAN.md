@@ -35,7 +35,7 @@ Tous les écarts backend identifiés lors de l’audit, alignés sur la parité 
 | Sujet | Décision |
 |-------|----------|
 | Auto-recharge au seuil de solde | **Reporté** — garder l’abonnement Stripe hebdomadaire actuel |
-| Promotion partner → admin | **Non** — comptes admin et partner séparés (Clerk + `ADMIN_EMAILS`) |
+| Promotion partner → admin | **Historique (juil.) : non** — supersédé août 2026 : invite admin peut promouvoir un user non-admin existant ; portails restent séparés |
 | IntegrityCONNECT live | **Bloqué** sur les specs/API client (Sami) — code prêt en mode mock |
 | Polish UI / design | **Après** le backend core |
 | Twilio SMS | Vide dans Boberdoo aujourd’hui — hors scope |

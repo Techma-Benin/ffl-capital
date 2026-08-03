@@ -1,8 +1,8 @@
 # Clerk — Auth, proxy Replit & invitations admin
 
-> Dernière mise à jour : 29 juillet 2026
+> Dernière mise à jour : 3 août 2026
 
-Guide d'intégration Clerk pour FFL Capital : déploiement sur domaine Replit (sans CNAME Clerk), acceptation des tickets d'invitation, et flux admin invite-only.
+Guide d'intégration Clerk pour FFL Capital : déploiement sur domaine Replit (sans CNAME Clerk), acceptation des tickets d'invitation, et flux admin invite-only (avec recovery sur conflits).
 
 **Voir aussi :** [BACKEND.md § Auth admin](BACKEND.md#auth-admin)
 
@@ -78,8 +78,22 @@ Les comptes admin ne sont **pas** self-serve. Un super-admin envoie une invitati
 | Body | `{ "email": "…" }` |
 | Auth | Session admin requise |
 | Clerk | `createInvitation({ redirectUrl: \`${origin}/admin/sign-up\`, publicMetadata: { role: "admin" } })` |
+| Liste | `GET /api/admin/administrators` — users admin + **toutes** les invitations admin (tous statuts) ; révocation UI des stale |
 
 `redirectUrl` est dérivé de **`request.nextUrl.origin`** (pas `NEXT_PUBLIC_APP_URL`) pour éviter un décalage avec le domaine Replit publié.
+
+### Récupération sur conflit Clerk
+
+Si `createInvitation` renvoie `form_identifier_exists` / `duplicate_record` :
+
+| Cas | Comportement |
+|-----|--------------|
+| User live non-admin (ex. partner) | Promotion `publicMetadata.role = "admin"` ; `{ promoted: true }` (200) — toast UI « promoted » |
+| Déjà admin | 409 |
+| Pas de user, invitations stale (accepted/expired/…) | Revoke puis un retry `createInvitation` |
+| Autre | 409 avec message de récupération |
+
+Logs : préfixe `[admin/administrators/invite]` (conflits, users/invitations matchés, codes Clerk).
 
 ### Flux invité
 
@@ -92,6 +106,8 @@ Email invitation
 ```
 
 Page : `src/app/admin/(auth)/sign-up/[[...sign-up]]/page.tsx` — `<SignUp routing="path" …>` requis pour le flux ticket (pas `<SignIn>`).
+
+**Note :** un partenaire promu via invite utilise le même compte Clerk avec `role=admin` ; les portails restent séparés (`/admin` vs partner).
 
 ---
 
