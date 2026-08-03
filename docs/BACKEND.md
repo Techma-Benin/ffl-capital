@@ -389,13 +389,14 @@ Transaction atomique à la livraison :
 - Admin : allowlist email `ADMIN_EMAILS` → promotion automatique au login (`promote-admin.ts`).
 - **Admin invite-only** : pas de signup public ; `POST /api/admin/administrators/invite` → Clerk `createInvitation` avec `redirectUrl: ${origin}/admin/sign-up` et `publicMetadata.role = admin`.
 - Page acceptation : `/admin/sign-up` — `<SignUp routing="path" path="/admin/sign-up" signInUrl="/admin/sign-in" />` (ticket d'invitation ; pas de lien UI vers cette page).
-- **Liste admins** : `GET /api/admin/administrators` renvoie les users `role=admin` + **toutes** les invitations admin (pending / accepted / revoked / expired) avec badge de statut — permet de révoquer les enregistrements stale qui bloquent une ré-invitation.
+- **Liste admins** : `GET /api/admin/administrators` renvoie les users `role=admin` + les invitations admin (tous statuts) avec badge de statut. **Dedupe** : les invitations `accepted` dont l’email correspond déjà à un admin actif sont masquées ; pending et **orphans** accepted (sans user) restent visibles.
 - **Récupération invite** (conflit Clerk `form_identifier_exists` / `duplicate_record`) :
   1. User live non-admin (ex. partner) → `publicMetadata.role = "admin"` en place ; réponse `{ promoted: true }` (200).
   2. Déjà admin → 409 « already an administrator ».
   3. Pas de user, invitations stale → revoke puis un retry `createInvitation`.
   4. Sinon → 409 avec message de récupération.
-- Logs structurés `console.error` sous `[admin/administrators/invite]` (conflits, promotions, revoke/retry, échecs).
+- **Récupération orphan accepted** : `POST /api/admin/administrators/invitations/[id]/create-user` — invitation `accepted` + `publicMetadata.role === "admin"`, aucun user Clerk pour cet email → `createUser` avec `role: admin` (préfère `skipPasswordRequirement` ; fallback mot de passe aléatoire + `skipPasswordChecks`). UI : bouton « Create account » (pas revoke — Clerk ne peut pas révoquer un invite accepted).
+- Logs structurés : `[admin/administrators/invite]` (conflits, promotions, revoke/retry) et `[admin/administrators/invitations/create-user]` (orphans).
 
 ### Clerk Frontend API proxy (Replit prod)
 
@@ -568,6 +569,7 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-24 | Intent / Have IUL : multi-select + `"empty"` ; Attribution retirée de l’onboarding (aligné filter sets) ; options critères préfetch SSR |
 | 2026-07-29 | Clerk Replit : handler local `tickets/accept` (fix page blanche invitations) ; admin invite → `/admin/sign-up` ; proxy FAPI skip sur ce chemin |
 | 2026-08-03 | Admin invite recovery : promote user non-admin existant ; revoke+retry invitations stale ; liste admins affiche tous les statuts d'invitation |
+| 2026-08-03 | Admin invite orphan recovery : `POST …/invitations/[id]/create-user` ; UI « Create account » ; dedupe accepted+admin existant |
 | 2026-07-30 | Catégories lead flexibles : critères multi-champs, résolution intake (`category_resolution`), filtres vues admin, UI settings |
 | 2026-07-30 | Résolution catégorie complète : libellés UI dynamiques, diagnostics payload, assignation manuelle review, garde-fous reprocess, import/réparation, événement `category_assigned` |
 | 2026-07-30 | Vues leads : filtre Type admin unifié + attribution filter set ; périodes partner sur `deliveredAt` ; règles catégories → reclassification automatique des leads non finalisés |

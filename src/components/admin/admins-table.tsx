@@ -50,6 +50,7 @@ export function AdminsTable({
   const [confirm, setConfirm] = useState<
     | { kind: "remove"; row: AdminRow }
     | { kind: "revoke"; row: AdminRow }
+    | { kind: "create-account"; row: AdminRow }
     | { kind: "transfer"; row: AdminRow }
     | null
   >(null);
@@ -64,6 +65,10 @@ export function AdminsTable({
 
   function handleRevokeInvite(row: AdminRow) {
     setConfirm({ kind: "revoke", row });
+  }
+
+  function handleCreateAccount(row: AdminRow) {
+    setConfirm({ kind: "create-account", row });
   }
 
   function handleTransfer(row: AdminRow) {
@@ -99,6 +104,19 @@ export function AdminsTable({
             return;
           }
           notify.success(`Revoked invitation to ${row.email}.`);
+        } else if (confirm.kind === "create-account") {
+          const res = await fetch(
+            `/api/admin/administrators/invitations/${row.id}/create-user`,
+            { method: "POST" },
+          );
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            notify.error(data.error ?? "Failed to create admin account.");
+            return;
+          }
+          notify.success(
+            `Created admin account for ${row.email}. They can sign in at /admin.`,
+          );
         } else {
           const res = await fetch(
             `/api/admin/administrators/${row.id}/transfer-super-admin`,
@@ -127,6 +145,7 @@ export function AdminsTable({
           title: "Delete admin account?",
           description: `This permanently deletes ${confirm.row.email}'s account. This can't be undone `,
           confirmLabel: "Delete account",
+          variant: "danger" as const,
         }
       : confirm?.kind === "revoke"
         ? {
@@ -136,14 +155,23 @@ export function AdminsTable({
                 ? `Clear the leftover ${confirm.row.status} invitation record for ${confirm.row.email}? This unblocks re-inviting that email.`
                 : `Revoke the invitation sent to ${confirm.row.email}? The invite link will stop working.`,
             confirmLabel: "Revoke invitation",
+            variant: "danger" as const,
           }
-        : confirm?.kind === "transfer"
+        : confirm?.kind === "create-account"
           ? {
-              title: "Transfer super admin?",
-              description: `Make ${confirm.row.email} the super admin? You'll immediately lose your own super admin title.`,
-              confirmLabel: "Transfer role",
+              title: "Create admin account?",
+              description: `Create a Clerk account for ${confirm.row.email} with admin access? They'll be able to sign in at /admin (Google SSO or email — no new invite email is sent).`,
+              confirmLabel: "Create account",
+              variant: "default" as const,
             }
-          : null;
+          : confirm?.kind === "transfer"
+            ? {
+                title: "Transfer super admin?",
+                description: `Make ${confirm.row.email} the super admin? You'll immediately lose your own super admin title.`,
+                confirmLabel: "Transfer role",
+                variant: "danger" as const,
+              }
+            : null;
 
   return (
     <>
@@ -259,7 +287,19 @@ export function AdminsTable({
                 </td>
                 <td className="px-3.5 py-[11px]">
                   <div className="flex items-center gap-1.5">
-                    {row.type === "invited" && (
+                    {row.type === "invited" && row.status === "accepted" && (
+                      <button
+                        type="button"
+                        title="Create account"
+                        aria-label="Create account"
+                        disabled={isPending && pendingActionId === row.id}
+                        onClick={() => handleCreateAccount(row)}
+                        className="inline-flex h-8 items-center rounded-full px-2.5 text-[11px] font-extrabold text-[#605BFF] transition-colors hover:bg-[rgba(96,91,255,0.1)] disabled:opacity-50"
+                      >
+                        Create account
+                      </button>
+                    )}
+                    {row.type === "invited" && row.status !== "accepted" && (
                       <button
                         type="button"
                         title="Revoke invitation"
@@ -367,7 +407,7 @@ export function AdminsTable({
           title={confirmCopy.title}
           description={confirmCopy.description}
           confirmLabel={confirmCopy.confirmLabel}
-          variant="danger"
+          variant={confirmCopy.variant}
           loading={isPending}
           onConfirm={runConfirmedAction}
         />

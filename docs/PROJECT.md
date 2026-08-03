@@ -311,7 +311,7 @@ lead_categories                   -- classification produit (admin)
 | Domaine | Statut |
 |---------|--------|
 | Repo, Next.js 14, Prisma, Supabase | ✅ |
-| Auth Clerk (portails admin + partner séparés ; invitations admin Replit + recovery promote / revoke stale) | ✅ |
+| Auth Clerk (portails admin + partner séparés ; invitations admin Replit + recovery promote / revoke stale / create-user orphan accepted) | ✅ |
 | Onboarding partner (≥15 états) + approbation admin | ✅ |
 | `POST /api/leads/intake` (format Boberdoo, CORS, public) | ✅ |
 | Pipeline intake : validate, normalize, doublons, TrustedForm, **catégories flexibles**, match, deliver | ✅ |
@@ -485,7 +485,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | `docs/team call.txt` | Briefing interne TECHMA (Bill, Masdouk) |
 | `docs/PROJECT.md` | Mémoire projet / décisions / FAQ |
 | `docs/LEADCONDUIT_SETUP.md` | Guide connexion LeadConduit / ngrok / cutover prod |
-| `docs/CLERK_INTEGRATION.md` | Clerk proxy Replit, invitations admin, tickets/accept |
+| `docs/CLERK_INTEGRATION.md` | Clerk proxy Replit, invitations admin (conflits + orphan create-user), tickets/accept |
 | `docs/PRD.md` | **Spécification produit** — features, flows, BDD, stack |
 
 ---
@@ -544,7 +544,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | Filter sets | **Multiples par partner** (parité Boberdoo), pas un seul profil |
 | Filter set templates | **Même table** `partner_filter_sets` (`isTemplate=true`, `partnerId` null) — plus de table `filter_set_templates` ; exclus du matching |
 | Auto-recharge solde | **Reportée** — abonnement Stripe hebdomadaire conservé |
-| Admin vs partner | **Portails séparés** (URLs / flux distincts) ; invite admin peut **promouvoir** un user Clerk non-admin existant (ex. partner) au lieu d'échouer |
+| Admin vs partner | **Portails séparés** (URLs / flux distincts) ; invite admin peut **promouvoir** un user Clerk non-admin existant (ex. partner) ; orphan `accepted` sans user → **Create account** (`create-user`) |
 | IntegrityCONNECT live | Code mock prêt ; **specs/API client** requises pour live |
 | TrustedForm | Certificat dans le payload webhook ; pas d'accès admin TF requis pour intake |
 | Seuil aged | Sera **configurable** en admin (défaut 30 jours) |

@@ -30,8 +30,14 @@ export async function GET() {
       ),
     }));
 
+  const adminEmails = new Set(
+    admins.map((a) => a.email.toLowerCase()).filter(Boolean),
+  );
+
   // All admin invitations (any status) — stale accepted/expired records used
   // to be filtered out, which made re-invite blockers invisible in the UI.
+  // Accepted invites that already have an Active admin for the same email are
+  // hidden (dedupe); accepted orphans remain visible for create-account recovery.
   const invitationsResponse = await client.invitations.getInvitationList({
     limit: 100,
   });
@@ -40,6 +46,10 @@ export async function GET() {
       (inv) =>
         (inv.publicMetadata as Record<string, unknown>)?.role === "admin",
     )
+    .filter((inv) => {
+      if (inv.status !== "accepted") return true;
+      return !adminEmails.has(inv.emailAddress.toLowerCase());
+    })
     .map((inv) => ({
       id: inv.id,
       email: inv.emailAddress,

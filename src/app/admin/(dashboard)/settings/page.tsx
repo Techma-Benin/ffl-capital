@@ -77,14 +77,24 @@ export default async function AdminSettingsPage({
       (a) => a.id === currentUserId && a.isSuperAdmin,
     );
 
+    const adminEmails = new Set(
+      admins.map((a) => a.email.toLowerCase()).filter(Boolean),
+    );
+
     const invitationsResponse = await client.invitations.getInvitationList({
       limit: 100,
     });
+    // Hide accepted invites when an Active admin already exists for that
+    // email (dedupe). Keep pending invites and accepted orphans visible.
     pendingInvites = invitationsResponse.data
       .filter(
         (inv) =>
           (inv.publicMetadata as Record<string, unknown>)?.role === "admin",
       )
+      .filter((inv) => {
+        if (inv.status !== "accepted") return true;
+        return !adminEmails.has(inv.emailAddress.toLowerCase());
+      })
       .map((inv) => ({
         id: inv.id,
         email: inv.emailAddress,

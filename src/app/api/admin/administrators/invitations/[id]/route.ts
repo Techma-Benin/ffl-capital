@@ -5,9 +5,10 @@ import { requireAdmin } from "@/lib/auth/session";
 
 /**
  * DELETE /api/admin/administrators/invitations/[id] — revoke an admin
- * invitation. Works on pending invitations and clears stale
- * accepted/expired records that block re-invites. Open to any admin,
- * matching who can send invitations.
+ * invitation. Works on pending invitations and can clear some stale
+ * expired records that block re-invites. Clerk cannot revoke invitations
+ * that are already accepted — use create-user recovery for those orphans.
+ * Open to any admin, matching who can send invitations.
  */
 export async function DELETE(
   _request: NextRequest,

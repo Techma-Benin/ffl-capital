@@ -2,7 +2,7 @@
 
 > Dernière mise à jour : 3 août 2026
 
-Guide d'intégration Clerk pour FFL Capital : déploiement sur domaine Replit (sans CNAME Clerk), acceptation des tickets d'invitation, et flux admin invite-only (avec recovery sur conflits).
+Guide d'intégration Clerk pour FFL Capital : déploiement sur domaine Replit (sans CNAME Clerk), acceptation des tickets d'invitation, et flux admin invite-only (recovery conflits + orphans accepted).
 
 **Voir aussi :** [BACKEND.md § Auth admin](BACKEND.md#auth-admin)
 
@@ -78,7 +78,7 @@ Les comptes admin ne sont **pas** self-serve. Un super-admin envoie une invitati
 | Body | `{ "email": "…" }` |
 | Auth | Session admin requise |
 | Clerk | `createInvitation({ redirectUrl: \`${origin}/admin/sign-up\`, publicMetadata: { role: "admin" } })` |
-| Liste | `GET /api/admin/administrators` — users admin + **toutes** les invitations admin (tous statuts) ; révocation UI des stale |
+| Liste | `GET /api/admin/administrators` — users admin + invitations admin (tous statuts) ; **dedupe** : invitation `accepted` masquée si un admin actif existe déjà pour le même email (case-insensitive) ; pending + orphans accepted restent visibles ; révocation UI des stale non-accepted |
 
 `redirectUrl` est dérivé de **`request.nextUrl.origin`** (pas `NEXT_PUBLIC_APP_URL`) pour éviter un décalage avec le domaine Replit publié.
 
@@ -94,6 +94,23 @@ Si `createInvitation` renvoie `form_identifier_exists` / `duplicate_record` :
 | Autre | 409 avec message de récupération |
 
 Logs : préfixe `[admin/administrators/invite]` (conflits, users/invitations matchés, codes Clerk).
+
+### Récupération orphan — invitation `accepted` sans user
+
+Cas : l’invité a accepté (statut Clerk `accepted`) mais aucun user Clerk n’existe pour cet email → impossible de se connecter, et Clerk **ne peut pas révoquer** une invitation déjà accepted.
+
+| Item | Valeur |
+|------|--------|
+| API | `POST /api/admin/administrators/invitations/[id]/create-user` |
+| Auth | `requireAdmin` |
+| Prérequis | Invitation trouvée, `status === "accepted"`, `publicMetadata.role === "admin"`, aucun user pour cet email |
+| Clerk | `createUser` avec `publicMetadata: { role: "admin" }` — préfère `skipPasswordRequirement: true` (SSO Google / email sans mot de passe forcé) ; si échec → mot de passe aléatoire + `skipPasswordChecks` |
+| UI | Settings → Administrators : pour les lignes `accepted`, bouton **Create account** (confirm) à la place de revoke/delete ; refresh après succès |
+| Réponse | `{ ok: true, userId }` (201) |
+
+Logs : préfixe `[admin/administrators/invitations/create-user]`.
+
+Si un user non-admin existe déjà pour l’email → 409 (utiliser Invite admin pour promouvoir).
 
 ### Flux invité
 
@@ -116,7 +133,7 @@ Page : `src/app/admin/(auth)/sign-up/[[...sign-up]]/page.tsx` — `<SignUp routi
 | Variable | Usage |
 |----------|-------|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_PUBLISHABLE_KEY` | Clés publiques Clerk |
-| `CLERK_SECRET_KEY` | Backend (invitations, promote-admin) |
+| `CLERK_SECRET_KEY` | Backend (invitations, promote-admin, create-user orphan) |
 | `ADMIN_EMAILS` | Allowlist promotion admin au login — voir BACKEND |
 
 ---
@@ -126,6 +143,7 @@ Page : `src/app/admin/(auth)/sign-up/[[...sign-up]]/page.tsx` — `<SignUp routi
 1. Inviter un admin depuis l'UI (ou `POST /api/admin/administrators/invite`).
 2. Ouvrir le lien d'invitation dans un **navigateur qui n'a jamais visité** l'URL Replit (évite les faux positifs Cloudflare).
 3. Confirmer : redirection → formulaire « Create your admin account » → mot de passe → accès admin.
+4. (Orphan) Si une ligne invitation reste `accepted` sans user actif : **Create account** → l’email peut se connecter sur `/admin` ; la ligne invitation disparaît via dedupe une fois l’admin créé.
 
 `pnpm run typecheck` — pas de régression types.
 
@@ -139,3 +157,4 @@ Page : `src/app/admin/(auth)/sign-up/[[...sign-up]]/page.tsx` — `<SignUp routi
 | Route sign-up absente des routes publiques middleware | Bounce vers sign-in, ticket perdu |
 | Tester avec un navigateur déjà connecté à l'app | Faux positif — le bug original semble « réparé » |
 | Remettre le proxy sur `tickets/accept` | Page blanche revient en prod Replit |
+| Tenter de révoquer une invitation `accepted` | Clerk refuse — utiliser **Create account** (orphan) ou laisser le dedupe si un admin existe déjà |
