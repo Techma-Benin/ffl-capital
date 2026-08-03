@@ -35,13 +35,18 @@ function inclusiveCalendarDays(gte: Date, lte: Date): number {
 
 export type ChartGranularity = "hour" | "day" | "week" | "month";
 
+/**
+ * Adaptive buckets aim for ~12–24 visible progression points when possible.
+ * Daily stays through ~2 months so presets like last_month (~30d) stay dense;
+ * weekly only kicks in when daily would exceed ~60 points.
+ */
 export function resolveChartGranularity(
   gte: Date,
   lte: Date,
 ): ChartGranularity {
   const days = inclusiveCalendarDays(gte, lte);
   if (days <= 1) return "hour";
-  if (days <= 14) return "day";
+  if (days <= 60) return "day";
   if (days <= 90) return "week";
   return "month";
 }
@@ -94,12 +99,9 @@ function formatDayLabel(d: Date, singleDay: boolean): string {
   return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric" });
 }
 
-function formatWeekLabel(start: Date, endExclusive: Date): string {
-  const last = new Date(endExclusive);
-  last.setMilliseconds(last.getMilliseconds() - 1);
-  const s = `${MONTHS_SHORT[start.getMonth()]} ${start.getDate()}`;
-  const e = `${MONTHS_SHORT[last.getMonth()]} ${last.getDate()}`;
-  return s === e ? s : `${s}–${e}`;
+/** Single representative date (bucket start) — no “A–B” range labels. */
+function formatWeekLabel(start: Date): string {
+  return `${MONTHS_SHORT[start.getMonth()]} ${start.getDate()}`;
 }
 
 function formatMonthLabel(d: Date): string {
@@ -162,7 +164,7 @@ export function buildBuckets(
       buckets.push({
         start: new Date(cursor),
         end,
-        label: formatWeekLabel(cursor, end),
+        label: formatWeekLabel(cursor),
       });
       cursor = next;
     }

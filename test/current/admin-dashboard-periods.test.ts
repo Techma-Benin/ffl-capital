@@ -65,12 +65,27 @@ describe("admin dashboard chart granularity", () => {
       resolveChartGranularity(day(2026, 7, 3), end(2026, 7, 3)),
       "hour",
     );
+    // last_7_days / short ranges → daily
     assert.equal(
       resolveChartGranularity(day(2026, 6, 28), end(2026, 7, 3)),
       "day",
     );
+    // last_month (~31d) stays daily so progression is visible
     assert.equal(
       resolveChartGranularity(day(2026, 6, 1), end(2026, 6, 31)),
+      "day",
+    );
+    // 60 inclusive days still daily; 61+ → weekly until 90
+    assert.equal(
+      resolveChartGranularity(day(2026, 5, 5), end(2026, 7, 3)),
+      "day",
+    );
+    assert.equal(
+      resolveChartGranularity(day(2026, 5, 4), end(2026, 7, 3)),
+      "week",
+    );
+    assert.equal(
+      resolveChartGranularity(day(2026, 4, 6), end(2026, 7, 3)),
       "week",
     );
     assert.equal(
@@ -95,16 +110,26 @@ describe("admin dashboard chart granularity", () => {
     assert.equal(buckets[13]!.label, "1 PM");
   });
 
-  test("weekly buckets roll from range start in 7-day windows", () => {
+  test("daily buckets for last_month span use single-date labels", () => {
     const gte = new Date(2026, 6, 1, 0, 0, 0, 0);
-    const lte = new Date(2026, 6, 20, 23, 59, 59, 999);
+    const lte = new Date(2026, 6, 31, 23, 59, 59, 999);
+    assert.equal(resolveChartGranularity(gte, lte), "day");
+    const buckets = buildBuckets(gte, lte, "day");
+    assert.equal(buckets.length, 31);
+    assert.match(buckets[0]!.label, /1/);
+    assert.ok(!buckets[0]!.label.includes("–"));
+  });
+
+  test("weekly buckets roll from range start with single-date labels", () => {
+    const gte = new Date(2026, 4, 5, 0, 0, 0, 0);
+    const lte = new Date(2026, 7, 3, 23, 59, 59, 999);
     const buckets = buildBuckets(gte, lte, "week");
-    assert.equal(buckets.length, 3);
-    assert.equal(buckets[0]!.start.getDate(), 1);
-    assert.equal(buckets[1]!.start.getDate(), 8);
-    assert.equal(buckets[2]!.start.getDate(), 15);
-    // Last window is partial through the 20th
-    assert.ok(buckets[2]!.end.getTime() > lte.getTime());
+    assert.ok(buckets.length >= 12 && buckets.length <= 14);
+    assert.equal(buckets[0]!.label, "May 5");
+    assert.equal(buckets[1]!.label, "May 12");
+    assert.ok(!buckets.some((b) => b.label.includes("–")));
+    // Last window may be partial through range end
+    assert.ok(buckets.at(-1)!.end.getTime() > lte.getTime());
   });
 
   test("empty months still produce zero-capable buckets", () => {
