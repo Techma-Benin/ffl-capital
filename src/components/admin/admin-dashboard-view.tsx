@@ -224,6 +224,7 @@ export function AdminDashboardView({
           sparkByDay={view.chartData.sparkByDay}
           intakeVolumeLabel={view.chartData.volumeLabel}
           deliveringDonut={view.chartData.deliveringDonut}
+          deliveryRatePercent={view.chartData.deliveryRatePercent}
           kpis={view.kpis}
           recentLeads={view.recentLeads}
         />

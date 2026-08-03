@@ -8,6 +8,7 @@ import {
 import {
   buildBuckets,
   chartVolumeLabel,
+  computeAdminDashboardChartData,
   resolveChartGranularity,
 } from "../../src/lib/admin/dashboard-stats";
 
@@ -139,5 +140,122 @@ describe("admin dashboard chart granularity", () => {
     assert.equal(buckets.length, 3);
     assert.equal(buckets[0]!.label, "Jan 2025");
     assert.equal(buckets[2]!.label, "Mar 2025");
+  });
+});
+
+describe("admin dashboard delivering donut", () => {
+  const day = (y: number, m: number, d: number, h = 12) =>
+    new Date(y, m, d, h, 0, 0, 0);
+
+  test("shows delivered vs not-delivered among entered leads", () => {
+    const gte = day(2026, 7, 1, 0);
+    const lte = new Date(2026, 7, 3, 23, 59, 59, 999);
+    const leads = [
+      {
+        id: "1",
+        firstName: "A",
+        lastName: "One",
+        state: "TX",
+        leadType: "iul",
+        leadTypeLabel: "IUL",
+        status: "delivered",
+        receivedAt: day(2026, 7, 1).toISOString(),
+        partnerName: "P",
+      },
+      {
+        id: "2",
+        firstName: "B",
+        lastName: "Two",
+        state: "TX",
+        leadType: "iul",
+        leadTypeLabel: "IUL",
+        status: "unmatched",
+        receivedAt: day(2026, 7, 2).toISOString(),
+        partnerName: null,
+      },
+      {
+        id: "3",
+        firstName: "C",
+        lastName: "Three",
+        state: "TX",
+        leadType: "iul",
+        leadTypeLabel: "IUL",
+        status: "aged_listed",
+        receivedAt: day(2026, 7, 2).toISOString(),
+        partnerName: null,
+      },
+      {
+        id: "4",
+        firstName: "D",
+        lastName: "Out",
+        state: "TX",
+        leadType: "iul",
+        leadTypeLabel: "IUL",
+        status: "delivered",
+        receivedAt: day(2026, 6, 1).toISOString(),
+        partnerName: "P",
+      },
+    ];
+
+    // Delivery events exceed delivered leads — must not inflate the rate.
+    const deliveries = [
+      { deliveredAt: day(2026, 7, 1).toISOString(), channel: "realtime" },
+      { deliveredAt: day(2026, 7, 1, 13).toISOString(), channel: "aged" },
+      { deliveredAt: day(2026, 7, 2).toISOString(), channel: "realtime" },
+    ];
+
+    const chart = computeAdminDashboardChartData(leads, deliveries, {
+      gte,
+      lte,
+    });
+
+    assert.deepEqual(chart.deliveringDonut, [
+      { name: "Delivered", value: 1 },
+      { name: "Not delivered", value: 2 },
+    ]);
+    assert.equal(chart.deliveryRatePercent, 33);
+  });
+
+  test("empty period yields empty donut and null rate", () => {
+    const chart = computeAdminDashboardChartData([], [], {
+      gte: day(2026, 7, 1, 0),
+      lte: new Date(2026, 7, 3, 23, 59, 59, 999),
+    });
+    assert.deepEqual(chart.deliveringDonut, []);
+    assert.equal(chart.deliveryRatePercent, null);
+  });
+
+  test("all delivered is 100% with a single segment", () => {
+    const gte = day(2026, 7, 1, 0);
+    const lte = new Date(2026, 7, 1, 23, 59, 59, 999);
+    const leads = [
+      {
+        id: "1",
+        firstName: "A",
+        lastName: "One",
+        state: "TX",
+        leadType: "iul",
+        leadTypeLabel: "IUL",
+        status: "delivered",
+        receivedAt: day(2026, 7, 1).toISOString(),
+        partnerName: "P",
+      },
+      {
+        id: "2",
+        firstName: "B",
+        lastName: "Two",
+        state: "TX",
+        leadType: "iul",
+        leadTypeLabel: "IUL",
+        status: "delivered",
+        receivedAt: day(2026, 7, 1, 14).toISOString(),
+        partnerName: "P",
+      },
+    ];
+    const chart = computeAdminDashboardChartData(leads, [], { gte, lte });
+    assert.deepEqual(chart.deliveringDonut, [
+      { name: "Delivered", value: 2 },
+    ]);
+    assert.equal(chart.deliveryRatePercent, 100);
   });
 });

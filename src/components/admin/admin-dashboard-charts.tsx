@@ -25,6 +25,7 @@ export function AdminDashboardCharts({
   sparkByDay,
   intakeVolumeLabel = "Daily volume",
   deliveringDonut,
+  deliveryRatePercent = null,
   kpis,
   recentLeads,
 }: {
@@ -32,6 +33,8 @@ export function AdminDashboardCharts({
   sparkByDay: Array<{ value: number }>;
   intakeVolumeLabel?: string;
   deliveringDonut: Array<{ name: string; value: number }>;
+  /** Share of period-entered leads with status delivered; null when none entered. */
+  deliveryRatePercent?: number | null;
   kpis: {
     leadsInPeriod: number;
     deliveriesInPeriod: number;
@@ -40,7 +43,7 @@ export function AdminDashboardCharts({
   };
   recentLeads: RecentLead[];
 }) {
-  const hasDeliveries = deliveringDonut.length > 0;
+  const hasEnteredLeads = deliveringDonut.length > 0;
 
   return (
     <>
@@ -62,15 +65,25 @@ export function AdminDashboardCharts({
 
         <div className="card flex min-h-0 flex-col p-5">
           <h2 className="mb-1 text-sm font-semibold text-slate-900">Delivering</h2>
-          {hasDeliveries ? (
+          {hasEnteredLeads ? (
             <div className="flex w-full min-h-[300px] flex-1 flex-col items-center justify-center">
-              <DonutChart data={deliveringDonut} height={300} />
+              <DonutChart
+                data={deliveringDonut}
+                height={300}
+                centerValue={
+                  deliveryRatePercent != null ? `${deliveryRatePercent}%` : undefined
+                }
+                centerLabel="Delivered"
+                colors={deliveringDonut.map((d) =>
+                  d.name === "Delivered" ? "#00A651" : "#94A3B8",
+                )}
+              />
             </div>
           ) : (
             <div className="flex w-full min-h-[300px] flex-1 flex-col items-center justify-center">
               <DashboardEmptyState
                 icon={CalendarCheck}
-                title="No deliveries yet"
+                title="No leads yet"
                 accent="purple"
                 blobIndex={1}
               />

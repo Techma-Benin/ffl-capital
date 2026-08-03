@@ -623,9 +623,16 @@ function ChartSizeMeasure({
 export function DonutChart({
   data,
   height = 300,
+  centerValue: centerValueProp,
+  centerLabel: centerLabelProp,
+  colors,
 }: {
   data: Array<{ name: string; value: number }>;
   height?: number;
+  /** Idle center readout (hover still shows the active segment). */
+  centerValue?: string | number;
+  centerLabel?: string;
+  colors?: string[];
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const reducedMotion = usePrefersReducedMotion();
@@ -641,12 +648,13 @@ export function DonutChart({
 
   const total = data.reduce((s, d) => s + d.value, 0);
   const activeItem = activeIndex !== null ? data[activeIndex] : null;
-  const centerValue = activeItem?.value ?? total;
-  const centerLabel = activeItem?.name ?? "Total";
+  const centerValue = activeItem?.value ?? (centerValueProp ?? total);
+  const centerLabel = activeItem?.name ?? (centerLabelProp ?? "Total");
 
+  const palette = colors?.length ? colors : DONUT_COLORS;
   const dataWithFill = data.map((d, i) => ({
     ...d,
-    fill: DONUT_COLORS[i % DONUT_COLORS.length],
+    fill: palette[i % palette.length],
   }));
 
   return (

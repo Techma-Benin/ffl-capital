@@ -344,16 +344,14 @@ export function resolveDashboardChartRange(
 
 export function computeAdminDashboardChartData(
   leads: AdminDashboardRawLead[],
-  deliveries: AdminDashboardRawDelivery[],
+  /** @deprecated Unused for chart series; kept for call-site compatibility. */
+  _deliveries: AdminDashboardRawDelivery[],
   range: { gte: Date; lte: Date },
 ) {
   const granularity = resolveChartGranularity(range.gte, range.lte);
   const buckets = buildBuckets(range.gte, range.lte, granularity);
   const periodLeads = leads.filter((l) =>
     inRange(l.receivedAt, range.gte, range.lte),
-  );
-  const periodDeliveries = deliveries.filter((d) =>
-    inRange(d.deliveredAt, range.gte, range.lte),
   );
 
   const intakeByDay: Array<{ label: string; leads: number }> = [];
@@ -369,29 +367,36 @@ export function computeAdminDashboardChartData(
     sparkByDay.push({ value: count });
   }
 
-  const channelMap = new Map<string, number>();
-  for (const d of periodDeliveries) {
-    const key = d.channel === "realtime" ? "Real-time" : "Aged";
-    channelMap.set(key, (channelMap.get(key) ?? 0) + 1);
-  }
+  // Delivery rate among leads that entered in the period (lead status, not
+  // delivery events — so delivered/entered stays ≤ 100%).
+  const enteredCount = periodLeads.length;
+  const deliveredCount = periodLeads.filter(
+    (l) => l.status === "delivered",
+  ).length;
+  const notDeliveredCount = enteredCount - deliveredCount;
 
-  const deliveringChannelOrder = ["Real-time", "Aged"] as const;
-  const deliveringDonut = [
-    ...deliveringChannelOrder
-      .filter((name) => channelMap.has(name))
-      .map((name) => ({ name, value: channelMap.get(name)! })),
-    ...Array.from(channelMap.entries())
-      .filter(
-        ([name]) =>
-          !deliveringChannelOrder.includes(name as "Real-time" | "Aged"),
-      )
-      .map(([name, value]) => ({ name, value })),
-  ];
+  const deliveringDonut =
+    enteredCount === 0
+      ? []
+      : [
+          ...(deliveredCount > 0
+            ? [{ name: "Delivered", value: deliveredCount }]
+            : []),
+          ...(notDeliveredCount > 0
+            ? [{ name: "Not delivered", value: notDeliveredCount }]
+            : []),
+        ];
+
+  const deliveryRatePercent =
+    enteredCount === 0
+      ? null
+      : Math.round((deliveredCount / enteredCount) * 100);
 
   return {
     intakeByDay,
     sparkByDay,
     deliveringDonut,
+    deliveryRatePercent,
     granularity,
     volumeLabel: chartVolumeLabel(granularity),
   };
