@@ -78,7 +78,7 @@ export default async function AdminSettingsPage({
     );
 
     const invitationsResponse = await client.invitations.getInvitationList({
-      status: "pending",
+      limit: 100,
     });
     pendingInvites = invitationsResponse.data
       .filter(
@@ -91,6 +91,7 @@ export default async function AdminSettingsPage({
         imageUrl: null,
         lastSignInAt: null,
         type: "invited" as const,
+        status: inv.status ?? null,
       }));
   }
 

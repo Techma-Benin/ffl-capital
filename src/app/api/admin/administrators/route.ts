@@ -48,7 +48,7 @@ export async function GET() {
 
   // Fetch pending invitations with admin role
   const invitationsResponse = await client.invitations.getInvitationList({
-    status: "pending",
+    limit: 100,
   });
   // #region agent log
   const dbgAllInvs = await client.invitations.getInvitationList({ limit: 100 }).catch(() => null);
@@ -65,6 +65,7 @@ export async function GET() {
       imageUrl: null,
       lastSignInAt: null,
       type: "invited" as const,
+      status: inv.status ?? null,
     }));
 
   return NextResponse.json({ admins, pendingInvites });

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
+import { isClerkAPIResponseError } from "@clerk/shared/error";
 import { requireAdmin } from "@/lib/auth/session";
 
 /**
- * DELETE /api/admin/administrators/invitations/[id] — revoke a pending admin
- * invitation. Open to any admin, matching who can send invitations.
+ * DELETE /api/admin/administrators/invitations/[id] — revoke an admin
+ * invitation. Works on pending invitations and clears stale
+ * accepted/expired records that block re-invites. Open to any admin,
+ * matching who can send invitations.
  */
 export async function DELETE(
   _request: NextRequest,
@@ -23,8 +26,12 @@ export async function DELETE(
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[admin/administrators/invitations] revoke failed", err);
+    const clerkMessage =
+      isClerkAPIResponseError(err)
+        ? (err.errors[0]?.longMessage ?? err.errors[0]?.message)
+        : null;
     return NextResponse.json(
-      { error: "Failed to revoke invitation. Please try again." },
+      { error: clerkMessage ?? "Failed to revoke invitation. Please try again." },
       { status: 500 },
     );
   }

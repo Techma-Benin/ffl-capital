@@ -59,6 +59,57 @@ export async function POST(request: NextRequest) {
         (e) => e.code === "form_identifier_exists" || e.code === "duplicate_record",
       );
       if (alreadyExists) {
+        // Clerk blocks re-inviting an email that has ANY lingering invitation
+        // record — even an already-accepted one from a removed account. Those
+        // stale invitations are invisible in the admin UI (which only lists
+        // pending ones). If no actual user account exists for this email,
+        // revoke every lingering invitation and retry once with a fresh invite.
+        const existingUsers = await client.users
+          .getUserList({ emailAddress: [email], limit: 10 })
+          .catch(() => null);
+        if (existingUsers && existingUsers.data.length === 0) {
+          const staleInvitations = await client.invitations
+            .getInvitationList({ limit: 100 })
+            .then((r) =>
+              r.data.filter(
+                (i) => i.emailAddress?.toLowerCase() === email.toLowerCase(),
+              ),
+            )
+            .catch(() => []);
+          // #region agent log
+          await dbgLog('invite/route.ts:62', 'duplicate invite — revoking stale invitations and retrying', { email, revokingIds: staleInvitations.map(i => ({ id: i.id, status: i.status })) }, 'H2');
+          // #endregion
+          for (const inv of staleInvitations) {
+            await client.invitations
+              .revokeInvitation(inv.id)
+              .catch((revokeErr) =>
+                console.error(
+                  "[admin/administrators/invite] failed to revoke stale invitation",
+                  inv.id,
+                  revokeErr,
+                ),
+              );
+          }
+          try {
+            const invitation = await client.invitations.createInvitation({
+              emailAddress: email,
+              publicMetadata: { role: "admin" },
+              redirectUrl,
+            });
+            // #region agent log
+            await dbgLog('invite/route.ts:85', 're-invite after revoking stale invitations succeeded', { email, invitationId: invitation.id }, 'H2');
+            // #endregion
+            return NextResponse.json({ invitation }, { status: 201 });
+          } catch (retryErr) {
+            // #region agent log
+            await dbgLog('invite/route.ts:88', 're-invite after revoking stale invitations failed', { email, error: String(retryErr) }, 'H2');
+            // #endregion
+            console.error(
+              "[admin/administrators/invite] retry after revoking stale invitations failed",
+              retryErr,
+            );
+          }
+        }
         return NextResponse.json(
           {
             error:

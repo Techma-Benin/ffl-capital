@@ -14,6 +14,14 @@ export type AdminRow = {
   lastSignInAt: number | null;
   type: "admin" | "invited";
   isSuperAdmin?: boolean;
+  status?: string | null;
+};
+
+const INVITE_STATUS_BADGE: Record<string, { label: string; bg: string; fg: string }> = {
+  pending: { label: "Invited", bg: "rgba(255,214,107,0.22)", fg: "#a5842b" },
+  accepted: { label: "Invite accepted", bg: "rgba(96,91,255,0.1)", fg: "#605BFF" },
+  revoked: { label: "Invite revoked", bg: "rgba(139,138,153,0.12)", fg: "#8b8a99" },
+  expired: { label: "Invite expired", bg: "rgba(214,69,69,0.1)", fg: "#d64545" },
 };
 
 function formatLastSignIn(ts: number | null): string {
@@ -123,7 +131,10 @@ export function AdminsTable({
       : confirm?.kind === "revoke"
         ? {
             title: "Revoke invitation?",
-            description: `Revoke the invitation sent to ${confirm.row.email}? The invite link will stop working.`,
+            description:
+              confirm.row.status && confirm.row.status !== "pending"
+                ? `Clear the leftover ${confirm.row.status} invitation record for ${confirm.row.email}? This unblocks re-inviting that email.`
+                : `Revoke the invitation sent to ${confirm.row.email}? The invite link will stop working.`,
             confirmLabel: "Revoke invitation",
           }
         : confirm?.kind === "transfer"
@@ -224,12 +235,19 @@ export function AdminsTable({
                 </td>
                 <td className="px-3.5 py-[11px]">
                   {row.type === "invited" ? (
-                    <span
-                      className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold"
-                      style={{ background: "rgba(255,214,107,0.22)", color: "#a5842b" }}
-                    >
-                      Invited
-                    </span>
+                    (() => {
+                      const badge =
+                        INVITE_STATUS_BADGE[row.status ?? "pending"] ??
+                        INVITE_STATUS_BADGE.pending;
+                      return (
+                        <span
+                          className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold"
+                          style={{ background: badge.bg, color: badge.fg }}
+                        >
+                          {badge.label}
+                        </span>
+                      );
+                    })()
                   ) : (
                     <span
                       className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold"
