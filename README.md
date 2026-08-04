@@ -102,7 +102,7 @@ pnpm run make-super-admin -- --email admin@example.com
 | POST | `/api/cron/reprocess-unmatched` | Retraitement leads (Bearer CRON_SECRET) |
 | POST | `/api/cron/integrity-post` | Post Integrity unmatched (Bearer CRON_SECRET) |
 
-Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, partners, filter sets, refunds — voir [BACKEND.md](docs/BACKEND.md).
+Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, partners, filter sets, refunds, **integrity postings** (list + detail payloads) — voir [BACKEND.md](docs/BACKEND.md).
 
 ## Dev tools
 

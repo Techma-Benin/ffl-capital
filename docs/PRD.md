@@ -308,7 +308,8 @@ Phase D — Migration Replit (livraison client)
 - **Feature livrée en V1** même si exécution différée
 
 #### Revente Integrity
-- Vue postings : statut, mode realtime/storefront
+- Vue postings (`/admin/integrity`) : statut, mode realtime/storefront ; modal détail avec outcome, payloads request/response et timeline d’événements Integrity (lazy-load détail API)
+- Raison de rejet dérivée des lead events quand disponibles (postings anciens : empty state)
 - Réconciliation storefront (import log journalier — manuel ou auto selon API)
 
 ### 5.3 Portail agent
@@ -484,6 +485,8 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 - **Storefront** : envoi lot, réconciliation journalière
 
 **Déclenchement :** lead unmatched après fenêtre retraitement 24 h.
+
+**Admin :** liste postings légère ; détail à la demande (payloads + événements) pour debug accept/reject.
 
 **Implémentation :** adapter mock/live ; specs depuis Boberdoo.
 

@@ -225,9 +225,13 @@ LeadConduit can POST back a result after processing. This closes the loop: submi
 
 | `outcome` | Action |
 |-----------|--------|
-| `success` | `ResalePosting` → `sold`; emits `integrity_accepted` event; records LeadConduit `lead.id` |
-| `failure` | `ResalePosting` → `rejected`; emits `integrity_rejected` event with reason |
-| `error` | Logs error; leaves `ResalePosting` as `pending` for retry; emits `integrity_error` event |
+| `success` | `ResalePosting` → `sold`; emits `integrity_accepted` event (payload includes webhook `response` body); records LeadConduit `lead.id` |
+| `failure` | `ResalePosting` → `rejected`; emits `integrity_rejected` event with reason + webhook `response` body |
+| `error` | Logs error; leaves `ResalePosting` as `pending` for retry; emits `integrity_error` event with webhook `response` body |
+
+Outbound posts (`src/lib/integrity/post.ts`) similarly store `requestPayload` and LeadConduit `response` on `integrity_posted` / `integrity_rejected` / `integrity_missing_fields` events.
+
+**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`). Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, and rejection reason derived from those events (empty for older postings without stored payloads).
 
 ---
 

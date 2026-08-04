@@ -456,6 +456,22 @@ Setting admin : `reprocess_partner_picker_enabled` (`app_settings`, défaut `fal
 
 Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads au-delà du délai configuré et **ignore** les leads en hold. `matchLead` accepte `includePartnerIds` (allowlist) via `findEligibleFilterSets`.
 
+### Admin Integrity postings
+
+| Route | Rôle |
+|-------|------|
+| `GET /api/admin/integrity/postings` | Liste légère (50 derniers `resale_postings` + lead basique). **Pas** de payloads complets ; `rejectionReason` toujours `null` ici. |
+| `GET /api/admin/integrity/postings/[id]` | Détail : résumé posting + événements Integrity du lead filtrés par `postingId` ; dérive `rejectionReason`, `outcome`, `requestPayload`, `response` depuis les payloads d’événements. |
+| `POST /api/admin/integrity/test` | Soumission test LeadConduit sans enregistrement BDD (voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)). |
+
+**Persistance événements** (`lead_events.payload`) :
+
+- Post sortant (`src/lib/integrity/post.ts`) : `integrity_posted`, `integrity_rejected`, `integrity_missing_fields` stockent `requestPayload` et `response` (réponse LeadConduit / ping) quand disponibles, plus `postingId`.
+- Webhook `POST /api/webhooks/integrity` : `integrity_accepted` / `integrity_rejected` / `integrity_error` stockent le body webhook sous `response`.
+- Postings plus anciens peuvent n’avoir ni payloads ni raison de rejet (empty state UI).
+
+UI : `/admin/integrity` — modal détail avec section collapsible « Integrity payloads & outcome » (lazy-load du détail `[id]`).
+
 ---
 
 ## Infra Supabase
@@ -575,3 +591,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-30 | Vues leads : filtre Type admin unifié + attribution filter set ; périodes partner sur `deliveredAt` ; règles catégories → reclassification automatique des leads non finalisés |
 | 2026-07-31 | Bulk reprocess : hold/release en mémoire pour éviter course cron / reprocess ligne pendant sélection partenaires ; routes `hold` et `release-hold` |
 | 2026-08-04 | `getIntegrationsMode()` : en dev, `app_settings.integrations_mode` prime sur env ; Mode admin PATCH immédiat `/api/admin/settings` |
+| 2026-08-04 | Admin Integrity postings : détail `GET …/postings/[id]` (payloads + timeline événements) ; `requestPayload` / `response` persistés sur événements post + webhook |

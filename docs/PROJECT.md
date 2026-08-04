@@ -321,7 +321,7 @@ lead_categories                   -- classification produit (admin)
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess avec sélection partners**), partners, refunds, **aged browse** (tri URL + pagination), settings (**lead categories** multi-critères + reclassification automatique), migration (classification via table catégories), filter list (+ templates) | ✅ |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess avec sélection partners**), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (modal détail payloads/outcome/timeline), settings (**lead categories** multi-critères + reclassification automatique), migration (classification via table catégories), filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées avec périodes de livraison), wallet, aged, settings, contact, refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
@@ -363,6 +363,7 @@ lead_categories                   -- classification produit (admin)
 - [x] Admin Filter List (`/admin/filter-list`) : sets live + templates SSR ; templates via `/admin/filter-sets/templates/new` et `…/[id]/edit` ; éditeur partagé `FilterSetEditorPage` / `FilterSetForm` (admin live, templates, partner) — plus de modal d’édition ; partner ne voit pas prix/priorité ; Attribution absente du formulaire filter set **et** de l’onboarding (clés stripées à la sauvegarde) ; Intent / Have IUL = multi-select partagé (`AdvancedFiltersFields`) — options = valeurs distinctes leads + **Empty** (`"empty"`), préfetchées SSR via `getLeadFilterCriteriaOptions()` (pas de fetch à l’ouverture du dropdown)
 - [x] Admin refunds : file pending + historique
 - [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`), KPI Available + filtres URL (`state`, `type`, `status`, `age`), tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id`
+- [x] Admin Integrity (`/admin/integrity`) : liste postings récente ; modal détail avec section collapsible payloads/outcome (lazy `GET /api/admin/integrity/postings/[id]`), timeline événements, raison de rejet depuis lead events
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
 - [x] Partner settings (Profile + Lead delivery half/half ; wizard CRM `/partner/settings/crm-outbound`) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner/templates, plus de modal
 
