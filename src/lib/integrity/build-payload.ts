@@ -34,6 +34,8 @@ function formatDobMmDdYyyy(dob: string | null): string | undefined {
 
 /**
  * Builds the payload for the Integrity Connect RealTime flow.
+ * Optional fields with no value are omitted except `address_1`, which is always
+ * included (empty string when the lead has no address).
  * `integrityLabel` should come from the LeadCategory record for this lead's type.
  */
 export function buildIntegrityLeadPayload(
@@ -49,7 +51,7 @@ export function buildIntegrityLeadPayload(
     lead_type_thom: resolveIntegrityLabel(integrityLabel),
     dob_mmddyyyy_thom: formatDobMmDdYyyy(lead.dob),
     vendor_lead_id_thom: lead.externalId ?? lead.id,
-    address_1: lead.address ?? undefined,
+    address_1: lead.address ?? "",
     city: lead.city ?? undefined,
     postal_code: lead.zip ?? undefined,
     age: lead.age ?? undefined,

@@ -314,6 +314,8 @@ These are the mappings from our internal lead object properties to the LeadCondu
 
 **Intake requirement:** `/api/leads/intake` rejects payloads missing `Trusted_Form_URL` (or `trustedform_cert_url`) with `{ outcome: "error", reason: "Missing required fields: …" }`. `DOB` is temporarily optional at intake (MP Facebook forms often omit it); `Have_IUL` / `Primary_Goal` are product-specific and not enforced at intake. Per-product completeness (including `DOB`) is checked before Integrity post via `src/lib/integrity/required-fields.ts`.
 
+**Outbound payload shape:** `buildIntegrityLeadPayload` and `buildIntegrityStorefrontPayload` omit optional fields when the lead has no value. The exception is `address_1`, which is always included (empty string when the lead has no address). Mortgage Protection–specific fields (`beneficiary_thom`, `history_of_cancer_thom`, `mortgage_loan_amount_thom`) are included only for `mortgage_protection` leads, and omitted when missing. Ping payloads (`buildIntegrityPingPayload`) include only `first_name`, `last_name`, `state`, `lead_type_thom`, and `vendor_lead_id_thom`.
+
 | Internal Field | LeadConduit Parameter | Notes |
 |---|---|---|
 | `lead.firstName` | `first_name` | |

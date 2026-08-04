@@ -90,4 +90,60 @@ describe("Integrity state formatting", () => {
       "Integrity Realtime: no campaign for state CO",
     );
   });
+
+  test("buildIntegrityLeadPayload always includes address_1 as empty string when missing", () => {
+    const payload = buildIntegrityLeadPayload(minimalLead({ address: null }));
+
+    assert.ok("address_1" in payload);
+    assert.equal(payload.address_1, "");
+  });
+
+  test("buildIntegrityLeadPayload omits other optional fields when null", () => {
+    const payload = buildIntegrityLeadPayload(
+      minimalLead({
+        dob: null,
+        address: null,
+        city: null,
+        zip: null,
+        age: null,
+        trustedformCertUrl: null,
+        leadidToken: null,
+        ipAddress: null,
+        haveIul: null,
+        primaryGoal: null,
+        source: null,
+        subId: null,
+      }),
+    );
+
+    assert.ok("address_1" in payload);
+    assert.equal("city" in payload, false);
+    assert.equal("postal_code" in payload, false);
+    assert.equal("dob_mmddyyyy_thom" in payload, false);
+    assert.equal("age" in payload, false);
+    assert.equal("trustedform_cert_url" in payload, false);
+    assert.equal("universal_leadid" in payload, false);
+    assert.equal("ip_address" in payload, false);
+    assert.equal("has_iul_thom" in payload, false);
+    assert.equal("primary_goal_thom" in payload, false);
+    assert.equal("campaign_source" in payload, false);
+    assert.equal("campaign_id" in payload, false);
+  });
+
+  test("buildIntegrityLeadPayload includes MP fields only for mortgage_protection", () => {
+    const iulPayload = buildIntegrityLeadPayload(minimalLead({ leadType: "iul" }));
+    assert.equal("beneficiary_thom" in iulPayload, false);
+
+    const mpPayload = buildIntegrityLeadPayload(
+      minimalLead({
+        leadType: "mortgage_protection",
+        beneficiary: "Spouse",
+        historyOfCancer: "No",
+        mortgageLoanAmount: "250000",
+      }),
+    );
+    assert.equal(mpPayload.beneficiary_thom, "Spouse");
+    assert.equal(mpPayload.history_of_cancer_thom, "No");
+    assert.equal(mpPayload.mortgage_loan_amount_thom, "250000");
+  });
 });
