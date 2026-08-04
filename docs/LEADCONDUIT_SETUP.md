@@ -85,7 +85,7 @@ HTTP status: `401`
 | `State` or `State_You_Currently_Live_In` | `state` | Required |
 | `Intent` | `intent` | Stored on lead; does not set `leadType` |
 | `SRC` | `source` | Also used in category criteria (`field=SRC`, exact match) |
-| `DOB` | `dob` | **Required** — date of birth |
+| `DOB` | `dob` | Optional at intake (temporarily — MP Facebook forms often omit); required before Integrity post |
 | `Age` | `age` | |
 | `Trusted_Form_URL` (or `trustedform_cert_url`) | `trustedformCertUrl` | **Required** — TrustedForm certificate |
 | `LeadiD_Token` | `leadidToken` | Jornaya token |

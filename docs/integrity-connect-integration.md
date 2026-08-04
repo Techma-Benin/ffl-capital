@@ -300,7 +300,7 @@ All responses are JSON with an `outcome` field:
 
 These are the mappings from our internal lead object properties to the LeadConduit HTTP parameter names.
 
-**Intake requirement:** `/api/leads/intake` rejects payloads missing `DOB`, `Trusted_Form_URL` (or `trustedform_cert_url`), `Have_IUL`, or `Primary_Goal` with `{ outcome: "error", reason: "Missing required fields: …" }`. Older leads already in the database are skipped at Integrity post time if any of these fields are empty.
+**Intake requirement:** `/api/leads/intake` rejects payloads missing `Trusted_Form_URL` (or `trustedform_cert_url`) with `{ outcome: "error", reason: "Missing required fields: …" }`. `DOB` is temporarily optional at intake (MP Facebook forms often omit it); `Have_IUL` / `Primary_Goal` are product-specific and not enforced at intake. Per-product completeness (including `DOB`) is checked before Integrity post via `src/lib/integrity/required-fields.ts`.
 
 | Internal Field | LeadConduit Parameter | Notes |
 |---|---|---|
@@ -309,7 +309,7 @@ These are the mappings from our internal lead object properties to the LeadCondu
 | `lead.email` | `email` | |
 | `lead.phone` | `phone_1` | |
 | `lead.state` | `state` | |
-| `lead.dob` | `dob_mmddyyyy_thom` | **Required at intake**; formatted as `MM/dd/yyyy` |
+| `lead.dob` | `dob_mmddyyyy_thom` | Required before Integrity RealTime post; formatted as `MM/dd/yyyy` |
 | `lead.leadType` | `lead_type_thom` | RealTime: must map to one of the 5 exact strings; Storefront: any text |
 | `lead.id` or `lead.externalId` | `vendor_lead_id_thom` | Required for Storefront |
 | `lead.address` | `address_1` | |
