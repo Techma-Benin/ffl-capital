@@ -181,7 +181,7 @@ Phase D — Migration Replit (livraison client)
 | `CLERK_*` | Auth |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Paiements |
 | `RESEND_API_KEY` | Emails |
-| `INTEGRATIONS_MODE` | `mock` \| `live` |
+| `INTEGRATIONS_MODE` | `mock` \| `live` — fallback **dev only** si `app_settings.integrations_mode` absent ; admin Mode (Integrations) prime et se sauvegarde immédiatement ; prod toujours `live` |
 | `INTEGRITY_*` | Credentials ping/post (live only) |
 | `ADMIN_APPROVAL_REQUIRED` | `true` par défaut — désactivable |
 
@@ -475,7 +475,7 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 - À chaque livraison matchée : **email toujours** (Resend) ; si config **activée** (`enabled`), POST vers l’endpoint partner
 - Échec POST : pas de retry ; email partner avec raison (**sans** payload lead)
 - Spécification complète : [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) (SSRF, test fixture, admin lecture seule)
-- Mode `integrations_mode=mock` : pas d’appels HTTP CRM réels ; événements lead tracés
+- Mode `integrations_mode=mock` (dev ; valeur `app_settings` prime sur env) : pas d’appels HTTP CRM réels ; événements lead tracés ; prod toujours live
 
 ### 5.12 Revente IntegrityCONNECT
 
@@ -868,7 +868,9 @@ Page interne `/dev/lead-simulator` (masquée en prod) :
 
 Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo une fois exploré.
 
-### `INTEGRATIONS_MODE=mock`
+### `INTEGRATIONS_MODE=mock` / `app_settings.integrations_mode`
+
+En **dev**, le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode, sauvegarde immédiate). Env `INTEGRATIONS_MODE` ne s’applique que si la clé DB est absente. En **prod**, toujours live.
 
 | Service | Comportement mock |
 |---------|-------------------|

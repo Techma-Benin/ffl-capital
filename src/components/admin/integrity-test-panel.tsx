@@ -185,8 +185,8 @@ export function IntegrityTestPanel({
 
   const modeHint = isDev
     ? mode === "live"
-      ? "Dev live mode sends real requests to email, CRM, and Integrity (when vendors are enabled)."
-      : "Dev mock mode logs partner email/CRM only. Integrity tests also log without HTTP."
+      ? "Live mode is saved immediately and sends real requests to email, CRM, and Integrity (when vendors are enabled)."
+      : "Mock mode is saved immediately and logs partner email/CRM only. Integrity tests also log without HTTP."
     : "Production always runs live for partner delivery. Integrity posting is controlled by the resale vendor toggles above.";
 
   const realtimeVendor = vendors?.realtime;

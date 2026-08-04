@@ -443,6 +443,25 @@ export function AdminSettingsForm({
       .finally(() => setLoading(false));
   }, []);
 
+  /* Persist integrations Mode immediately — tests and outbound reads DB, not form state. */
+  async function handleIntegrationsModeChange(next: "mock" | "live") {
+    const prev = form.integrationsMode;
+    setForm((f) => ({ ...f, integrationsMode: next }));
+    if (!isDev) return;
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ integrationsMode: next }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      notify.success(next === "live" ? "Integrations mode: live" : "Integrations mode: mock");
+    } catch {
+      setForm((f) => ({ ...f, integrationsMode: prev }));
+      notify.error("Failed to update integrations mode");
+    }
+  }
+
   /* save */
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -937,7 +956,7 @@ export function AdminSettingsForm({
         <IntegrityTestPanel
           isDev={isDev}
           mode={form.integrationsMode}
-          onModeChange={(v) => setForm((f) => ({ ...f, integrationsMode: v }))}
+          onModeChange={handleIntegrationsModeChange}
         />
       )}
     </>

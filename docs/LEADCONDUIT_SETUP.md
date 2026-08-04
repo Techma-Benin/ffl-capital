@@ -173,7 +173,7 @@ INTEGRITY_REALTIME_SUBMIT_URL=https://app.leadconduit.com/flows/65c179646acc6f1f
 INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
 ```
 
-Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override these URLs when `postUrl` is set. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. In dev, `INTEGRATIONS_MODE=mock` logs Integrity without HTTP and does not set `integrity_posted`; production always runs live for partner delivery and ignores `integrations_mode`.
+Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override these URLs when `postUrl` is set. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. In dev, outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset. Mock logs Integrity without HTTP and does not set `integrity_posted`; production always runs live and ignores the setting.
 
 ### Routing logic
 
