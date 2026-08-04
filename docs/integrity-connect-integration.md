@@ -79,7 +79,19 @@ The `lead_type_thom` field **must** contain one of these exact strings or the le
 | `address_1` | street | First line of address |
 | `address_2` | string | Second line (apt, unit) |
 | `city` | city | City |
-| `state` | state | State (TX, Texas, etc.) |
+| `state` | state | Full state name on outbound posts (e.g. `Texas`, not `TX`) |
+
+### Realtime state campaigns
+
+Integrity Realtime only accepts leads from states with active campaigns. Our system skips (does not reject) Realtime posts for other states with reason `Integrity Realtime: no campaign for state {code}`.
+
+| Eligible states (full names) |
+|---|
+| Utah, Montana, Wisconsin, Texas, Ohio, Michigan, Florida, Arizona |
+
+A LeadConduit response of **"No Campaign Available"** for an ineligible state (e.g. Colorado) is expected — it means the state is not in Integrity's active Realtime campaigns, not a payload error.
+
+Internal storage and partner matching continue to use 2-letter state codes; only Integrity outbound payloads use full state names via `formatStateForIntegrity()`.
 | `postal_code` | postal_code | Zip code |
 | `county` | string | County |
 | `age` | range | Age |
@@ -379,7 +391,7 @@ Both URLs are unique per flow per source — they cannot be swapped or reused.
 curl -X POST \
   "https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "lead_type_thom=Final+Expense+Facebook+(Realtime+Lead)&first_name=Mike&last_name=Jones&phone_1=5127891111&email=test@example.com&state=TX&dob_mmddyyyy_thom=06/02/1980&is_test=yes"
+  -d "lead_type_thom=Final+Expense+Facebook+(Realtime+Lead)&first_name=Mike&last_name=Jones&phone_1=5127891111&email=test@example.com&state=Texas&dob_mmddyyyy_thom=06/02/1980&is_test=yes"
 ```
 
 ### Sample Test: Storefront

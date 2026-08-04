@@ -1,4 +1,5 @@
 import type { Lead } from "@prisma/client";
+import { formatStateForIntegrity } from "@/lib/constants/us-states";
 
 const DEFAULT_INTEGRITY_LABEL =
   "Indexed Universal Life [IUL] Facebook (Realtime Lead)";
@@ -44,7 +45,7 @@ export function buildIntegrityLeadPayload(
     last_name: lead.lastName,
     email: lead.email,
     phone_1: lead.phone,
-    state: lead.state,
+    state: formatStateForIntegrity(lead.state),
     lead_type_thom: resolveIntegrityLabel(integrityLabel),
     dob_mmddyyyy_thom: formatDobMmDdYyyy(lead.dob),
     vendor_lead_id_thom: lead.externalId ?? lead.id,
@@ -83,7 +84,7 @@ export function buildIntegrityPingPayload(
   return {
     first_name: lead.firstName,
     last_name: lead.lastName,
-    state: lead.state,
+    state: formatStateForIntegrity(lead.state),
     lead_type_thom: resolveIntegrityLabel(integrityLabel),
     vendor_lead_id_thom: lead.externalId ?? lead.id,
   };

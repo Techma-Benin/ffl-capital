@@ -5,6 +5,7 @@ import {
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
 } from "@/lib/integrity/build-payload";
+import { formatStateForIntegrity } from "@/lib/constants/us-states";
 import { logIntegrityAction } from "@/lib/integrity/log";
 import { checkRequiredIntegrityFields } from "@/lib/integrity/required-fields";
 import {
@@ -78,6 +79,9 @@ export async function POST(request: NextRequest) {
     const filtered = Object.fromEntries(
       Object.entries(manualPayload).filter(([, v]) => v && v.trim() !== ""),
     ) as Record<string, string>;
+    if (filtered.state) {
+      filtered.state = formatStateForIntegrity(filtered.state);
+    }
     testFields = { ...filtered, is_test: "yes" };
   } else if (leadId) {
     const lead = await prisma.lead.findUnique({ where: { id: leadId } });
@@ -112,7 +116,7 @@ export async function POST(request: NextRequest) {
       last_name: "Jones",
       email: "bill.ahognonvi+test@techma.ca",
       phone_1: "5127891111",
-      state: "TX",
+      state: "Texas",
       dob_mmddyyyy_thom: "06/02/1980",
       lead_type_thom: "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
       has_iul_thom: "yes",

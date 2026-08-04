@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { formatDateTime } from "@/lib/format-datetime";
+import {
+  formatStateForIntegrity,
+  INTEGRITY_REALTIME_ELIGIBLE_STATE_CODES,
+  US_STATE_NAMES,
+} from "@/lib/constants/us-states";
 import { IntegrityPostingsTable, type PostingRow } from "@/components/admin/integrity-postings-table";
 
 type Flow = "realtime" | "storefront";
@@ -57,12 +62,16 @@ const LEAD_TYPE_OPTIONS = [
   "Veteran Life Facebook (Realtime Lead)",
 ];
 
+const INTEGRITY_REALTIME_STATES_LABEL = INTEGRITY_REALTIME_ELIGIBLE_STATE_CODES.map(
+  (code) => US_STATE_NAMES[code],
+).join(", ");
+
 const HARDCODED_DEFAULTS: ModalFields = {
   first_name: "Mike",
   last_name: "Jones",
   email: "bill.ahognonvi+test@techma.ca",
   phone_1: "5127891111",
-  state: "TX",
+  state: "Texas",
   dob_mmddyyyy_thom: "06/02/1980",
   lead_type_thom: "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
   trustedform_cert_url: "https://cert.trustedform.com/a1028cbb41b876744fa752eec276bec0e4c48b33",
@@ -135,7 +144,7 @@ export function IntegrityTestPanel({
         last_name: lead.lastName,
         email: lead.email ?? "",
         phone_1: lead.phone ?? "",
-        state: lead.state,
+        state: formatStateForIntegrity(lead.state),
         dob_mmddyyyy_thom: formatDob(lead.dob),
         lead_type_thom: integrityLabel,
         trustedform_cert_url: lead.trustedformCertUrl ?? "",
@@ -474,6 +483,11 @@ export function IntegrityTestPanel({
                       value={modal.fields[key] ?? ""}
                       onChange={(e) => setField(key, e.target.value)}
                     />
+                    {key === "state" && modal.flow === "realtime" && (
+                      <p className="text-xs text-slate-500">
+                        Realtime campaigns: {INTEGRITY_REALTIME_STATES_LABEL}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
