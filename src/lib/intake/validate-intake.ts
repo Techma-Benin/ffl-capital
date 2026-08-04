@@ -20,14 +20,16 @@ function resolveTrustedFormUrl(data: Record<string, unknown>): string | undefine
 // schema runs before we know the lead's product (that requires a DB lookup
 // against LeadCategory in processLeadIntake), and Have_IUL/Primary_Goal only
 // apply to IUL products — a Mortgage Protection lead legitimately omits them.
-// Only fields required for every product (DOB, TrustedForm) are enforced at
-// intake; full per-product completeness (including Mortgage Protection's
-// Beneficiary/History Of Cancer/Mortgage Loan Amount) is checked right
-// before the Integrity post in `src/lib/integrity/required-fields.ts`, once
-// the lead's resolved type is known.
+// Only TrustedForm is enforced at intake for every product; full per-product
+// completeness (including DOB and Mortgage Protection's Beneficiary/History
+// Of Cancer/Mortgage Loan Amount) is checked right before the Integrity post
+// in `src/lib/integrity/required-fields.ts`, once the lead's resolved type is
+// known.
 function missingIntegrityIntakeFields(data: Record<string, unknown>): string[] {
   const missing: string[] = [];
-  if (!resolveDob(data)) missing.push("DOB");
+  // Temporarily optional: MP Facebook forms don't collect DOB at intake.
+  // Integrity post still validates DOB via required-fields.ts.
+  // if (!resolveDob(data)) missing.push("DOB");
   if (!resolveTrustedFormUrl(data)) missing.push("Trusted_Form_URL");
   return missing;
 }
