@@ -15,16 +15,11 @@ export function resolveIntegrityLabel(
   return integrityLabel ?? DEFAULT_INTEGRITY_LABEL;
 }
 
-function str(value: string | null | undefined): string {
-  return value ?? "";
-}
-
 /**
  * Formats a DOB string to MM/dd/yyyy as required by dob_mmddyyyy_thom.
- * Returns empty string when DOB is missing.
  */
-function formatDobMmDdYyyy(dob: string | null): string {
-  if (!dob) return "";
+function formatDobMmDdYyyy(dob: string | null): string | undefined {
+  if (!dob) return undefined;
 
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(dob)) return dob;
 
@@ -39,56 +34,57 @@ function formatDobMmDdYyyy(dob: string | null): string {
 
 /**
  * Builds the payload for the Integrity Connect RealTime flow.
- * All mapped fields are always included; missing values are sent as empty strings.
  * `integrityLabel` should come from the LeadCategory record for this lead's type.
  */
 export function buildIntegrityLeadPayload(
   lead: Lead,
   integrityLabel?: string | null,
-): Record<string, string> {
-  const payload: Record<string, string> = {
-    first_name: str(lead.firstName),
-    last_name: str(lead.lastName),
-    email: str(lead.email),
-    phone_1: str(lead.phone),
-    state: formatStateForIntegrity(str(lead.state)),
+): Record<string, string | undefined> {
+  const payload: Record<string, string | undefined> = {
+    first_name: lead.firstName,
+    last_name: lead.lastName,
+    email: lead.email,
+    phone_1: lead.phone,
+    state: formatStateForIntegrity(lead.state),
     lead_type_thom: resolveIntegrityLabel(integrityLabel),
     dob_mmddyyyy_thom: formatDobMmDdYyyy(lead.dob),
     vendor_lead_id_thom: lead.externalId ?? lead.id,
-    address_1: str(lead.address),
-    city: str(lead.city),
-    postal_code: str(lead.zip),
-    age: str(lead.age),
-    trustedform_cert_url: str(lead.trustedformCertUrl),
-    universal_leadid: str(lead.leadidToken),
-    ip_address: str(lead.ipAddress),
-    has_iul_thom: str(lead.haveIul),
-    primary_goal_thom: str(lead.primaryGoal),
-    campaign_source: str(lead.source),
-    campaign_id: str(lead.subId),
+    address_1: lead.address ?? undefined,
+    city: lead.city ?? undefined,
+    postal_code: lead.zip ?? undefined,
+    age: lead.age ?? undefined,
+    trustedform_cert_url: lead.trustedformCertUrl ?? undefined,
+    universal_leadid: lead.leadidToken ?? undefined,
+    ip_address: lead.ipAddress ?? undefined,
+    has_iul_thom: lead.haveIul ?? undefined,
+    primary_goal_thom: lead.primaryGoal ?? undefined,
+    campaign_source: lead.source ?? undefined,
+    campaign_id: lead.subId ?? undefined,
+    ...(lead.leadType === "mortgage_protection"
+      ? {
+          beneficiary_thom: lead.beneficiary ?? undefined,
+          history_of_cancer_thom: lead.historyOfCancer ?? undefined,
+          mortgage_loan_amount_thom: lead.mortgageLoanAmount ?? undefined,
+        }
+      : {}),
   };
 
-  if (lead.leadType === "mortgage_protection") {
-    payload.beneficiary_thom = str(lead.beneficiary);
-    payload.history_of_cancer_thom = str(lead.historyOfCancer);
-    payload.mortgage_loan_amount_thom = str(lead.mortgageLoanAmount);
-  }
-
-  return payload;
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, v]) => v !== undefined),
+  ) as Record<string, string>;
 }
 
 /**
  * Builds the ping payload for the Integrity Storefront flow.
- * All mapped fields are always included; missing values are sent as empty strings.
  */
 export function buildIntegrityPingPayload(
   lead: Lead,
   integrityLabel?: string | null,
-): Record<string, string> {
+): Record<string, string | undefined> {
   return {
-    first_name: str(lead.firstName),
-    last_name: str(lead.lastName),
-    state: formatStateForIntegrity(str(lead.state)),
+    first_name: lead.firstName,
+    last_name: lead.lastName,
+    state: formatStateForIntegrity(lead.state),
     lead_type_thom: resolveIntegrityLabel(integrityLabel),
     vendor_lead_id_thom: lead.externalId ?? lead.id,
   };
@@ -100,7 +96,7 @@ export function buildIntegrityPingPayload(
 export function buildIntegrityStorefrontPayload(
   lead: Lead,
   integrityLabel?: string | null,
-): Record<string, string> {
+): Record<string, string | undefined> {
   return {
     ...buildIntegrityLeadPayload(lead, integrityLabel),
     vendor_lead_id_thom: lead.externalId ?? lead.id,
