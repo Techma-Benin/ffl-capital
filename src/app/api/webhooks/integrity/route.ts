@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LeadEventType, ResaleMode, ResaleStatus } from "@prisma/client";
+import { LeadEventType, ResaleStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 
@@ -108,6 +108,8 @@ export async function POST(request: NextRequest) {
     await emitLeadEvent(posting.leadId, LeadEventType.integrity_accepted, {
       postingId: resolvedPostingId,
       externalLeadId,
+      outcome: "accepted",
+      response: body,
     });
   } else if (outcome === "failure") {
     await prisma.resalePosting.update({
@@ -118,6 +120,8 @@ export async function POST(request: NextRequest) {
     await emitLeadEvent(posting.leadId, LeadEventType.integrity_rejected, {
       postingId: resolvedPostingId,
       reason,
+      outcome: "rejected",
+      response: body,
     });
   } else {
     // "error" or unknown — log and leave pending for retry
@@ -129,6 +133,7 @@ export async function POST(request: NextRequest) {
       postingId: resolvedPostingId,
       outcome,
       reason,
+      response: body,
     });
   }
 

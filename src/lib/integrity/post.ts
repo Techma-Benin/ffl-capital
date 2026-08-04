@@ -45,6 +45,10 @@ async function rejectPosting(
   reason: string,
   vendorKey: string,
   mode: ResaleMode,
+  extras?: {
+    requestPayload?: Record<string, string | undefined>;
+    response?: unknown;
+  },
 ): Promise<void> {
   await prisma.resalePosting.update({
     where: { id: postingId },
@@ -56,6 +60,8 @@ async function rejectPosting(
     vendor: vendorKey,
     mode,
     outcome: "rejected",
+    ...(extras?.requestPayload ? { requestPayload: extras.requestPayload } : {}),
+    ...(extras?.response !== undefined ? { response: extras.response } : {}),
   });
   logIntegrityAction("post_rejected", {
     leadId,
@@ -102,6 +108,7 @@ async function rejectPostingMissingFields(
   missing: string[],
   vendorKey: string,
   mode: ResaleMode,
+  requestPayload?: Record<string, string | undefined>,
 ): Promise<string> {
   const reason = `Missing required field(s) for Integrity: ${missing.join(", ")}`;
   await prisma.resalePosting.update({
@@ -115,6 +122,7 @@ async function rejectPostingMissingFields(
     vendor: vendorKey,
     mode,
     outcome: "rejected",
+    ...(requestPayload ? { requestPayload } : {}),
   });
   logIntegrityAction("post_missing_fields", {
     leadId,
@@ -128,11 +136,15 @@ async function rejectPostingMissingFields(
   return reason;
 }
 
+type IntegritySubmitResult =
+  | { ok: true; externalLeadId?: string; response?: unknown }
+  | { ok: false; reason: string; response?: unknown };
+
 async function submitToIntegrity(
   url: string,
   payload: Record<string, string | undefined>,
   logFields: Record<string, unknown>,
-): Promise<{ ok: true; externalLeadId?: string } | { ok: false; reason: string }> {
+): Promise<IntegritySubmitResult> {
   logIntegrityAction("post_attempt", {
     ...logFields,
     urlHost: urlHost(url),
@@ -157,8 +169,19 @@ async function submitToIntegrity(
 
   if (!res.ok) {
     const reason = `HTTP ${res.status}`;
+    let response: unknown = { httpStatus: res.status };
+    try {
+      const text = await res.text();
+      try {
+        response = { httpStatus: res.status, body: JSON.parse(text) };
+      } catch {
+        response = { httpStatus: res.status, body: text };
+      }
+    } catch {
+      /* keep status-only */
+    }
     logIntegrityAction("post_response", { ...logFields, outcome: "error", reason, httpStatus: res.status });
-    return { ok: false, reason };
+    return { ok: false, reason, response };
   }
 
   let data: { outcome?: string; lead?: { id?: string }; reason?: string };
@@ -173,7 +196,7 @@ async function submitToIntegrity(
   if (data.outcome === "failure" || data.outcome === "error") {
     const reason = data.reason ?? `Rejected: ${data.outcome}`;
     logIntegrityAction("post_response", { ...logFields, outcome: "rejected", reason });
-    return { ok: false, reason };
+    return { ok: false, reason, response: data };
   }
 
   logIntegrityAction("post_response", {
@@ -181,7 +204,7 @@ async function submitToIntegrity(
     outcome: "success",
     externalLeadId: data.lead?.id,
   });
-  return { ok: true, externalLeadId: data.lead?.id };
+  return { ok: true, externalLeadId: data.lead?.id, response: data };
 }
 
 export async function integrityPostLead(
@@ -310,6 +333,17 @@ export async function integrityPostLead(
   // Verify the fields Integrity requires for this lead's product are present
   // before ever attempting a post, so a missing field is diagnosable on the
   // lead/posting instead of only surfacing later as a vendor-side rejection.
+  const builtPayload =
+    resaleMode === ResaleMode.storefront
+      ? {
+          ...buildIntegrityStorefrontPayload(lead, integrityLabel),
+          reference: posting.id,
+        }
+      : {
+          ...buildIntegrityLeadPayload(lead, integrityLabel),
+          reference: posting.id,
+        };
+
   const requiredFieldsCheck = checkRequiredIntegrityFields(lead);
   if (!requiredFieldsCheck.ok) {
     const reason = await rejectPostingMissingFields(
@@ -318,9 +352,13 @@ export async function integrityPostLead(
       requiredFieldsCheck.missing,
       vendorKey,
       resaleMode,
+      builtPayload,
     );
     return { posted: false, reason };
   }
+
+  let submitResponse: unknown;
+  let resolvedExternalRef: string | undefined;
 
   if (resaleMode === ResaleMode.storefront) {
     let ping: Awaited<ReturnType<typeof integrityPing>>;
@@ -328,7 +366,9 @@ export async function integrityPostLead(
       ping = await integrityPing(leadId, ResaleMode.storefront);
     } catch (err) {
       const reason = `Ping threw unexpectedly: ${String(err)}`;
-      await rejectPosting(posting.id, leadId, reason, vendorKey, resaleMode);
+      await rejectPosting(posting.id, leadId, reason, vendorKey, resaleMode, {
+        requestPayload: builtPayload,
+      });
       return { posted: false, reason };
     }
     if (!ping.accepted) {
@@ -338,50 +378,49 @@ export async function integrityPostLead(
         ping.message ?? "Integrity ping rejected",
         vendorKey,
         resaleMode,
+        {
+          requestPayload: builtPayload,
+          response: { pingAccepted: false, message: ping.message, externalRef: ping.externalRef },
+        },
       );
       return { posted: false, reason: ping.message ?? "Integrity ping rejected" };
     }
 
-    const result = await submitToIntegrity(
-      submitUrl,
-      {
-        ...buildIntegrityStorefrontPayload(lead, integrityLabel),
-        reference: posting.id,
-      },
-      logFields,
-    );
+    const result = await submitToIntegrity(submitUrl, builtPayload, logFields);
 
     if (!result.ok) {
-      await rejectPosting(posting.id, leadId, result.reason, vendorKey, resaleMode);
+      await rejectPosting(posting.id, leadId, result.reason, vendorKey, resaleMode, {
+        requestPayload: builtPayload,
+        response: result.response,
+      });
       return { posted: false, reason: result.reason };
     }
 
-    const externalRef = result.externalLeadId ?? ping.externalRef;
-    if (externalRef) {
+    submitResponse = result.response;
+    resolvedExternalRef = result.externalLeadId ?? ping.externalRef;
+    if (resolvedExternalRef) {
       await prisma.resalePosting.update({
         where: { id: posting.id },
-        data: { externalRef },
+        data: { externalRef: resolvedExternalRef },
       });
     }
   } else {
-    const result = await submitToIntegrity(
-      submitUrl,
-      {
-        ...buildIntegrityLeadPayload(lead, integrityLabel),
-        reference: posting.id,
-      },
-      logFields,
-    );
+    const result = await submitToIntegrity(submitUrl, builtPayload, logFields);
 
     if (!result.ok) {
-      await rejectPosting(posting.id, leadId, result.reason, vendorKey, resaleMode);
+      await rejectPosting(posting.id, leadId, result.reason, vendorKey, resaleMode, {
+        requestPayload: builtPayload,
+        response: result.response,
+      });
       return { posted: false, reason: result.reason };
     }
 
-    if (result.externalLeadId) {
+    submitResponse = result.response;
+    resolvedExternalRef = result.externalLeadId;
+    if (resolvedExternalRef) {
       await prisma.resalePosting.update({
         where: { id: posting.id },
-        data: { externalRef: result.externalLeadId },
+        data: { externalRef: resolvedExternalRef },
       });
     }
   }
@@ -396,6 +435,8 @@ export async function integrityPostLead(
     mode: resaleMode,
     vendor: vendorKey,
     outcome: "posted",
+    requestPayload: builtPayload,
+    response: submitResponse ?? { externalLeadId: resolvedExternalRef },
   });
 
   logIntegrityAction("post_complete", {
