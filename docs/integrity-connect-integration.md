@@ -420,6 +420,8 @@ INTEGRITY_PING_VENDOR_ID=
 INTEGRITY_PING_FUNCTIONS_KEY=
 ```
 
+After pull: `pnpm run ensure:integrity-env` fills blank public Integrity defaults into `.env` (URLs + VendorId; never writes the functions key). Hooked from `scripts/post-merge.sh`. Set `INTEGRITY_PING_FUNCTIONS_KEY` in Replit Secrets or `.env`. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
+
 Admin **Resale vendors** can override submit URLs. Azure ping secrets are **not** stored in `resale_vendor_configs` — env only.
 
 ---

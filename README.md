@@ -28,11 +28,13 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 ### Replit
 
 1. Activer le module **PostgreSQL** dans le Repl — Replit injecte **`DATABASE_URL`** (vérifier dans Secrets / Database).
-2. Après chaque pull : `bash scripts/post-merge.sh` (ou laisser le hook post-merge le faire).
+2. Après chaque pull : `bash scripts/post-merge.sh` (ou laisser le hook post-merge le faire) — installe, migre, et lance `pnpm run ensure:integrity-env`.
 3. Première fois sur une base vide : `pnpm run seed`.
 4. Lancer : **Run** (`pnpm dev -- -p 5000`) ou `pnpm dev -- -p 5000`.
 
 Pas besoin de **`DIRECT_URL`** (Supabase seulement) ; Prisma utilise uniquement **`DATABASE_URL`**.
+
+**Integrity env (Replit / après pull)** : `pnpm run ensure:integrity-env` remplit les defaults manquants (ping Azure + URLs submit) dans `.env` sans écraser les valeurs existantes. Les **Replit Secrets** déjà définis gagnent au runtime ; le script indique lesquels ajouter dans l’UI Secrets pour la prod.
 
 ### Local / Supabase
 
@@ -45,6 +47,7 @@ pnpm install
 # 2. Configurer la base de données
 cp .env.example .env
 # Remplir DATABASE_URL (Replit Postgres le fournit), CLERK_*, STRIPE_* selon besoin
+pnpm run ensure:integrity-env   # defaults Integrity manquants (idempotent)
 
 # 3. Migrations et seed
 pnpm exec prisma generate

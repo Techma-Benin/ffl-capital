@@ -181,7 +181,11 @@ INTEGRITY_PING_FUNCTIONS_KEY=
 INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
 ```
 
+After pull (local or Replit): `pnpm run ensure:integrity-env` fills blank **public** Integrity defaults into `.env` (URLs + VendorId; idempotent; never overwrites non-empty; never prints secrets). It does **not** write `INTEGRITY_PING_FUNCTIONS_KEY` — set that in Replit Secrets or `.env`. Hooked from `scripts/post-merge.sh`.
+
 Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override submit URLs when `postUrl` is set. Azure ping credentials are **env-only** — not stored in the database. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. In dev, outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset. **Mock mode** (dev only; dropdown hidden in prod — prod always live): automatic Integrity posts (intake / cron / lifecycle / `integrityPostLead`) still send real HTTP to LeadConduit with `is_test=yes` via `applyIntegrityAutoPostTestFlag`; live auto posts do not force `is_test`. Realtime IUL Azure `IsAcceptingCampaign` is skipped in mock (auto-accept) so test leads do not gate or skew production campaign decisions. Admin Integrity test buttons always include `is_test=yes`; in mock they short-circuit with “Mock mode — no HTTP request sent” (admin test route only).
+
+**Ensure env** (after pull / Replit): `pnpm run ensure:integrity-env`
 
 **Preflight Azure** (before enabling live Integrity): `pnpm run preflight:integrity-azure`
 
@@ -315,7 +319,7 @@ Expected response: `{"outcome":"success","lead":{"id":"..."}}`
 ## Production cutover
 
 1. Deploy with stable HTTPS URL.
-2. Set all required env vars: `LEADCONDUIT_WEBHOOK_SECRET`, `INTEGRITY_REALTIME_SUBMIT_URL`, `INTEGRITY_STOREFRONT_SUBMIT_URL`, `INTEGRITY_WEBHOOK_SECRET`, and Azure ping vars (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY`).
+2. Set all required env vars: `LEADCONDUIT_WEBHOOK_SECRET`, `INTEGRITY_REALTIME_SUBMIT_URL`, `INTEGRITY_STOREFRONT_SUBMIT_URL`, `INTEGRITY_WEBHOOK_SECRET`, and Azure ping vars (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY`). On Replit after pull, `pnpm run ensure:integrity-env` (via `post-merge.sh`) fills public Integrity URL/VendorId defaults; add `INTEGRITY_PING_FUNCTIONS_KEY` (and prefer VendorId) in Replit Secrets for production.
 3. Run `pnpm run preflight:integrity-azure` with rotated production secrets.
 4. In LeadConduit, update the recipient URL to `https://YOUR-DOMAIN/api/leads/intake`.
 5. Add the `X-Api-Key` header in LeadConduit delivery settings.

@@ -82,7 +82,7 @@ Liste fermée alignée sur `buildLeadDeliveryPayload` (`src/lib/delivery/lead-pa
 
 | Étape | Détail |
 | ----- | ------ |
-| Migrations | Après pull, `scripts/post-merge.sh` (`pnpm install`, `prisma generate`, `prisma migrate deploy`) via hook `[postMerge]` dans `.replit` |
+| Migrations | Après pull, `scripts/post-merge.sh` (`pnpm install`, `prisma generate`, `prisma migrate deploy`, `pnpm run ensure:integrity-env`) via hook `[postMerge]` dans `.replit` |
 | Config partner | PostgreSQL (`DATABASE_URL` Repl ou Supabase) — rien à copier hors BDD partagée |
 | Secrets CRM | En clair en BDD — pas de Replit Secrets dédiés Ringy/webhook |
 | Env livraison | Inchangées : `RESEND_API_KEY`, `FROM_EMAIL`, `DATABASE_URL`, `DIRECT_URL` (Repl : souvent `DIRECT_URL=$DATABASE_URL`) |

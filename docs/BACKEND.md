@@ -545,6 +545,7 @@ RLS activé sur toutes les tables, **sans policies** `anon`/`authenticated` — 
 ```bash
 pnpm install
 cp .env.example .env
+pnpm run ensure:integrity-env   # defaults Integrity manquants (.env ; aussi via post-merge)
 pnpm exec prisma generate
 pnpm exec prisma migrate deploy
 pnpm run seed
@@ -636,3 +637,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-04 | Admin Integrity postings : détail `GET …/postings/[id]` (payloads + timeline événements) ; `requestPayload` / `response` persistés sur événements post + webhook |
 | 2026-08-05 | Phase 2 integrity-prod-alignment : module `lead-routing`, lifecycle flag off par défaut, provenance `live_sold_at` / `live_sale_channel`, Azure ping Realtime IUL, storefront sans ping LC, preflight + preview API |
 | 2026-08-05 | Mock Integrity auto posts : HTTP LeadConduit réel avec `is_test=yes` ; ping Azure skippé en mock ; admin test reste short-circuit mock |
+| 2026-08-05 | `pnpm run ensure:integrity-env` : defaults Integrity publics (URLs + VendorId) dans `.env` après pull ; clé Azure jamais commitée ; branché sur `scripts/post-merge.sh` |
