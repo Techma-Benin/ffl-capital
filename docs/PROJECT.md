@@ -318,11 +318,12 @@ lead_categories                   -- classification produit (admin)
 | Moteur matching v2 (filter sets, limites H/J, FIFO ; exclut templates) | ✅ |
 | Wallet Stripe (top-up + abonnement hebdo) + ledger | ✅ |
 | Emails livraison (Resend), CRM outbound POST (wizard) | ✅ |
+| Partner Contact Us (formulaire → Resend admin + confirmation ; destinataire `contact_recipient_email`) | ✅ |
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess avec sélection partners**), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (modal détail payloads/outcome/timeline), settings (**lead categories** multi-critères + reclassification automatique), migration (classification via table catégories), filter list (+ templates) | ✅ |
-| Partner : dashboard, leads (vues sauvegardées avec périodes de livraison), wallet, aged, settings, contact, refunds | ✅ |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess avec sélection partners**), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (modal détail payloads/outcome/timeline), settings (**lead categories** multi-critères + reclassification automatique ; **Partner contact recipient** sur General → Platform), migration (classification via table catégories), filter list (+ templates) | ✅ |
+| Partner : dashboard, leads (vues sauvegardées avec périodes de livraison), wallet, aged, settings, **contact** (API Resend, plus de mailto), refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
 | Tables `lead_events`, `partner_filter_sets` (live + `isTemplate`), champs Boberdoo étendus | ✅ |
@@ -352,7 +353,8 @@ lead_categories                   -- classification produit (admin)
 - [x] Statuts lead + file unmatched + retraitement 24 h (cron)
 - [x] Débit wallet + ledger
 - [x] Marketplace aged (seuil configurable)
-- [x] Emails (Resend si clé configurée)
+- [x] Emails (Resend si clé configurée) — livraison lead + Partner Contact Us
+- [x] Partner Contact Us : `/partner/contact` → `POST /api/partner/contact` (Resend) ; destinataire admin configurable (`contact_recipient_email`, défaut `support@fflcapital.com`)
 
 ### UI fonctionnelle (**terminé — polish partiel**)
 
@@ -366,6 +368,7 @@ lead_categories                   -- classification produit (admin)
 - [x] Admin Integrity (`/admin/integrity`) : liste postings récente ; modal détail avec section collapsible payloads/outcome (lazy `GET /api/admin/integrity/postings/[id]`), timeline événements, raison de rejet depuis lead events
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
 - [x] Partner settings (Profile + Lead delivery half/half ; wizard CRM `/partner/settings/crm-outbound`) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner/templates, plus de modal
+- [x] Partner Contact Us (`/partner/contact`) : topics + message, envoi serveur Resend (admin + confirmation), toasts loading/success/failure
 
 ### Stripe (**test — terminé**)
 
@@ -404,7 +407,7 @@ lead_categories                   -- classification produit (admin)
 | Intégration | Mode test sans client | Accès nécessaire en prod |
 |-------------|----------------------|--------------------------|
 | **Stripe wallet** | Clés **test** (`sk_test_…`) — compte démo TECHMA ou `stripe sandbox create` | Clés prod client + webhook secret |
-| **Emails** | Console log / [Mailtrap](https://mailtrap.io) / Resend dev | SMTP ou Resend prod client |
+| **Emails** | Console log / [Mailtrap](https://mailtrap.io) / Resend dev | SMTP ou Resend prod client (`RESEND_API_KEY`, `FROM_EMAIL` — aussi Contact Us) |
 | **CRM agent** | [webhook.site](https://webhook.site) ou endpoint local `/api/dev/crm-capture` | URL webhook fournie par chaque agent |
 | **IntegrityCONNECT** | **Mock server** qui répond aux ping/post avec `{ accepted: true }` | Doc API + credentials Integrity (fichier R client) |
 | **LeadConduit réponse** | Retourner `{ "outcome": "success" }` sur notre endpoint | Idem |

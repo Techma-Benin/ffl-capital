@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import {
   APP_SETTING_KEYS,
+  getContactRecipientEmail,
   getResaleVendorConfigs,
   getResolvedResaleVendorPostUrl,
 } from "@/lib/settings/app-settings";
@@ -26,6 +27,7 @@ const settingsSchema = z.object({
   integrityPostDelayHours: z.number().int().min(1).optional(),
   integrityReprocessEnabled: z.boolean().optional(),
   reprocessPartnerPickerEnabled: z.boolean().optional(),
+  contactRecipientEmail: z.string().trim().email().optional(),
 });
 
 const KEY_MAP: Record<string, string> = {
@@ -41,6 +43,7 @@ const KEY_MAP: Record<string, string> = {
   integrityPostDelayHours: APP_SETTING_KEYS.integrityPostDelayHours,
   integrityReprocessEnabled: APP_SETTING_KEYS.integrityReprocessEnabled,
   reprocessPartnerPickerEnabled: APP_SETTING_KEYS.reprocessPartnerPickerEnabled,
+  contactRecipientEmail: APP_SETTING_KEYS.contactRecipientEmail,
 };
 
 export async function GET() {
@@ -70,6 +73,8 @@ export async function GET() {
     };
   }
   settings[APP_SETTING_KEYS.resaleVendorConfigs] = resaleConfigsWithResolved;
+  settings[APP_SETTING_KEYS.contactRecipientEmail] =
+    await getContactRecipientEmail();
 
   return NextResponse.json({ settings });
 }

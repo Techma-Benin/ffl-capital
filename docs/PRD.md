@@ -180,7 +180,8 @@ Phase D — Migration Replit (livraison client)
 | `DATABASE_URL` | Postgres (Supabase → Replit) |
 | `CLERK_*` | Auth |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Paiements |
-| `RESEND_API_KEY` | Emails |
+| `RESEND_API_KEY` | Emails (livraison lead + Partner Contact Us) |
+| `FROM_EMAIL` | Expéditeur Resend (requis pour Contact Us et livraisons) |
 | `INTEGRATIONS_MODE` | `mock` \| `live` — fallback **dev only** si `app_settings.integrations_mode` absent ; admin Mode (Integrations) prime et se sauvegarde immédiatement ; prod toujours `live` |
 | `INTEGRITY_*` | Credentials ping/post (live only) |
 | `ADMIN_APPROVAL_REQUIRED` | `true` par défaut — désactivable |
@@ -261,7 +262,7 @@ Phase D — Migration Replit (livraison client)
 3. **Accès immédiat au portail** en statut `pending_approval` / non actif :
    - Peut voir dashboard, « Mes leads », ajouter une carte Stripe
    - **Ne peut pas** être débité ni recevoir de leads
-   - Peut contacter l’admin via l’app (« activez-moi »)
+   - Peut contacter l’admin via l’app (« activez-moi ») — **Contact Us** `/partner/contact` → email Resend (plus de `mailto:`)
 4. Agent complète **onboarding** (formulaire post-signup) :
    - Nom, affiliation (texte), état de résidence
    - Type lead : Traditional IUL ou High-Intent IUL
@@ -300,6 +301,7 @@ Phase D — Migration Replit (livraison client)
 - Prix lead temps réel par type (défaut IUL = 25 $)
 - Prix aged lead (défaut 5 $)
 - **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label`, prix par défaut ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
+- **Destinataire Contact Us partner** (`/admin/settings` → General → Platform) : `contact_recipient_email` (défaut `support@fflcapital.com`)
 - *(Futur)* frais de retraitement
 
 #### Migration historique
@@ -346,6 +348,12 @@ Phase D — Migration Replit (livraison client)
 - Modifier type lead (Traditional / High-Intent)
 - Config récurrence wallet
 - Message bloquant si < 15 états : « Veuillez sélectionner au moins 15 états »
+
+#### Contact Us
+- Page `/partner/contact` : sujet (liste fermée) + message
+- Soumission `POST /api/partner/contact` (auth partner) → email admin via Resend (`reply-to` = email partner) puis confirmation partner
+- Destinataire admin configurable (`contact_recipient_email`) ; échec envoi admin → erreur ; échec confirmation → succès avec avertissement
+- Pas de `mailto:` côté client
 
 ### 5.4 Pipeline d’intake leads
 
@@ -826,7 +834,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | key | string PK | |
 | value | jsonb | |
 
-**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`
+**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`, `contact_recipient_email` (destinataire Partner Contact Us ; défaut `support@fflcapital.com`)
 
 ### Table `migration_jobs`
 
@@ -850,7 +858,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | TrustedForm | Entrée (via LC) | Certificat dans payload | URL factice |
 | Clerk | Auth | Login, rôles | Instance dev |
 | Stripe | Entrée | Top-up wallet | sk_test TECHMA |
-| Resend | Sortie | Emails | Mailtrap / log |
+| Resend | Sortie | Emails (livraison lead + Contact Us partner) | Mailtrap / log |
 | IntegrityCONNECT | Sortie | Revente leads | Mock server |
 | CRM agent | Sortie | POST JSON (config partner) | wizard Test + `pnpm run test:outbound` |
 
@@ -943,6 +951,7 @@ En **dev**, le mode effectif vient de `app_settings.integrations_mode` (dropdown
 - Stripe test top-up manuel + récurrent
 - Ledger transactions, statut actif
 - Emails lead livré (Resend)
+- Contact Us partner (Resend, destinataire admin configurable)
 - Portail partner : mes leads, wallet
 
 ### Phase 4 — Aged & remboursements (semaine 4) ✅

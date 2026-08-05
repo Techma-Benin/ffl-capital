@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 4 août 2026
+> Dernière mise à jour : 5 août 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -36,6 +36,7 @@
 | Stripe Checkout top-up + webhook | ✅ |
 | Auto-recharge hebdomadaire (abonnement Stripe) | ✅ |
 | Email livraison lead (Resend) | ✅ (si `RESEND_API_KEY`) |
+| Partner Contact Us (Resend → admin + confirmation) | ✅ `POST /api/partner/contact` |
 | CRM outbound partner (POST self-service) | ✅ — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | Remboursements Type A / Type B | ✅ |
 | Marketplace aged (achat + débit wallet) | ✅ |
@@ -418,7 +419,7 @@ Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/
 | Intégration | Mode | Variables / notes |
 |-------------|------|-------------------|
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
-| Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` |
+| Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` — livraison lead **et** Partner Contact Us ; destinataire Contact Us = `app_settings.contact_recipient_email` (défaut `support@fflcapital.com`, UI Admin → Settings → General → Platform) |
 | CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | IntegrityCONNECT | prod : live ; dev : mock/live | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; mode sorties via `getIntegrationsMode()` : **prod toujours `live`** ; en dev, `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` seulement si pas de valeur DB (défaut `mock`). Dropdown Mode (Settings → Integrations / Integrity Connect) **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire |
 | Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
@@ -445,6 +446,22 @@ Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`
 **Flux direct (partner picker OFF, défaut)** : clic Reprocess → `POST …/bulk-reprocess` sans `partnerIds` (match tous les partenaires éligibles, pas de modal ni hold).
 
 Setting admin : `reprocess_partner_picker_enabled` (`app_settings`, défaut `false`) — toggle « Partner picker on reprocess » dans Settings → General → Lead lifecycle.
+
+### Partner Contact Us
+
+UI : `/partner/contact` — formulaire topic + message → `POST /api/partner/contact` (plus de `mailto:` client).
+
+| Route | Auth | Body | Réponse |
+|-------|------|------|---------|
+| `POST /api/partner/contact` | `requirePartner` | `{ topic, message }` (Zod `partnerContactSchema` ; topics fermés dans `contact-topics.ts`) | `200` `{ ok, confirmationSent, warning? }` ; `400` payload ; `403` auth ; `502` échec envoi admin |
+
+Flux (`deliverPartnerContact`) :
+
+1. Destinataire admin via `getContactRecipientEmail()` (`app_settings.contact_recipient_email`, fallback `support@fflcapital.com`)
+2. Email admin Resend (`FROM_EMAIL`, `replyTo` = email session partner)
+3. Confirmation partner Resend — échec confirmation → succès avec `warning` ; échec admin → `502` message générique
+
+Helper partagé : `src/lib/email/send-resend-email.ts`. Setting PATCH via `/api/admin/settings` (`contactRecipientEmail`). Tests : `test/current/partner-contact-delivery.test.ts`.
 
 | Route | Body | Réponse | Comportement |
 |-------|------|---------|--------------|
@@ -592,3 +609,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-31 | Bulk reprocess : hold/release en mémoire pour éviter course cron / reprocess ligne pendant sélection partenaires ; routes `hold` et `release-hold` |
 | 2026-08-04 | `getIntegrationsMode()` : en dev, `app_settings.integrations_mode` prime sur env ; Mode admin PATCH immédiat `/api/admin/settings` |
 | 2026-08-04 | Admin Integrity postings : détail `GET …/postings/[id]` (payloads + timeline événements) ; `requestPayload` / `response` persistés sur événements post + webhook |
+| 2026-08-05 | Partner Contact Us : `POST /api/partner/contact` via Resend ; setting `contact_recipient_email` (Admin Settings → General → Platform) ; plus de `mailto:` |

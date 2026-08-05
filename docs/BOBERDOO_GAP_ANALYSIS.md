@@ -205,7 +205,7 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 | Settings | password only in Boberdoo | ✗ | **V1 improvement:** edit states + CRM |
 | Reports | ✓ transactions | ✗ | |
 | Add Funds | ✓ Stripe | stub | "Phase 3" placeholder |
-| Contact Us | ✓ | ✗ | |
+| Contact Us | ✓ | ✓ | Form → `POST /api/partner/contact` (Resend) ; not mailto |
 | 2FA Settings | ✓ | ✗ | optional (Clerk may cover) |
 | **Aged Leads / Marketplace** | ✗ in Boberdoo | stub | **our innovation** |
 | Request Refund | ✓ | ✗ | |
@@ -278,7 +278,7 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 | `/partner/aged` | Marketplace browse/purchase |
 | `/partner/settings` | Profile + Lead delivery cards, filter sets |
 | `/partner/settings/crm-outbound` | CRM outbound wizard (POST config) |
-| `/partner/contact` | Contact form |
+| `/partner/contact` | Contact form → Resend (`POST /api/partner/contact`) |
 | `/onboarding` | Partner signup flow |
 | `/sign-in`, `/sign-up` | Clerk |
 
@@ -381,7 +381,7 @@ When updating `design/ffl-capital-ui-mockup.pen`, add or refine:
 - [ ] Partner — Request Refund flow (from My Leads row)  
 - [ ] Partner — Settings (state editor — **new vs Boberdoo**)  
 - [ ] Partner — Reports / transaction list  
-- [ ] Partner — Contact Us (simple form or mailto)  
+- [x] Partner — Contact Us (form → Resend admin email + confirmation ; recipient in Admin Settings)  
 - [ ] Refine Admin Dashboard charts (not 100 % Boberdoo — modern subset)  
 
 ---
