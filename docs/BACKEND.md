@@ -439,7 +439,7 @@ Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
 | Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` |
 | CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
-| IntegrityCONNECT | prod : live ; dev : mock/live | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; **Realtime IUL** : ping Azure `IsAcceptingCampaign` avant post LC (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY` — env-only, jamais en BDD) ; Storefront : post direct sans ping LC ; mode sorties via `getIntegrationsMode()` : **prod toujours `live`** ; en dev, `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` seulement si pas de valeur DB (défaut `mock`). Dropdown Mode (Settings → Integrations / Integrity Connect) **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire |
+| IntegrityCONNECT | prod : live ; dev : mock/live | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; **Realtime IUL** : ping Azure `IsAcceptingCampaign` avant post LC (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY` — env-only, jamais en BDD) ; Storefront : post direct sans ping LC ; mode sorties via `getIntegrationsMode()` : **prod toujours `live`** ; en dev, `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` seulement si pas de valeur DB (défaut `mock`). Dropdown Mode (Settings → Integrations / Integrity Connect) **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire. **Mock auto posts** : HTTP réel vers LeadConduit avec `is_test=yes` (`applyIntegrityAutoPostTestFlag`) ; ping Azure Realtime IUL skippé (auto-accept). Live auto posts ne forcent pas `is_test`. Boutons admin test : toujours `is_test=yes` ; en mock short-circuit « Mock mode — no HTTP request sent » (route test seule) |
 | Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
 
 ---
@@ -503,7 +503,7 @@ Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads 
 |-------|------|
 | `GET /api/admin/integrity/postings` | Liste légère (50 derniers `resale_postings` + lead basique). **Pas** de payloads complets ; `rejectionReason` toujours `null` ici. |
 | `GET /api/admin/integrity/postings/[id]` | Détail : résumé posting + événements Integrity du lead filtrés par `postingId` ; dérive `rejectionReason`, `outcome`, `requestPayload`, `response` depuis les payloads d’événements. |
-| `POST /api/admin/integrity/test` | Soumission test LeadConduit sans enregistrement BDD ; résout le label Realtime vs Storefront ; renvoie `encodedBody` / `encodedFields` pour vérifier `address_1` et les champs DOB (voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)). |
+| `POST /api/admin/integrity/test` | Soumission test LeadConduit sans enregistrement BDD ; toujours `is_test=yes` ; en mock : pas d’HTTP (« Mock mode — no HTTP request sent ») ; en live : POST réel ; résout le label Realtime vs Storefront ; renvoie `encodedBody` / `encodedFields` pour vérifier `address_1` et les champs DOB (voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)). |
 
 **Persistance événements** (`lead_events.payload`) :
 
@@ -635,3 +635,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-04 | `getIntegrationsMode()` : en dev, `app_settings.integrations_mode` prime sur env ; Mode admin PATCH immédiat `/api/admin/settings` |
 | 2026-08-04 | Admin Integrity postings : détail `GET …/postings/[id]` (payloads + timeline événements) ; `requestPayload` / `response` persistés sur événements post + webhook |
 | 2026-08-05 | Phase 2 integrity-prod-alignment : module `lead-routing`, lifecycle flag off par défaut, provenance `live_sold_at` / `live_sale_channel`, Azure ping Realtime IUL, storefront sans ping LC, preflight + preview API |
+| 2026-08-05 | Mock Integrity auto posts : HTTP LeadConduit réel avec `is_test=yes` ; ping Azure skippé en mock ; admin test reste short-circuit mock |

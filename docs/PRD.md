@@ -491,6 +491,8 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 - **Real-time post** : vente immédiate via LeadConduit ; pour les leads **IUL Realtime**, ping Azure `IsAcceptingCampaign` avant le post (parité Boberdoo delivery 281)
 - **Storefront post** : envoi direct LeadConduit (pas de ping gate LC) ; réconciliation via webhook callback
 
+**Mock (dev) :** les posts Integrity automatiques envoient toujours du HTTP vers LeadConduit avec `is_test=yes` ; le ping Azure Realtime IUL est skippé (auto-accept). Les posts live auto ne forcent pas `is_test`. Les boutons admin test incluent toujours `is_test=yes` et, en mock, short-circuitent sans HTTP. Prod toujours live (toggle Mode masqué).
+
 **Déclenchement :** selon fenêtre lifecycle (flag on) ou après délai legacy 24 h (flag off).
 
 **Admin :** liste postings ; détail payloads + événements ; preview routage (`POST /api/admin/lead-routing/preview`) ; preflight Azure (`pnpm run preflight:integrity-azure`).
@@ -864,7 +866,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | Clerk | Auth | Login, rôles | Instance dev |
 | Stripe | Entrée | Top-up wallet | sk_test TECHMA |
 | Resend | Sortie | Emails | Mailtrap / log |
-| IntegrityCONNECT | Sortie | Revente leads | Mock server |
+| IntegrityCONNECT | Sortie | Revente leads | Auto post LC + `is_test=yes` (mock) |
 | CRM agent | Sortie | POST JSON (config partner) | wizard Test + `pnpm run test:outbound` |
 
 **Contrat réponse LeadConduit :** `{ "outcome": "success", "reason": "" }`
@@ -890,7 +892,7 @@ En **dev**, le mode effectif vient de `app_settings.integrations_mode` (dropdown
 
 | Service | Comportement mock |
 |---------|-------------------|
-| Integrity | Accepte tout, log |
+| Integrity | Auto posts : HTTP LeadConduit réel avec `is_test=yes` ; ping Azure Realtime IUL skippé (auto-accept). Admin test : pas d’HTTP |
 | CRM outbound | Pas d’HTTP réel ; événements `crm_outbound` / échecs tracés |
 | Email | Console / Mailtrap |
 | Stripe | Vraies clés test (pas mock) |

@@ -181,7 +181,7 @@ INTEGRITY_PING_FUNCTIONS_KEY=
 INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
 ```
 
-Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override submit URLs when `postUrl` is set. Azure ping credentials are **env-only** — not stored in the database. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. In dev, outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset. Mock logs Integrity without HTTP and does not set `integrity_posted`; production always runs live and ignores the setting.
+Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override submit URLs when `postUrl` is set. Azure ping credentials are **env-only** — not stored in the database. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. In dev, outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset. **Mock mode** (dev only; dropdown hidden in prod — prod always live): automatic Integrity posts (intake / cron / lifecycle / `integrityPostLead`) still send real HTTP to LeadConduit with `is_test=yes` via `applyIntegrityAutoPostTestFlag`; live auto posts do not force `is_test`. Realtime IUL Azure `IsAcceptingCampaign` is skipped in mock (auto-accept) so test leads do not gate or skew production campaign decisions. Admin Integrity test buttons always include `is_test=yes`; in mock they short-circuit with “Mock mode — no HTTP request sent” (admin test route only).
 
 **Preflight Azure** (before enabling live Integrity): `pnpm run preflight:integrity-azure`
 
@@ -193,11 +193,14 @@ IF vendor (integrity_realtime | integrity_storefront) disabled:
 
 IF resaleMode = realtime:
   → IF Realtime IUL lead type → Azure IsAcceptingCampaign ping (env secrets)
+     (mock: skip live Azure call, treat as accepted; LC post still goes with is_test=yes)
   → POST to resolved integrity_realtime postUrl (DB or INTEGRITY_REALTIME_SUBMIT_URL)
+     (mock auto post: same HTTP + is_test=yes)
   → Required fields: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
 
 IF resaleMode = storefront:
   → POST directly to resolved integrity_storefront postUrl (no LC ping)
+     (mock auto post: same HTTP + is_test=yes)
   → Required fields: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
 ```
 
@@ -262,7 +265,7 @@ Authorization: admin session required
 Body: { "flow": "realtime" | "storefront", ... }
 ```
 
-Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`.
+Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. Always includes `is_test=yes`. In integrations **mock** mode this route short-circuits (no HTTP) with “Mock mode — no HTTP request sent”; in **live** it POSTs to LeadConduit. Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`.
 
 ### Manual curl — RealTime flow
 

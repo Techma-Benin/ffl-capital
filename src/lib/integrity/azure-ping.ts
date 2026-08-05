@@ -68,6 +68,9 @@ export async function realtimeIulCampaignPing(
   }
 
   const integrationsMode = await getIntegrationsMode();
+  // Mock auto posts send LeadConduit with is_test=yes. Skip the live Azure
+  // IsAcceptingCampaign call so test leads never gate (or skew) production
+  // campaign acceptance — treat ping as accepted and continue to the test post.
   if (integrationsMode === "mock") {
     logIntegrityAction("ping_mock", redactSecrets({
       leadId,
@@ -75,6 +78,7 @@ export async function realtimeIulCampaignPing(
       mode,
       integrationsMode,
       outcome: "mock",
+      note: "Skipped live Azure ping; mock auto post uses is_test=yes",
     }));
     return { accepted: true, campaignAccepted: true };
   }

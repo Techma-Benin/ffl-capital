@@ -18,6 +18,7 @@ import {
 } from "@/lib/settings/resale-vendor-keys";
 import { integrityRealtimeSkipReason } from "@/lib/constants/us-states";
 import {
+  applyIntegrityAutoPostTestFlag,
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
   encodeIntegrityFormBody,
@@ -135,7 +136,8 @@ type IntegritySubmitResult =
   | { ok: true; externalLeadId?: string; response?: unknown }
   | { ok: false; reason: string; response?: unknown };
 
-async function submitToIntegrity(
+/** Exported for unit tests (mock fetch). */
+export async function submitToIntegrity(
   url: string,
   payload: Record<string, string | undefined>,
   logFields: Record<string, unknown>,
@@ -264,36 +266,14 @@ export async function integrityPostLead(
     storefront: category?.integrityLabelStorefront ?? null,
   };
   const integrationsMode = await getIntegrationsMode();
-
-  if (integrationsMode === "mock") {
-    const payload =
-      resaleMode === ResaleMode.storefront
-        ? buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources)
-        : buildIntegrityLeadPayload(lead, labelSources.realtime, { mode: integrityMode });
-    logIntegrityAction("post_mock", {
-      leadId,
-      vendor: vendorKey,
-      mode: resaleMode,
-      enabled: vendor.enabled,
-      integrationsMode,
-      lead_type_thom: payload.lead_type_thom,
-      urlHost: urlHost(vendor.postUrl),
-      outcome: "mock",
-    });
-    return skipIntegrityPost(leadId, "Integrity post skipped (mock mode)", {
-      vendor: vendorKey,
-      mode: resaleMode,
-      enabled: vendor.enabled,
-      integrationsMode,
-    });
-  }
+  const isTestPost = integrationsMode === "mock";
 
   const submitUrl = vendor.postUrl;
   if (!submitUrl) {
     return skipIntegrityPost(
       leadId,
       `${resaleMode === ResaleMode.realtime ? "INTEGRITY_REALTIME_SUBMIT_URL" : "INTEGRITY_STOREFRONT_SUBMIT_URL"} not configured`,
-      { vendor: vendorKey, mode: resaleMode, enabled: vendor.enabled },
+      { vendor: vendorKey, mode: resaleMode, enabled: vendor.enabled, integrationsMode },
     );
   }
 
@@ -304,6 +284,7 @@ export async function integrityPostLead(
         vendor: vendorKey,
         mode: resaleMode,
         enabled: vendor.enabled,
+        integrationsMode,
       });
     }
   }
@@ -313,6 +294,8 @@ export async function integrityPostLead(
     vendor: vendorKey,
     mode: resaleMode,
     enabled: vendor.enabled,
+    integrationsMode,
+    isTest: isTestPost,
     lead_type_thom:
       resaleMode === ResaleMode.storefront
         ? buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources)
@@ -335,7 +318,7 @@ export async function integrityPostLead(
         },
       });
 
-  const builtPayload =
+  const rawPayload =
     resaleMode === ResaleMode.storefront
       ? {
           ...buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources),
@@ -345,6 +328,7 @@ export async function integrityPostLead(
           ...buildIntegrityLeadPayload(lead, labelSources.realtime, { mode: integrityMode }),
           reference: posting.id,
         };
+  const builtPayload = applyIntegrityAutoPostTestFlag(rawPayload, integrationsMode);
 
   const requiredFieldsCheck = checkRequiredIntegrityFields(lead, integrityMode);
   if (!requiredFieldsCheck.ok) {
@@ -412,6 +396,8 @@ export async function integrityPostLead(
     mode: resaleMode,
     vendor: vendorKey,
     outcome: "posted",
+    isTest: isTestPost,
+    integrationsMode,
     requestPayload: builtPayload,
     response: result.response ?? { externalLeadId: resolvedExternalRef },
   });
@@ -419,7 +405,7 @@ export async function integrityPostLead(
   logIntegrityAction("post_complete", {
     ...logFields,
     postingId: posting.id,
-    outcome: "posted",
+    outcome: isTestPost ? "posted_test" : "posted",
   });
 
   return { posted: true, postingId: posting.id };

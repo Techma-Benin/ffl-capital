@@ -137,6 +137,19 @@ export function encodeIntegrityFormBody(
   return params.toString();
 }
 
+/**
+ * Automatic Integrity posts in integrations mock mode still hit LeadConduit,
+ * but always include is_test=yes. Live auto posts do not force the flag.
+ * Admin test routes add is_test separately (always), independent of this helper.
+ */
+export function applyIntegrityAutoPostTestFlag(
+  payload: Record<string, string | undefined>,
+  integrationsMode: "mock" | "live",
+): Record<string, string | undefined> {
+  if (integrationsMode !== "mock") return payload;
+  return { ...payload, is_test: "yes" };
+}
+
 export function buildRealtimeIulPingPayload(
   lead: Lead,
   leadTypeThom: string,
