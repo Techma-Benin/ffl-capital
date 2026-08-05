@@ -268,7 +268,7 @@ function CategoryModal({
 
         <Field
           label="Integrity Storefront label"
-          hint="Exact string sent as lead_type_thom for Storefront posts. IUL default: Diamond IUL Lead. Leave blank to use the product default (IUL) or fall back to Realtime for other types."
+          hint="Exact string sent as lead_type_thom for Storefront posts. Leave blank to fall back to the Realtime label on the same category. Built-in defaults are applied at deploy via db:sync-integrity-labels."
         >
           <input
             type="text"

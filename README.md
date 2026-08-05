@@ -48,6 +48,7 @@ cp .env.example .env
 # 3. Migrations et seed
 pnpm exec prisma generate
 pnpm exec prisma migrate deploy
+pnpm run db:sync-integrity-labels
 pnpm run seed
 
 # 4. Lancer le serveur dev

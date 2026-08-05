@@ -1,38 +1,6 @@
 import type { Lead } from "@prisma/client";
 import { formatStateForIntegrity } from "@/lib/constants/us-states";
 
-/** Default Realtime `lead_type_thom` when a category has no Realtime label. */
-export const DEFAULT_INTEGRITY_REALTIME_LABEL =
-  "Indexed Universal Life [IUL] Facebook (Realtime Lead)";
-
-/** Client-confirmed Storefront `lead_type_thom` for IUL categories (Boberdoo wizard 273). */
-export const DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL = "Diamond IUL Lead";
-
-const DEFAULT_INTEGRITY_LABEL = DEFAULT_INTEGRITY_REALTIME_LABEL;
-
-/** Confirmed Boberdoo Realtime labels for the admin Integrity test picker. */
-export const KNOWN_REALTIME_LEAD_TYPE_THOM = [
-  DEFAULT_INTEGRITY_REALTIME_LABEL,
-  "Final Expense Facebook (Realtime Lead)",
-  "Mortgage Protection Facebook (Realtime Lead)",
-  "Veteran Final Expense Lead (Realtime Lead)",
-  "Veteran Life Facebook (Realtime Lead)",
-] as const;
-
-/** Confirmed Boberdoo Storefront labels for the admin Integrity test picker. */
-export const KNOWN_STOREFRONT_LEAD_TYPE_THOM = [
-  DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL,
-  "Diamond Mortgage Protection Lead",
-  "Veteran Final Expense Lead",
-  "Final Expense",
-] as const;
-
-/** Storefront label when category `integrity_label_storefront` is blank (by category type). */
-const INTEGRITY_STOREFRONT_DEFAULT_BY_CATEGORY: Record<string, string> = {
-  traditional_iul: DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL,
-  high_intent_iul: DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL,
-};
-
 export type IntegrityResaleMode = "realtime" | "storefront";
 
 export type IntegrityLabelSources = {
@@ -46,60 +14,62 @@ function nonBlank(value: string | null | undefined): string | undefined {
 }
 
 /**
- * Returns the Integrity Connect `lead_type_thom` string for Realtime posts.
- * Uses the category's configured Realtime label when available; falls back to
- * the default IUL label so posts are never silently missing this field.
+ * Realtime `lead_type_thom` from the category row (`integrity_label`).
  */
 export function resolveIntegrityLabel(
   integrityLabel: string | null | undefined,
-): string {
-  return nonBlank(integrityLabel) ?? DEFAULT_INTEGRITY_LABEL;
+): string | undefined {
+  return nonBlank(integrityLabel);
 }
 
 /**
- * Resolves `lead_type_thom` for Realtime or Storefront.
- * Storefront: category Storefront label → product default (IUL: Diamond IUL Lead) → Realtime → default.
+ * Resolves `lead_type_thom` from category labels only.
+ * Storefront: `integrity_label_storefront`, then `integrity_label` on the same row.
+ * Realtime: `integrity_label`.
  */
 export function resolveIntegrityLabelForMode(
   mode: IntegrityResaleMode,
   labels: IntegrityLabelSources,
-  categoryType?: string | null,
-): string {
+): string | undefined {
   if (mode === "storefront") {
     const storefront = nonBlank(labels.storefront);
     if (storefront) return storefront;
-    const typeKey = categoryType?.trim();
-    if (typeKey && INTEGRITY_STOREFRONT_DEFAULT_BY_CATEGORY[typeKey]) {
-      return INTEGRITY_STOREFRONT_DEFAULT_BY_CATEGORY[typeKey];
-    }
   }
   return resolveIntegrityLabel(labels.realtime);
 }
 
+/**
+ * Unique `lead_type_thom` options from lead categories for the admin test UI.
+ */
 export function buildLeadTypeThomOptions(
   mode: IntegrityResaleMode,
   categories: Array<{
     integrityLabel?: string | null;
     integrityLabelStorefront?: string | null;
   }>,
-  currentValue?: string | null,
+  categoryForLead?: {
+    integrityLabel?: string | null;
+    integrityLabelStorefront?: string | null;
+  } | null,
 ): string[] {
-  const known =
-    mode === "storefront"
-      ? KNOWN_STOREFRONT_LEAD_TYPE_THOM
-      : KNOWN_REALTIME_LEAD_TYPE_THOM;
+  const pool =
+    categoryForLead != null
+      ? [categoryForLead]
+      : categories;
 
-  const fromCategories =
-    mode === "storefront"
-      ? categories.map((c) => nonBlank(c.integrityLabelStorefront))
-      : categories.map((c) => nonBlank(c.integrityLabel));
-
-  const values = new Set<string>([...known]);
-  for (const label of fromCategories) {
-    if (label) values.add(label);
+  const values = new Set<string>();
+  for (const category of pool) {
+    if (mode === "storefront") {
+      const storefront = nonBlank(category.integrityLabelStorefront);
+      const realtime = nonBlank(category.integrityLabel);
+      if (storefront) values.add(storefront);
+      if (realtime) values.add(realtime);
+    } else {
+      const realtime = nonBlank(category.integrityLabel);
+      if (realtime) values.add(realtime);
+    }
   }
-  const current = nonBlank(currentValue);
-  if (current) values.add(current);
+
   return [...values].sort((a, b) => a.localeCompare(b));
 }
 
@@ -159,13 +129,15 @@ export function buildIntegrityLeadPayload(
   lead: Lead,
   integrityLabel?: string | null,
 ): Record<string, string | undefined> {
+  const leadTypeThom = resolveIntegrityLabel(integrityLabel);
+
   const payload: Record<string, string | undefined> = {
     first_name: lead.firstName,
     last_name: lead.lastName,
     email: lead.email,
     phone_1: lead.phone,
     state: formatStateForIntegrity(lead.state),
-    lead_type_thom: resolveIntegrityLabel(integrityLabel),
+    lead_type_thom: leadTypeThom,
     dob: formatDobMdY(lead.dob),
     dob_mmddyyyy_thom: formatDobMmDdYyyy(lead.dob),
     vendor_lead_id_thom: lead.externalId ?? lead.id,
@@ -203,7 +175,7 @@ export function buildIntegrityPingPayload(
   labelSources?: IntegrityLabelSources,
 ): Record<string, string | undefined> {
   const lead_type_thom = labelSources
-    ? resolveIntegrityLabelForMode("storefront", labelSources, lead.leadType)
+    ? resolveIntegrityLabelForMode("storefront", labelSources)
     : resolveIntegrityLabel(integrityLabel);
 
   return {
@@ -217,7 +189,7 @@ export function buildIntegrityPingPayload(
 
 /**
  * Builds the full payload for the Integrity Storefront flow.
- * Uses the Storefront label when set; otherwise falls back to Realtime.
+ * Uses the Storefront label when set; otherwise falls back to Realtime on the same category.
  */
 export function buildIntegrityStorefrontPayload(
   lead: Lead,
@@ -227,11 +199,7 @@ export function buildIntegrityStorefrontPayload(
   const sources: IntegrityLabelSources = labelSources ?? {
     realtime: integrityLabel,
   };
-  const resolved = resolveIntegrityLabelForMode(
-    "storefront",
-    sources,
-    lead.leadType,
-  );
+  const resolved = resolveIntegrityLabelForMode("storefront", sources);
 
   return {
     ...buildIntegrityLeadPayload(lead, sources.realtime),

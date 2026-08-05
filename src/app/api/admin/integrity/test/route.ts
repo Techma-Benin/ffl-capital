@@ -5,8 +5,6 @@ import {
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
   encodeIntegrityFormBody,
-  DEFAULT_INTEGRITY_REALTIME_LABEL,
-  DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL,
   resolveIntegrityLabelForMode,
   type IntegrityLabelSources,
 } from "@/lib/integrity/build-payload";
@@ -53,9 +51,10 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
     flow?: string;
     leadId?: string;
+    categoryType?: string;
     manualPayload?: Record<string, string>;
   };
-  const { flow, leadId, manualPayload } = body;
+  const { flow, leadId, categoryType, manualPayload } = body;
 
   if (flow !== "realtime" && flow !== "storefront") {
     return NextResponse.json(
@@ -133,13 +132,26 @@ export async function POST(request: NextRequest) {
       hasHistoryOfCancer: !!lead.historyOfCancer,
       hasMortgageLoanAmount: !!lead.mortgageLoanAmount,
       missingRequiredFields: requiredFieldsCheck.missing,
-      resolvedLeadTypeThom: resolveIntegrityLabelForMode(
-        flow,
-        labelSources,
-        lead.leadType,
-      ),
+      resolvedLeadTypeThom: resolveIntegrityLabelForMode(flow, labelSources),
     };
   } else {
+    const category =
+      categoryType
+        ? await prisma.leadCategory.findUnique({
+            where: { type: categoryType },
+            select: { integrityLabel: true, integrityLabelStorefront: true },
+          })
+        : await prisma.leadCategory.findFirst({
+            where: { type: "traditional_iul" },
+            select: { integrityLabel: true, integrityLabelStorefront: true },
+          });
+
+    const labelSources: IntegrityLabelSources = {
+      realtime: category?.integrityLabel ?? null,
+      storefront: category?.integrityLabelStorefront ?? null,
+    };
+    const leadTypeThom = resolveIntegrityLabelForMode(flow, labelSources) ?? "";
+
     testFields = {
       first_name: "Mike",
       last_name: "Jones",
@@ -148,10 +160,7 @@ export async function POST(request: NextRequest) {
       state: "Texas",
       dob: "6/2/1980",
       dob_mmddyyyy_thom: "06/02/1980",
-      lead_type_thom:
-        flow === "storefront"
-          ? DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL
-          : DEFAULT_INTEGRITY_REALTIME_LABEL,
+      lead_type_thom: leadTypeThom,
       has_iul_thom: "yes",
       primary_goal_thom: "Stability",
       vendor_lead_id_thom: "test-001",
@@ -277,6 +286,7 @@ export async function GET() {
     prisma.leadCategory.findMany({
       select: {
         type: true,
+        label: true,
         integrityLabel: true,
         integrityLabelStorefront: true,
       },

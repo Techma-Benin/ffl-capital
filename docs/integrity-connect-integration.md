@@ -319,7 +319,7 @@ These are the mappings from our internal lead object properties to the LeadCondu
 - `address_1` is **always** included (empty string when the lead has no address); `encodeIntegrityFormBody` keeps blank `address_1` in the form-urlencoded body.
 - When DOB is present, both `dob` (`m/d/Y`) and `dob_mmddyyyy_thom` (`MM/dd/yyyy`) are sent.
 - TrustedForm (`trustedform_cert_url`), Jornaya (`universal_leadid`), `has_iul_thom`, and `primary_goal_thom` are included when present.
-- `lead_type_thom` comes from the lead category: Realtime uses `integrity_label`; Storefront uses `integrity_label_storefront`, then the IUL product default (`Diamond IUL Lead` for `traditional_iul` / `high_intent_iul`), then Realtime, then the default IUL Realtime string (`resolveIntegrityLabelForMode`).
+- `lead_type_thom` comes from the lead category row only: Realtime uses `integrity_label`; Storefront uses `integrity_label_storefront`, then `integrity_label` on the same category (`resolveIntegrityLabelForMode`). Built-in defaults are seeded at deploy — see `pnpm db:sync-integrity-labels` and `integrity-label-defaults.ts`.
 - Mortgage Protection–specific fields (`beneficiary_thom`, `history_of_cancer_thom`, `mortgage_loan_amount_thom`) are included only for `mortgage_protection` leads, and omitted when missing.
 - Ping payloads (`buildIntegrityPingPayload`) include only `first_name`, `last_name`, `state`, `lead_type_thom`, and `vendor_lead_id_thom`.
 

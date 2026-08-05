@@ -9,7 +9,6 @@ import {
 } from "@/lib/constants/us-states";
 import {
   buildLeadTypeThomOptions,
-  DEFAULT_INTEGRITY_REALTIME_LABEL,
   resolveIntegrityLabelForMode,
 } from "@/lib/integrity/build-payload";
 import { IntegrityPostingsTable, type PostingRow } from "@/components/admin/integrity-postings-table";
@@ -38,6 +37,7 @@ interface LeadOption {
 
 interface CategoryOption {
   type: string;
+  label?: string;
   integrityLabel: string | null;
   integrityLabelStorefront: string | null;
 }
@@ -75,7 +75,6 @@ const HARDCODED_DEFAULTS: ModalFields = {
   address_1: "",
   dob: "6/2/1980",
   dob_mmddyyyy_thom: "06/02/1980",
-  lead_type_thom: DEFAULT_INTEGRITY_REALTIME_LABEL,
   trustedform_cert_url: "https://cert.trustedform.com/a1028cbb41b876744fa752eec276bec0e4c48b33",
   has_iul_thom: "yes",
   primary_goal_thom: "Stability",
@@ -124,7 +123,8 @@ export function IntegrityTestPanel({
   const [vendors, setVendors] = useState<VendorsInfo | null>(null);
   const [postings, setPostings] = useState<PostingRow[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string>("");
-  const [modal, setModal] = useState<{ open: boolean; flow: Flow; fields: ModalFields } | null>(null);
+  const [testCategoryType, setTestCategoryType] = useState<string>("");
+  const [modal, setModal] = useState<{ open: boolean; flow: Flow; fields: ModalFields; category: CategoryOption | null } | null>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
 
@@ -135,6 +135,13 @@ export function IntegrityTestPanel({
         setLeads(d.leads ?? []);
         setCategories(d.categories ?? []);
         setVendors(d.vendors ?? null);
+        const cats = d.categories ?? [];
+        if (cats.length > 0) {
+          const preferred = cats.find(
+            (c: CategoryOption) => c.type === "traditional_iul",
+          );
+          setTestCategoryType(preferred?.type ?? cats[0].type);
+        }
       });
     fetch("/api/admin/integrity/postings")
       .then((r) => r.json())
@@ -146,19 +153,17 @@ export function IntegrityTestPanel({
   function openModal(flow: Flow) {
     setResult(null);
     let fields: ModalFields;
+    let category: CategoryOption | null = null;
 
     if (selectedLeadId) {
       const lead = leads.find((l) => l.id === selectedLeadId);
       if (!lead) return;
-      const cat = categories.find((c) => c.type === (lead.leadType ?? ""));
-      const integrityLabel = resolveIntegrityLabelForMode(
-        flow,
-        {
-          realtime: cat?.integrityLabel,
-          storefront: cat?.integrityLabelStorefront,
-        },
-        lead.leadType ?? cat?.type,
-      );
+      category = categories.find((c) => c.type === (lead.leadType ?? "")) ?? null;
+      const integrityLabel =
+        resolveIntegrityLabelForMode(flow, {
+          realtime: category?.integrityLabel,
+          storefront: category?.integrityLabelStorefront,
+        }) ?? "";
       fields = {
         first_name: lead.firstName,
         last_name: lead.lastName,
@@ -178,20 +183,19 @@ export function IntegrityTestPanel({
         vendor_lead_id_thom: lead.externalId ?? lead.id,
       };
     } else {
-      fields = { ...HARDCODED_DEFAULTS };
-      if (flow === "storefront") {
-        fields.lead_type_thom = resolveIntegrityLabelForMode(
-          "storefront",
-          {
-            realtime: HARDCODED_DEFAULTS.lead_type_thom,
-            storefront: null,
-          },
-          "traditional_iul",
-        );
-      }
+      category = categories.find((c) => c.type === testCategoryType) ?? null;
+      const integrityLabel =
+        resolveIntegrityLabelForMode(flow, {
+          realtime: category?.integrityLabel,
+          storefront: category?.integrityLabelStorefront,
+        }) ?? "";
+      fields = {
+        ...HARDCODED_DEFAULTS,
+        lead_type_thom: integrityLabel,
+      };
     }
 
-    setModal({ open: true, flow, fields });
+    setModal({ open: true, flow, fields, category });
   }
 
   function setField(key: string, value: string) {
@@ -205,7 +209,11 @@ export function IntegrityTestPanel({
       const res = await fetch("/api/admin/integrity/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ flow: modal.flow, manualPayload: modal.fields }),
+        body: JSON.stringify({
+          flow: modal.flow,
+          categoryType: modal.category?.type ?? testCategoryType,
+          manualPayload: modal.fields,
+        }),
       });
       const data = await res.json();
       setResult({ flow: modal.flow, httpStatus: res.status, ...data });
@@ -348,6 +356,21 @@ export function IntegrityTestPanel({
                   </option>
                 ))}
               </select>
+              {!selectedLeadId && categories.length > 0 && (
+                <select
+                  value={testCategoryType}
+                  onChange={(e) => setTestCategoryType(e.target.value)}
+                  className="form-select"
+                  style={{ minWidth: 200 }}
+                  title="Lead category used for lead_type_thom when no lead is selected"
+                >
+                  {categories.map((c) => (
+                    <option key={c.type} value={c.type}>
+                      {c.label ?? c.type}
+                    </option>
+                  ))}
+                </select>
+              )}
               <button
                 type="button"
                 onClick={() => openModal("realtime")}
@@ -546,16 +569,21 @@ export function IntegrityTestPanel({
 
               <div className="space-y-1">
                 <label className="form-label">lead_type_thom</label>
+                {modal.category && (
+                  <p className="text-xs text-slate-500 mb-1">
+                    From category <span className="font-medium">{modal.category.type}</span>
+                  </p>
+                )}
                 <select
                   className="form-select text-sm"
                   value={modal.fields.lead_type_thom ?? ""}
                   onChange={(e) => setField("lead_type_thom", e.target.value)}
                 >
-                  <option value="">— select —</option>
+                  <option value="">— not configured on category —</option>
                   {buildLeadTypeThomOptions(
                     modal.flow,
                     categories,
-                    modal.fields.lead_type_thom,
+                    modal.category,
                   ).map((t) => (
                     <option key={t} value={t}>
                       {t}

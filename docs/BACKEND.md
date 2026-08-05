@@ -301,7 +301,7 @@ UI : `/admin/settings` → onglet **Lead categories** (`LeadCategoryManager`). M
 | PATCH | `/api/admin/lead-categories/[id]` | `label`, `criteria`, `defaultPrice`, `enabled`, `integrityLabel`, `integrityLabelStorefront` ; reclassification si `criteria` ou `enabled` change |
 | DELETE | `/api/admin/lead-categories/[id]` | Refusé si des leads référencent le `type` ; sinon reclassification si la catégorie était active |
 
-Schémas Zod : `categoryCreateSchema`, `categoryUpdateSchema`. Critères : au moins un par catégorie ; `field` unique par catégorie. `integrityLabel` = label Realtime (`lead_type_thom`) ; `integrityLabelStorefront` = label Storefront (nullable ; blank → Realtime puis défaut IUL). UI Settings : deux champs avec texte d’aide routage.
+Schémas Zod : `categoryCreateSchema`, `categoryUpdateSchema`. Critères : au moins un par catégorie ; `field` unique par catégorie. `integrityLabel` = label Realtime (`lead_type_thom`) ; `integrityLabelStorefront` = label Storefront (nullable ; blank → Realtime sur la même catégorie). Valeurs par défaut des types built-in : `src/lib/lead-categories/integrity-label-defaults.ts` + migration / `pnpm db:sync-integrity-labels` (ne remplace pas les valeurs admin non vides). UI Settings : deux champs avec texte d’aide routage.
 
 ### Reclassification après changement des règles
 
