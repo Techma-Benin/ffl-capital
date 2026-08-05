@@ -9,14 +9,21 @@ import { syncIntegrityLabelDefaults } from "../src/lib/lead-categories/integrity
 
 const prisma = new PrismaClient();
 
-const result = await syncIntegrityLabelDefaults(prisma);
+async function main() {
+  const result = await syncIntegrityLabelDefaults(prisma);
 
-if (result.updated.length === 0) {
-  console.log("Integrity labels: all built-in categories already have values.");
-} else {
-  console.log(
-    `Integrity labels: filled missing values for ${result.updated.join(", ")}`,
-  );
+  if (result.updated.length === 0) {
+    console.log("Integrity labels: all built-in categories already have values.");
+  } else {
+    console.log(
+      `Integrity labels: filled missing values for ${result.updated.join(", ")}`,
+    );
+  }
 }
 
-await prisma.$disconnect();
+main()
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
