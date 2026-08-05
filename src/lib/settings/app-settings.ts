@@ -57,20 +57,27 @@ export async function isAdminApprovalRequired(): Promise<boolean> {
   return getSetting(APP_SETTING_KEYS.adminApprovalRequired, true);
 }
 
-export async function getIntegrationsMode(): Promise<"mock" | "live"> {
-  if (!isDevEnvironment()) return "live";
+export function resolveIntegrationsMode(
+  fromDb: unknown,
+  envVal: string | undefined,
+  isDev: boolean,
+): "mock" | "live" {
+  if (fromDb === "live" || fromDb === "mock") return fromDb;
+  if (envVal === "live" || envVal === "mock") return envVal;
+  return isDev ? "mock" : "live";
+}
 
+export async function getIntegrationsMode(): Promise<"mock" | "live"> {
   // Admin Mode control (app_settings) wins so Live/Mock in the UI actually
   // changes outbound behavior. Env is only a fallback when no setting exists.
   const row = await prisma.appSetting.findUnique({
     where: { key: APP_SETTING_KEYS.integrationsMode },
   });
-  const fromDb = row?.value;
-  if (fromDb === "live" || fromDb === "mock") return fromDb;
-
-  const envVal = process.env.INTEGRATIONS_MODE;
-  if (envVal === "live" || envVal === "mock") return envVal;
-  return "mock";
+  return resolveIntegrationsMode(
+    row?.value,
+    process.env.INTEGRATIONS_MODE,
+    isDevEnvironment(),
+  );
 }
 
 function resolveVendorPostUrl(

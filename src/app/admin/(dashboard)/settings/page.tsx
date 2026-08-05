@@ -152,7 +152,6 @@ export default async function AdminSettingsPage({
         {showSettingsForm && (
           <AdminSettingsForm
             tab={activeTab as "general" | "lead-categories" | "integrations"}
-            isDev={process.env.NODE_ENV !== "production"}
           />
         )}
 

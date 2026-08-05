@@ -35,7 +35,7 @@ Spécification produit et technique pour la livraison CRM optionnelle côté par
    - `POST` vers `endpointUrl` (auth + règle succès).
    - Succès → événement lead `crm_outbound` ; échec → événement `delivery_failed` + **email d’échec** (sans JSON lead).
 
-Mode `integrations_mode=mock` (dev ; `app_settings` prime sur env `INTEGRATIONS_MODE`) : pas d’appels HTTP réels ; trace événements comme aujourd’hui. Prod toujours live.
+Mode `integrations_mode=mock` (`app_settings` prime sur env `INTEGRATIONS_MODE`) : pas d’appels HTTP réels ; trace événements comme aujourd’hui.
 
 ---
 
@@ -87,7 +87,7 @@ Liste fermée alignée sur `buildLeadDeliveryPayload` (`src/lib/delivery/lead-pa
 | Secrets CRM | En clair en BDD — pas de Replit Secrets dédiés Ringy/webhook |
 | Env livraison | Inchangées : `RESEND_API_KEY`, `FROM_EMAIL`, `DATABASE_URL`, `DIRECT_URL` (Repl : souvent `DIRECT_URL=$DATABASE_URL`) |
 | HTTP sortant | `fetch` depuis le serveur Next.js (comme Integrity) ; bouton **Test** (carte Lead delivery) appelle l’API publique du Repl |
-| Post-deploy | Partners avec ancien webhook admin **reconfigurent** le wizard ; en prod le mode est toujours live ; en staging/dev, Mode admin ou fallback `INTEGRATIONS_MODE=live` si pas de valeur DB |
+| Post-deploy | Partners avec ancien webhook admin **reconfigurent** le wizard ; Mode admin ou fallback env `INTEGRATIONS_MODE` ; défaut `mock` en dev, `live` en prod si aucune valeur |
 
 **Risques existants (hors scope CRM)** : URLs redirect Clerk / domaine Repl ; cron externe.
 

@@ -110,11 +110,9 @@ const IconShield = () => (
 /* ─── component ───────────────────────────────────────────────────────── */
 
 export function IntegrityTestPanel({
-  isDev = process.env.NODE_ENV !== "production",
   mode,
   onModeChange,
 }: {
-  isDev?: boolean;
   mode: "mock" | "live";
   onModeChange: (v: "mock" | "live") => void;
 }) {
@@ -232,11 +230,10 @@ export function IntegrityTestPanel({
   const isSuccess = outcome === "success";
   const selectedLead = leads.find((l) => l.id === selectedLeadId) ?? null;
 
-  const modeHint = isDev
-    ? mode === "live"
-      ? "Live mode is saved immediately and sends real requests to email, CRM, and Integrity (when vendors are enabled)."
-      : "Mock mode is saved immediately and logs partner email/CRM only. Integrity tests also log without HTTP."
-    : "Production always runs live for partner delivery. Integrity posting is controlled by the resale vendor toggles above.";
+  const modeHint =
+    mode === "live"
+      ? "Live mode is saved immediately. Partner email/CRM and Integrity auto posts send real requests (automatic posts do not include is_test)."
+      : "Mock mode is saved immediately. Partner email/CRM are logged only. Integrity auto posts still hit LeadConduit with is_test=yes; Azure ping is skipped. Connection tests below log without HTTP.";
 
   const realtimeVendor = vendors?.realtime;
   const storefrontVendor = vendors?.storefront;
@@ -276,30 +273,26 @@ export function IntegrityTestPanel({
             Integrity Connect
           </span>
           <span style={{ flex: 1 }} />
-          {isDev && (
-            <>
-              <label
-                style={{
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: "#8b8a99",
-                  margin: "0 8px 0 0",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Mode
-              </label>
-              <select
-                value={mode}
-                onChange={(e) => onModeChange(e.target.value as "mock" | "live")}
-                className="form-select"
-                style={{ width: 230, height: 34, fontSize: 13, borderRadius: 9 }}
-              >
-                <option value="mock">Mock (log only)</option>
-                <option value="live">Live (email, CRM, Integrity)</option>
-              </select>
-            </>
-          )}
+          <label
+            style={{
+              fontSize: 14,
+              fontWeight: 800,
+              color: "#8b8a99",
+              margin: "0 8px 0 0",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Mode
+          </label>
+          <select
+            value={mode}
+            onChange={(e) => onModeChange(e.target.value as "mock" | "live")}
+            className="form-select"
+            style={{ width: 230, height: 34, fontSize: 13, borderRadius: 9 }}
+          >
+            <option value="mock">Mock (test leads, log CRM/email)</option>
+            <option value="live">Live (real delivery)</option>
+          </select>
         </div>
 
         {/* Card body */}

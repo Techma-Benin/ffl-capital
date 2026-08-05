@@ -415,7 +415,7 @@ lead_categories                   -- classification produit (admin)
 | **IntegrityCONNECT** | Auto posts mock → LeadConduit avec `is_test=yes` (ping Azure skippé) ; admin test short-circuit mock | Doc API + credentials Integrity (fichier R client) |
 | **LeadConduit réponse** | Retourner `{ "outcome": "success" }` sur notre endpoint | Idem |
 
-**Pattern recommandé :** mode sorties `mock|live` via admin Settings → Integrations (clé `app_settings.integrations_mode`, persistée dès le changement de Mode). En mock, CRM et la plupart des sorties loggent localement ; **Integrity auto posts** envoient du HTTP LeadConduit avec `is_test=yes` (ping Azure skippé). En live, vraies APIs. Env `INTEGRATIONS_MODE` = fallback dev si aucune valeur DB ; **prod toujours live**.
+**Pattern recommandé :** mode sorties `mock|live` via admin Settings → Integrations (clé `app_settings.integrations_mode`, persistée dès le changement de Mode, prod inclus). En mock, CRM et la plupart des sorties loggent localement ; **Integrity auto posts** envoient du HTTP LeadConduit avec `is_test=yes` (ping Azure skippé). En live, vraies APIs. Résolution : `app_settings.integrations_mode` prime, puis env `INTEGRATIONS_MODE`, puis défaut (`mock` en dev, `live` en prod).
 
 ### Stripe (wallet prépayé)
 
@@ -541,7 +541,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 - [x] **Prisma** (pas Drizzle)
 - [x] **Supabase** dev (pas Docker)
 - [x] **Next.js** full-stack
-- [x] Mode intégrations `mock|live` (`app_settings.integrations_mode` prime ; env `INTEGRATIONS_MODE` fallback dev)
+- [x] Mode intégrations `mock|live` (`app_settings.integrations_mode` prime ; env `INTEGRATIONS_MODE` fallback ; défaut mock dev / live prod)
 - [x] Approbation admin après signup — `ADMIN_APPROVAL_REQUIRED`
 
 ### Juillet 2026 — backend core

@@ -380,10 +380,8 @@ const IconTrash = () => (
 
 export function AdminSettingsForm({
   tab,
-  isDev = process.env.NODE_ENV !== "production",
 }: {
   tab: FormTab;
-  isDev?: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -462,7 +460,6 @@ export function AdminSettingsForm({
   async function handleIntegrationsModeChange(next: "mock" | "live") {
     const prev = form.integrationsMode;
     setForm((f) => ({ ...f, integrationsMode: next }));
-    if (!isDev) return;
     try {
       const res = await fetch("/api/admin/settings", {
         method: "PATCH",
@@ -500,9 +497,7 @@ export function AdminSettingsForm({
         lifecycleStorefrontCutoffHours: form.lifecycleStorefrontCutoffHours,
         lifecycleMidWindowPrimary: form.lifecycleMidWindowPrimary,
       };
-      if (isDev) {
-        payload.integrationsMode = form.integrationsMode;
-      }
+      payload.integrationsMode = form.integrationsMode;
       const res = await fetch("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1068,7 +1063,6 @@ export function AdminSettingsForm({
       {/* Integrity Connect + Recent postings — outside the form, integrations tab only */}
       {tab === "integrations" && (
         <IntegrityTestPanel
-          isDev={isDev}
           mode={form.integrationsMode}
           onModeChange={handleIntegrationsModeChange}
         />
