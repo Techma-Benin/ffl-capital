@@ -5,7 +5,10 @@ import type { Lead } from "@prisma/client";
 import {
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
+  buildLeadTypeThomOptions,
   encodeIntegrityFormBody,
+  DEFAULT_INTEGRITY_REALTIME_LABEL,
+  DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL,
   resolveIntegrityLabel,
   resolveIntegrityLabelForMode,
 } from "../../src/lib/integrity/build-payload";
@@ -71,24 +74,34 @@ describe("Integrity Realtime vs Storefront label resolution", () => {
     );
     assert.equal(
       resolveIntegrityLabel(null),
-      "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
+      DEFAULT_INTEGRITY_REALTIME_LABEL,
     );
   });
 
-  test("blank Storefront label falls back to Realtime label", () => {
+  test("blank Storefront label falls back to Diamond IUL Lead for IUL categories", () => {
     assert.equal(
       resolveIntegrityLabelForMode("storefront", {
-        realtime: "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
+        realtime: DEFAULT_INTEGRITY_REALTIME_LABEL,
         storefront: null,
-      }),
-      "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
+      }, "traditional_iul"),
+      DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL,
     );
     assert.equal(
       resolveIntegrityLabelForMode("storefront", {
-        realtime: "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
+        realtime: DEFAULT_INTEGRITY_REALTIME_LABEL,
         storefront: "   ",
-      }),
-      "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
+      }, "high_intent_iul"),
+      DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL,
+    );
+  });
+
+  test("blank Storefront label falls back to Realtime for non-IUL categories", () => {
+    assert.equal(
+      resolveIntegrityLabelForMode("storefront", {
+        realtime: "Mortgage Protection Facebook (Realtime Lead)",
+        storefront: null,
+      }, "mortgage_protection"),
+      "Mortgage Protection Facebook (Realtime Lead)",
     );
   });
 
@@ -112,6 +125,19 @@ describe("Integrity Realtime vs Storefront label resolution", () => {
     );
   });
 
+  test("buildLeadTypeThomOptions includes category Storefront labels and current value", () => {
+    const options = buildLeadTypeThomOptions("storefront", [
+      {
+        integrityLabel: "Realtime Only",
+        integrityLabelStorefront: "Custom Storefront Label",
+      },
+    ], "Custom Storefront Label");
+
+    assert.ok(options.includes(DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL));
+    assert.ok(options.includes("Custom Storefront Label"));
+    assert.ok(!options.includes("Realtime Only"));
+  });
+
   test("buildIntegrityStorefrontPayload applies Storefront label", () => {
     const payload = buildIntegrityStorefrontPayload(minimalLead(), "Realtime Label", {
       realtime: "Realtime Label",
@@ -124,11 +150,12 @@ describe("Integrity Realtime vs Storefront label resolution", () => {
 describe("Integrity Storefront IUL payload parity", () => {
   test("includes blank address_1, both DOB fields, TrustedForm, Jornaya, IUL, goal", () => {
     const payload = buildIntegrityStorefrontPayload(
-      minimalLead({ address: null }),
+      minimalLead({ address: null, leadType: "traditional_iul" }),
       null,
       { realtime: null, storefront: null },
     );
 
+    assert.equal(payload.lead_type_thom, DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL);
     assert.equal(payload.address_1, "");
     assert.equal(payload.dob, "6/2/1980");
     assert.equal(payload.dob_mmddyyyy_thom, "06/02/1980");
@@ -152,16 +179,17 @@ describe("Integrity Storefront IUL payload parity", () => {
   });
 
   test("encoded body keeps DOB fields and lead_type_thom", () => {
-    const payload = buildIntegrityStorefrontPayload(minimalLead(), null, {
-      realtime: "Realtime Label",
-      storefront: "",
-    });
+    const payload = buildIntegrityStorefrontPayload(
+      minimalLead({ leadType: "traditional_iul" }),
+      "Realtime Label",
+      { realtime: "Realtime Label", storefront: "" },
+    );
     const encoded = encodeIntegrityFormBody({ ...payload, is_test: "yes" });
     const fields = Object.fromEntries(new URLSearchParams(encoded).entries());
 
     assert.equal(fields.dob, "6/2/1980");
     assert.equal(fields.dob_mmddyyyy_thom, "06/02/1980");
-    assert.equal(fields.lead_type_thom, "Realtime Label");
+    assert.equal(fields.lead_type_thom, DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL);
     assert.equal(fields.is_test, "yes");
     assert.equal(fields.address_1, "");
   });

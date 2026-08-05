@@ -5,6 +5,8 @@ import {
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
   encodeIntegrityFormBody,
+  DEFAULT_INTEGRITY_REALTIME_LABEL,
+  DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL,
   resolveIntegrityLabelForMode,
   type IntegrityLabelSources,
 } from "@/lib/integrity/build-payload";
@@ -131,7 +133,11 @@ export async function POST(request: NextRequest) {
       hasHistoryOfCancer: !!lead.historyOfCancer,
       hasMortgageLoanAmount: !!lead.mortgageLoanAmount,
       missingRequiredFields: requiredFieldsCheck.missing,
-      resolvedLeadTypeThom: resolveIntegrityLabelForMode(flow, labelSources),
+      resolvedLeadTypeThom: resolveIntegrityLabelForMode(
+        flow,
+        labelSources,
+        lead.leadType,
+      ),
     };
   } else {
     testFields = {
@@ -142,7 +148,10 @@ export async function POST(request: NextRequest) {
       state: "Texas",
       dob: "6/2/1980",
       dob_mmddyyyy_thom: "06/02/1980",
-      lead_type_thom: "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
+      lead_type_thom:
+        flow === "storefront"
+          ? DEFAULT_INTEGRITY_STOREFRONT_IUL_LABEL
+          : DEFAULT_INTEGRITY_REALTIME_LABEL,
       has_iul_thom: "yes",
       primary_goal_thom: "Stability",
       vendor_lead_id_thom: "test-001",

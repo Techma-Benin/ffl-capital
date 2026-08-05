@@ -7,7 +7,11 @@ import {
   INTEGRITY_REALTIME_ELIGIBLE_STATE_CODES,
   US_STATE_NAMES,
 } from "@/lib/constants/us-states";
-import { resolveIntegrityLabelForMode } from "@/lib/integrity/build-payload";
+import {
+  buildLeadTypeThomOptions,
+  DEFAULT_INTEGRITY_REALTIME_LABEL,
+  resolveIntegrityLabelForMode,
+} from "@/lib/integrity/build-payload";
 import { IntegrityPostingsTable, type PostingRow } from "@/components/admin/integrity-postings-table";
 
 type Flow = "realtime" | "storefront";
@@ -62,18 +66,6 @@ interface TestResult {
 
 type ModalFields = Record<string, string>;
 
-const LEAD_TYPE_OPTIONS = [
-  "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
-  "Final Expense Facebook (Realtime Lead)",
-  "Mortgage Protection Facebook (Realtime Lead)",
-  "Veteran Final Expense Lead (Realtime Lead)",
-  "Veteran Life Facebook (Realtime Lead)",
-];
-
-const INTEGRITY_REALTIME_STATES_LABEL = INTEGRITY_REALTIME_ELIGIBLE_STATE_CODES.map(
-  (code) => US_STATE_NAMES[code],
-).join(", ");
-
 const HARDCODED_DEFAULTS: ModalFields = {
   first_name: "Mike",
   last_name: "Jones",
@@ -83,12 +75,16 @@ const HARDCODED_DEFAULTS: ModalFields = {
   address_1: "",
   dob: "6/2/1980",
   dob_mmddyyyy_thom: "06/02/1980",
-  lead_type_thom: "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
+  lead_type_thom: DEFAULT_INTEGRITY_REALTIME_LABEL,
   trustedform_cert_url: "https://cert.trustedform.com/a1028cbb41b876744fa752eec276bec0e4c48b33",
   has_iul_thom: "yes",
   primary_goal_thom: "Stability",
   vendor_lead_id_thom: "test-001",
 };
+
+const INTEGRITY_REALTIME_STATES_LABEL = INTEGRITY_REALTIME_ELIGIBLE_STATE_CODES.map(
+  (code) => US_STATE_NAMES[code],
+).join(", ");
 
 function formatDobMmDdYyyy(dob: string | null): string {
   if (!dob) return "";
@@ -155,10 +151,14 @@ export function IntegrityTestPanel({
       const lead = leads.find((l) => l.id === selectedLeadId);
       if (!lead) return;
       const cat = categories.find((c) => c.type === (lead.leadType ?? ""));
-      const integrityLabel = resolveIntegrityLabelForMode(flow, {
-        realtime: cat?.integrityLabel,
-        storefront: cat?.integrityLabelStorefront,
-      });
+      const integrityLabel = resolveIntegrityLabelForMode(
+        flow,
+        {
+          realtime: cat?.integrityLabel,
+          storefront: cat?.integrityLabelStorefront,
+        },
+        lead.leadType ?? cat?.type,
+      );
       fields = {
         first_name: lead.firstName,
         last_name: lead.lastName,
@@ -180,10 +180,14 @@ export function IntegrityTestPanel({
     } else {
       fields = { ...HARDCODED_DEFAULTS };
       if (flow === "storefront") {
-        fields.lead_type_thom = resolveIntegrityLabelForMode("storefront", {
-          realtime: HARDCODED_DEFAULTS.lead_type_thom,
-          storefront: null,
-        });
+        fields.lead_type_thom = resolveIntegrityLabelForMode(
+          "storefront",
+          {
+            realtime: HARDCODED_DEFAULTS.lead_type_thom,
+            storefront: null,
+          },
+          "traditional_iul",
+        );
       }
     }
 
@@ -548,7 +552,11 @@ export function IntegrityTestPanel({
                   onChange={(e) => setField("lead_type_thom", e.target.value)}
                 >
                   <option value="">— select —</option>
-                  {LEAD_TYPE_OPTIONS.map((t) => (
+                  {buildLeadTypeThomOptions(
+                    modal.flow,
+                    categories,
+                    modal.fields.lead_type_thom,
+                  ).map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>

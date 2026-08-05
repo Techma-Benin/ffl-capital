@@ -58,7 +58,7 @@ Ping body (inferred from 287 PHP + 281 mappings): `state`, `postal_code`, `lead_
 | ID | Name | Assigned | Ping/Post | Post flow | Ping URL | `lead_type_thom` |
 |----|------|----------|-----------|-----------|----------|------------------|
 | **281** | Integrity - Ping/Post - Real Time IUL | Yes | **Yes** | Realtime LC | **PROD** `ilc-functions-prod…` | `Indexed Universal Life [IUL] Facebook (Realtime Lead)` |
-| **273** | Integrity - DirectPost - IUL | Yes | No | Storefront LC | — | *(same pattern as other storefront; confirm hardcoded on re-open if needed — mappings match storefront field set)* |
+| **273** | Integrity - DirectPost - IUL | Yes | No | Storefront LC | — | `Diamond IUL Lead` (client-confirmed) |
 | 289 | Integrity - DirectPost - Real Time IUL | No | No | Realtime LC | DEV ping leftover in form | `Indexed Universal Life [IUL] Facebook (Realtime Lead)` |
 | 287 | Integrity - DirectPost - Real Time IUL NA | No | Yes* | Realtime LC | Ping done in Hard Code PHP → DEV | `Indexed Universal Life [IUL] Facebook (Realtime Lead)` |
 
@@ -131,9 +131,15 @@ Ping body (inferred from 287 PHP + 281 mappings): `state`, `postal_code`, `lead_
 
 **Also:** `jsonEncode=Yes`; PHP sets `skipJsonEncodingForArray = ['lead_type_thom']`.
 
-### Storefront IUL (273) — confirmed earlier same session
+### Storefront IUL (273) — client-confirmed
 
-Same LeadConduit storefront URL; DirectPost (`isPingPost=No`); response `outcome=success`; price path `price`. Core person/compliance mappings match 281 (`first_name`, `address_1`, `trustedform_cert_url`, `has_iul_thom`, `primary_goal_thom`, `vendor_lead_id_thom`, etc.).
+Same LeadConduit storefront URL; DirectPost (`isPingPost=No`); response `outcome=success`; price path `price`.
+
+| Boberdoo / LC param | Value |
+|---------------------|-------|
+| `lead_type_thom` | **`Diamond IUL Lead`** (client-confirmed; not the Realtime string) |
+
+Core person/compliance mappings match 281 (`first_name`, `address_1`, `trustedform_cert_url`, `has_iul_thom`, `primary_goal_thom`, `vendor_lead_id_thom`, etc.).
 
 ---
 
