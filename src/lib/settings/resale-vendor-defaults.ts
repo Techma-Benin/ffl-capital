@@ -2,6 +2,7 @@ export interface ResaleVendorConfig {
   pingUrl?: string;
   postUrl?: string;
   enabled?: boolean;
+  realtimePingEnabled?: boolean;
 }
 
 import {
@@ -15,6 +16,7 @@ export const DEFAULT_RESALE_VENDOR_CONFIGS: Record<string, ResaleVendorConfig> =
     enabled: true,
     pingUrl: "",
     postUrl: "",
+    realtimePingEnabled: true,
   },
   [INTEGRITY_STOREFRONT_VENDOR_KEY]: {
     enabled: true,

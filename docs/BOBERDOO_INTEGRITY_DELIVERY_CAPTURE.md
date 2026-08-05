@@ -17,6 +17,10 @@
 | Hard Code PHP (Integrity API headers) | **Captured** (281 / 289 / 287) |
 | MP / Veteran / Final Expense | **Captured** |
 
+### Platform alignment (FFL app, Aug 2026)
+
+Our implementation mirrors delivery **281** for Realtime IUL: Azure `IsAcceptingCampaign` ping (env-only `VendorId` + `x-functions-key`) before LeadConduit Realtime post. Storefront (delivery **273**) is **direct post** to the LeadConduit storefront URL — no LeadConduit ping gate. Lifecycle age windows ship behind admin flag `lifecycle_routing_enabled` (default off). See [BACKEND.md](BACKEND.md) § Lead routing and `docs/client_email_lead_routing_2026-08-03.txt`.
+
 ---
 
 ## Architecture (how Boberdoo talks to Integrity)

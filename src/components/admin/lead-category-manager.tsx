@@ -127,6 +127,10 @@ function CategoryModal({
   const [pending, setPending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  useEffect(() => {
+    setForm(initial);
+  }, [initial]);
+
   function set(patch: Partial<CategoryFormData>) {
     setForm((f) => ({ ...f, ...patch }));
   }

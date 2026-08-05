@@ -9,6 +9,11 @@ import {
   INTEGRITY_REALTIME_VENDOR_KEY,
   INTEGRITY_STOREFRONT_VENDOR_KEY,
 } from "@/lib/settings/resale-vendor-keys";
+import { DEFAULT_LIFECYCLE_SETTINGS } from "@/lib/lead-routing/policy";
+import type {
+  LifecycleSettings,
+  MidWindowPrimary,
+} from "@/lib/lead-routing/types";
 
 export type { ResaleVendorConfig } from "@/lib/settings/resale-vendor-defaults";
 export { DEFAULT_RESALE_VENDOR_CONFIGS } from "@/lib/settings/resale-vendor-defaults";
@@ -26,6 +31,10 @@ export const APP_SETTING_KEYS = {
   integrityPostDelayHours: "integrity_post_delay_hours",
   integrityReprocessEnabled: "integrity_reprocess_enabled",
   reprocessPartnerPickerEnabled: "reprocess_partner_picker_enabled",
+  lifecycleRoutingEnabled: "lifecycle_routing_enabled",
+  lifecycleRealtimeCutoffHours: "lifecycle_realtime_cutoff_hours",
+  lifecycleStorefrontCutoffHours: "lifecycle_storefront_cutoff_hours",
+  lifecycleMidWindowPrimary: "lifecycle_mid_window_primary",
 } as const;
 
 async function getSetting<T>(key: string, fallback: T): Promise<T> {
@@ -174,6 +183,47 @@ export async function isReprocessPartnerPickerEnabled(): Promise<boolean> {
   return getSetting(APP_SETTING_KEYS.reprocessPartnerPickerEnabled, false);
 }
 
+export async function isLifecycleRoutingEnabled(): Promise<boolean> {
+  return getSetting(APP_SETTING_KEYS.lifecycleRoutingEnabled, false);
+}
+
+export async function getLifecycleRealtimeCutoffHours(): Promise<number> {
+  return getSetting(APP_SETTING_KEYS.lifecycleRealtimeCutoffHours, 24);
+}
+
+export async function getLifecycleStorefrontCutoffHours(): Promise<number> {
+  return getSetting(APP_SETTING_KEYS.lifecycleStorefrontCutoffHours, 48);
+}
+
+export async function getLifecycleMidWindowPrimary(): Promise<MidWindowPrimary> {
+  const value = await getSetting<string>(
+    APP_SETTING_KEYS.lifecycleMidWindowPrimary,
+    "partner",
+  );
+  return value === "storefront" ? "storefront" : "partner";
+}
+
+export async function getLifecycleSettings(): Promise<LifecycleSettings> {
+  const [enabled, realtimeCutoffHours, storefrontCutoffHours, agedDaysThreshold, midWindowPrimary] =
+    await Promise.all([
+      isLifecycleRoutingEnabled(),
+      getLifecycleRealtimeCutoffHours(),
+      getLifecycleStorefrontCutoffHours(),
+      getAgedDaysThreshold(),
+      getLifecycleMidWindowPrimary(),
+    ]);
+
+  return {
+    enabled,
+    realtimeCutoffHours,
+    storefrontCutoffHours,
+    agedDaysThreshold,
+    midWindowPrimary,
+  };
+}
+
+export { DEFAULT_LIFECYCLE_SETTINGS };
+
 export async function seedAppSettings(): Promise<void> {
   const defaults: Array<{ key: string; value: Prisma.InputJsonValue }> = [
     { key: APP_SETTING_KEYS.defaultRealtimePrice, value: 25 },
@@ -191,6 +241,10 @@ export async function seedAppSettings(): Promise<void> {
     { key: APP_SETTING_KEYS.integrityPostDelayHours, value: 24 },
     { key: APP_SETTING_KEYS.integrityReprocessEnabled, value: true },
     { key: APP_SETTING_KEYS.reprocessPartnerPickerEnabled, value: false },
+    { key: APP_SETTING_KEYS.lifecycleRoutingEnabled, value: false },
+    { key: APP_SETTING_KEYS.lifecycleRealtimeCutoffHours, value: 24 },
+    { key: APP_SETTING_KEYS.lifecycleStorefrontCutoffHours, value: 48 },
+    { key: APP_SETTING_KEYS.lifecycleMidWindowPrimary, value: "partner" },
   ];
 
   for (const { key, value } of defaults) {

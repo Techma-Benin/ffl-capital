@@ -294,6 +294,8 @@ model Lead {
   rawPayload              Json?                  @map("raw_payload")
   agedSaleCount           Int                    @default(0) @map("aged_sale_count")
   agedAvailableAfter      DateTime?              @map("aged_available_after")
+  liveSoldAt              DateTime?              @map("live_sold_at")
+  liveSaleChannel         String?                @map("live_sale_channel")
   createdAt               DateTime               @default(now()) @map("created_at")
   updatedAt               DateTime               @updatedAt @map("updated_at")
 

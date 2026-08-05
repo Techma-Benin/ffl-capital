@@ -152,6 +152,6 @@ describe("Integrity state formatting", () => {
     );
     assert.equal(mpPayload.beneficiary_thom, "Spouse");
     assert.equal(mpPayload.history_of_cancer_thom, "No");
-    assert.equal(mpPayload.mortgage_loan_amount_thom, "250000");
+    assert.equal(mpPayload["mortgage.loan.amount"], "250000");
   });
 });

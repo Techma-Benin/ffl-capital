@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LeadEventType, ResaleStatus } from "@prisma/client";
+import { LeadEventType, ResaleMode, ResaleStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
+import { claimLiveSale } from "@/lib/lead-routing/live-sale";
 
 /**
  * POST /api/webhooks/integrity
@@ -104,6 +105,12 @@ export async function POST(request: NextRequest) {
         soldAt: new Date(),
       },
     });
+
+    const liveChannel =
+      posting.mode === ResaleMode.storefront
+        ? "integrity_storefront"
+        : "integrity_realtime";
+    await claimLiveSale(posting.leadId, liveChannel);
 
     await emitLeadEvent(posting.leadId, LeadEventType.integrity_accepted, {
       postingId: resolvedPostingId,

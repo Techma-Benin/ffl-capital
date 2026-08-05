@@ -12,6 +12,7 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 - [CLERK_INTEGRATION](docs/CLERK_INTEGRATION.md) — Clerk proxy Replit, invitations admin
 - [CORE_BACKEND_PLAN](docs/CORE_BACKEND_PLAN.md) — plan backend core (✅ complété)
 - [Boberdoo exploration](docs/BOBERDOO_EXPLORATION.md) — parité fonctionnelle
+- [Client lead routing spec](docs/client_email_lead_routing_2026-08-03.txt) — lifecycle approuvé (août 2026)
 - [Gap analysis](docs/BOBERDOO_GAP_ANALYSIS.md) — inventaire vs Boberdoo (mis à jour juil. 2026)
 
 ## Stack
@@ -88,6 +89,9 @@ pnpm run seed:aged-leads
 # Réévaluer la classification catégorie sur l'historique (dry-run ; --apply pour écrire)
 pnpm run repair:category-classification
 
+# Preflight Azure IsAcceptingCampaign (Realtime IUL ping — env secrets requis)
+pnpm run preflight:integrity-azure
+
 # Désigner le premier super admin (one-off, requiert un admin existant)
 pnpm run make-super-admin -- --email admin@example.com
 ```
@@ -102,8 +106,9 @@ pnpm run make-super-admin -- --email admin@example.com
 | POST | `/api/refunds` | Demande remboursement partner |
 | POST | `/api/cron/reprocess-unmatched` | Retraitement leads (Bearer CRON_SECRET) |
 | POST | `/api/cron/integrity-post` | Post Integrity unmatched (Bearer CRON_SECRET) |
+| POST | `/api/admin/lead-routing/preview` | Preview lifecycle routing policy (admin auth) |
 
-Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, partners, filter sets, refunds, **integrity postings** (list + detail payloads) — voir [BACKEND.md](docs/BACKEND.md).
+Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, **lead-routing preview**, partners, filter sets, refunds, **integrity postings** (list + detail payloads) — voir [BACKEND.md](docs/BACKEND.md).
 
 ## Dev tools
 
@@ -126,7 +131,7 @@ Pour recevoir de **vrais** leads LeadConduit en local : ngrok + [LEADCONDUIT_SET
 ```
 prisma/           # Schéma + migrations
 src/app/api/      # Routes API
-src/lib/          # Logique métier (matching, intake, wallet, delivery)
+src/lib/          # Logique métier (matching, intake, wallet, delivery, lead-routing, integrity)
 scripts/          # Seed et tests
 fixtures/         # Payloads exemple Boberdoo
 docs/             # Documentation projet

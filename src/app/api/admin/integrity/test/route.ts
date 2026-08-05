@@ -10,6 +10,8 @@ import {
 } from "@/lib/integrity/build-payload";
 import { formatStateForIntegrity } from "@/lib/constants/us-states";
 import { logIntegrityAction } from "@/lib/integrity/log";
+import { realtimeIulCampaignPing } from "@/lib/integrity/azure-ping";
+import { redactSecrets } from "@/lib/integrity/redact-secrets";
 import { checkRequiredIntegrityFields } from "@/lib/integrity/required-fields";
 import {
   getIntegrationsMode,
@@ -120,7 +122,7 @@ export async function POST(request: NextRequest) {
         ? buildIntegrityLeadPayload(lead, labelSources.realtime)
         : buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources);
     testFields = { ...rawPayload, is_test: "yes" } as Record<string, string>;
-    requiredFieldsCheck = checkRequiredIntegrityFields(lead);
+    requiredFieldsCheck = checkRequiredIntegrityFields(lead, flow);
     leadSummary = {
       id: lead.id,
       name: `${lead.firstName} ${lead.lastName}`,
@@ -173,6 +175,18 @@ export async function POST(request: NextRequest) {
 
   const encodedBody = encodeIntegrityFormBody(testFields);
 
+  let pingPreview: Record<string, unknown> | undefined;
+  if (flow === "realtime" && leadId) {
+    const ping = await realtimeIulCampaignPing(leadId);
+    pingPreview = redactSecrets({
+      eligible: true,
+      accepted: ping.accepted,
+      campaignAccepted: ping.campaignAccepted,
+      message: ping.message,
+      externalRequestSent: false,
+    });
+  }
+
   if (integrationsMode === "mock") {
     logIntegrityAction("test_mock", {
       flow,
@@ -190,6 +204,7 @@ export async function POST(request: NextRequest) {
       payload: testFields,
       encodedBody,
       encodedFields: Object.fromEntries(new URLSearchParams(encodedBody).entries()),
+      pingPreview,
       response: {
         outcome: "success",
         message: "Mock mode — no HTTP request sent",
@@ -239,6 +254,7 @@ export async function POST(request: NextRequest) {
       payload: testFields,
       encodedBody,
       encodedFields: Object.fromEntries(new URLSearchParams(encodedBody).entries()),
+      pingPreview,
       response: rawResponse,
       requiredFieldsCheck,
     },

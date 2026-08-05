@@ -182,7 +182,8 @@ Phase D — Migration Replit (livraison client)
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Paiements |
 | `RESEND_API_KEY` | Emails |
 | `INTEGRATIONS_MODE` | `mock` \| `live` — fallback **dev only** si `app_settings.integrations_mode` absent ; admin Mode (Integrations) prime et se sauvegarde immédiatement ; prod toujours `live` |
-| `INTEGRITY_*` | Credentials ping/post (live only) |
+| `INTEGRITY_*` | Submit URLs + Azure ping secrets (live only ; ping env-only) |
+| `INTEGRITY_REALTIME_PING_URL` / `INTEGRITY_PING_VENDOR_ID` / `INTEGRITY_PING_FUNCTIONS_KEY` | Azure `IsAcceptingCampaign` pour Realtime IUL — jamais en BDD |
 | `ADMIN_APPROVAL_REQUIRED` | `true` par défaut — désactivable |
 
 ### Ce qu’on n’utilise PAS volontairement
@@ -389,9 +390,15 @@ Phase D — Migration Replit (livraison client)
 
 **Si aucun agent éligible :**
 1. Lead reste `status=unmatched`, `available=true`
-2. Job toutes les X minutes pendant **24 h** : réessayer matching (sauf leads `review` ou catégorie non résolue — assignation admin requise)
-3. Après 24 h sans match → module IntegrityCONNECT
-4. Lead reste en base pour aging J+30
+2. Job toutes les X minutes : réessayer selon le **mode lifecycle** (sauf leads `review` ou catégorie non résolue)
+3. **Legacy** (`lifecycle_routing_enabled` off, défaut) : matching partner pendant **24 h**, puis post Integrity Realtime
+4. **Lifecycle client** (flag on — voir `docs/client_email_lead_routing_2026-08-03.txt`) :
+   - **0–24 h** : Integrity Realtime (ILC) uniquement ; pas de match partner automatique
+   - **24–48 h** : partner **ou** Storefront en premier (config admin `lifecycle_mid_window_primary`), puis l’autre si échec définitif ; un posting Integrity `pending` bloque le fallback
+   - **48 h–30 j** : partners plateforme uniquement
+   - **30 j+** : éligibilité aged marketplace (inchangé)
+5. **Une vente live** (partner, Realtime ou Storefront) pose `liveSoldAt` / `liveSaleChannel` et arrête tout routage live automatique
+6. Lead reste en base pour aging J+30
 
 ### 5.7 Marketplace aged leads
 
@@ -481,14 +488,16 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 ### 5.12 Revente IntegrityCONNECT
 
 **Modes :**
-- **Real-time ping/post** : vente immédiate, statut `sold` auto
-- **Storefront** : envoi lot, réconciliation journalière
+- **Real-time post** : vente immédiate via LeadConduit ; pour les leads **IUL Realtime**, ping Azure `IsAcceptingCampaign` avant le post (parité Boberdoo delivery 281)
+- **Storefront post** : envoi direct LeadConduit (pas de ping gate LC) ; réconciliation via webhook callback
 
-**Déclenchement :** lead unmatched après fenêtre retraitement 24 h.
+**Déclenchement :** selon fenêtre lifecycle (flag on) ou après délai legacy 24 h (flag off).
 
-**Admin :** liste postings légère ; détail à la demande (payloads + événements) pour debug accept/reject.
+**Admin :** liste postings ; détail payloads + événements ; preview routage (`POST /api/admin/lead-routing/preview`) ; preflight Azure (`pnpm run preflight:integrity-azure`).
 
-**Implémentation :** adapter mock/live ; specs depuis Boberdoo.
+**Lifecycle routing :** feature flag admin `lifecycle_routing_enabled` (**off** par défaut) ; cutoffs 24 h / 48 h ; mid-window primary `partner` ou `storefront`.
+
+**Implémentation :** `src/lib/lead-routing/` + `src/lib/integrity/` ; specs Boberdoo : [BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md](BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md).
 
 ### 5.13 Migration historique Boberdoo
 
@@ -521,9 +530,9 @@ LeadConduit POST webhook
                  ├─ Agent éligible trouvé (priorité max)
                  │    → Débit wallet, delivery, email, CRM, available=false
                  └─ Aucun agent
-                      → unmatched, file 24 h
-                           ├─ Match ultérieur → livraison
-                           └─ 24 h écoulées → IntegrityCONNECT
+                      → unmatched ; routing coordinator (lifecycle ou legacy 24 h)
+                           ├─ Match / Integrity selon phase
+                           └─ liveSoldAt posé → plus de routage live auto
   → [Parallèle temps] J+30 → éligible marketplace aged si available
 ```
 
@@ -646,8 +655,9 @@ Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste 
 
 ### Retraitement unmatched
 
-- Fenêtre : **24 h** après entrée
-- Puis IntegrityCONNECT si toujours unmatched
+- **Legacy** (lifecycle off) : fenêtre **24 h** partner match, puis Integrity Realtime
+- **Lifecycle** (flag on) : fenêtres 0–24 h / 24–48 h / 48 h–30 j — voir `docs/client_email_lead_routing_2026-08-03.txt`
+- Preview admin sans effet : `POST /api/admin/lead-routing/preview`
 
 ### Changement des règles de catégorie
 
@@ -742,6 +752,8 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | trustedform_cert_url | string nullable | |
 | source | string | ex. meta_leadconduit |
 | received_at | timestamp | **Référence aging** |
+| live_sold_at | timestamp nullable | Première vente live (partner / Realtime / Storefront) |
+| live_sale_channel | string nullable | `partner` \| `integrity_realtime` \| `integrity_storefront` |
 | available | boolean | Défaut true |
 | refundable | boolean | Défaut true |
 | status | enum | unmatched \| delivered \| integrity_posted \| aged_listed \| review \| dead |
@@ -827,7 +839,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | key | string PK | |
 | value | jsonb | |
 
-**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`
+**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`, `lifecycle_routing_enabled` (défaut false), `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`)
 
 ### Table `migration_jobs`
 
@@ -955,7 +967,7 @@ En **dev**, le mode effectif vient de `app_settings.integrations_mode` (dropdown
 
 ### Phase 5 — Intégrations & migration (semaines 5–6) ⏳ partiel
 
-- IntegrityCONNECT live (si specs OK) — **mock prêt, live bloqué client**
+- IntegrityCONNECT live (preflight Azure + flag lifecycle) — **code prêt, activation contrôlée**
 - CRM outbound POST self-service (wizard partner) — ✅ — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
 - **Migration Boberdoo** (écran import CSV) — ✅
 - Deploy Netlify + Supabase staging — ⏳

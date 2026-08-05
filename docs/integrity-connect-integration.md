@@ -281,9 +281,20 @@ All shared fields from the RealTime flow are also accepted by this flow.
 3. **Body:** Standard URL-encoded key=value pairs (e.g. `first_name=Mike&last_name=Jones&state=TX`)
 4. **DO NOT** send `application/json` — LeadConduit will reject or misparse it
 
-### Ping (Storefront Only)
+### Ping (Storefront Only — LeadConduit)
 
-The Storefront flow supports a ping/post model: send a subset of fields first to check acceptance before submitting the full lead. Use the same submission URL. The RealTime flow does **not** support ping.
+The Storefront LeadConduit flow *can* support a ping/post model in the LeadConduit platform. **Our app does not use a LeadConduit ping gate for Storefront** — posts go directly to the submit URL.
+
+### Ping (Realtime IUL — Azure)
+
+Boberdoo delivery **281** pings Azure `IsAcceptingCampaign` before posting to the Realtime LeadConduit flow. **Our app mirrors this for Realtime IUL leads only** (`traditional_iul`, `high_intent_iul`, or types containing `iul`). Other Realtime categories and all Storefront posts skip the Azure ping.
+
+- **URL:** `INTEGRITY_REALTIME_PING_URL` (prod: `https://ilc-functions-prod.azurewebsites.net/api/IsAcceptingCampaign`)
+- **Headers:** `VendorId`, `x-functions-key`, `Content-Type: application/json`
+- **Body:** `state`, `postal_code`, `lead_type_thom`
+- **Success:** response body `true` (string)
+- **Secrets:** env-only (`INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY`) — never stored in DB
+- **Preflight:** `pnpm run preflight:integrity-azure`
 
 ---
 
@@ -321,7 +332,7 @@ These are the mappings from our internal lead object properties to the LeadCondu
 - TrustedForm (`trustedform_cert_url`), Jornaya (`universal_leadid`), `has_iul_thom`, and `primary_goal_thom` are included when present.
 - `lead_type_thom` comes from the lead category row only: Realtime uses `integrity_label`; Storefront uses `integrity_label_storefront`, then `integrity_label` on the same category (`resolveIntegrityLabelForMode`). Built-in defaults are seeded at deploy — see `pnpm db:sync-integrity-labels` and `integrity-label-defaults.ts`.
 - Mortgage Protection–specific fields (`beneficiary_thom`, `history_of_cancer_thom`, `mortgage_loan_amount_thom`) are included only for `mortgage_protection` leads, and omitted when missing.
-- Ping payloads (`buildIntegrityPingPayload`) include only `first_name`, `last_name`, `state`, `lead_type_thom`, and `vendor_lead_id_thom`.
+- Ping payloads (`buildIntegrityPingPayload`) include only `first_name`, `last_name`, `state`, `lead_type_thom`, and `vendor_lead_id_thom`. **Deprecated for Storefront** — app no longer pings LeadConduit before Storefront post.
 
 | Internal Field | LeadConduit Parameter | Notes |
 |---|---|---|
@@ -364,17 +375,36 @@ Canonical Realtime strings (also useful as category defaults):
 
 ## Decision / Routing Logic
 
-```
-IF lead is new/realtime AND lead type maps to one of the 5 accepted RealTime types:
-  → POST to INTEGRITY_REALTIME_SUBMIT_URL
-  → Required: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
-  → No ping needed
+### Integrity post (per submission)
 
-ELSE IF lead is aged/unmatched:
-  → (Optional) Ping to INTEGRITY_STOREFRONT_SUBMIT_URL first
-  → POST to INTEGRITY_STOREFRONT_SUBMIT_URL
+```
+IF vendor disabled → skip (integrity_skipped)
+
+IF resaleMode = realtime:
+  → IF lead type is Realtime IUL → Azure IsAcceptingCampaign ping (env secrets)
+  → POST to INTEGRITY_REALTIME_SUBMIT_URL (or vendor postUrl)
+  → Required: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
+
+IF resaleMode = storefront:
+  → POST directly to INTEGRITY_STOREFRONT_SUBMIT_URL (no LC ping gate)
   → Required: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
 ```
+
+### Unmatched lead lifecycle (admin flag `lifecycle_routing_enabled`, default OFF)
+
+When enabled, `src/lib/lead-routing/policy.ts` decides the next route from lead age, `liveSoldAt`, and Integrity posting state. Client-approved windows (see `docs/client_email_lead_routing_2026-08-03.txt`):
+
+| Age | Primary action |
+|-----|----------------|
+| 0 – 24 h | Integrity Realtime only |
+| 24 – 48 h | Partner **or** Storefront first (admin `lifecycle_mid_window_primary`), then fallback |
+| 48 h – 30 d | Platform partners only |
+| 30 d+ | Aged marketplace (passive) |
+| `liveSoldAt` set | No automatic live routing |
+
+Preview without side effects: `POST /api/admin/lead-routing/preview`.
+
+When the flag is **off**, legacy behavior applies: partner match during `integrity_post_delay_hours` (24 h), then Integrity Realtime post.
 
 ---
 
@@ -383,13 +413,26 @@ ELSE IF lead is aged/unmatched:
 ```env
 INTEGRITY_REALTIME_SUBMIT_URL=https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit
 INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
+
+# Azure IsAcceptingCampaign — Realtime IUL only; env-only (never DB)
+INTEGRITY_REALTIME_PING_URL=https://ilc-functions-prod.azurewebsites.net/api/IsAcceptingCampaign
+INTEGRITY_PING_VENDOR_ID=
+INTEGRITY_PING_FUNCTIONS_KEY=
 ```
 
-Both URLs are unique per flow per source — they cannot be swapped or reused.
+Admin **Resale vendors** can override submit URLs. Azure ping secrets are **not** stored in `resale_vendor_configs` — env only.
 
 ---
 
 ## Testing
+
+### Azure ping preflight
+
+```bash
+pnpm run preflight:integrity-azure
+```
+
+Requires `INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY`. Output is redacted — no secret values printed.
 
 ### Admin Integrity test panel (preferred)
 
@@ -421,18 +464,18 @@ curl -X POST \
 
 ---
 
-## Current Codebase Issues to Fix
+## Current Codebase Status (Aug 2026)
 
-The existing code at `src/lib/integrity/` has the following problems that must be corrected:
+The items below were fixed in Phase 1–2. Remaining work is **live credential rotation**, **preflight**, and **controlled lifecycle flag enablement**.
 
-| # | Issue | What's Wrong | Fix |
-|---|---|---|---|
-| 1 | Wrong Content-Type | Sends `application/json` | Change to `application/x-www-form-urlencoded` |
-| 2 | Wrong field names | Uses camelCase (`firstName`, `lastName`) | Use LeadConduit parameter names (`first_name`, `last_name`, `lead_type_thom`, etc.) |
-| 3 | Missing required fields | Doesn't send `dob_mmddyyyy_thom` (RealTime) or `vendor_lead_id_thom` (Storefront) | Add these fields to the request payload |
-| 4 | Single URL | Uses one `INTEGRITY_POST_URL` env var | Split into `INTEGRITY_REALTIME_SUBMIT_URL` and `INTEGRITY_STOREFRONT_SUBMIT_URL` |
-| 5 | Incorrect ping logic | Pings before all posts | Only ping for Storefront flow; RealTime is direct submit only |
-| 6 | Lead type mapping | Passes raw `lead.leadType` | Map to exact strings like `"Mortgage Protection Facebook (Realtime Lead)"` |
+| # | Issue | Status |
+|---|---|---|
+| 1 | Wrong Content-Type | ✅ `application/x-www-form-urlencoded` |
+| 2 | Wrong field names | ✅ LeadConduit snake_case params |
+| 3 | Missing required fields | ✅ `dob_mmddyyyy_thom`, `vendor_lead_id_thom` |
+| 4 | Single URL | ✅ Split realtime / storefront vendors + env fallbacks |
+| 5 | Incorrect ping logic | ✅ Azure ping for Realtime IUL only ; Storefront direct post |
+| 6 | Lead type mapping | ✅ Category `integrity_label` / `integrity_label_storefront` |
 
 ---
 

@@ -171,31 +171,41 @@ Prefer per-category Integrity labels in admin Settings. Canonical Realtime defau
 ### Environment variables
 
 ```env
-# RealTime flow — direct submit, no ping required
+# RealTime flow — Azure ping (IUL only) then direct submit to LeadConduit
 INTEGRITY_REALTIME_SUBMIT_URL=https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit
+INTEGRITY_REALTIME_PING_URL=https://ilc-functions-prod.azurewebsites.net/api/IsAcceptingCampaign
+INTEGRITY_PING_VENDOR_ID=
+INTEGRITY_PING_FUNCTIONS_KEY=
 
-# Storefront flow — aged leads; ping and post use the same URL
+# Storefront flow — direct post only (no LeadConduit ping gate)
 INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
 ```
 
-Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override these URLs when `postUrl` is set. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. In dev, outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset. Mock logs Integrity without HTTP and does not set `integrity_posted`; production always runs live and ignores the setting.
+Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override submit URLs when `postUrl` is set. Azure ping credentials are **env-only** — not stored in the database. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. In dev, outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset. Mock logs Integrity without HTTP and does not set `integrity_posted`; production always runs live and ignores the setting.
 
-### Routing logic
+**Preflight Azure** (before enabling live Integrity): `pnpm run preflight:integrity-azure`
+
+### Routing logic (Integrity post)
 
 ```
 IF vendor (integrity_realtime | integrity_storefront) disabled:
   → Skip HTTP; emit integrity_skipped; lead stays unmatched
 
 IF resaleMode = realtime:
+  → IF Realtime IUL lead type → Azure IsAcceptingCampaign ping (env secrets)
   → POST to resolved integrity_realtime postUrl (DB or INTEGRITY_REALTIME_SUBMIT_URL)
   → Required fields: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
-  → No ping
 
 IF resaleMode = storefront:
-  → Optional ping to resolved integrity_storefront postUrl (same URL as post)
-  → If ping accepted → POST full payload to same URL
+  → POST directly to resolved integrity_storefront postUrl (no LC ping)
   → Required fields: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
 ```
+
+### Unmatched lead lifecycle (optional)
+
+Admin flag `lifecycle_routing_enabled` (default **off**) in Settings → Lead lifecycle. When on, `src/lib/lead-routing/` applies client-approved age windows (0–24 h Realtime, 24–48 h partner/Storefront, 48 h–30 d partners, 30 d+ aged). Spec: `docs/client_email_lead_routing_2026-08-03.txt`. Preview: `POST /api/admin/lead-routing/preview`.
+
+When off, legacy flow: partner match during `integrity_post_delay_hours` (24 h), then Integrity Realtime post.
 
 ### Protocol details
 
@@ -302,11 +312,13 @@ Expected response: `{"outcome":"success","lead":{"id":"..."}}`
 ## Production cutover
 
 1. Deploy with stable HTTPS URL.
-2. Set all required env vars: `LEADCONDUIT_WEBHOOK_SECRET`, `INTEGRITY_REALTIME_SUBMIT_URL`, `INTEGRITY_STOREFRONT_SUBMIT_URL`, `INTEGRITY_WEBHOOK_SECRET`.
-3. In LeadConduit, update the recipient URL to `https://YOUR-DOMAIN/api/leads/intake`.
-4. Add the `X-Api-Key` header in LeadConduit delivery settings.
-5. Run test leads with `is_test=yes`; confirm `{ "outcome": "success" }`.
-6. Monitor the unmatched queue and partner wallets before disabling Boberdoo.
+2. Set all required env vars: `LEADCONDUIT_WEBHOOK_SECRET`, `INTEGRITY_REALTIME_SUBMIT_URL`, `INTEGRITY_STOREFRONT_SUBMIT_URL`, `INTEGRITY_WEBHOOK_SECRET`, and Azure ping vars (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY`).
+3. Run `pnpm run preflight:integrity-azure` with rotated production secrets.
+4. In LeadConduit, update the recipient URL to `https://YOUR-DOMAIN/api/leads/intake`.
+5. Add the `X-Api-Key` header in LeadConduit delivery settings.
+6. Run test leads with `is_test=yes`; confirm `{ "outcome": "success" }`.
+7. Enable `lifecycle_routing_enabled` in admin only after controlled testing (defaults off).
+8. Monitor the unmatched queue and partner wallets before disabling Boberdoo.
 
 ---
 

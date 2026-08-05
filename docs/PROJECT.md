@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 30 juillet 2026 (v11 — vues leads et reclassification)
+> Dernière mise à jour : 5 août 2026 (v12 — routage lifecycle Phase 2, Azure ping IUL)
 
 ---
 
@@ -44,6 +44,8 @@
 | **Lead category** | Règle admin (label + critères exacts sur le payload webhook) → clé interne `type` (snake_case, générée à la création) ; détermine `lead.leadType` à l’intake ; labels Integrity séparés Realtime (`integrity_label`) et Storefront (`integrity_label_storefront`, fallback Realtime) pour `lead_type_thom` |
 | **Category resolution** | Résultat de l’évaluation des règles : `matched` (1 catégorie), `no_match` (0), `multiple_matches` (2+) — zéro/plusieurs → `status=review`, pas de matching ni Integrity. Les changements de règles réévaluent aussi les leads non finalisés |
 | **Unclassified / Multiple match** | Libellés UI fixes pour anomalies (`no_match` / `multiple_matches`) ; les catégories et candidats affichés utilisent `lead_categories.label`, pas de constantes IUL hardcodées |
+| **Lifecycle routing** | Routage automatique des leads unmatched selon l’âge (0–24 h Realtime ILC, 24–48 h partner ou Storefront, 48 h–30 j partners seuls, 30 j+ aged) — **désactivé par défaut** (`lifecycle_routing_enabled`) ; spec client : `docs/client_email_lead_routing_2026-08-03.txt` |
+| **Live sale** | Première vente live (partner, Realtime ou Storefront) enregistrée via `liveSoldAt` / `liveSaleChannel` ; bloque tout routage live automatique ultérieur jusqu’à action admin explicite |
 
 ---
 
@@ -95,7 +97,9 @@ Un lead est **non vendu** quand aucun agent actif ne correspond aux critères (s
 1. Entrée en base avec statut `unmatched`
 2. **Retraitement pendant 24 h** : le système réessaie périodiquement de le matcher (ex. un agent recharge son wallet ou change ses filtres)
 3. **Reprocess admin (bulk)** : sélection de leads → **hold** (bloque cron et reprocess ligne) → modal partenaires actifs éligibles (au moins 1 lead) → matching restreint aux partenaires cochés → libération du hold ; **pas** d’envoi Integrity immédiat si échec
-4. Si toujours non vendu après 24 h → envoi vers **IntegrityCONNECT** (ping/post temps réel ou storefront 48 h)
+4. Si toujours non vendu → **routage selon mode lifecycle** :
+   - **Legacy** (`lifecycle_routing_enabled` off, défaut) : retraitement partner pendant 24 h, puis post Integrity Realtime
+   - **Lifecycle client** (flag on) : 0–24 h Realtime ILC seul ; 24–48 h partner ou Storefront (priorité admin) ; 48 h–30 j partners seuls ; pas de retry ILC auto au-delà
 5. Après **30 jours** dans le système → devient **aged lead** (5 $), visible dans la marketplace
 
 Exemple client : lead Wisconsin, personne ne veut cet état → rejeté temps réel, reste unmatched (**17:08 – 17:32** dans le transcript).
@@ -248,6 +252,7 @@ leads
   ├── category_candidate_types (types ayant matché)
   ├── trustedform_cert_url
   ├── received_at
+  ├── live_sold_at, live_sale_channel   -- provenance 1ère vente live (Phase 2)
   ├── available (boolean, default true)
   ├── refundable (boolean, default true — passe false après cycle remboursement+revente)
   └── status: unmatched | delivered | integrity_posted | aged_listed | ...
@@ -321,7 +326,8 @@ lead_categories                   -- classification produit (admin)
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess avec sélection partners**), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (modal détail payloads/outcome/timeline) + panneau test (labels Realtime/Storefront, encoded body), settings (**lead categories** multi-critères + labels Integrity Realtime/Storefront + reclassification automatique), migration (classification via table catégories), filter list (+ templates) | ✅ |
+| Routage lifecycle client + Azure ping Realtime IUL (flag off par défaut) | ✅ août 2026 |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess avec sélection partners**), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (modal détail payloads/outcome/timeline) + panneau test (labels Realtime/Storefront, encoded body), settings (**lead categories** multi-critères + labels Integrity Realtime/Storefront + reclassification automatique ; **lifecycle routing** 24 h/48 h/mid-window), migration (classification via table catégories), filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées avec périodes de livraison), wallet, aged, settings, contact, refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
@@ -486,6 +492,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | `docs/team call.txt` | Briefing interne TECHMA (Bill, Masdouk) |
 | `docs/PROJECT.md` | Mémoire projet / décisions / FAQ |
 | `docs/LEADCONDUIT_SETUP.md` | Guide connexion LeadConduit / ngrok / cutover prod |
+| `docs/client_email_lead_routing_2026-08-03.txt` | Cycle de routage lifecycle approuvé client (août 2026) |
 | `docs/CLERK_INTEGRATION.md` | Clerk proxy Replit, invitations admin (conflits + orphan create-user), tickets/accept |
 | `docs/PRD.md` | **Spécification produit** — features, flows, BDD, stack |
 
@@ -645,5 +652,5 @@ Lors d’une reprise de contexte :
 | UI parité (essentiel) | Leads, partners, refunds, wallet, aged | ✅ |
 | Client store / load-once | Dashboard 90j (+ refetch API hors fenêtre), partners list, filter-list, refunds, partner aged — filtre client + `src/lib/client-store` ; listes leads unbounded restent paginées serveur | ✅ |
 
-**Prochaines étapes :** cutover LeadConduit prod, Integrity live, Stripe prod, scheduler cron prod, polish UI avancé (charts, billing PDF).
+**Prochaines étapes :** cutover LeadConduit prod, Integrity live (preflight Azure + activation lifecycle flag), Stripe prod, scheduler cron prod, polish UI avancé (charts, billing PDF).
 

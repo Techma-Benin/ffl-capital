@@ -1,23 +1,24 @@
 import type { Lead } from "@prisma/client";
+import { formatStateForIntegrity } from "@/lib/constants/us-states";
+import type { IntegrityResaleMode } from "./build-payload";
 
-/**
- * Fields Integrity requires on every real-time/storefront post, regardless
- * of product. Missing these causes a vendor-side rejection even though our
- * payload builder happily includes them when present.
- */
+export type RequiredFieldContext = {
+  mode: IntegrityResaleMode;
+  leadType: string | null;
+};
+
 type RequiredLeadField = Exclude<keyof RequiredFieldsLeadInput, "leadType">;
 
 const BASE_REQUIRED_FIELDS: Array<{ field: RequiredLeadField; label: string }> = [
   { field: "dob", label: "DOB" },
   { field: "trustedformCertUrl", label: "TrustedForm certificate URL" },
+];
+
+const IUL_REQUIRED_FIELDS: Array<{ field: RequiredLeadField; label: string }> = [
   { field: "haveIul", label: "Have_IUL" },
   { field: "primaryGoal", label: "Primary_Goal" },
 ];
 
-/**
- * Additional fields required per product (lead type), on top of the base
- * set above. Keyed by the `leadType` string used throughout the app.
- */
 const PRODUCT_REQUIRED_FIELDS: Record<
   string,
   Array<{ field: RequiredLeadField; label: string }>
@@ -27,6 +28,7 @@ const PRODUCT_REQUIRED_FIELDS: Record<
     { field: "historyOfCancer", label: "History Of Cancer" },
     { field: "mortgageLoanAmount", label: "Mortgage Loan Amount" },
   ],
+  final_expense: [{ field: "beneficiary", label: "Beneficiary" }],
 };
 
 export interface RequiredFieldDefinition {
@@ -34,7 +36,6 @@ export interface RequiredFieldDefinition {
   label: string;
 }
 
-/** Minimal shape needed to run the required-fields check against a lead. */
 export type RequiredFieldsLeadInput = Pick<
   Lead,
   | "leadType"
@@ -47,33 +48,43 @@ export type RequiredFieldsLeadInput = Pick<
   | "mortgageLoanAmount"
 >;
 
-/**
- * Returns the full list of fields required for Integrity to accept a post
- * for the given lead type (base fields + any product-specific fields).
- */
+function isIulLeadType(leadType: string | null): boolean {
+  if (!leadType) return false;
+  return leadType.includes("iul");
+}
+
 export function getRequiredIntegrityFields(
-  leadType: string | null,
+  context: RequiredFieldContext,
 ): RequiredFieldDefinition[] {
-  return [
-    ...BASE_REQUIRED_FIELDS,
-    ...(leadType ? PRODUCT_REQUIRED_FIELDS[leadType] ?? [] : []),
-  ];
+  const { mode, leadType } = context;
+  const fields = [...BASE_REQUIRED_FIELDS];
+
+  if (mode === "realtime" && isIulLeadType(leadType)) {
+    fields.push(...IUL_REQUIRED_FIELDS);
+  }
+
+  if (leadType && PRODUCT_REQUIRED_FIELDS[leadType]) {
+    fields.push(...PRODUCT_REQUIRED_FIELDS[leadType]!);
+  }
+
+  return fields;
 }
 
 function isBlank(value: unknown): boolean {
   return value === null || value === undefined || String(value).trim() === "";
 }
 
-/**
- * Checks a lead against the required fields for its product. Returns the
- * human-readable labels of any missing fields so the gap can be recorded
- * and surfaced to admins before the vendor ever sees (and rejects) the post.
- */
-export function checkRequiredIntegrityFields(lead: RequiredFieldsLeadInput): {
+export function checkRequiredIntegrityFields(
+  lead: RequiredFieldsLeadInput,
+  mode: IntegrityResaleMode = "realtime",
+): {
   ok: boolean;
   missing: string[];
 } {
-  const required = getRequiredIntegrityFields(lead.leadType);
+  const required = getRequiredIntegrityFields({
+    mode,
+    leadType: lead.leadType,
+  });
   const missing = required
     .filter((r) => isBlank(lead[r.field]))
     .map((r) => r.label);

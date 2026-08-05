@@ -22,10 +22,15 @@ const settingsSchema = z.object({
     pingUrl: z.string().optional(),
     postUrl: z.string().optional(),
     enabled: z.boolean().optional(),
+    realtimePingEnabled: z.boolean().optional(),
   })).optional(),
   integrityPostDelayHours: z.number().int().min(1).optional(),
   integrityReprocessEnabled: z.boolean().optional(),
   reprocessPartnerPickerEnabled: z.boolean().optional(),
+  lifecycleRoutingEnabled: z.boolean().optional(),
+  lifecycleRealtimeCutoffHours: z.number().int().min(1).optional(),
+  lifecycleStorefrontCutoffHours: z.number().int().min(1).optional(),
+  lifecycleMidWindowPrimary: z.enum(["partner", "storefront"]).optional(),
 });
 
 const KEY_MAP: Record<string, string> = {
@@ -41,6 +46,10 @@ const KEY_MAP: Record<string, string> = {
   integrityPostDelayHours: APP_SETTING_KEYS.integrityPostDelayHours,
   integrityReprocessEnabled: APP_SETTING_KEYS.integrityReprocessEnabled,
   reprocessPartnerPickerEnabled: APP_SETTING_KEYS.reprocessPartnerPickerEnabled,
+  lifecycleRoutingEnabled: APP_SETTING_KEYS.lifecycleRoutingEnabled,
+  lifecycleRealtimeCutoffHours: APP_SETTING_KEYS.lifecycleRealtimeCutoffHours,
+  lifecycleStorefrontCutoffHours: APP_SETTING_KEYS.lifecycleStorefrontCutoffHours,
+  lifecycleMidWindowPrimary: APP_SETTING_KEYS.lifecycleMidWindowPrimary,
 };
 
 export async function GET() {

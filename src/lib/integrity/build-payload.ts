@@ -13,20 +13,12 @@ function nonBlank(value: string | null | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-/**
- * Realtime `lead_type_thom` from the category row (`integrity_label`).
- */
 export function resolveIntegrityLabel(
   integrityLabel: string | null | undefined,
 ): string | undefined {
   return nonBlank(integrityLabel);
 }
 
-/**
- * Resolves `lead_type_thom` from category labels only.
- * Storefront: `integrity_label_storefront`, then `integrity_label` on the same row.
- * Realtime: `integrity_label`.
- */
 export function resolveIntegrityLabelForMode(
   mode: IntegrityResaleMode,
   labels: IntegrityLabelSources,
@@ -38,9 +30,6 @@ export function resolveIntegrityLabelForMode(
   return resolveIntegrityLabel(labels.realtime);
 }
 
-/**
- * Unique `lead_type_thom` options from lead categories for the admin test UI.
- */
 export function buildLeadTypeThomOptions(
   mode: IntegrityResaleMode,
   categories: Array<{
@@ -52,10 +41,7 @@ export function buildLeadTypeThomOptions(
     integrityLabelStorefront?: string | null;
   } | null,
 ): string[] {
-  const pool =
-    categoryForLead != null
-      ? [categoryForLead]
-      : categories;
+  const pool = categoryForLead != null ? [categoryForLead] : categories;
 
   const values = new Set<string>();
   for (const category of pool) {
@@ -73,9 +59,6 @@ export function buildLeadTypeThomOptions(
   return [...values].sort((a, b) => a.localeCompare(b));
 }
 
-/**
- * Formats a DOB string to MM/dd/yyyy as required by dob_mmddyyyy_thom.
- */
 function formatDobMmDdYyyy(dob: string | null): string | undefined {
   if (!dob) return undefined;
 
@@ -90,9 +73,6 @@ function formatDobMmDdYyyy(dob: string | null): string | undefined {
   return dob;
 }
 
-/**
- * Formats a DOB string to m/d/Y as used by Boberdoo’s `dob` LeadConduit field.
- */
 function formatDobMdY(dob: string | null): string | undefined {
   if (!dob) return undefined;
 
@@ -105,10 +85,48 @@ function formatDobMdY(dob: string | null): string | undefined {
   return `${Number(match[1])}/${Number(match[2])}/${match[3]}`;
 }
 
-/**
- * Encodes an Integrity payload as `application/x-www-form-urlencoded`.
- * Preserves empty string values (notably `address_1`) so they are not dropped.
- */
+function formatLeadDateThom(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+export function extractTrustedFormCertId(
+  trustedformCertUrl: string | null | undefined,
+): string | undefined {
+  if (!trustedformCertUrl) return undefined;
+  const trimmed = trustedformCertUrl.trim();
+  if (!trimmed) return undefined;
+  const parts = trimmed.split("/").filter(Boolean);
+  return parts[parts.length - 1];
+}
+
+function pickRawString(
+  rawPayload: unknown,
+  ...keys: string[]
+): string | undefined {
+  if (!rawPayload || typeof rawPayload !== "object") return undefined;
+  const record = rawPayload as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function resolveVendorLeadId(
+  lead: Lead,
+  mode: IntegrityResaleMode,
+): string | undefined {
+  if (lead.leadType === "mortgage_protection") {
+    return (
+      extractTrustedFormCertId(lead.trustedformCertUrl) ??
+      lead.externalId ??
+      lead.id
+    );
+  }
+  return lead.externalId ?? lead.id;
+}
+
 export function encodeIntegrityFormBody(
   data: Record<string, string | undefined>,
 ): string {
@@ -119,17 +137,25 @@ export function encodeIntegrityFormBody(
   return params.toString();
 }
 
-/**
- * Builds the payload for the Integrity Connect RealTime flow.
- * Optional fields with no value are omitted except `address_1`, which is always
- * included (empty string when the lead has no address).
- * `integrityLabel` should come from the LeadCategory Realtime label for this lead's type.
- */
+export function buildRealtimeIulPingPayload(
+  lead: Lead,
+  leadTypeThom: string,
+): Record<string, string> {
+  return {
+    state: formatStateForIntegrity(lead.state),
+    postal_code: lead.zip ?? "",
+    lead_type_thom: leadTypeThom,
+  };
+}
+
 export function buildIntegrityLeadPayload(
   lead: Lead,
   integrityLabel?: string | null,
+  options?: { mode?: IntegrityResaleMode },
 ): Record<string, string | undefined> {
+  const mode = options?.mode ?? "realtime";
   const leadTypeThom = resolveIntegrityLabel(integrityLabel);
+  const vendorLeadId = resolveVendorLeadId(lead, mode);
 
   const payload: Record<string, string | undefined> = {
     first_name: lead.firstName,
@@ -140,7 +166,7 @@ export function buildIntegrityLeadPayload(
     lead_type_thom: leadTypeThom,
     dob: formatDobMdY(lead.dob),
     dob_mmddyyyy_thom: formatDobMmDdYyyy(lead.dob),
-    vendor_lead_id_thom: lead.externalId ?? lead.id,
+    vendor_lead_id_thom: vendorLeadId,
     address_1: lead.address ?? "",
     city: lead.city ?? undefined,
     postal_code: lead.zip ?? undefined,
@@ -148,27 +174,49 @@ export function buildIntegrityLeadPayload(
     trustedform_cert_url: lead.trustedformCertUrl ?? undefined,
     universal_leadid: lead.leadidToken ?? undefined,
     ip_address: lead.ipAddress ?? undefined,
-    has_iul_thom: lead.haveIul ?? undefined,
-    primary_goal_thom: lead.primaryGoal ?? undefined,
+    tcpa_compliance_thom: lead.tcpaConsent ?? undefined,
+    lead_date_thom: formatLeadDateThom(lead.receivedAt),
     campaign_source: lead.source ?? undefined,
     campaign_id: lead.subId ?? undefined,
-    ...(lead.leadType === "mortgage_protection"
-      ? {
-          beneficiary_thom: lead.beneficiary ?? undefined,
-          history_of_cancer_thom: lead.historyOfCancer ?? undefined,
-          mortgage_loan_amount_thom: lead.mortgageLoanAmount ?? undefined,
-        }
-      : {}),
   };
+
+  if (lead.leadType?.includes("iul")) {
+    payload.has_iul_thom = lead.haveIul ?? undefined;
+    payload.primary_goal_thom = lead.primaryGoal ?? undefined;
+  }
+
+  if (lead.leadType === "mortgage_protection") {
+    payload.beneficiary_thom = lead.beneficiary ?? undefined;
+    payload.history_of_cancer_thom = lead.historyOfCancer ?? undefined;
+    payload["mortgage.loan.amount"] = lead.mortgageLoanAmount ?? undefined;
+    payload.monthly_payment_thom = pickRawString(
+      lead.rawPayload,
+      "Monthly_Mortgage_Payment",
+      "monthlyMortgagePayment",
+      "monthly_mortgage_payment",
+    );
+  }
+
+  if (lead.leadType === "final_expense") {
+    payload.beneficiary_thom = lead.beneficiary ?? undefined;
+  }
+
+  const militaryService = pickRawString(
+    lead.rawPayload,
+    "Military_Service",
+    "militaryService",
+    "is_military",
+  );
+  if (militaryService) {
+    payload.is_military = militaryService;
+  }
 
   return Object.fromEntries(
     Object.entries(payload).filter(([, v]) => v !== undefined),
   ) as Record<string, string>;
 }
 
-/**
- * Builds the ping payload for the Integrity Storefront flow.
- */
+/** @deprecated Storefront no longer uses a LeadConduit ping gate. */
 export function buildIntegrityPingPayload(
   lead: Lead,
   integrityLabel?: string | null,
@@ -187,10 +235,6 @@ export function buildIntegrityPingPayload(
   };
 }
 
-/**
- * Builds the full payload for the Integrity Storefront flow.
- * Uses the Storefront label when set; otherwise falls back to Realtime on the same category.
- */
 export function buildIntegrityStorefrontPayload(
   lead: Lead,
   integrityLabel?: string | null,
@@ -202,8 +246,8 @@ export function buildIntegrityStorefrontPayload(
   const resolved = resolveIntegrityLabelForMode("storefront", sources);
 
   return {
-    ...buildIntegrityLeadPayload(lead, sources.realtime),
+    ...buildIntegrityLeadPayload(lead, sources.realtime, { mode: "storefront" }),
     lead_type_thom: resolved,
-    vendor_lead_id_thom: lead.externalId ?? lead.id,
+    vendor_lead_id_thom: resolveVendorLeadId(lead, "storefront"),
   };
 }

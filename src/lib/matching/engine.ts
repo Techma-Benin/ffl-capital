@@ -13,6 +13,7 @@ import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { debitWallet } from "@/lib/wallet/ledger";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
 import { findEligibleFilterSets } from "./eligibility";
+import { claimLiveSale } from "@/lib/lead-routing/live-sale";
 
 export interface MatchResult {
   matched: boolean;
@@ -136,6 +137,8 @@ export async function matchLead(
       reason: "Match failed during transaction (concurrency or insufficient balance)",
     };
   }
+
+  await claimLiveSale(result.lead.id, "partner");
 
   try {
     await deliverLead(result.deliveryId);

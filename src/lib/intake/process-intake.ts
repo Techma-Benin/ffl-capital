@@ -15,7 +15,10 @@ import {
   findLeadByExternalId,
 } from "@/lib/intake/check-duplicate";
 import { validateTrustedFormCert } from "@/lib/intake/validate-trustedform";
-import { isTrustedformValidationEnabled } from "@/lib/settings/app-settings";
+import {
+  isLifecycleRoutingEnabled,
+  isTrustedformValidationEnabled,
+} from "@/lib/settings/app-settings";
 
 export interface IntakeResult {
   leadId: string;
@@ -198,6 +201,16 @@ export async function processLeadIntake(
   }
 
   try {
+    if (await isLifecycleRoutingEnabled()) {
+      const { executeLeadRouting } = await import("@/lib/lead-routing/coordinator");
+      const routeResult = await executeLeadRouting(lead.id, { mode: "intake" });
+      return {
+        leadId: lead.id,
+        matched: routeResult.action === "matched",
+        reason: routeResult.reason,
+      };
+    }
+
     const matchResult = await matchLead(lead.id);
 
     return {

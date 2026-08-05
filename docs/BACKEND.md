@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 4 août 2026
+> Dernière mise à jour : 5 août 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -68,6 +68,19 @@
 | Catégories lead flexibles (`lead_category_criteria`, résolution intake) | ✅ migration `20260730170000` |
 | Reclassification automatique après changement des règles catégories | ✅ sans migration supplémentaire |
 
+### Phase 2 — integrity-prod-alignment (août 2026 — fait)
+
+| Composant | Statut |
+|-----------|--------|
+| Module `src/lib/lead-routing/` (policy, coordinator, live-sale) | ✅ |
+| Routage lifecycle client (flag `lifecycle_routing_enabled`, défaut **off**) | ✅ |
+| Provenance vente live : `live_sold_at`, `live_sale_channel` sur `leads` | ✅ migration `20260805180000` |
+| Azure ping Realtime IUL (`IsAcceptingCampaign`) avant post LeadConduit | ✅ `azure-ping.ts` ; secrets env-only |
+| Storefront : post direct LeadConduit (plus de ping gate LC) | ✅ |
+| Preflight opérateur Azure | ✅ `pnpm run preflight:integrity-azure` |
+| Preview routage admin | ✅ `POST /api/admin/lead-routing/preview` |
+| Coordinator unifié intake + cron + reprocess | ✅ |
+
 ### Reporté / hors scope
 
 | Zone | Statut |
@@ -102,7 +115,9 @@ POST /api/leads/intake
         └── matching/engine.ts (priorité DESC, created_at ASC FIFO)
                 │
                 ├── deliverLead → Resend email + CRM webhook
-                └── unmatched → cron reprocess (< 24h) → Integrity post (> 24h)
+                └── unmatched → routing coordinator
+                ├── lifecycle OFF (défaut) : match < délai → Integrity realtime au-delà
+                └── lifecycle ON : policy 0–24h / 24–48h / 48h–30j / aged (voir § Lead routing)
                         │
                         ▼
                    PostgreSQL (Prisma)
@@ -129,10 +144,13 @@ POST /api/leads/intake
 - `20260730170000_flexible_lead_categories` — `lead_category_criteria` ; drop `lead_categories.src` ; `leads.category_resolution`, `category_candidate_types` ; `lead_type` nullable
 - `20260730120000_add_category_assigned_event` — `LeadEventType.category_assigned` (assignation manuelle admin)
 - `20260805120000_add_integrity_label_storefront` — `lead_categories.integrity_label_storefront` (label Integrity Storefront ; nullable)
+- `20260805180000_add_live_sale_provenance` — `leads.live_sold_at`, `leads.live_sale_channel`
 
 **`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`.
 
 **`leads` (catégorisation) :** `lead_type` (string, nullable) ; `category_resolution` (`matched` \| `no_match` \| `multiple_matches`) ; `category_candidate_types` (text[], types des catégories qui ont matché). Zéro ou plusieurs matchs → `status=review`, `available=false`, pas de matching partenaire ni post Integrity.
+
+**`leads` (provenance vente live, Phase 2) :** `live_sold_at` (timestamp nullable) ; `live_sale_channel` (`partner` \| `integrity_realtime` \| `integrity_storefront`). Posés par `claimLiveSale` à la première vente live automatique ; bloquent le routage lifecycle tant que non réinitialisés (redelivery admin explicite).
 
 ---
 
@@ -421,7 +439,7 @@ Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
 | Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` |
 | CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
-| IntegrityCONNECT | prod : live ; dev : mock/live | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; mode sorties via `getIntegrationsMode()` : **prod toujours `live`** ; en dev, `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` seulement si pas de valeur DB (défaut `mock`). Dropdown Mode (Settings → Integrations / Integrity Connect) **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire |
+| IntegrityCONNECT | prod : live ; dev : mock/live | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; **Realtime IUL** : ping Azure `IsAcceptingCampaign` avant post LC (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY` — env-only, jamais en BDD) ; Storefront : post direct sans ping LC ; mode sorties via `getIntegrationsMode()` : **prod toujours `live`** ; en dev, `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` seulement si pas de valeur DB (défaut `mock`). Dropdown Mode (Settings → Integrations / Integrity Connect) **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire |
 | Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
 
 ---
@@ -437,7 +455,29 @@ Routes protégées par `Authorization: Bearer $CRON_SECRET` (en dev, le serveur 
 
 Options : `pg_cron` Supabase, Vercel Cron, cron-job.org.
 
-Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/integrity/*`
+Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/lead-routing/coordinator.ts`, `src/lib/integrity/*`
+
+### Lead routing (lifecycle Phase 2)
+
+Module `src/lib/lead-routing/` — policy pure (`policy.ts`), exécution (`coordinator.ts`), verrou vente live (`live-sale.ts`).
+
+**Flag admin** (`app_settings`, défaut **off**) : `lifecycle_routing_enabled`. Settings associés : `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`). UI : Settings → General → Lead lifecycle.
+
+Quand **désactivé** (comportement legacy) : reprocess cron matche pendant `integrity_post_delay_hours`, puis post Integrity **realtime** par défaut.
+
+Quand **activé** (cycle client approuvé — voir `docs/client_email_lead_routing_2026-08-03.txt`) :
+
+| Âge lead | Phase | Action automatique |
+|----------|-------|-------------------|
+| 0 – cutoff Realtime (24 h) | `realtime` | Post Integrity Realtime uniquement (pas de match partner) |
+| Realtime – cutoff Storefront (48 h) | `partner_or_storefront` | Route primaire + fallback selon `lifecycle_mid_window_primary` ; posting Integrity `pending` bloque le fallback |
+| Storefront – seuil aged (30 j) | `partners_only` | Match partners uniquement |
+| ≥ seuil aged | `aged_marketplace` | Pas de routage live auto (marketplace passive) |
+| `live_sold_at` renseigné | `live_sold` | Aucun routage live auto |
+
+`executeLeadRouting` est appelé depuis l'intake (après catégorie OK), le cron `reprocess-unmatched` / `integrity-post`, et le reprocess manuel. Preview sans effet de bord : `POST /api/admin/lead-routing/preview` — corps `{ ageHours, liveSold, integrityPosting }`.
+
+**Preflight Azure** (secrets env, sortie redacted) : `pnpm run preflight:integrity-azure`
 
 ### Reprocess admin (manuel vs cron)
 
@@ -515,6 +555,7 @@ pnpm run test:outbound   # CRM outbound (SSRF, mapping, règles succès — sans
 pnpm run seed:lead       # POST fixture intake
 pnpm run repair:category-classification   # dry-run réévaluation catégories (historique)
 pnpm run repair:category-classification -- --apply   # applique les corrections
+pnpm run preflight:integrity-azure   # smoke test Azure IsAcceptingCampaign (env secrets requis)
 pnpm stripe:listen       # webhook Stripe local
 ```
 
@@ -593,3 +634,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-07-31 | Bulk reprocess : hold/release en mémoire pour éviter course cron / reprocess ligne pendant sélection partenaires ; routes `hold` et `release-hold` |
 | 2026-08-04 | `getIntegrationsMode()` : en dev, `app_settings.integrations_mode` prime sur env ; Mode admin PATCH immédiat `/api/admin/settings` |
 | 2026-08-04 | Admin Integrity postings : détail `GET …/postings/[id]` (payloads + timeline événements) ; `requestPayload` / `response` persistés sur événements post + webhook |
+| 2026-08-05 | Phase 2 integrity-prod-alignment : module `lead-routing`, lifecycle flag off par défaut, provenance `live_sold_at` / `live_sale_channel`, Azure ping Realtime IUL, storefront sans ping LC, preflight + preview API |

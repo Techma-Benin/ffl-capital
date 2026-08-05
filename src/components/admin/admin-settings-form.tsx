@@ -401,6 +401,10 @@ export function AdminSettingsForm({
     integrityPostDelayHours: 24,
     integrityReprocessEnabled: true,
     reprocessPartnerPickerEnabled: false,
+    lifecycleRoutingEnabled: false,
+    lifecycleRealtimeCutoffHours: 24,
+    lifecycleStorefrontCutoffHours: 48,
+    lifecycleMidWindowPrimary: "partner" as "partner" | "storefront",
   });
 
   const [resaleVendors, setResaleVendors] = useState<ResaleVendorRow[]>([]);
@@ -430,6 +434,17 @@ export function AdminSettingsForm({
           reprocessPartnerPickerEnabled: Boolean(
             s.reprocess_partner_picker_enabled ?? false,
           ),
+          lifecycleRoutingEnabled: Boolean(s.lifecycle_routing_enabled ?? false),
+          lifecycleRealtimeCutoffHours: Number(
+            s.lifecycle_realtime_cutoff_hours ?? 24,
+          ),
+          lifecycleStorefrontCutoffHours: Number(
+            s.lifecycle_storefront_cutoff_hours ?? 48,
+          ),
+          lifecycleMidWindowPrimary:
+            s.lifecycle_mid_window_primary === "storefront"
+              ? "storefront"
+              : "partner",
         });
         setResaleVendors(
           buildResaleRows(
@@ -480,6 +495,10 @@ export function AdminSettingsForm({
         integrityPostDelayHours: form.integrityPostDelayHours,
         integrityReprocessEnabled: form.integrityReprocessEnabled,
         reprocessPartnerPickerEnabled: form.reprocessPartnerPickerEnabled,
+        lifecycleRoutingEnabled: form.lifecycleRoutingEnabled,
+        lifecycleRealtimeCutoffHours: form.lifecycleRealtimeCutoffHours,
+        lifecycleStorefrontCutoffHours: form.lifecycleStorefrontCutoffHours,
+        lifecycleMidWindowPrimary: form.lifecycleMidWindowPrimary,
       };
       if (isDev) {
         payload.integrationsMode = form.integrationsMode;
@@ -733,6 +752,101 @@ export function AdminSettingsForm({
                 </div>
 
                 {/* Toggle rows */}
+                <ToggleRow
+                  label="Client-approved lifecycle routing"
+                  description="When off, existing delay-based reprocessing applies. When on, enforces 0–24h Realtime, 24–48h priority/fallback, and 48h–30d partners-only routing."
+                  checked={form.lifecycleRoutingEnabled}
+                  onChange={(v) => setForm({ ...form, lifecycleRoutingEnabled: v })}
+                />
+                {form.lifecycleRoutingEnabled && (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr",
+                      gap: 14,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 800,
+                          color: "#030229",
+                          display: "block",
+                          marginBottom: 6,
+                        }}
+                      >
+                        Realtime cutoff (hours)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={form.lifecycleRealtimeCutoffHours}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            lifecycleRealtimeCutoffHours: Number(e.target.value),
+                          })
+                        }
+                        className="form-input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 800,
+                          color: "#030229",
+                          display: "block",
+                          marginBottom: 6,
+                        }}
+                      >
+                        Storefront cutoff (hours)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={form.lifecycleStorefrontCutoffHours}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            lifecycleStorefrontCutoffHours: Number(e.target.value),
+                          })
+                        }
+                        className="form-input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 800,
+                          color: "#030229",
+                          display: "block",
+                          marginBottom: 6,
+                        }}
+                      >
+                        24–48h primary route
+                      </label>
+                      <select
+                        value={form.lifecycleMidWindowPrimary}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            lifecycleMidWindowPrimary: e.target.value as
+                              | "partner"
+                              | "storefront",
+                          })
+                        }
+                        className="form-input"
+                      >
+                        <option value="partner">Platform partner</option>
+                        <option value="storefront">ILC Storefront</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
                 <ToggleRow
                   label="Automated reprocessing"
                   description="Every 15 min: retry matching unmatched leads, then escalate old ones to Integrity. Turn off to pause the whole flow."
