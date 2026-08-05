@@ -4,6 +4,9 @@ import { prisma } from "@/lib/db";
 import {
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
+  encodeIntegrityFormBody,
+  resolveIntegrityLabelForMode,
+  type IntegrityLabelSources,
 } from "@/lib/integrity/build-payload";
 import { formatStateForIntegrity } from "@/lib/constants/us-states";
 import { logIntegrityAction } from "@/lib/integrity/log";
@@ -17,6 +20,27 @@ import {
   INTEGRITY_REALTIME_VENDOR_KEY,
   INTEGRITY_STOREFRONT_VENDOR_KEY,
 } from "@/lib/settings/resale-vendor-keys";
+
+/** Fields that must remain in the encoded body even when blank (Boberdoo parity). */
+const PRESERVE_BLANK_KEYS = new Set(["address_1"]);
+
+function prepareManualTestFields(
+  manualPayload: Record<string, string>,
+): Record<string, string> {
+  const filtered = Object.fromEntries(
+    Object.entries(manualPayload).filter(([key, value]) => {
+      if (value == null) return false;
+      if (PRESERVE_BLANK_KEYS.has(key)) return true;
+      return value.trim() !== "";
+    }),
+  ) as Record<string, string>;
+
+  if (filtered.state) {
+    filtered.state = formatStateForIntegrity(filtered.state);
+  }
+
+  return { ...filtered, is_test: "yes" };
+}
 
 export async function POST(request: NextRequest) {
   const adminCheck = await requireAdmin();
@@ -76,13 +100,7 @@ export async function POST(request: NextRequest) {
   let requiredFieldsCheck: { ok: boolean; missing: string[] } | null = null;
 
   if (manualPayload) {
-    const filtered = Object.fromEntries(
-      Object.entries(manualPayload).filter(([, v]) => v && v.trim() !== ""),
-    ) as Record<string, string>;
-    if (filtered.state) {
-      filtered.state = formatStateForIntegrity(filtered.state);
-    }
-    testFields = { ...filtered, is_test: "yes" };
+    testFields = prepareManualTestFields(manualPayload);
   } else if (leadId) {
     const lead = await prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) {
@@ -90,12 +108,16 @@ export async function POST(request: NextRequest) {
     }
     const category = await prisma.leadCategory.findUnique({
       where: { type: lead.leadType ?? "" },
-      select: { integrityLabel: true },
+      select: { integrityLabel: true, integrityLabelStorefront: true },
     });
+    const labelSources: IntegrityLabelSources = {
+      realtime: category?.integrityLabel ?? null,
+      storefront: category?.integrityLabelStorefront ?? null,
+    };
     const rawPayload =
       flow === "realtime"
-        ? buildIntegrityLeadPayload(lead, category?.integrityLabel)
-        : buildIntegrityStorefrontPayload(lead, category?.integrityLabel);
+        ? buildIntegrityLeadPayload(lead, labelSources.realtime)
+        : buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources);
     testFields = { ...rawPayload, is_test: "yes" } as Record<string, string>;
     requiredFieldsCheck = checkRequiredIntegrityFields(lead);
     leadSummary = {
@@ -109,6 +131,7 @@ export async function POST(request: NextRequest) {
       hasHistoryOfCancer: !!lead.historyOfCancer,
       hasMortgageLoanAmount: !!lead.mortgageLoanAmount,
       missingRequiredFields: requiredFieldsCheck.missing,
+      resolvedLeadTypeThom: resolveIntegrityLabelForMode(flow, labelSources),
     };
   } else {
     testFields = {
@@ -117,16 +140,20 @@ export async function POST(request: NextRequest) {
       email: "bill.ahognonvi+test@techma.ca",
       phone_1: "5127891111",
       state: "Texas",
+      dob: "6/2/1980",
       dob_mmddyyyy_thom: "06/02/1980",
       lead_type_thom: "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
       has_iul_thom: "yes",
       primary_goal_thom: "Stability",
       vendor_lead_id_thom: "test-001",
+      address_1: "",
       trustedform_cert_url:
         "https://cert.trustedform.com/a1028cbb41b876744fa752eec276bec0e4c48b33",
       is_test: "yes",
     };
   }
+
+  const encodedBody = encodeIntegrityFormBody(testFields);
 
   if (integrationsMode === "mock") {
     logIntegrityAction("test_mock", {
@@ -143,14 +170,14 @@ export async function POST(request: NextRequest) {
       httpStatus: 200,
       lead: leadSummary,
       payload: testFields,
+      encodedBody,
+      encodedFields: Object.fromEntries(new URLSearchParams(encodedBody).entries()),
       response: {
         outcome: "success",
         message: "Mock mode — no HTTP request sent",
       },
     });
   }
-
-  const params = new URLSearchParams(testFields);
 
   let rawResponse: unknown;
   let httpStatus: number;
@@ -162,7 +189,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/x-www-form-urlencoded",
         Accept: "application/json",
       },
-      body: params.toString(),
+      body: encodedBody,
     });
     httpStatus = res.status;
     rawResponse = await res.json();
@@ -192,6 +219,8 @@ export async function POST(request: NextRequest) {
       httpStatus,
       lead: leadSummary,
       payload: testFields,
+      encodedBody,
+      encodedFields: Object.fromEntries(new URLSearchParams(encodedBody).entries()),
       response: rawResponse,
       requiredFieldsCheck,
     },
@@ -222,7 +251,11 @@ export async function GET() {
         leadType: true,
         state: true,
         dob: true,
+        address: true,
+        city: true,
+        zip: true,
         trustedformCertUrl: true,
+        leadidToken: true,
         externalId: true,
         haveIul: true,
         primaryGoal: true,
@@ -233,7 +266,11 @@ export async function GET() {
       },
     }),
     prisma.leadCategory.findMany({
-      select: { type: true, integrityLabel: true },
+      select: {
+        type: true,
+        integrityLabel: true,
+        integrityLabelStorefront: true,
+      },
     }),
     getIntegrityRealtimeVendor(),
     getIntegrityStorefrontVendor(),

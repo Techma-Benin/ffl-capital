@@ -48,6 +48,7 @@ export const categoryCreateSchema = z
     defaultPrice: z.number().positive().nullable().optional(),
     enabled: z.boolean().optional(),
     integrityLabel: z.string().trim().min(1).nullable().optional(),
+    integrityLabelStorefront: z.string().trim().min(1).nullable().optional(),
   })
   .strict();
 
@@ -58,6 +59,7 @@ export const categoryUpdateSchema = z
     defaultPrice: z.number().positive().nullable().optional(),
     enabled: z.boolean().optional(),
     integrityLabel: z.string().trim().min(1).nullable().optional(),
+    integrityLabelStorefront: z.string().trim().min(1).nullable().optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, {

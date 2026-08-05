@@ -120,13 +120,15 @@ Default seeded criteria (migrated from former `lead_categories.src` column):
 | `mortgage_protection` | `SRC` = `Mortgage_LeadConduit` |
 | `final_expense` | `SRC` = `Veteran_LeadConduit` |
 
-Admin UI: `/admin/settings` → **Lead categories** — multi-criteria editor; internal `type` is server-generated from label (not supplied on create).
+Admin UI: `/admin/settings` → **Lead categories** — multi-criteria editor; internal `type` is server-generated from label (not supplied on create). Each category has an **Integrity Realtime label** (`integrityLabel`) and optional **Integrity Storefront label** (`integrityLabelStorefront`); blank Storefront falls back to Realtime, then the default IUL Realtime string.
 
 There is **no** implicit fallback from `Intent` or partial `SRC` matching; unmatched payloads require admin review or new category rules.
 
 Creating or deleting an enabled category, changing criteria, or toggling `enabled` re-evaluates all non-finalized leads from their stored raw webhook payload with this same evaluator. Final statuses (`delivered`, `integrity_posted`, `aged_listed`, `dead`) are excluded. A newly unique match becomes `unmatched` and available for the normal reprocess flow; the category API itself does not immediately match or deliver it.
 
 ### Outbound field mapping (Internal → Integrity Connect / LeadConduit)
+
+Shared builders always include `address_1` (empty string when missing). When DOB is set, both `dob` (`m/d/Y`) and `dob_mmddyyyy_thom` (`MM/dd/yyyy`) are sent. Form encoding preserves blank `address_1`.
 
 | Internal field | LeadConduit parameter | Notes |
 |----------------|----------------------|-------|
@@ -135,22 +137,25 @@ Creating or deleting an enabled category, changing criteria, or toggling `enable
 | `lead.email` | `email` | |
 | `lead.phone` | `phone_1` | |
 | `lead.state` | `state` | |
-| `lead.dob` | `dob_mmddyyyy_thom` | Formatted `MM/dd/yyyy`; **required for RealTime** |
-| `lead.leadType` | `lead_type_thom` | Mapped to exact Integrity string (see below) |
+| `lead.dob` | `dob` | Format `m/d/Y` when present |
+| `lead.dob` | `dob_mmddyyyy_thom` | Format `MM/dd/yyyy`; **required for RealTime** |
+| category Realtime / Storefront labels | `lead_type_thom` | Realtime label; Storefront label → Realtime → default IUL |
 | `lead.externalId ?? lead.id` | `vendor_lead_id_thom` | **Required for Storefront** |
-| `lead.address` | `address_1` | |
+| `lead.address` | `address_1` | Always sent; `""` when missing |
 | `lead.city` | `city` | |
 | `lead.zip` | `postal_code` | |
 | `lead.trustedformCertUrl` | `trustedform_cert_url` | |
 | `lead.leadidToken` | `universal_leadid` | Jornaya token |
 | `lead.ipAddress` | `ip_address` | |
 | `lead.age` | `age` | |
-| `lead.haveIul` | `has_iul_thom` | |
-| `lead.primaryGoal` | `primary_goal_thom` | |
+| `lead.haveIul` | `has_iul_thom` | When present |
+| `lead.primaryGoal` | `primary_goal_thom` | When present |
 | `lead.source` | `campaign_source` | |
 | `lead.subId` | `campaign_id` | |
 
 ### Lead type mapping → Integrity exact strings
+
+Prefer per-category Integrity labels in admin Settings. Canonical Realtime defaults when a label is blank:
 
 | Internal `leadType` | `lead_type_thom` value sent to Integrity |
 |---------------------|------------------------------------------|
@@ -244,10 +249,10 @@ The platform provides a protected admin route for firing test submissions withou
 ```
 POST /api/admin/integrity/test
 Authorization: admin session required
-Body: { "flow": "realtime" | "storefront" }
+Body: { "flow": "realtime" | "storefront", ... }
 ```
 
-Returns the raw LeadConduit response.
+Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`.
 
 ### Manual curl — RealTime flow
 

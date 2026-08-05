@@ -16,6 +16,7 @@ bun.lockb
 
 # testing
 coverage/
+test/uncommitted/
 
 # next.js
 .next/

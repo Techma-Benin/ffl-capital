@@ -299,7 +299,7 @@ Phase D — Migration Replit (livraison client)
 #### Configuration globale
 - Prix lead temps réel par type (défaut IUL = 25 $)
 - Prix aged lead (défaut 5 $)
-- **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label`, prix par défaut ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
+- **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label` (Realtime) + `integrity_label_storefront` (Storefront, fallback Realtime), prix par défaut ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
 - *(Futur)* frais de retraitement
 
 #### Migration historique
@@ -713,7 +713,8 @@ migration_jobs                    │
 | label | string | Libellé admin |
 | default_price | decimal nullable | Prix temps réel suggéré |
 | enabled | boolean | Exclue de l’évaluation si false |
-| integrity_label | string nullable | Chaîne exacte `lead_type_thom` pour Integrity |
+| integrity_label | string nullable | Chaîne exacte `lead_type_thom` pour Integrity **Realtime** |
+| integrity_label_storefront | string nullable | Chaîne `lead_type_thom` pour Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL |
 | created_at, updated_at | timestamp | |
 
 ### Table `lead_category_criteria`

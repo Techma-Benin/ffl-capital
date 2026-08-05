@@ -314,7 +314,14 @@ These are the mappings from our internal lead object properties to the LeadCondu
 
 **Intake requirement:** `/api/leads/intake` rejects payloads missing `Trusted_Form_URL` (or `trustedform_cert_url`) with `{ outcome: "error", reason: "Missing required fields: …" }`. `DOB` is temporarily optional at intake (MP Facebook forms often omit it); `Have_IUL` / `Primary_Goal` are product-specific and not enforced at intake. Per-product completeness (including `DOB`) is checked before Integrity post via `src/lib/integrity/required-fields.ts`.
 
-**Outbound payload shape:** `buildIntegrityLeadPayload` and `buildIntegrityStorefrontPayload` omit optional fields when the lead has no value. The exception is `address_1`, which is always included (empty string when the lead has no address). Mortgage Protection–specific fields (`beneficiary_thom`, `history_of_cancer_thom`, `mortgage_loan_amount_thom`) are included only for `mortgage_protection` leads, and omitted when missing. Ping payloads (`buildIntegrityPingPayload`) include only `first_name`, `last_name`, `state`, `lead_type_thom`, and `vendor_lead_id_thom`.
+**Outbound payload shape:** `buildIntegrityLeadPayload` and `buildIntegrityStorefrontPayload` omit optional fields when the lead has no value. Exceptions and parity notes:
+
+- `address_1` is **always** included (empty string when the lead has no address); `encodeIntegrityFormBody` keeps blank `address_1` in the form-urlencoded body.
+- When DOB is present, both `dob` (`m/d/Y`) and `dob_mmddyyyy_thom` (`MM/dd/yyyy`) are sent.
+- TrustedForm (`trustedform_cert_url`), Jornaya (`universal_leadid`), `has_iul_thom`, and `primary_goal_thom` are included when present.
+- `lead_type_thom` comes from the lead category: Realtime uses `integrity_label`; Storefront uses `integrity_label_storefront` with fallback to Realtime, then the default IUL Realtime string (`resolveIntegrityLabelForMode`).
+- Mortgage Protection–specific fields (`beneficiary_thom`, `history_of_cancer_thom`, `mortgage_loan_amount_thom`) are included only for `mortgage_protection` leads, and omitted when missing.
+- Ping payloads (`buildIntegrityPingPayload`) include only `first_name`, `last_name`, `state`, `lead_type_thom`, and `vendor_lead_id_thom`.
 
 | Internal Field | LeadConduit Parameter | Notes |
 |---|---|---|
@@ -323,24 +330,27 @@ These are the mappings from our internal lead object properties to the LeadCondu
 | `lead.email` | `email` | |
 | `lead.phone` | `phone_1` | |
 | `lead.state` | `state` | |
-| `lead.dob` | `dob_mmddyyyy_thom` | Required before Integrity RealTime post; formatted as `MM/dd/yyyy` |
-| `lead.leadType` | `lead_type_thom` | RealTime: must map to one of the 5 exact strings; Storefront: any text |
+| `lead.dob` | `dob` | Format `m/d/Y` when present |
+| `lead.dob` | `dob_mmddyyyy_thom` | Format `MM/dd/yyyy`; required before Integrity RealTime post |
+| `lead.leadType` / category labels | `lead_type_thom` | RealTime: category Realtime label (or default IUL string); Storefront: Storefront label → Realtime → default |
 | `lead.id` or `lead.externalId` | `vendor_lead_id_thom` | Required for Storefront |
-| `lead.address` | `address_1` | |
+| `lead.address` | `address_1` | Always sent; `""` when missing |
 | `lead.city` | `city` | |
 | `lead.zip` | `postal_code` | |
 | `lead.trustedformCertUrl` | `trustedform_cert_url` | **Required at intake** |
 | `lead.leadidToken` | `universal_leadid` | Jornaya token |
 | `lead.ipAddress` | `ip_address` | |
 | `lead.age` | `age` | |
-| `lead.haveIul` | `has_iul_thom` | **Required at intake**; send `"yes"` or `"no"` |
-| `lead.primaryGoal` | `primary_goal_thom` | **Required at intake** |
+| `lead.haveIul` | `has_iul_thom` | Send when present (`"yes"` / `"no"`) |
+| `lead.primaryGoal` | `primary_goal_thom` | Send when present |
 | `lead.source` | `campaign_source` | |
 | `lead.subId` | `campaign_id` | |
 
 ### Lead Type Mapping (Internal → RealTime Exact Strings)
 
-The RealTime flow requires exact lead type strings. Map internal values like so:
+The RealTime flow requires exact lead type strings. Prefer the category’s configured **Integrity Realtime label** (`integrity_label`); when blank, builders fall back to the default IUL Realtime string. Storefront uses **Integrity Storefront label** (`integrity_label_storefront`) with the same Realtime → default fallback chain.
+
+Canonical Realtime strings (also useful as category defaults):
 
 | Internal Lead Type | LeadConduit `lead_type_thom` Value |
 |---|---|
@@ -380,6 +390,10 @@ Both URLs are unique per flow per source — they cannot be swapped or reused.
 ---
 
 ## Testing
+
+### Admin Integrity test panel (preferred)
+
+`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and returns `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields before/after send. Manual payload overrides preserve blank `address_1`. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
 
 ### General Approach
 

@@ -5,7 +5,7 @@ import {
   getIntegrityStorefrontVendor,
 } from "@/lib/settings/app-settings";
 import { INTEGRITY_STOREFRONT_VENDOR_KEY } from "@/lib/settings/resale-vendor-keys";
-import { buildIntegrityPingPayload } from "./build-payload";
+import { buildIntegrityPingPayload, type IntegrityLabelSources } from "./build-payload";
 import { logIntegrityAction, urlHost } from "./log";
 
 export interface IntegrityPingResult {
@@ -83,9 +83,17 @@ export async function integrityPing(
 
   const category = await prisma.leadCategory.findUnique({
     where: { type: lead.leadType },
-    select: { integrityLabel: true },
+    select: { integrityLabel: true, integrityLabelStorefront: true },
   });
-  const pingPayload = buildIntegrityPingPayload(lead, category?.integrityLabel);
+  const labelSources: IntegrityLabelSources = {
+    realtime: category?.integrityLabel ?? null,
+    storefront: category?.integrityLabelStorefront ?? null,
+  };
+  const pingPayload = buildIntegrityPingPayload(
+    lead,
+    labelSources.realtime,
+    labelSources,
+  );
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(pingPayload)) {
     if (value !== undefined) {

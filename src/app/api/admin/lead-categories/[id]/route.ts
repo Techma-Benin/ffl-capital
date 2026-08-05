@@ -79,6 +79,9 @@ export async function PATCH(
         ...(parsed.data.integrityLabel !== undefined
           ? { integrityLabel: parsed.data.integrityLabel }
           : {}),
+        ...(parsed.data.integrityLabelStorefront !== undefined
+          ? { integrityLabelStorefront: parsed.data.integrityLabelStorefront }
+          : {}),
       },
       include: categoryInclude,
     });

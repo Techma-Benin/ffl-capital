@@ -20,6 +20,8 @@ import { integrityRealtimeSkipReason } from "@/lib/constants/us-states";
 import {
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
+  encodeIntegrityFormBody,
+  type IntegrityLabelSources,
 } from "./build-payload";
 import { logIntegrityAction, urlHost } from "./log";
 import { integrityPing } from "./ping";
@@ -29,14 +31,6 @@ export interface IntegrityPostResult {
   posted: boolean;
   postingId?: string;
   reason?: string;
-}
-
-function toFormBody(data: Record<string, string | undefined>): string {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(data)) {
-    if (value !== undefined) params.append(key, value);
-  }
-  return params.toString();
 }
 
 async function rejectPosting(
@@ -159,7 +153,7 @@ async function submitToIntegrity(
         "Content-Type": "application/x-www-form-urlencoded",
         Accept: "application/json",
       },
-      body: toFormBody(payload),
+      body: encodeIntegrityFormBody(payload),
     });
   } catch (err) {
     const reason = `Network error: ${String(err)}`;
@@ -257,16 +251,19 @@ export async function integrityPostLead(
 
   const category = await prisma.leadCategory.findUnique({
     where: { type: lead.leadType },
-    select: { integrityLabel: true },
+    select: { integrityLabel: true, integrityLabelStorefront: true },
   });
-  const integrityLabel = category?.integrityLabel ?? null;
+  const labelSources: IntegrityLabelSources = {
+    realtime: category?.integrityLabel ?? null,
+    storefront: category?.integrityLabelStorefront ?? null,
+  };
   const integrationsMode = await getIntegrationsMode();
 
   if (integrationsMode === "mock") {
     const payload =
       resaleMode === ResaleMode.storefront
-        ? buildIntegrityStorefrontPayload(lead, integrityLabel)
-        : buildIntegrityLeadPayload(lead, integrityLabel);
+        ? buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources)
+        : buildIntegrityLeadPayload(lead, labelSources.realtime);
     logIntegrityAction("post_mock", {
       leadId,
       vendor: vendorKey,
@@ -312,8 +309,9 @@ export async function integrityPostLead(
     enabled: vendor.enabled,
     lead_type_thom:
       resaleMode === ResaleMode.storefront
-        ? buildIntegrityStorefrontPayload(lead, integrityLabel).lead_type_thom
-        : buildIntegrityLeadPayload(lead, integrityLabel).lead_type_thom,
+        ? buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources)
+            .lead_type_thom
+        : buildIntegrityLeadPayload(lead, labelSources.realtime).lead_type_thom,
   };
 
   const posting = existing
@@ -336,11 +334,11 @@ export async function integrityPostLead(
   const builtPayload =
     resaleMode === ResaleMode.storefront
       ? {
-          ...buildIntegrityStorefrontPayload(lead, integrityLabel),
+          ...buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources),
           reference: posting.id,
         }
       : {
-          ...buildIntegrityLeadPayload(lead, integrityLabel),
+          ...buildIntegrityLeadPayload(lead, labelSources.realtime),
           reference: posting.id,
         };
 

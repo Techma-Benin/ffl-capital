@@ -20,6 +20,7 @@ export interface LeadCategory {
   defaultPrice: number | null;
   enabled: boolean;
   integrityLabel: string | null;
+  integrityLabelStorefront: string | null;
   criteria: LeadCategoryCriterion[];
 }
 
@@ -77,6 +78,7 @@ interface CategoryFormData {
   defaultPrice: string;
   enabled: boolean;
   integrityLabel: string;
+  integrityLabelStorefront: string;
   criteria: LeadCategoryCriterion[];
 }
 
@@ -90,6 +92,7 @@ function emptyForm(): CategoryFormData {
     defaultPrice: "",
     enabled: true,
     integrityLabel: "",
+    integrityLabelStorefront: "",
     criteria: [emptyCriterion()],
   };
 }
@@ -100,6 +103,7 @@ function categoryToForm(cat: LeadCategory): CategoryFormData {
     defaultPrice: cat.defaultPrice != null ? String(cat.defaultPrice) : "",
     enabled: cat.enabled,
     integrityLabel: cat.integrityLabel ?? "",
+    integrityLabelStorefront: cat.integrityLabelStorefront ?? "",
     criteria: cat.criteria.length ? cat.criteria : [emptyCriterion()],
   };
 }
@@ -250,14 +254,27 @@ function CategoryModal({
         </Field>
 
         <Field
-          label="Integrity Connect label"
-          hint="Exact string sent as lead_type_thom to Integrity. Leave blank to use the default IUL label."
+          label="Integrity Realtime label"
+          hint="Exact string sent as lead_type_thom for Realtime posts. Leave blank to use the default IUL Realtime label."
         >
           <input
             type="text"
             value={form.integrityLabel}
             onChange={(e) => set({ integrityLabel: e.target.value })}
-            placeholder="e.g. Mortgage Protection Facebook (Realtime Lead)"
+            placeholder="e.g. Indexed Universal Life [IUL] Facebook (Realtime Lead)"
+            className="form-input text-sm"
+          />
+        </Field>
+
+        <Field
+          label="Integrity Storefront label"
+          hint="Exact string sent as lead_type_thom for Storefront posts. Leave blank to fall back to the Realtime label."
+        >
+          <input
+            type="text"
+            value={form.integrityLabelStorefront}
+            onChange={(e) => set({ integrityLabelStorefront: e.target.value })}
+            placeholder="Leave blank to use Realtime label"
             className="form-input text-sm"
           />
         </Field>
@@ -369,6 +386,7 @@ export function LeadCategoryManager() {
       defaultPrice: data.defaultPrice !== "" ? Number(data.defaultPrice) : null,
       enabled: data.enabled,
       integrityLabel: data.integrityLabel || null,
+      integrityLabelStorefront: data.integrityLabelStorefront || null,
     };
 
     const res = await fetch(url, {
@@ -519,7 +537,7 @@ export function LeadCategoryManager() {
 
       <p style={{ fontSize: 13, color: "#8b8a99", lineHeight: 1.5 }}>
         Single source of truth for lead classification — exact field/value criteria,
-        pricing, matching rules, and Integrity Connect labels. The internal type is
+        pricing, matching rules, and Integrity Realtime / Storefront labels. The internal type is
         generated once from the display label and cannot be renamed.
       </p>
 

@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
         defaultPrice: parsed.data.defaultPrice ?? null,
         enabled: parsed.data.enabled ?? true,
         integrityLabel: parsed.data.integrityLabel ?? null,
+        integrityLabelStorefront: parsed.data.integrityLabelStorefront ?? null,
         criteria: {
           create: parsed.data.criteria,
         },

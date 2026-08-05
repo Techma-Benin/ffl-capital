@@ -113,16 +113,18 @@ enum LeadListViewScope {
 
 /// Single source of truth for all lead classification.
 /// `type` is the immutable internal key (set at creation, never editable).
-/// `integrityLabel` is the exact string Integrity Connect requires for lead_type_thom.
+/// `integrityLabel` is the Realtime `lead_type_thom` string for Integrity Connect.
+/// `integrityLabelStorefront` is the Storefront label; blank falls back to Realtime.
 model LeadCategory {
-  id             String   @id @default(uuid()) @db.Uuid
-  type           String   @unique
-  label          String
-  defaultPrice   Decimal? @map("default_price") @db.Decimal(10, 2)
-  enabled        Boolean  @default(true)
-  integrityLabel String?  @map("integrity_label")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id                       String   @id @default(uuid()) @db.Uuid
+  type                     String   @unique
+  label                    String
+  defaultPrice             Decimal? @map("default_price") @db.Decimal(10, 2)
+  enabled                  Boolean  @default(true)
+  integrityLabel           String?  @map("integrity_label")
+  integrityLabelStorefront String?  @map("integrity_label_storefront")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
 
   criteria LeadCategoryCriterion[]
 

@@ -128,8 +128,9 @@ POST /api/leads/intake
 - `20260724210000_drop_partner_filter_set_description` — drop `partner_filter_sets.description`
 - `20260730170000_flexible_lead_categories` — `lead_category_criteria` ; drop `lead_categories.src` ; `leads.category_resolution`, `category_candidate_types` ; `lead_type` nullable
 - `20260730120000_add_category_assigned_event` — `LeadEventType.category_assigned` (assignation manuelle admin)
+- `20260805120000_add_integrity_label_storefront` — `lead_categories.integrity_label_storefront` (label Integrity Storefront ; nullable)
 
-**`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label`, `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`.
+**`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`.
 
 **`leads` (catégorisation) :** `lead_type` (string, nullable) ; `category_resolution` (`matched` \| `no_match` \| `multiple_matches`) ; `category_candidate_types` (text[], types des catégories qui ont matché). Zéro ou plusieurs matchs → `status=review`, `available=false`, pas de matching partenaire ni post Integrity.
 
@@ -297,10 +298,10 @@ UI : `/admin/settings` → onglet **Lead categories** (`LeadCategoryManager`). M
 |---------|-------|-------------|
 | GET | `/api/admin/lead-categories` | Liste (avec `criteria`) |
 | POST | `/api/admin/lead-categories` | Création — `type` **interdit** (généré snake_case depuis `label`) ; reclassification si créée active |
-| PATCH | `/api/admin/lead-categories/[id]` | `label`, `criteria`, `defaultPrice`, `enabled`, `integrityLabel` ; reclassification si `criteria` ou `enabled` change |
+| PATCH | `/api/admin/lead-categories/[id]` | `label`, `criteria`, `defaultPrice`, `enabled`, `integrityLabel`, `integrityLabelStorefront` ; reclassification si `criteria` ou `enabled` change |
 | DELETE | `/api/admin/lead-categories/[id]` | Refusé si des leads référencent le `type` ; sinon reclassification si la catégorie était active |
 
-Schémas Zod : `categoryCreateSchema`, `categoryUpdateSchema`. Critères : au moins un par catégorie ; `field` unique par catégorie. `integrityLabel` alimente `lead_type_thom` à la revente Integrity.
+Schémas Zod : `categoryCreateSchema`, `categoryUpdateSchema`. Critères : au moins un par catégorie ; `field` unique par catégorie. `integrityLabel` = label Realtime (`lead_type_thom`) ; `integrityLabelStorefront` = label Storefront (nullable ; blank → Realtime puis défaut IUL). UI Settings : deux champs avec texte d’aide routage.
 
 ### Reclassification après changement des règles
 
@@ -462,7 +463,7 @@ Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads 
 |-------|------|
 | `GET /api/admin/integrity/postings` | Liste légère (50 derniers `resale_postings` + lead basique). **Pas** de payloads complets ; `rejectionReason` toujours `null` ici. |
 | `GET /api/admin/integrity/postings/[id]` | Détail : résumé posting + événements Integrity du lead filtrés par `postingId` ; dérive `rejectionReason`, `outcome`, `requestPayload`, `response` depuis les payloads d’événements. |
-| `POST /api/admin/integrity/test` | Soumission test LeadConduit sans enregistrement BDD (voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)). |
+| `POST /api/admin/integrity/test` | Soumission test LeadConduit sans enregistrement BDD ; résout le label Realtime vs Storefront ; renvoie `encodedBody` / `encodedFields` pour vérifier `address_1` et les champs DOB (voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)). |
 
 **Persistance événements** (`lead_events.payload`) :
 

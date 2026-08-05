@@ -7,6 +7,7 @@ import {
   INTEGRITY_REALTIME_ELIGIBLE_STATE_CODES,
   US_STATE_NAMES,
 } from "@/lib/constants/us-states";
+import { resolveIntegrityLabelForMode } from "@/lib/integrity/build-payload";
 import { IntegrityPostingsTable, type PostingRow } from "@/components/admin/integrity-postings-table";
 
 type Flow = "realtime" | "storefront";
@@ -20,7 +21,11 @@ interface LeadOption {
   leadType: string | null;
   state: string;
   dob: string | null;
+  address: string | null;
+  city: string | null;
+  zip: string | null;
   trustedformCertUrl: string | null;
+  leadidToken: string | null;
   externalId: string | null;
   haveIul: string | null;
   primaryGoal: string | null;
@@ -30,6 +35,7 @@ interface LeadOption {
 interface CategoryOption {
   type: string;
   integrityLabel: string | null;
+  integrityLabelStorefront: string | null;
 }
 
 interface VendorStatus {
@@ -49,6 +55,8 @@ interface TestResult {
   response: unknown;
   lead: { id: string; name: string; leadType: string; state: string } | null;
   payload?: Record<string, string>;
+  encodedBody?: string;
+  encodedFields?: Record<string, string>;
   error?: string;
 }
 
@@ -72,6 +80,8 @@ const HARDCODED_DEFAULTS: ModalFields = {
   email: "bill.ahognonvi+test@techma.ca",
   phone_1: "5127891111",
   state: "Texas",
+  address_1: "",
+  dob: "6/2/1980",
   dob_mmddyyyy_thom: "06/02/1980",
   lead_type_thom: "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
   trustedform_cert_url: "https://cert.trustedform.com/a1028cbb41b876744fa752eec276bec0e4c48b33",
@@ -80,11 +90,19 @@ const HARDCODED_DEFAULTS: ModalFields = {
   vendor_lead_id_thom: "test-001",
 };
 
-function formatDob(dob: string | null): string {
+function formatDobMmDdYyyy(dob: string | null): string {
   if (!dob) return "";
   const m = dob.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return `${m[2]}/${m[3]}/${m[1]}`;
   return dob;
+}
+
+function formatDobMdY(dob: string | null): string {
+  const mmddyyyy = formatDobMmDdYyyy(dob);
+  if (!mmddyyyy) return "";
+  const match = mmddyyyy.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return mmddyyyy;
+  return `${Number(match[1])}/${Number(match[2])}/${match[3]}`;
 }
 
 /* ─── shield icon ─────────────────────────────────────────────────────── */
@@ -137,17 +155,24 @@ export function IntegrityTestPanel({
       const lead = leads.find((l) => l.id === selectedLeadId);
       if (!lead) return;
       const cat = categories.find((c) => c.type === (lead.leadType ?? ""));
-      const integrityLabel =
-        cat?.integrityLabel ?? "Indexed Universal Life [IUL] Facebook (Realtime Lead)";
+      const integrityLabel = resolveIntegrityLabelForMode(flow, {
+        realtime: cat?.integrityLabel,
+        storefront: cat?.integrityLabelStorefront,
+      });
       fields = {
         first_name: lead.firstName,
         last_name: lead.lastName,
         email: lead.email ?? "",
         phone_1: lead.phone ?? "",
         state: formatStateForIntegrity(lead.state),
-        dob_mmddyyyy_thom: formatDob(lead.dob),
+        address_1: lead.address ?? "",
+        city: lead.city ?? "",
+        postal_code: lead.zip ?? "",
+        dob: formatDobMdY(lead.dob),
+        dob_mmddyyyy_thom: formatDobMmDdYyyy(lead.dob),
         lead_type_thom: integrityLabel,
         trustedform_cert_url: lead.trustedformCertUrl ?? "",
+        universal_leadid: lead.leadidToken ?? "",
         has_iul_thom: lead.haveIul ?? "",
         primary_goal_thom: lead.primaryGoal ?? "",
         vendor_lead_id_thom: lead.externalId ?? lead.id,
@@ -155,7 +180,10 @@ export function IntegrityTestPanel({
     } else {
       fields = { ...HARDCODED_DEFAULTS };
       if (flow === "storefront") {
-        fields.lead_type_thom = "Indexed Universal Life [IUL] Facebook (Realtime Lead)";
+        fields.lead_type_thom = resolveIntegrityLabelForMode("storefront", {
+          realtime: HARDCODED_DEFAULTS.lead_type_thom,
+          storefront: null,
+        });
       }
     }
 
@@ -408,9 +436,9 @@ export function IntegrityTestPanel({
                 {result.error ?? JSON.stringify(result.response, null, 2)}
               </pre>
               {result.payload && (
-                <details className="text-xs">
+                <details className="text-xs" open>
                   <summary className="cursor-pointer text-slate-500 hover:text-slate-700 font-medium">
-                    View payload sent
+                    View payload / encoded fields sent
                   </summary>
                   <pre
                     style={{
@@ -426,7 +454,15 @@ export function IntegrityTestPanel({
                       overflowX: "auto",
                     }}
                   >
-                    {JSON.stringify(result.payload, null, 2)}
+                    {JSON.stringify(
+                      {
+                        payload: result.payload,
+                        encodedFields: result.encodedFields ?? null,
+                        encodedBody: result.encodedBody ?? null,
+                      },
+                      null,
+                      2,
+                    )}
                   </pre>
                 </details>
               )}
@@ -469,14 +505,26 @@ export function IntegrityTestPanel({
                     "email",
                     "phone_1",
                     "state",
+                    "address_1",
+                    "city",
+                    "postal_code",
+                    "dob",
                     "dob_mmddyyyy_thom",
                     "has_iul_thom",
                     "primary_goal_thom",
                     "vendor_lead_id_thom",
+                    "universal_leadid",
                   ] as const
                 ).map((key) => (
                   <div key={key} className="space-y-1">
-                    <label className="form-label">{key}</label>
+                    <label className="form-label">
+                      {key}
+                      {key === "address_1" && (
+                        <span className="ml-2 text-slate-400 font-normal">
+                          (always sent, even if blank)
+                        </span>
+                      )}
+                    </label>
                     <input
                       type="text"
                       className="form-input text-sm"

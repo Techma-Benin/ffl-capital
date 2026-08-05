@@ -99,7 +99,7 @@ The existing Boberdoo XML nodes in Active Prospect **cannot be duplicated** for 
 
 ## 8. Broader product types
 
-**Status: implemented via `lead_categories` table** — not a fixed Prisma enum. New product lines are admin-created categories with custom criteria and `integrity_label`. Internal `type` is snake_case generated from label at creation.
+**Status: implemented via `lead_categories` table** — not a fixed Prisma enum. New product lines are admin-created categories with custom criteria and Integrity labels (`integrity_label` Realtime, optional `integrity_label_storefront` with Realtime fallback). Internal `type` is snake_case generated from label at creation.
 
 ---
 
