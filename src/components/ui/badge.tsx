@@ -1,28 +1,12 @@
 import { clsx } from "clsx";
 
-export type BadgeVariant =
-  | "green"
-  | "yellow"
-  | "red"
-  | "blue"
-  | "sky"
-  | "indigo"
-  | "cyan"
-  | "teal"
-  | "steel"
-  | "slate"
-  | "purple";
+type BadgeVariant = "green" | "yellow" | "red" | "blue" | "slate" | "purple";
 
 const variantClasses: Record<BadgeVariant, string> = {
   green:  "badge-green",
   yellow: "badge-yellow",
   red:    "badge-red",
   blue:   "badge-blue",
-  sky:    "badge-sky",
-  indigo: "badge-indigo",
-  cyan:   "badge-cyan",
-  teal:   "badge-teal",
-  steel:  "badge-steel",
   slate:  "badge-slate",
   purple: "badge-purple",
 };
@@ -31,15 +15,13 @@ export function Badge({
   variant = "slate",
   children,
   className,
-  title,
 }: {
   variant?: BadgeVariant;
   children: React.ReactNode;
   className?: string;
-  title?: string;
 }) {
   return (
-    <span className={clsx(variantClasses[variant], className)} title={title}>
+    <span className={clsx(variantClasses[variant], className)}>
       {children}
     </span>
   );

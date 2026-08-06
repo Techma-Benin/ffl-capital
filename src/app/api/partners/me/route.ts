@@ -1,8 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { auth, clerkClient } from "@clerk/nextjs/server";
-import { getPartnerSession } from "@/lib/partner/session";
 import { prisma } from "@/lib/db";
+import { getPartnerSession, getPartnerId } from "@/lib/partner/session";
+import { serializePartner } from "@/lib/partner/serialize";
+import { US_STATE_CODES } from "@/lib/constants/us-states";
+
+const stateCodeSchema = z.enum(
+  US_STATE_CODES as unknown as [string, ...string[]],
+);
+
+const patchSchema = z.object({
+  filterStates: z.array(stateCodeSchema).min(15).max(50).optional(),
+  crmWebhookUrl: z.union([z.string().url(), z.literal("")]).optional(),
+});
 
 export async function GET() {
   const partner = await getPartnerSession();
@@ -12,19 +22,9 @@ export async function GET() {
   return NextResponse.json(partner);
 }
 
-// Email is not editable — it is set once at partner creation and never
-// changed afterward (not by the partner, not by an admin, not synced from
-// Clerk). Deliberately excluded from this schema.
-const patchSchema = z.object({
-  firstName: z.string().min(1, "First name is required").max(100).optional(),
-  lastName: z.string().min(1, "Last name is required").max(100).optional(),
-  affiliation: z.string().max(200).nullable().optional(),
-  avatarUrl: z.string().url().nullable().optional(),
-});
-
-export async function PATCH(request: Request) {
-  const [{ userId }, partner] = await Promise.all([auth(), getPartnerSession()]);
-  if (!partner || !userId) {
+export async function PATCH(request: NextRequest) {
+  const partnerId = await getPartnerId();
+  if (!partnerId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -32,53 +32,38 @@ export async function PATCH(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.errors[0]?.message ?? "Invalid input" },
-      { status: 422 },
+      { error: parsed.error.errors.map((e) => e.message).join("; ") },
+      { status: 400 },
     );
   }
 
-  const { firstName, lastName, affiliation, avatarUrl } = parsed.data;
+  const data: { filterStates?: string[]; crmWebhookUrl?: string | null } = {};
 
-  if (!firstName && !lastName && affiliation === undefined && avatarUrl === undefined) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 422 });
+  if (parsed.data.filterStates) {
+    data.filterStates = Array.from(
+      new Set(parsed.data.filterStates.map((s) => s.toUpperCase())),
+    );
   }
 
-  const updated = await prisma.partner.update({
-    where: { id: partner.id },
-    data: {
-      ...(firstName !== undefined && { firstName }),
-      ...(lastName !== undefined && { lastName }),
-      ...(affiliation !== undefined && { affiliation }),
-      ...(avatarUrl !== undefined && { avatarUrl }),
-    },
-  });
-
-  // Sync names to Clerk server-side (bypasses client-level instance
-  // restrictions that block user.update() from the browser).
-  if (firstName !== undefined || lastName !== undefined) {
-    try {
-      const client = await clerkClient();
-      await client.users.updateUser(userId, {
-        ...(firstName !== undefined && { firstName }),
-        ...(lastName !== undefined && { lastName }),
-      });
-    } catch (err) {
-      // Non-fatal: DB is the source of truth; log but don't fail the request.
-      console.warn("[PATCH /api/partners/me] Clerk sync failed:", err);
-    }
+  if (parsed.data.crmWebhookUrl !== undefined) {
+    data.crmWebhookUrl =
+      parsed.data.crmWebhookUrl === "" ? null : parsed.data.crmWebhookUrl;
   }
 
-  return NextResponse.json({
-    id: updated.id,
-    firstName: updated.firstName,
-    lastName: updated.lastName,
-    email: updated.email,
-    avatarUrl: updated.avatarUrl,
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  }
+
+  const partner = await prisma.partner.update({
+    where: { id: partnerId },
+    data,
   });
+
+  return NextResponse.json(serializePartner(partner));
 }

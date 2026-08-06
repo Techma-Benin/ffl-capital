@@ -4,11 +4,9 @@ import { useState } from "react";
 import { clsx } from "clsx";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
+import { StatCard } from "@/components/ui/stat-card";
 import { usePartner } from "@/components/partner/partner-provider";
-import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
-import { Wallet, ArrowUpRight, ArrowsClockwise, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
-import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
-import { formatUsd, moneyValueClassName } from "@/lib/format-money";
+import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, RefreshCw } from "lucide-react";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -21,23 +19,14 @@ type Transaction = {
   createdAt: string;
 };
 
-type Subscription = {
-  amount: number;
-  interval: string;
-  nextChargeAt: string | null;
-  active: boolean;
-};
-
 export function PartnerWalletView({
   transactions,
   totalTopUp,
   totalSpent,
-  subscription,
 }: {
   transactions: Transaction[];
   totalTopUp: number;
   totalSpent: number;
-  subscription: Subscription | null;
 }) {
   const { partner } = usePartner();
   const balance = partner.walletBalance;
@@ -45,17 +34,19 @@ export function PartnerWalletView({
 
   const [selectedAmount, setSelectedAmount] = useState<number | null>(250);
   const [customAmount, setCustomAmount] = useState("");
-  const [checkoutPending, setCheckoutPending] = useState(false);
-  const [subscribePending, setSubscribePending] = useState(false);
-  const [cancelPending, setCancelPending] = useState(false);
-  const [cancelConfirm, setCancelConfirm] = useState(false);
-  const [weeklyAmount, setWeeklyAmount] = useState("500");
 
-  const checkoutAmount = customAmount ? Number(customAmount) : selectedAmount;
+  const checkoutAmount = customAmount
+    ? Number(customAmount)
+    : selectedAmount;
+
   const checkoutValid =
     checkoutAmount !== null &&
     Number.isFinite(checkoutAmount) &&
     checkoutAmount >= 25;
+
+  const [checkoutPending, setCheckoutPending] = useState(false);
+  const [subscribePending, setSubscribePending] = useState(false);
+  const [weeklyAmount, setWeeklyAmount] = useState("500");
 
   async function startCheckout() {
     if (!checkoutValid || !checkoutAmount) return;
@@ -73,21 +64,6 @@ export function PartnerWalletView({
       // allow retry
     } finally {
       setCheckoutPending(false);
-    }
-  }
-
-  async function cancelSubscription() {
-    setCancelPending(true);
-    try {
-      const res = await fetch("/api/wallet/subscribe", { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Cancel failed");
-      }
-      window.location.reload();
-    } catch {
-      setCancelPending(false);
-      setCancelConfirm(false);
     }
   }
 
@@ -115,91 +91,76 @@ export function PartnerWalletView({
     <div>
       <PageHeader
         title="Wallet"
-        subtitle="Manage your balance and top up your account"
+        subtitle="Manage your balance and view transaction history"
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Current Balance"
+          value={`$${balance.toFixed(2)}`}
+          valueClassName={walletOk ? undefined : "text-red-600"}
+          subtitle={
+            walletOk
+              ? "Lead buying active"
+              : "Below minimum — add funds to receive leads"
+          }
+          subtitleClassName={walletOk ? "text-emerald-600" : "text-red-500"}
+          icon={Wallet}
+          iconColor={walletOk ? "text-brand-600" : "text-red-600"}
+          iconBgClassName={walletOk ? "bg-brand-50" : "bg-red-50"}
+        />
+        <StatCard
+          label="Total Funded"
+          value={`$${totalTopUp.toFixed(2)}`}
+          valueClassName="text-emerald-600"
+          subtitle="All-time top-ups"
+          icon={TrendingUp}
+          iconColor="text-emerald-600"
+          iconBgClassName="bg-emerald-50"
+        />
+        <StatCard
+          label="Total Spent"
+          value={`$${totalSpent.toFixed(2)}`}
+          subtitle="Lead purchases"
+          icon={TrendingDown}
+          iconColor="text-slate-600"
+          iconBgClassName="bg-slate-100"
+        />
+      </div>
 
-        {/* ── LEFT: Balance + Add Funds ── */}
-        <div className="flex flex-col gap-6">
-
-          {/* Balance hero */}
-          <div
-            className={clsx(
-              "rounded-2xl p-8",
-              walletOk
-                ? "bg-slate-900 ring-1 ring-slate-800"
-                : "border border-red-500/30 bg-gradient-to-br from-slate-900 to-slate-950 ring-1 ring-slate-800 shadow-[0_0_28px_-6px_rgba(239,68,68,0.12)]",
-            )}
-          >
-            <p
-              className={clsx(
-                "text-xs font-semibold uppercase tracking-widest",
-                walletOk ? "text-slate-400" : "text-white",
-              )}
-            >
-              Current Balance
-            </p>
-            <p className={clsx("mt-3 text-5xl font-bold tracking-tight text-white", moneyValueClassName)}>
-              {formatUsd(balance)}
-            </p>
-            <p
-              className={clsx(
-                "mt-2 text-sm font-medium",
-                walletOk ? "text-emerald-400" : "text-red-400",
-              )}
-            >
-              {walletOk ? "Lead buying active" : "Below $25 minimum — add funds to receive leads"}
-            </p>
-          </div>
-
-          {/* One-Time Top-Up card */}
-          <div className="card p-6">
-            <div className="group mb-5 flex items-center gap-3">
-              <EmptyStateBlobIcon
-                icon={ArrowUpRight}
-                seed="One-Time Top-Up"
-                accent="brand"
-                size="xs"
-                hoverGroup="card"
-                blobIndex={0}
-              />
+      <div className="card mb-6 p-6">
+        <h2 className="mb-4 text-base font-semibold text-slate-900">Add Funds</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-brand-50 p-2.5">
+                <ArrowUpRight size={18} className="text-brand-600" />
+              </div>
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">One-Time Top-Up</h3>
                 <p className="text-xs text-slate-500">Instant wallet credit via Stripe</p>
               </div>
             </div>
 
-            <p className="mb-2 text-xs font-medium text-slate-600">Enter Amount</p>
-            <div className="relative mb-4">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                $
-              </span>
-              <input
-                type="number"
-                min={25}
-                step={1}
-                placeholder="0"
-                value={customAmount}
-                onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
-                className="form-input w-full pl-7"
-              />
-            </div>
-
-            <p className="mb-2 text-xs font-medium text-slate-600">Quick Select</p>
-            <div className="mb-5 grid grid-cols-4 gap-2">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-slate-500">
+              Select amount
+            </p>
+            <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {PRESET_AMOUNTS.map((amount) => {
-                const active = Number(customAmount) === amount;
+                const active = selectedAmount === amount && !customAmount;
                 return (
                   <button
                     key={amount}
                     type="button"
-                    onClick={() => { setCustomAmount(String(amount)); setSelectedAmount(null); }}
+                    onClick={() => {
+                      setSelectedAmount(amount);
+                      setCustomAmount("");
+                    }}
                     className={clsx(
-                      "rounded-lg border py-2.5 text-sm font-semibold transition-colors",
+                      "rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors",
                       active
                         ? "border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50/50",
+                        : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50/50"
                     )}
                   >
                     ${amount}
@@ -208,180 +169,141 @@ export function PartnerWalletView({
               })}
             </div>
 
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+              Or custom amount
+            </p>
+            <div className="relative mb-4">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                $
+              </span>
+              <input
+                type="number"
+                min={25}
+                step={1}
+                placeholder="250"
+                value={customAmount}
+                onChange={(e) => {
+                  setCustomAmount(e.target.value);
+                  setSelectedAmount(null);
+                }}
+                className="form-input w-full pl-7"
+              />
+            </div>
+
             <button
               type="button"
               disabled={!checkoutValid || checkoutPending}
               onClick={startCheckout}
-              className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {checkoutPending ? "Redirecting to Stripe…" : "Proceed to the payment"}
+              {checkoutPending
+                ? "Redirecting to Stripe…"
+                : checkoutValid
+                  ? `Pay $${checkoutAmount!.toFixed(2)} with Stripe`
+                  : "Enter amount to continue"}
             </button>
             <p className="mt-2 text-center text-[11px] text-slate-400">
               Minimum top-up $25 · Secured by Stripe
             </p>
           </div>
 
-          {/* Weekly Auto-Recharge card */}
-          <div className="card p-6">
-            {/* Header row — icon+title left, cancel button right */}
-            <div className="group mb-5 flex items-center gap-3">
-              <EmptyStateBlobIcon
-                icon={ArrowsClockwise}
-                seed="Weekly Auto-Recharge"
-                accent="violet"
-                size="xs"
-                hoverGroup="card"
-                blobIndex={1}
-              />
-              <div className="flex-1 min-w-0">
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-violet-50 p-2.5">
+                <RefreshCw size={18} className="text-violet-600" />
+              </div>
+              <div>
                 <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>
                 <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
               </div>
-              {subscription?.active && !cancelConfirm && (
-                <button
-                  type="button"
-                  onClick={() => setCancelConfirm(true)}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
-                >
-                  <X size={12} weight={ICON_WEIGHT_LINEAR} />
-                  Cancel
-                </button>
-              )}
             </div>
-
-            {/* Active status banner */}
-            {subscription?.active ? (
-              <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-                <p className="text-sm font-semibold text-emerald-800">
-                  Active — {formatUsd(subscription.amount)}/week
-                </p>
-                {subscription.nextChargeAt && (
-                  <p className="mt-0.5 text-xs text-emerald-700">
-                    Next charge: {formatDateTimeLong(subscription.nextChargeAt)}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="mb-4 text-xs leading-relaxed text-slate-500">
-                Set a weekly amount and never miss a lead because your balance ran low.
-              </p>
-            )}
-
-            {/* Cancel confirmation */}
-            {cancelConfirm && (
-              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
-                <p className="mb-3 text-xs font-medium text-red-700">
-                  Cancel your weekly auto-recharge? No further charges will be made.
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={cancelSubscription}
-                    disabled={cancelPending}
-                    className="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {cancelPending ? "Cancelling…" : "Yes, cancel"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCancelConfirm(false)}
-                    disabled={cancelPending}
-                    className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    Keep active
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Amount input + change button inline */}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                  $
-                </span>
-                <input
-                  type="number"
-                  min={25}
-                  placeholder="500"
-                  value={weeklyAmount}
-                  onChange={(e) => setWeeklyAmount(e.target.value)}
-                  className="form-input w-full pl-7"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={startSubscribe}
-                disabled={subscribePending || Number(weeklyAmount) < 25}
-                className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 whitespace-nowrap"
-              >
-                {subscribePending
-                  ? "Redirecting…"
-                  : subscription?.active
-                    ? "Change"
-                    : "Enable auto-recharge"}
-              </button>
+            <p className="mb-4 text-xs leading-relaxed text-slate-500">
+              Set a weekly amount and never miss a lead because your balance ran low.
+            </p>
+            <div className="relative mb-3">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                $
+              </span>
+              <input
+                type="number"
+                min={25}
+                placeholder="500"
+                value={weeklyAmount}
+                onChange={(e) => setWeeklyAmount(e.target.value)}
+                className="form-input w-full pl-7"
+              />
             </div>
+            <button
+              type="button"
+              onClick={startSubscribe}
+              disabled={subscribePending || Number(weeklyAmount) < 25}
+              className="btn-secondary w-full disabled:opacity-50"
+            >
+              {subscribePending ? "Redirecting…" : "Enable auto-recharge"}
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* ── RIGHT: Transaction History ── */}
-        <div className="self-start">
-          <h2 className="mb-3 px-1 text-base font-semibold text-slate-900">Transaction History</h2>
-
+      <div className="card">
+        <div className="border-b border-slate-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-slate-900">Transaction History</h2>
+        </div>
+        <div className="overflow-x-auto">
           {transactions.length === 0 ? (
-            <div className="card group/empty flex flex-col items-center justify-center py-16 text-center">
-              <EmptyStateBlobIcon
-                icon={Wallet}
-                seed="No transactions yet"
-                accent="red"
-                className="mb-3"
-              />
+            <div className="empty-state">
+              <Wallet size={28} className="mb-3 text-slate-300" />
               <p className="text-sm font-medium text-slate-500">No transactions yet</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              {transactions.slice(0, 6).map((t) => {
-                const isCredit = t.amount > 0;
-                return (
-                  <div key={t.id} className="relative rounded-2xl border border-slate-200/80 bg-white shadow-none transition-shadow hover:shadow-card-hover">
-                    {/* Top section */}
-                    <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
-                      <div className="min-w-0 flex-1">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th>Amount</th>
+                  <th>Balance After</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((t) => {
+                  const isCredit = t.amount > 0;
+                  return (
+                    <tr key={t.id}>
+                      <td>
                         <TransactionTypeBadge type={t.type} />
-                        {t.description && (
-                          <p className="mt-1.5 truncate text-xs font-medium text-slate-700">{t.description}</p>
-                        )}
-                      </div>
-                      <p className={clsx("shrink-0 text-base font-bold", moneyValueClassName, isCredit ? "text-emerald-600" : "text-red-600")}>
-                        {isCredit ? "+" : "−"}
-                        {formatUsd(Math.abs(t.amount))}
-                      </p>
-                    </div>
-
-                    {/* Dashed tear line with notch cutouts */}
-                    <div className="relative flex items-center">
-                      <div className="absolute -left-2.5 h-5 w-5 rounded-full bg-[#f4f7fb]" />
-                      <div className="mx-4 flex-1 border-t border-dashed border-slate-200" />
-                      <div className="absolute -right-2.5 h-5 w-5 rounded-full bg-[#f4f7fb]" />
-                    </div>
-
-                    {/* Bottom section */}
-                    <div className="flex items-center justify-between px-5 pt-2.5 pb-3.5">
-                      <p className="text-[11px] text-slate-400" suppressHydrationWarning>
-                        {formatDateTime(t.createdAt)}
-                      </p>
-                      <p className={clsx("text-[11px] font-medium text-slate-400", moneyValueClassName)}>
-                        bal. {formatUsd(t.balanceAfter)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                      </td>
+                      <td className="text-slate-500 text-sm">
+                        {t.description ?? "—"}
+                      </td>
+                      <td>
+                        <span
+                          className={`font-semibold ${
+                            isCredit ? "text-emerald-600" : "text-slate-900"
+                          }`}
+                        >
+                          {isCredit ? "+" : ""}${Math.abs(t.amount).toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="font-medium text-slate-700">
+                        ${t.balanceAfter.toFixed(2)}
+                      </td>
+                      <td className="text-xs text-slate-400">
+                        {new Date(t.createdAt).toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
-
       </div>
     </div>
   );

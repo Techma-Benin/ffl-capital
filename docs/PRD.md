@@ -7,7 +7,6 @@
 
 **Documents liés :**
 - `docs/PROJECT.md` — mémoire projet / décisions / FAQ
-- `docs/PARTNER_CRM_OUTBOUND.md` — livraison CRM POST self-service (implémenté juil. 2026)
 - `docs/TECHMA - Lead Distribution Platform Proposal.md` — scope contractuel client
 - `first review with client` — transcript call review #1 (29 juin 2026, Sami Esquivias)
 
@@ -88,7 +87,6 @@ Construire une **plateforme web propriétaire** (usage interne client, **pas un 
 - Contrôle total : agents, leads, prix, priorités, remboursements, revente
 - Rôle **superviseur** : le flux normal ne requiert aucune action
 - Un ou quelques utilisateurs internes FFL Capital
-- Comptes admin **invite-only** (invitation Clerk par un super-admin — pas de signup public ; voir [CLERK_INTEGRATION.md](CLERK_INTEGRATION.md))
 
 #### Partner (acheteur de leads)
 
@@ -181,9 +179,8 @@ Phase D — Migration Replit (livraison client)
 | `CLERK_*` | Auth |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Paiements |
 | `RESEND_API_KEY` | Emails |
-| `INTEGRATIONS_MODE` | `mock` \| `live` — fallback si `app_settings.integrations_mode` absent ; admin Mode (Integrations) prime et se sauvegarde immédiatement (prod inclus) ; défaut `mock` en dev, `live` en prod |
-| `INTEGRITY_*` | Submit URLs + Azure ping secrets (live only ; ping env-only) |
-| `INTEGRITY_REALTIME_PING_URL` / `INTEGRITY_PING_VENDOR_ID` / `INTEGRITY_PING_FUNCTIONS_KEY` | Azure `IsAcceptingCampaign` pour Realtime IUL — jamais en BDD |
+| `INTEGRATIONS_MODE` | `mock` \| `live` |
+| `INTEGRITY_*` | Credentials ping/post (live only) |
 | `ADMIN_APPROVAL_REQUIRED` | `true` par défaut — désactivable |
 
 ### Ce qu’on n’utilise PAS volontairement
@@ -244,7 +241,7 @@ Phase D — Migration Replit (livraison client)
 | **Refund workflow** | Demande agent → validation admin → routage post-remboursement |
 | **Resale** | IntegrityCONNECT ping/post, storefront, réconciliation |
 | **Notifications** | Email lead livré ; alertes admin optionnelles |
-| **CRM delivery** | POST JSON optionnel par partner (endpoint + auth + mapping) — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
+| **CRM delivery** | Push webhook vers CRM agent (Ringy, HubSpot, etc.) |
 | **Migration** | Import leads/agents depuis export Boberdoo |
 | **Admin config** | Prix globaux, frais (futur), feature flags |
 
@@ -277,7 +274,7 @@ Phase D — Migration Replit (livraison client)
 ### 5.2 Portail admin
 
 #### Dashboard
-- Vue synthèse (Operations Dashboard) : KPIs leads/livraisons sur la période choisie (aujourd’hui, hier, 7 derniers jours, mois dernier, all time, plage custom via sélecteur calendrier ou URL `period=…&from&to`), titres KPI/graphiques selon la période ; graphique Lead Intake à granularité adaptative (horaire / journalier / semaines glissantes / mensuel selon la durée de plage) et donut Delivering (taux de livraison parmi les leads entrés sur la période : Delivered vs Not delivered, centre %), leads récents ; compteurs agents actifs et file unmatched (état courant) ; données hors fenêtre 90 j rechargées serveur
+- Vue synthèse : leads du jour, unmatched, agents actifs/inactifs, soldes bas
 - Alertes optionnelles (pics unmatched)
 
 #### Gestion agents
@@ -285,10 +282,9 @@ Phase D — Migration Replit (livraison client)
 - Actions : approuver/rejeter inscription, activer/désactiver, modifier priorité (1–10), prix personnalisé, voir historique
 
 #### Gestion leads
-- Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live. L’éditeur peut **Apply** un brouillon sans le persister ; la liste l’utilise immédiatement, l’éditeur se ferme, et une action **Save view** reste visible jusqu’à l’enregistrement.
-- Un type sélectionné inclut les leads résolus dans ce type et les leads à matchs multiples où ce type est candidat ; plusieurs types sont combinés en OR
-- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity ; **diagnostics payload** (champs critères catégories) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
-- Actions manuelles : reprocesser (relancer matching), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
+- Liste tous les leads avec filtres : statut, état, date, available
+- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity
+- Actions manuelles : reprocesser (relancer matching), voir file unmatched
 
 #### Remboursements
 - File des `refund_requests` en attente (écran « Approve Refunds », parité Boberdoo)
@@ -300,7 +296,6 @@ Phase D — Migration Replit (livraison client)
 #### Configuration globale
 - Prix lead temps réel par type (défaut IUL = 25 $)
 - Prix aged lead (défaut 5 $)
-- **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label` (Realtime) + `integrity_label_storefront` (Storefront, fallback Realtime), prix par défaut ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
 - *(Futur)* frais de retraitement
 
 #### Migration historique
@@ -309,8 +304,7 @@ Phase D — Migration Replit (livraison client)
 - **Feature livrée en V1** même si exécution différée
 
 #### Revente Integrity
-- Vue postings (`/admin/integrity`) : statut, mode realtime/storefront ; modal détail avec outcome, payloads request/response et timeline d’événements Integrity (lazy-load détail API)
-- Raison de rejet dérivée des lead events quand disponibles (postings anciens : empty state)
+- Vue postings : statut, mode realtime/storefront
 - Réconciliation storefront (import log journalier — manuel ou auto selon API)
 
 ### 5.3 Portail agent
@@ -322,7 +316,6 @@ Phase D — Migration Replit (livraison client)
 
 #### Mes leads
 - Liste des leads livrés (temps réel + aged achetés)
-- Vues sauvegardées avec périodes today / yesterday / 7 derniers jours / mois dernier / custom, appliquées à la date de livraison ; un brouillon appliqué reste disponible à la réouverture de l’éditeur et ne devient persistant qu’avec **Save view**
 - Détail : contact, état, date, prix payé, certificat TrustedForm
 - Bouton **demander remboursement** (si delivery `refundable`)
 
@@ -333,16 +326,15 @@ Phase D — Migration Replit (livraison client)
 - Historique transactions (pas de PDF facture obligatoire V1)
 
 #### Marketplace aged leads
-- Filtres **UI** (optionnels) : état, type IUL, tranche d’âge — **pas** de restriction par filter set ni par `lead_type` compte
-- Liste : même éligibilité que admin (âge ≥ seuil, `status != dead`) ; **pas** de condition `available = true`
+- Filtres : état(s), type IUL, budget max
+- Liste leads `available=true`, âge ≥ 30 jours, prix 5 $
 - **Achat unitaire** : bouton acheter sur une ligne
 - **Sélection multiple** : checkboxes + « Acheter la sélection »
 - Débit wallet, livraison email + CRM
 - *(V2)* panier persistant
 
 #### Paramètres
-- Layout Settings : Profile + **Lead delivery** (demi/demi) ; filter sets en dessous
-- CRM outbound : carte Lead delivery — sans config : Connect CRM ; avec config : host + Ready/Off, toggle enable/disable, Test, Delete (clic → wizard) ; wizard sur `/partner/settings/crm-outbound` (endpoint HTTPS, auth, mapping → JSON plat) — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
+- URL webhook CRM personnelle
 - **Modifier états ciblés** (sélection / désélection) — **validé cliente** ; minimum **15 états** pour rester éligible aux achats
 - Modifier type lead (Traditional / High-Intent)
 - Config récurrence wallet
@@ -355,11 +347,10 @@ Phase D — Migration Replit (livraison client)
 **Déclencheur :** LeadConduit envoie POST à chaque soumission Meta.
 
 **Traitement :**
-1. Valider payload (champs minimum : contact, state, trustedform_cert_url — `lead_type` n’est plus inféré à la normalisation)
-2. **Évaluer les catégories lead** actives : critères AND sur clés top-level du payload (match exact, case-sensitive) ; 1 match → `leadType` ; 0 ou 2+ → `status=review`, `categoryResolution` `no_match` / `multiple_matches`, pas de matching ni Integrity
-3. Créer lead : `received_at=now()`, `available` selon résolution catégorie, `refundable=true`, `status` unmatched ou review
-4. Répondre `{ "outcome": "success" }` (format LeadConduit)
-5. Déclencher matching engine (uniquement si catégorie résolue et TrustedForm OK)
+1. Valider payload (champs minimum : contact, state, lead_type, trustedform_cert_url)
+2. Créer lead : `received_at=now()`, `available=true`, `refundable=true`, `status=unmatched`
+3. Répondre `{ "outcome": "success" }` (format LeadConduit)
+4. Déclencher matching engine asynchrone
 
 **Source champs :** déduire depuis Boberdoo / LeadConduit — ne pas demander à la cliente.
 
@@ -390,29 +381,21 @@ Phase D — Migration Replit (livraison client)
 
 **Si aucun agent éligible :**
 1. Lead reste `status=unmatched`, `available=true`
-2. Job toutes les X minutes : réessayer selon le **mode lifecycle** (sauf leads `review` ou catégorie non résolue)
-3. **Legacy** (`lifecycle_routing_enabled` off, défaut) : matching partner pendant **24 h**, puis post Integrity Realtime
-4. **Lifecycle client** (flag on — voir `docs/client_email_lead_routing_2026-08-03.txt`) :
-   - **0–24 h** : Integrity Realtime (ILC) uniquement ; pas de match partner automatique
-   - **24–48 h** : partner **ou** Storefront en premier (config admin `lifecycle_mid_window_primary`), puis l’autre si échec définitif ; un posting Integrity `pending` bloque le fallback
-   - **48 h–30 j** : partners plateforme uniquement
-   - **30 j+** : éligibilité aged marketplace (inchangé)
-5. **Une vente live** (partner, Realtime ou Storefront) pose `liveSoldAt` / `liveSaleChannel` et arrête tout routage live automatique
-6. Lead reste en base pour aging J+30
+2. Job toutes les X minutes pendant **24 h** : réessayer matching
+3. Après 24 h sans match → module IntegrityCONNECT
+4. Lead reste en base pour aging J+30
 
 ### 5.7 Marketplace aged leads
 
-**Éligibilité listing (séparée de `available` et des filter sets temps réel) :**
-- `now - received_at ≥ 30 jours` (seuil admin configurable)
+**Éligibilité listing (séparée de `available`) :**
+- `now - received_at ≥ 30 jours`
 - `status != dead`
 - **Pas de condition `available = true`** — un lead déjà vendu en temps réel (`available=false`) peut être listé
-- **Pas d’application des `partner_filter_sets`** sur le browse : le partenaire voit l’inventaire aged global et filtre via l’UI (état, type, âge)
+- Filtres partner : état, type IUL, wallet, ≥ 15 états
 
 **Achat partner :**
-- Manuel (unitaire ou checkboxes) ; débit wallet (prix aged config admin, défaut 5 $)
-- Compte `active` + solde wallet suffisant
-- Lead toujours éligible aged au moment de l’achat (même règles d’âge / hors `dead`)
-- **Pas** de contrôle état ∈ filter set ni égalité `lead_type` compte (distinct du matching temps réel)
+- Manuel (unitaire ou checkboxes)
+- Débit wallet 5 $ (ou prix config admin)
 - Créer `lead_delivery` channel=`aged`
 - `available` **reste `false`** (déjà vendu ou non — inchangé)
 - Email + CRM
@@ -478,28 +461,20 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 ### 5.11 CRM custom delivery
 
-- Chaque agent configure **un profil POST** via `/partner/settings/crm-outbound` (accès depuis la carte Lead delivery) : URL, auth (`none` / bearer / header / basic / champs body), mapping source → clés JSON plat, règle de succès optionnelle
-- Settings affiche email + CRM : **configuré** (URL sauvegardée) distinct de **activé** (`enabled`) — host + badge Ready/Off, toggle Power (GET puis PATCH), Test (modal, retourne aussi `requestPayload`), Delete ; sans config → Connect CRM seul
-- À chaque livraison matchée : **email toujours** (Resend) ; si config **activée** (`enabled`), POST vers l’endpoint partner
-- Échec POST : pas de retry ; email partner avec raison (**sans** payload lead)
-- Spécification complète : [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) (SSRF, test fixture, admin lecture seule)
-- Mode `integrations_mode=mock` (valeur `app_settings` prime sur env) : pas d’appels HTTP CRM réels ; événements lead tracés
+- Chaque agent configure une **URL webhook**
+- À chaque livraison : POST JSON (contact, état, type, ids)
+- Format déduit de Boberdoo — pas de question cliente
+- Mode mock : log local / webhook.site en dev
 
 ### 5.12 Revente IntegrityCONNECT
 
 **Modes :**
-- **Real-time post** : vente immédiate via LeadConduit ; pour les leads **IUL Realtime**, ping Azure `IsAcceptingCampaign` avant le post (parité Boberdoo delivery 281)
-- **Storefront post** : envoi direct LeadConduit (pas de ping gate LC) ; réconciliation via webhook callback
+- **Real-time ping/post** : vente immédiate, statut `sold` auto
+- **Storefront** : envoi lot, réconciliation journalière
 
-**Mock :** les posts Integrity automatiques envoient toujours du HTTP vers LeadConduit avec `is_test=yes` ; le ping Azure Realtime IUL est skippé (auto-accept). Les posts live auto ne forcent pas `is_test`. Les boutons admin test incluent toujours `is_test=yes` et, en mock, short-circuitent sans HTTP.
+**Déclenchement :** lead unmatched après fenêtre retraitement 24 h.
 
-**Déclenchement :** selon fenêtre lifecycle (flag on) ou après délai legacy 24 h (flag off).
-
-**Admin :** liste postings ; détail payloads + événements ; preview routage (`POST /api/admin/lead-routing/preview`) ; preflight Azure (`pnpm run preflight:integrity-azure`).
-
-**Lifecycle routing :** feature flag admin `lifecycle_routing_enabled` (**off** par défaut) ; cutoffs 24 h / 48 h ; mid-window primary `partner` ou `storefront`.
-
-**Implémentation :** `src/lib/lead-routing/` + `src/lib/integrity/` ; specs Boberdoo : [BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md](BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md).
+**Implémentation :** adapter mock/live ; specs depuis Boberdoo.
 
 ### 5.13 Migration historique Boberdoo
 
@@ -507,7 +482,6 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 **Scope import :**
 - Leads historiques (contact, état, dates, TrustedForm si présent, statuts)
-- **Classification catégorie** via la table `lead_categories` (même logique qu’intake) — plus de fallback implicite Traditional/High Intent depuis `SRC`
 - Optionnel : agents existants (mapping vers Clerk manuel ou invite)
 
 **Écran admin :**
@@ -524,17 +498,14 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 ```
 LeadConduit POST webhook
-  → Créer lead (available selon catégorie)
-  → Évaluer catégories lead (critères admin)
-       ├─ 0 ou 2+ matchs → review (pas de matching)
-       └─ 1 match → leadType défini
-            → Matching engine
-                 ├─ Agent éligible trouvé (priorité max)
-                 │    → Débit wallet, delivery, email, CRM, available=false
-                 └─ Aucun agent
-                      → unmatched ; routing coordinator (lifecycle ou legacy 24 h)
-                           ├─ Match / Integrity selon phase
-                           └─ liveSoldAt posé → plus de routage live auto
+  → Créer lead (available=true)
+  → Matching engine
+       ├─ Agent éligible trouvé (priorité max)
+       │    → Débit wallet, delivery, email, CRM, available=false
+       └─ Aucun agent
+            → unmatched, file 24 h
+                 ├─ Match ultérieur → livraison
+                 └─ 24 h écoulées → IntegrityCONNECT
   → [Parallèle temps] J+30 → éligible marketplace aged si available
 ```
 
@@ -657,17 +628,8 @@ Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste 
 
 ### Retraitement unmatched
 
-- **Legacy** (lifecycle off) : fenêtre **24 h** partner match, puis Integrity Realtime
-- **Lifecycle** (flag on) : fenêtres 0–24 h / 24–48 h / 48 h–30 j — voir `docs/client_email_lead_routing_2026-08-03.txt`
-- Preview admin sans effet : `POST /api/admin/lead-routing/preview`
-
-### Changement des règles de catégorie
-
-- Réévaluer par lots les leads non finalisés à partir du payload brut avec le même évaluateur exact que l’intake
-- Exclure les statuts `delivered`, `integrity_posted`, `aged_listed` et `dead`
-- Si une seule catégorie matche, synchroniser la classification et remettre le lead `unmatched` / disponible, sans matching ni livraison immédiate
-- Si zéro ou plusieurs catégories matchent, synchroniser la classification et placer le lead en `review` / indisponible
-- Ne jamais écraser un lead devenu final pendant la réévaluation
+- Fenêtre : **24 h** après entrée
+- Puis IntegrityCONNECT si toujours unmatched
 
 ### Volume
 
@@ -709,36 +671,11 @@ migration_jobs                    │
 | price_override | decimal nullable | Prix custom (ex. 20.00) |
 | wallet_balance | decimal | Solde courant, défaut 0 |
 | status | enum | pending_approval \| active \| rejected \| disabled |
+| crm_webhook_url | string nullable | |
 | stripe_customer_id | string nullable | |
 | created_at, updated_at | timestamp | |
 
 **Index :** status, priority, filter_states (GIN)
-
-**CRM outbound (optionnel)** — table `partner_crm_outbound_configs` (1:1 avec agent/partner) : endpoint, auth, `field_mappings`, `success_rule`, `enabled`. Détail : [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md).
-
-### Table `lead_categories`
-
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | UUID PK | |
-| type | string unique | Clé interne immuable (snake_case, générée à la création) |
-| label | string | Libellé admin |
-| default_price | decimal nullable | Prix temps réel suggéré |
-| enabled | boolean | Exclue de l’évaluation si false |
-| integrity_label | string nullable | Chaîne exacte `lead_type_thom` pour Integrity **Realtime** |
-| integrity_label_storefront | string nullable | Chaîne `lead_type_thom` pour Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL |
-| created_at, updated_at | timestamp | |
-
-### Table `lead_category_criteria`
-
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | UUID PK | |
-| category_id | FK lead_categories | |
-| field | string | Nom de clé top-level du payload webhook |
-| value | string | Valeur exacte attendue (case-sensitive) |
-
-Contrainte : un seul critère par `field` par catégorie ; tous les critères d’une catégorie doivent matcher (AND).
 
 ### Table `leads`
 
@@ -748,17 +685,13 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | first_name, last_name | string | |
 | email, phone | string | |
 | state | string | Code état US |
-| lead_type | string nullable | Type interne (`lead_categories.type`) après résolution intake |
-| category_resolution | enum | matched \| no_match \| multiple_matches |
-| category_candidate_types | string[] | Types des catégories ayant matché (vide ou plusieurs en anomalie) |
+| lead_type | enum | |
 | trustedform_cert_url | string nullable | |
 | source | string | ex. meta_leadconduit |
 | received_at | timestamp | **Référence aging** |
-| live_sold_at | timestamp nullable | Première vente live (partner / Realtime / Storefront) |
-| live_sale_channel | string nullable | `partner` \| `integrity_realtime` \| `integrity_storefront` |
 | available | boolean | Défaut true |
 | refundable | boolean | Défaut true |
-| status | enum | unmatched \| delivered \| integrity_posted \| aged_listed \| review \| dead |
+| status | enum | unmatched \| delivered \| integrity_posted \| aged_listed |
 | external_id | string nullable | ID LeadConduit / Boberdoo migration |
 | raw_payload | jsonb nullable | Payload webhook brut (debug) |
 | created_at, updated_at | timestamp | |
@@ -841,7 +774,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | key | string PK | |
 | value | jsonb | |
 
-**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`, `lifecycle_routing_enabled` (défaut false), `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`)
+**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`
 
 ### Table `migration_jobs`
 
@@ -866,8 +799,8 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | Clerk | Auth | Login, rôles | Instance dev |
 | Stripe | Entrée | Top-up wallet | sk_test TECHMA |
 | Resend | Sortie | Emails | Mailtrap / log |
-| IntegrityCONNECT | Sortie | Revente leads | Auto post LC + `is_test=yes` (mock) |
-| CRM agent | Sortie | POST JSON (config partner) | wizard Test + `pnpm run test:outbound` |
+| IntegrityCONNECT | Sortie | Revente leads | Mock server |
+| CRM agent | Sortie | Webhook JSON | webhook.site |
 
 **Contrat réponse LeadConduit :** `{ "outcome": "success", "reason": "" }`
 
@@ -886,14 +819,12 @@ Page interne `/dev/lead-simulator` (masquée en prod) :
 
 Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo une fois exploré.
 
-### `INTEGRATIONS_MODE=mock` / `app_settings.integrations_mode`
-
-Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode, sauvegarde immédiate, prod inclus). Env `INTEGRATIONS_MODE` ne s’applique que si la clé DB est absente. Défaut : `mock` en dev, `live` en prod.
+### `INTEGRATIONS_MODE=mock`
 
 | Service | Comportement mock |
 |---------|-------------------|
-| Integrity | Auto posts : HTTP LeadConduit réel avec `is_test=yes` ; ping Azure Realtime IUL skippé (auto-accept). Admin test : pas d’HTTP |
-| CRM outbound | Pas d’HTTP réel ; événements `crm_outbound` / échecs tracés |
+| Integrity | Accepte tout, log |
+| CRM | Log payload |
 | Email | Console / Mailtrap |
 | Stripe | Vraies clés test (pas mock) |
 
@@ -935,47 +866,46 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 
 ## 12. Phases de livraison
 
-> **Statut juillet 2026 :** phases 1–4 et core backend **implémentées** en mode test. Voir [PROJECT.md §18](PROJECT.md#18-état-implémentation-backend--ui).
-
-### Phase 1 — Fondations (semaine 1) ✅
+### Phase 1 — Fondations (semaine 1)
 
 - Repo GitHub, **Next.js + Prisma** + Supabase dev
-- Clerk auth, rôles admin/partner
+- Clerk auth, rôles admin/agent
 - Schéma BDD migrations
-- Shells UI Admin + Partner
-- Onboarding partner + **approbation admin**
+- Shells UI Admin + Agent (design de base)
+- Onboarding agent + **approbation admin**
 - Feature flag `ADMIN_APPROVAL_REQUIRED`
 
-### Phase 2 — Intake & matching (semaine 2) ✅
+### Phase 2 — Intake & matching (semaine 2)
 
-- Webhook intake + simulateur + feeding-platform
-- Moteur matching (filter sets v2)
+- Webhook intake + simulateur
+- Moteur matching complet
 - File unmatched + job retraitement 24 h
-- Admin : liste leads, filtres, détail, event log
+- Admin : liste leads, agents CRUD
 
-### Phase 3 — Wallet & notifications (semaine 3) ✅
+### Phase 3 — Wallet & notifications (semaine 3)
 
 - Stripe test top-up manuel + récurrent
 - Ledger transactions, statut actif
-- Emails lead livré (Resend)
-- Portail partner : mes leads, wallet
+- Emails lead livré
+- Portail agent : mes leads, wallet
 
-### Phase 4 — Aged & remboursements (semaine 4) ✅
+### Phase 4 — Aged & remboursements (semaine 4)
 
-- Seuil aged configurable (défaut J+30)
+- Job aging J+30
 - Marketplace aged (unitaire + checkboxes)
-- Workflow remboursement in-app (Type A/B)
+- Workflow remboursement in-app
 - Routage post-remboursement
 
-### Phase 5 — Intégrations & migration (semaines 5–6) ⏳ partiel
+### Phase 5 — Intégrations & migration (semaines 5–6)
 
-- IntegrityCONNECT live (preflight Azure + flag lifecycle) — **code prêt, activation contrôlée**
-- CRM outbound POST self-service (wizard partner) — ✅ — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
-- **Migration Boberdoo** (écran import CSV) — ✅
-- Deploy Netlify + Supabase staging — ⏳
-- Cutover LeadConduit prod — ⏳ voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)
+- IntegrityCONNECT live (si specs OK)
+- CRM webhook agent
+- **Migration Boberdoo** (écran import)
+- Deploy Netlify + Supabase staging
+- Tests charge, corrections
+- Préparation migration Replit
 
-### Phase 6 — Livraison Replit ⏳
+### Phase 6 — Livraison Replit
 
 - Export Supabase → Replit Postgres
 - Deploy Replit, reconfig webhooks

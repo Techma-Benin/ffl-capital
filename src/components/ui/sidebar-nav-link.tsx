@@ -3,34 +3,26 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import type { Icon } from "@/lib/icons/client";
-import { ICON_WEIGHT } from "@/lib/icons/client";
-import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
+import type { LucideIcon } from "lucide-react";
+import { usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  sidebarNavAccentStyles,
-  type SidebarNavAccent,
-} from "@/components/ui/sidebar-nav-accent";
 
 export function SidebarNavLink({
   href,
   label,
-  icon: IconComponent,
+  icon: Icon,
   exact,
-  accent = "brand",
 }: {
   href: string;
   label: string;
-  icon: Icon;
+  icon: LucideIcon;
   exact?: boolean;
-  accent?: SidebarNavAccent;
 }) {
   const pathname = usePathname();
   const { sidebarCollapsed, pendingPath, startNavigation } = usePortal();
 
   const active = exact ? pathname === href : pathname.startsWith(href);
-  const pending = isNavigationPending(pendingPath, href);
-  const styles = sidebarNavAccentStyles[accent];
+  const pending = pendingPath === href;
 
   return (
     <Link
@@ -38,37 +30,36 @@ export function SidebarNavLink({
       onClick={() => startNavigation(href)}
       title={sidebarCollapsed ? label : undefined}
       aria-busy={pending}
-      aria-current={active ? "page" : undefined}
       className={clsx(
         "nav-item group relative",
         active && "active",
-        active && styles.activeBg,
-        active && styles.activeText,
         pending && "pointer-events-none opacity-80",
-        sidebarCollapsed && "justify-center px-0",
       )}
     >
       <span
         className={clsx(
-          "flex flex-shrink-0 items-center justify-center",
-          active
-            ? styles.activeIcon
-            : "text-sidebar-text group-hover:text-slate-700",
+          "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors",
+          active ? "bg-white/10" : "bg-transparent group-hover:bg-white/5",
         )}
       >
         {pending ? (
-          <Spinner size="xs" variant={styles.spinner} />
+          <Spinner size="xs" variant="white" />
         ) : (
-          <IconComponent size={22} weight={ICON_WEIGHT} />
+          <Icon size={16} />
         )}
       </span>
 
-      {!sidebarCollapsed && <span className="truncate">{label}</span>}
+      <span
+        className={clsx(
+          "truncate transition-all duration-300",
+          sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100",
+        )}
+      >
+        {label}
+      </span>
 
       {!sidebarCollapsed && active && !pending && (
-        <span
-          className={clsx("ml-auto h-1.5 w-1.5 rounded-full", styles.dot)}
-        />
+        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-300" />
       )}
 
       {sidebarCollapsed && (

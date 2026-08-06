@@ -23,21 +23,20 @@ const editSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
-  const { id } = await params;
   const body = await request.json();
   const parsed = editSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const existing = await prisma.lead.findUnique({ where: { id } });
+  const existing = await prisma.lead.findUnique({ where: { id: params.id } });
   if (!existing) {
     return NextResponse.json({ error: "Lead not found" }, { status: 404 });
   }
@@ -50,7 +49,7 @@ export async function PATCH(
   }
 
   const lead = await prisma.lead.update({
-    where: { id },
+    where: { id: params.id },
     data,
   });
 
@@ -59,25 +58,24 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
-  const { id } = await params;
-  const existing = await prisma.lead.findUnique({ where: { id } });
+  const existing = await prisma.lead.findUnique({ where: { id: params.id } });
   if (!existing) {
     return NextResponse.json({ error: "Lead not found" }, { status: 404 });
   }
 
   const lead = await prisma.lead.update({
-    where: { id },
+    where: { id: params.id },
     data: { status: "dead", available: false },
   });
 
-  await emitLeadEvent(id, LeadEventType.deleted, {
+  await emitLeadEvent(params.id, LeadEventType.deleted, {
     previousStatus: existing.status,
   });
 

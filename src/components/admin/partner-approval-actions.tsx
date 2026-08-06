@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CheckCircle, XCircle } from "@/lib/icons/client";
+import { CheckCircle, XCircle } from "lucide-react";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 
 export function PartnerApprovalActions({ partnerId }: { partnerId: string }) {

@@ -4,14 +4,13 @@ import { getLeadEvents } from "@/lib/leads/lead-events";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
-  const { id } = await params;
-  const events = await getLeadEvents(id);
+  const events = await getLeadEvents(params.id);
   return NextResponse.json({ events });
 }

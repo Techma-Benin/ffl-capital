@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 
@@ -22,7 +21,7 @@ export async function GET(request: NextRequest) {
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
 
-  const orConditions: Prisma.LeadWhereInput[] = [
+  const orConditions = [
     ...(isUuid ? [{ id: q }] : []),
     { externalId: q },
     { email: { contains: q, mode: "insensitive" as const } },

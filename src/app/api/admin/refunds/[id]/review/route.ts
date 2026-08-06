@@ -13,14 +13,13 @@ const reviewSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
-  const { id } = await params;
   const body = await request.json();
   const parsed = reviewSchema.safeParse(body);
   if (!parsed.success) {
@@ -32,8 +31,8 @@ export async function POST(
   try {
     const result =
       parsed.data.action === "approve"
-        ? await processRefundApproval(id, reviewerPartnerId ?? undefined)
-        : await processRefundRejection(id, reviewerPartnerId ?? undefined);
+        ? await processRefundApproval(params.id, reviewerPartnerId ?? undefined)
+        : await processRefundRejection(params.id, reviewerPartnerId ?? undefined);
 
     return NextResponse.json(result);
   } catch (err) {

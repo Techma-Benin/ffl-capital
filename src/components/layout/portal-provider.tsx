@@ -5,17 +5,9 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
-  useRef,
   useState,
-  type MutableRefObject,
 } from "react";
-import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import {
-  buildFullPath,
-  normalizeNavigationHref,
-} from "@/lib/navigation/normalize-href";
 
 type PortalContextValue = {
   sidebarCollapsed: boolean;
@@ -29,37 +21,16 @@ const PortalContext = createContext<PortalContextValue | null>(null);
 
 const STORAGE_KEY = "ffl-sidebar-collapsed";
 
-type NavigationLocationRef = MutableRefObject<{ fullPath: string }>;
-
-function PortalNavigationSync({
-  locationRef,
-  onLocationChange,
-}: {
-  locationRef: NavigationLocationRef;
-  onLocationChange: (fullPath: string) => void;
-}) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const fullPath = useMemo(
-    () => buildFullPath(pathname, searchParams.toString()),
-    [pathname, searchParams],
-  );
-
-  useEffect(() => {
-    locationRef.current.fullPath = fullPath;
-    onLocationChange(fullPath);
-  }, [fullPath, locationRef, onLocationChange]);
-
-  return null;
-}
-
 export function PortalProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const locationRef = useRef({ fullPath: pathname });
+  const searchParams = useSearchParams();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+
+  const currentPath = searchParams.toString()
+    ? `${pathname}?${searchParams.toString()}`
+    : pathname;
 
   useEffect(() => {
     setHydrated(true);
@@ -68,29 +39,8 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    locationRef.current.fullPath = pathname;
-  }, [pathname]);
-
-  const onLocationChange = useCallback((fullPath: string) => {
-    setPendingPath((pending) => {
-      if (!pending) return pending;
-      return normalizeNavigationHref(pending) === normalizeNavigationHref(fullPath)
-        ? null
-        : pending;
-    });
-  }, []);
-
-  const startNavigation = useCallback(
-    (href: string) => {
-      const current =
-        locationRef.current.fullPath ||
-        buildFullPath(pathname, "");
-      if (normalizeNavigationHref(href) !== normalizeNavigationHref(current)) {
-        setPendingPath(href);
-      }
-    },
-    [pathname],
-  );
+    setPendingPath(null);
+  }, [pathname, searchParams]);
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
@@ -100,22 +50,23 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const value: PortalContextValue = {
-    sidebarCollapsed: hydrated ? sidebarCollapsed : false,
-    toggleSidebar,
-    pendingPath,
-    startNavigation,
-    isNavigating: pendingPath !== null,
-  };
+  const startNavigation = useCallback(
+    (href: string) => {
+      if (href !== currentPath) setPendingPath(href);
+    },
+    [currentPath],
+  );
 
   return (
-    <PortalContext.Provider value={value}>
-      <Suspense fallback={null}>
-        <PortalNavigationSync
-          locationRef={locationRef}
-          onLocationChange={onLocationChange}
-        />
-      </Suspense>
+    <PortalContext.Provider
+      value={{
+        sidebarCollapsed: hydrated ? sidebarCollapsed : false,
+        toggleSidebar,
+        pendingPath,
+        startNavigation,
+        isNavigating: pendingPath !== null,
+      }}
+    >
       {children}
     </PortalContext.Provider>
   );
@@ -127,15 +78,4 @@ export function usePortal() {
     throw new Error("usePortal must be used within PortalProvider");
   }
   return ctx;
-}
-
-/** Match pending navigation to a link href (order-insensitive query). */
-export function isNavigationPending(
-  pendingPath: string | null,
-  href: string,
-): boolean {
-  if (!pendingPath || !href) return false;
-  return (
-    normalizeNavigationHref(pendingPath) === normalizeNavigationHref(href)
-  );
 }
