@@ -1,4 +1,4 @@
-import { Lightning } from "@/lib/icons/ssr";
+import { Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -18,16 +18,16 @@ export function AuthLeftPanel({ subtitle, children }: AuthLeftPanelProps) {
         className="object-cover"
         sizes="50vw"
       />
-      <div className="absolute inset-0 bg-brand-950/85" aria-hidden />
+      <div className="absolute inset-0 bg-sidebar-bg/85" aria-hidden />
 
       <div className="relative z-10 flex flex-col h-full">
         <Link href="/" className="flex items-center gap-2.5 w-fit transition-opacity hover:opacity-80">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700">
-            <Lightning size={18} className="text-white" />
+            <Zap size={18} className="text-white" />
           </div>
           <div>
             <p className="text-sm font-bold leading-tight">FFL Capital</p>
-            <p className="text-xs text-brand-200">{subtitle}</p>
+            <p className="text-xs text-sidebar-text">{subtitle}</p>
           </div>
         </Link>
 

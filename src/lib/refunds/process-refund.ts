@@ -1,6 +1,5 @@
 import { LeadEventType } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { creditWallet } from "@/lib/wallet/ledger";
 import { matchLead } from "@/lib/matching/engine";
@@ -50,7 +49,7 @@ export async function processRefundApproval(
         data: { available: true, status: "unmatched" },
       });
     }
-  }, PRISMA_TX_OPTIONS);
+  });
 
   await creditWallet(partner.id, price, "refund", {
     leadDeliveryId: leadDelivery.id,
@@ -63,6 +62,19 @@ export async function processRefundApproval(
     partnerId: partner.id,
     amount: price,
   });
+
+  if (request.refundType === "wrong_filter") {
+    const matchResult = await matchLead(leadDelivery.leadId, {
+      excludePartnerIds: [partner.id],
+    });
+    if (matchResult.matched && matchResult.deliveryId) {
+      await deliverLead(matchResult.deliveryId);
+      await prisma.lead.update({
+        where: { id: leadDelivery.leadId },
+        data: { refundable: false },
+      });
+    }
+  }
 
   return { refundRequestId, status: "approved" as const };
 }

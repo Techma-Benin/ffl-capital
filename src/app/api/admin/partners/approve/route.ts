@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PartnerStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { requireAdmin } from "@/lib/auth/session";
-import { syncFilterSetsActiveWithPartnerStatus } from "@/lib/partner/default-filter-set";
 import { z } from "zod";
 
 const approveSchema = z.object({
@@ -28,18 +26,10 @@ export async function POST(request: NextRequest) {
       ? PartnerStatus.active
       : PartnerStatus.rejected;
 
-  const partner = await prisma.$transaction(async (tx) => {
-    const updated = await tx.partner.update({
-      where: { id: parsed.data.partnerId },
-      data: { status },
-    });
-    await syncFilterSetsActiveWithPartnerStatus(
-      parsed.data.partnerId,
-      status,
-      tx,
-    );
-    return updated;
-  }, PRISMA_TX_OPTIONS);
+  const partner = await prisma.partner.update({
+    where: { id: parsed.data.partnerId },
+    data: { status },
+  });
 
   return NextResponse.json({ partnerId: partner.id, status: partner.status });
 }

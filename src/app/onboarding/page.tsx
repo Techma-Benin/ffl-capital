@@ -1,28 +1,15 @@
+import { redirect } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import { getCurrentPartner } from "@/lib/auth/session";
-import { getRoleFromMetadata } from "@/lib/auth/roles";
-import { Lightning } from "@/lib/icons/ssr";
-import { AuthContinueRedirect } from "@/app/auth/continue/redirect";
-import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
-import { loadEnabledCategoryLabels } from "@/lib/lead-categories/category-labels";
-import { OnboardingWizardLoader } from "./onboarding-wizard-loader";
+import OnboardingForm from "./onboarding-form";
+import { Zap } from "lucide-react";
 
 export default async function OnboardingPage() {
-  const user = await currentUser();
-  const role = getRoleFromMetadata(user?.publicMetadata as Record<string, unknown>);
-  if (role === "admin") redirect("/admin");
+  const partner = await getCurrentPartner();
+  if (partner) redirect("/partner");
 
-  const [partner, criteriaOptions, categories] = await Promise.all([
-    getCurrentPartner(),
-    getLeadFilterCriteriaOptions(),
-    loadEnabledCategoryLabels(),
-  ]);
-  // Use client-side redirect to avoid throwing NEXT_REDIRECT in the RSC layer,
-  // which triggers the dev-mode error overlay (non-issue in production but
-  // confusing during development).
-  if (partner) return <AuthContinueRedirect to="/partner" />;
+  const user = await currentUser();
   const fullName = user?.fullName?.trim() ?? "";
   const [fallbackFirst = "", ...fallbackRest] = fullName ? fullName.split(/\s+/) : [];
   const initialProfile = {
@@ -32,27 +19,64 @@ export default async function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-50">
       {/* Top bar */}
       <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-8">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-700">
-            <Lightning size={14} className="text-white" />
+            <Zap size={14} className="text-white" />
           </div>
-          <span className="text-sm font-bold text-brand-800">FFL Capital</span>
+          <span className="text-sm font-bold text-slate-900">FFL Capital</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-500">Signed in</span>
-          <UserButton />
+          <UserButton afterSignOutUrl="/" />
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
-        <OnboardingWizardLoader
-          initialProfile={initialProfile}
-          criteriaOptions={criteriaOptions}
-          categories={categories}
-        />
+      <div className="mx-auto max-w-2xl px-6 py-12">
+        {/* Progress indicator */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3">
+            {["Account Created", "Complete Profile", "Admin Review", "Go Live"].map((s, i) => (
+              <div key={s} className="flex items-center">
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                      i === 1
+                        ? "bg-brand-700 text-white"
+                        : i < 1
+                        ? "bg-emerald-500 text-white"
+                        : "bg-slate-200 text-slate-400"
+                    }`}
+                  >
+                    {i < 1 ? "✓" : i + 1}
+                  </div>
+                  <span className={`text-[10px] font-medium whitespace-nowrap ${
+                    i === 1 ? "text-brand-700" : i < 1 ? "text-emerald-600" : "text-slate-400"
+                  }`}>
+                    {s}
+                  </span>
+                </div>
+                {i < 3 && (
+                  <div className={`mx-1 mb-4 h-px w-8 sm:w-12 ${i < 1 ? "bg-emerald-400" : "bg-slate-200"}`} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card p-6 sm:p-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-900">Complete your partner profile</h1>
+            <p className="mt-1.5 text-sm text-slate-500">
+              Tell us about yourself and choose the states where you want to receive IUL leads.
+              Admin approval is required before you go live.
+            </p>
+          </div>
+
+          <OnboardingForm initialProfile={initialProfile} />
+        </div>
       </div>
     </div>
   );

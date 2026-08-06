@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 5 août 2026 (v12 — routage lifecycle Phase 2, Azure ping IUL)
+> Dernière mise à jour : 10 juillet 2026 (v6 — plan backend core + filter sets)
 
 ---
 
@@ -38,14 +38,6 @@
 | **Ping/Post** | Protocole API pour vendre un lead à un acheteur tiers (IntegrityCONNECT) |
 | **Storefront** | Mode revente différé avec réconciliation journalière |
 | **Wallet** | Solde prépayé Stripe débité à chaque livraison/achat de lead |
-| **Filter set** | Profil de **matching** partner : états, type IUL, priorité, limites H/J, prix — plusieurs par partner (`partner_filter_sets`, `isTemplate=false`) ; pilote la distribution temps réel, pas l’affichage de la liste leads |
-| **Filter set template** | Même table `partner_filter_sets` avec `isTemplate=true` et `partnerId` null — modèles admin (Filter List / onboarding / picker) ; **exclus** du matching |
-| **Vue leads (lead list view)** | Configuration **persistée** de liste : filtres d’affichage, tri, colonnes visibles ; scope **admin** (global) ou **partner** (par compte). URL portail : `?view=<uuid>`. L’éditeur peut aussi appliquer temporairement un brouillon via `draft` dans l’URL, sans persistance ; **Save view** l’enregistre et retire le brouillon. Côté admin, peut filtrer les leads attribués à un filter set live ; distinct d’un filter set de matching |
-| **Lead category** | Règle admin (label + critères exacts sur le payload webhook) → clé interne `type` (snake_case, générée à la création) ; détermine `lead.leadType` à l’intake ; labels Integrity séparés Realtime (`integrity_label`) et Storefront (`integrity_label_storefront`, fallback Realtime) pour `lead_type_thom` |
-| **Category resolution** | Résultat de l’évaluation des règles : `matched` (1 catégorie), `no_match` (0), `multiple_matches` (2+) — zéro/plusieurs → `status=review`, pas de matching ni Integrity. Les changements de règles réévaluent aussi les leads non finalisés |
-| **Unclassified / Multiple match** | Libellés UI fixes pour anomalies (`no_match` / `multiple_matches`) ; les catégories et candidats affichés utilisent `lead_categories.label`, pas de constantes IUL hardcodées |
-| **Lifecycle routing** | Routage automatique des leads unmatched selon l’âge (0–24 h Realtime ILC, 24–48 h partner ou Storefront, 48 h–30 j partners seuls, 30 j+ aged) — **désactivé par défaut** (`lifecycle_routing_enabled`) ; spec client : `docs/client_email_lead_routing_2026-08-03.txt` |
-| **Live sale** | Première vente live (partner, Realtime ou Storefront) enregistrée via `liveSoldAt` / `liveSaleChannel` ; bloque tout routage live automatique ultérieur jusqu’à action admin explicite |
 
 ---
 
@@ -72,8 +64,7 @@ Meta Lead Ads
 
 - Persister le lead avec `received_at` (base du calcul des 30 jours)
 - Stocker l’URL/certificat TrustedForm
-- **Évaluer les catégories lead** configurées (critères exacts sur le payload) → `leadType` ou file review si 0/N match
-- Lancer le moteur de matching automatiquement (uniquement si catégorie résolue)
+- Lancer le moteur de matching automatiquement
 - Si non matché : file d’attente + retraitement 24 h → puis revente IntegrityCONNECT
 
 ### Référence Loom / call client
@@ -96,11 +87,8 @@ Un lead est **non vendu** quand aucun agent actif ne correspond aux critères (s
 **Ce qui se passe :**
 1. Entrée en base avec statut `unmatched`
 2. **Retraitement pendant 24 h** : le système réessaie périodiquement de le matcher (ex. un agent recharge son wallet ou change ses filtres)
-3. **Reprocess admin (bulk)** : sélection de leads → **hold** (bloque cron et reprocess ligne) → modal partenaires actifs éligibles (au moins 1 lead) → matching restreint aux partenaires cochés → libération du hold ; **pas** d’envoi Integrity immédiat si échec
-4. Si toujours non vendu → **routage selon mode lifecycle** :
-   - **Legacy** (`lifecycle_routing_enabled` off, défaut) : retraitement partner pendant 24 h, puis post Integrity Realtime
-   - **Lifecycle client** (flag on) : 0–24 h Realtime ILC seul ; 24–48 h partner ou Storefront (priorité admin) ; 48 h–30 j partners seuls ; pas de retry ILC auto au-delà
-5. Après **30 jours** dans le système → devient **aged lead** (5 $), visible dans la marketplace
+3. Si toujours non vendu après 24 h → envoi vers **IntegrityCONNECT** (ping/post temps réel ou storefront 48 h)
+4. Après **30 jours** dans le système → devient **aged lead** (5 $), visible dans la marketplace
 
 Exemple client : lead Wisconsin, personne ne veut cet état → rejeté temps réel, reste unmatched (**17:08 – 17:32** dans le transcript).
 
@@ -111,8 +99,8 @@ Un lead est **vendu** quand il est assigné à un agent :
 1. Matching automatique (état + priorité)
 2. **Débit du wallet** de l’agent (25 $ par défaut, remise possible)
 3. Statut → `delivered` / `owned`
-4. **Email** envoyé à l’agent (toujours)
-5. Optionnel : POST CRM si config **activée** (`enabled`) — carte Lead delivery (configuré ≠ activé) → wizard `/partner/settings/crm-outbound` — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
+4. **Email** envoyé à l’agent
+5. Optionnel : push vers CRM (Ringy, HubSpot, etc.)
 
 **Après la vente :**
 - Le lead **ne réapparaît pas** dans la file temps réel
@@ -131,7 +119,7 @@ Références Loom :
 
 **Règle métier retenue :**
 
-> **`available` = matching temps réel uniquement.** La marketplace aged utilise l’**âge du lead (J+30)** et **n’applique pas** les filter sets partenaire — filtres browse = UI (`state`, `type`, `age`) uniquement.
+> **`available` = matching temps réel uniquement.** La marketplace aged utilise l’**âge du lead (J+30)**, pas `available`.
 
 | Événement | `available` (temps réel) | Marketplace aged |
 |-----------|--------------------------|------------------|
@@ -242,17 +230,14 @@ Transcript : `first review with client` — [enregistrement Fathom](https://fath
 agents (users)
   ├── affiliation (texte libre — nom agence partenaire)
   ├── wallet_balance
-  ├── partner_filter_sets[] (live : partnerId + isTemplate=false ; templates globaux : partnerId null + isTemplate=true)
-  ├── filter_states[], priority (1-10), price_override, lead_type — par filter set (pas sur le compte)
-  └── partner_crm_outbound_configs (optionnel — Lead delivery / wizard crm-outbound, voir PARTNER_CRM_OUTBOUND.md)
+  ├── filter_states[], lead_type, priority (1-10)
+  ├── price_override (nullable, ex. 20 au lieu de 25)
+  └── crm_webhook_url (nullable)
 
 leads
-  ├── contact fields, state, lead_type (nullable — string, catégorie résolue)
-  ├── category_resolution (matched | no_match | multiple_matches)
-  ├── category_candidate_types (types ayant matché)
+  ├── contact fields, state, lead_type, source
   ├── trustedform_cert_url
   ├── received_at
-  ├── live_sold_at, live_sale_channel   -- provenance 1ère vente live (Phase 2)
   ├── available (boolean, default true)
   ├── refundable (boolean, default true — passe false après cycle remboursement+revente)
   └── status: unmatched | delivered | integrity_posted | aged_listed | ...
@@ -269,10 +254,6 @@ transactions                      -- ledger wallet
 
 resale_postings                   -- envois IntegrityCONNECT
   ├── lead_id, mode (realtime|storefront), status, external_ref
-
-lead_categories                   -- classification produit (admin)
-  ├── type (immuable), label, integrity_label, integrity_label_storefront, enabled, default_price
-  └── criteria[] (field + value, match exact payload)
 ```
 
 **Matching V1 :** état US + type IUL + partner actif (wallet) + **≥ 15 états** + priorité. **Égalité de priorité → FIFO** (confirmé équipe).
@@ -396,11 +377,9 @@ lead_categories                   -- classification produit (admin)
 
 | Couche | Outil | Rôle |
 |--------|-------|------|
-| **Simulateur interne** | Page/form de test TECHMA (`/dev/lead-simulator`) | Formulaire simple → POST vers `/api/leads/intake` |
-| **Feeding platform** | `/feeding-platform` | UI statique pour soumissions test |
+| **Simulateur interne** | Page/form de test TECHMA (`/dev/lead-simulator`) | Formulaire simple (nom, email, téléphone, état, type) → POST vers notre webhook |
 | **Fixture JSON** | Fichiers `fixtures/lead-payload-*.json` | Payloads conformes au format LeadConduit attendu |
-| **Script CLI** | `pnpm run seed:lead` ou curl | Injection en masse pour tester matching / aging |
-| **Checklist E2E** | `pnpm run verify` (+ serveur dev ; Replit : `API_BASE_URL=http://127.0.0.1:5000`) | Scénarios Phase 9 : intake, limites, refunds, recherche admin, cron Integrity, champs migration |
+| **Script CLI** | `npm run seed:lead` ou curl | Injection en masse pour tester matching / aging |
 | **Webhook mock** | `POST /api/leads/intake` | Endpoint identique à celui branché en prod |
 | **TrustedForm simulé** | URL factice `https://cert.trustedform.com/test-{uuid}` | Suffisant en dev ; champ string en BDD |
 
@@ -415,10 +394,10 @@ lead_categories                   -- classification produit (admin)
 | **Stripe wallet** | Clés **test** (`sk_test_…`) — compte démo TECHMA ou `stripe sandbox create` | Clés prod client + webhook secret |
 | **Emails** | Console log / [Mailtrap](https://mailtrap.io) / Resend dev | SMTP ou Resend prod client (`RESEND_API_KEY`, `FROM_EMAIL` — aussi Contact Us) |
 | **CRM agent** | [webhook.site](https://webhook.site) ou endpoint local `/api/dev/crm-capture` | URL webhook fournie par chaque agent |
-| **IntegrityCONNECT** | Auto posts mock → LeadConduit avec `is_test=yes` (ping Azure skippé) ; admin test short-circuit mock | Doc API + credentials Integrity (fichier R client) |
+| **IntegrityCONNECT** | **Mock server** qui répond aux ping/post avec `{ accepted: true }` | Doc API + credentials Integrity (fichier R client) |
 | **LeadConduit réponse** | Retourner `{ "outcome": "success" }` sur notre endpoint | Idem |
 
-**Pattern recommandé :** mode sorties `mock|live` via admin Settings → Integrations (clé `app_settings.integrations_mode`, persistée dès le changement de Mode, prod inclus). En mock, CRM et la plupart des sorties loggent localement ; **Integrity auto posts** envoient du HTTP LeadConduit avec `is_test=yes` (ping Azure skippé). En live, vraies APIs. Résolution : `app_settings.integrations_mode` prime, puis env `INTEGRATIONS_MODE`, puis défaut (`mock` en dev, `live` en prod).
+**Pattern recommandé :** variable `INTEGRATIONS_MODE=mock|live` — en mock, toutes les sorties loggent localement ; en live, vraies APIs.
 
 ### Stripe (wallet prépayé)
 
@@ -444,8 +423,8 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 
 | # | Besoin | Pourquoi | Quand nécessaire |
 |---|--------|----------|------------------|
-| 1 | **Accès LeadConduit** (ou doc webhook + exemple payload) | Brancher le vrai flux d’intake en prod | Cutover — voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md) |
-| 2 | **Exemple réel de payload lead** (avec champ TrustedForm) | Mapper les champs correctement | **Résolu** — fixture + exploration Boberdoo |
+| 1 | **Accès LeadConduit** (ou doc webhook + exemple payload) | Brancher le vrai flux d’intake | Semaine 2 |
+| 2 | **Exemple réel de payload lead** (avec champ TrustedForm) | Mapper les champs correctement | Semaine 2 |
 | 3 | **Compte Stripe production** (clés API + webhook secret) | Paiements réels agents | Semaine 4 |
 | 4 | **Doc API IntegrityCONNECT** + credentials ping/post | Revente leads non matchés | Semaines 5–6 |
 | 5 | **Accès instance Boberdoo** (lecture seule) | Valider parité fonctionnelle | Dès que possible (QA) |
@@ -494,10 +473,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | `docs/capital_solu_initial_call_transcript.txt` | Transcript call découverte client |
 | `docs/team call.txt` | Briefing interne TECHMA (Bill, Masdouk) |
 | `docs/PROJECT.md` | Mémoire projet / décisions / FAQ |
-| `docs/LEADCONDUIT_SETUP.md` | Guide connexion LeadConduit / ngrok / cutover prod |
-| `docs/client_email_lead_routing_2026-08-03.txt` | Cycle de routage lifecycle approuvé client (août 2026) |
-| `docs/CLERK_INTEGRATION.md` | Clerk proxy Replit, invitations admin (conflits + orphan create-user), tickets/accept |
-| `docs/PRD.md` | **Spécification produit** — features, flows, BDD, stack |
+| `docs/PRD.md` | **Spécification produit** — features, flows, BDD, stack (point de départ implémentation) |
 
 ---
 
@@ -544,7 +520,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 - [x] **Prisma** (pas Drizzle)
 - [x] **Supabase** dev (pas Docker)
 - [x] **Next.js** full-stack
-- [x] Mode intégrations `mock|live` (`app_settings.integrations_mode` prime ; env `INTEGRATIONS_MODE` fallback ; défaut mock dev / live prod)
+- [x] `INTEGRATIONS_MODE=mock|live` (app_settings)
 - [x] Approbation admin après signup — `ADMIN_APPROVAL_REQUIRED`
 
 ### Juillet 2026 — backend core
@@ -553,9 +529,8 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 |-------|----------|
 | Priorité build | **Backend core d'abord**, UI/design ensuite |
 | Filter sets | **Multiples par partner** (parité Boberdoo), pas un seul profil |
-| Filter set templates | **Même table** `partner_filter_sets` (`isTemplate=true`, `partnerId` null) — plus de table `filter_set_templates` ; exclus du matching |
 | Auto-recharge solde | **Reportée** — abonnement Stripe hebdomadaire conservé |
-| Admin vs partner | **Portails séparés** (URLs / flux distincts) ; invite admin peut **promouvoir** un user Clerk non-admin existant (ex. partner) ; orphan `accepted` sans user → **Create account** (`create-user`) |
+| Admin vs partner | **Comptes séparés** — pas de promotion partner → admin |
 | IntegrityCONNECT live | Code mock prêt ; **specs/API client** requises pour live |
 | TrustedForm | Certificat dans le payload webhook ; pas d'accès admin TF requis pour intake |
 | Seuil aged | Sera **configurable** en admin (défaut 30 jours) |
@@ -638,22 +613,34 @@ Lors d’une reprise de contexte :
 
 ---
 
-## 18. État implémentation (backend + UI)
+## 18. État implémentation (backend)
 
-> Détail technique : [`docs/BACKEND.md`](BACKEND.md) · LeadConduit : [`docs/LEADCONDUIT_SETUP.md`](LEADCONDUIT_SETUP.md)
+> Détail technique : [`docs/BACKEND.md`](BACKEND.md)
 
-**Juillet 2026 — V1 fonctionnelle en test :**
+**Phase 0 — fondations (29 juin 2026) :**
 
-| Phase | Livrables clés | Statut |
-|-------|----------------|--------|
-| 0 — Fondations | Repo, Prisma, intake, matching v1, seed | ✅ |
-| 1b — Auth + shells | Clerk, onboarding, admin/partner portails | ✅ |
-| 2 — Pipeline | Intake complet, cron reprocess, Integrity mock | ✅ |
-| 3 — Wallet | Stripe test, emails, CRM outbound POST | ✅ |
-| 4 — Aged + refunds | Marketplace, workflow remboursement | ✅ |
-| Core backend (9 phases) | Filter sets, lead_events, admin APIs | ✅ |
-| UI parité (essentiel) | Leads, partners, refunds, wallet, aged | ✅ |
-| Client store / load-once | Dashboard 90j (+ refetch API hors fenêtre), partners list, filter-list, refunds, partner aged — filtre client + `src/lib/client-store` ; listes leads unbounded restent paginées serveur | ✅ |
+| Livrable | Statut |
+|----------|--------|
+| Repo Git + GitHub | ✅ |
+| Next.js 14 + Prisma | ✅ |
+| Schéma BDD (9 tables) + migrations | ✅ |
+| API intake LeadConduit | ✅ |
+| Moteur matching V1 (FIFO) | ✅ |
+| Wallet ledger | ✅ |
+| Seed partners test | ✅ |
+| Projet Supabase dédié | ✅ `wbzvyvtlopoghvdqltxm` |
+| Vérification locale (`npm run verify`) | ✅ |
 
-**Prochaines étapes :** cutover LeadConduit prod, Integrity live (preflight Azure + activation lifecycle flag), Stripe prod, scheduler cron prod, polish UI avancé (charts, billing PDF).
+**Phase 1b — auth + shells (29 juin 2026) :**
+
+| Livrable | Statut |
+|----------|--------|
+| Clerk SDK + middleware | ✅ (clés `.env` requises) |
+| Sign-in / Sign-up | ✅ |
+| Onboarding partner (≥15 états) | ✅ |
+| Shell Admin (dashboard, partners, leads) | ✅ |
+| Shell Partner (dashboard, leads, wallet) | ✅ |
+| API approbation admin | ✅ |
+
+**Prochaines étapes (Phase 2+) :** Stripe test, jobs cron 24h/J+30, UI remboursements.
 

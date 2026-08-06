@@ -1,3 +1,4 @@
+import { LeadType } from "@prisma/client";
 import type { IntakePayload } from "./validate-intake";
 
 export interface NormalizedLead {
@@ -11,13 +12,11 @@ export interface NormalizedLead {
   zip: string | null;
   dob: string | null;
   age: string | null;
+  leadType: LeadType;
   intent: string | null;
   haveIul: string | null;
   primaryGoal: string | null;
   stateYouCurrentlyLiveIn: string | null;
-  beneficiary: string | null;
-  historyOfCancer: string | null;
-  mortgageLoanAmount: string | null;
   trustedformCertUrl: string | null;
   tcpaConsent: string | null;
   tcpaLanguage: string | null;
@@ -33,7 +32,33 @@ export interface NormalizedLead {
   rawPayload: Record<string, unknown>;
 }
 
-function pickString(...values: (string | undefined)[]): string | null {
+function resolveLeadType(
+  intent: string | undefined,
+  source: string | undefined,
+): LeadType {
+  if (intent) {
+    const normalized = intent.toLowerCase().trim();
+    if (normalized.includes("high intent") || normalized === "high_intent") {
+      return LeadType.high_intent_iul;
+    }
+    if (normalized.includes("traditional")) {
+      return LeadType.traditional_iul;
+    }
+  }
+
+  if (source) {
+    const src = source.toLowerCase();
+    if (src.includes("highintent") || src.includes("high_intent")) {
+      return LeadType.high_intent_iul;
+    }
+  }
+
+  return LeadType.traditional_iul;
+}
+
+function pickString(
+  ...values: (string | undefined)[]
+): string | null {
   for (const v of values) {
     if (v !== undefined && v !== "") return v;
   }
@@ -65,28 +90,16 @@ export function normalizeLead(payload: IntakePayload): NormalizedLead {
     zip: pickString(payload.Zip, payload.zip),
     dob: pickString(payload.DOB, payload.dob),
     age: pickString(payload.Age, payload.age),
+    leadType: resolveLeadType(intent ?? undefined, source),
     intent,
     haveIul: pickString(payload.Have_IUL, payload.haveIul),
     primaryGoal: pickString(payload.Primary_Goal, payload.primaryGoal),
-    beneficiary: pickString(payload.Beneficiary, payload.beneficiary),
-    historyOfCancer: pickString(
-      payload.History_Of_Cancer,
-      payload.historyOfCancer,
-    ),
-    mortgageLoanAmount: pickString(
-      payload.Mortgage_Loan_Amount,
-      payload.mortgageLoanAmount,
-    ),
     stateYouCurrentlyLiveIn: pickString(
       payload.State_You_Currently_Live_In,
       payload.stateYouCurrentlyLiveIn,
     )?.toUpperCase() ?? null,
-    trustedformCertUrl: pickString(
-      payload.Trusted_Form_URL,
-      payload.trustedformCertUrl,
-      payload.trustedform_cert_url,
-      payload.trusted_form_url,
-    ),
+    trustedformCertUrl:
+      payload.Trusted_Form_URL ?? payload.trustedformCertUrl ?? null,
     tcpaConsent: pickString(payload.TCPA_Consent, payload.tcpaConsent),
     tcpaLanguage: pickString(payload.TCPA_Language, payload.tcpaLanguage),
     leadidToken: pickString(payload.LeadiD_Token, payload.leadidToken),

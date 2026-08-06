@@ -2,80 +2,54 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { notify } from "@/lib/notify";
-
-export type PartnerEditFormInitial = {
-  priority: number;
-  priceOverride: number | null;
-  status: string;
-};
-
-const STATUS_OPTIONS = [
-  { value: "active", label: "Active" },
-  { value: "disabled", label: "Disabled" },
-  { value: "pending_approval", label: "Pending" },
-  { value: "rejected", label: "Rejected" },
-] as const;
 
 type PartnerEditFormProps = {
   partnerId: string;
-  initial: PartnerEditFormInitial;
-  variant?: "page" | "modal";
-  onSaved?: () => void;
-  onCancel?: () => void;
+  initial: {
+    priority: number;
+    priceOverride: number | null;
+    status: string;
+  };
 };
 
-export function PartnerEditForm({
-  partnerId,
-  initial,
-  variant = "page",
-  onSaved,
-  onCancel,
-}: PartnerEditFormProps) {
+export function PartnerEditForm({ partnerId, initial }: PartnerEditFormProps) {
   const router = useRouter();
-  const [form, setForm] = useState(initial);
+  const [priority, setPriority] = useState(initial.priority);
+  const [priceOverride, setPriceOverride] = useState(
+    initial.priceOverride?.toString() ?? "",
+  );
+  const [status, setStatus] = useState(initial.status);
   const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setPending(true);
+    setMessage(null);
 
     try {
       const res = await fetch(`/api/admin/partners/${partnerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          priority: form.priority,
-          priceOverride: form.priceOverride,
-          status: form.status,
+          priority,
+          priceOverride: priceOverride ? Number(priceOverride) : null,
+          status,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(typeof data.error === "string" ? data.error : "Save failed");
-      }
-      notify.success("Partner updated");
+      if (!res.ok) throw new Error("Save failed");
+      setMessage("Saved successfully");
       router.refresh();
-      onSaved?.();
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : "Failed to save — try again");
+    } catch {
+      setMessage("Failed to save — try again");
     } finally {
       setPending(false);
     }
   }
 
-  const isModal = variant === "modal";
-
   return (
-    <form
-      onSubmit={handleSave}
-      className={
-        isModal ? "space-y-5" : "card scroll-mt-24 space-y-5 rounded-xl p-6"
-      }
-    >
-      {!isModal && (
-        <h2 className="text-sm font-semibold text-slate-900">Edit Partner</h2>
-      )}
+    <form onSubmit={handleSave} className="card p-6 space-y-4">
+      <h2 className="text-sm font-semibold text-slate-900">Edit Partner</h2>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
@@ -84,8 +58,8 @@ export function PartnerEditForm({
             type="number"
             min={1}
             max={10}
-            value={form.priority}
-            onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
+            value={priority}
+            onChange={(e) => setPriority(Number(e.target.value))}
             className="form-input"
           />
         </div>
@@ -96,60 +70,33 @@ export function PartnerEditForm({
             min={1}
             step={0.01}
             placeholder="Default"
-            value={form.priceOverride ?? ""}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                priceOverride: e.target.value ? Number(e.target.value) : null,
-              })
-            }
+            value={priceOverride}
+            onChange={(e) => setPriceOverride(e.target.value)}
             className="form-input"
           />
         </div>
         <div>
-          <label className="form-label" id="partner-edit-status-label">
-            Status
-          </label>
+          <label className="form-label">Status</label>
           <select
-            id="partner-edit-status"
-            aria-labelledby="partner-edit-status-label"
-            value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value })}
-            className="form-input"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="form-select"
           >
-            {STATUS_OPTIONS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+            <option value="pending_approval">Pending</option>
+            <option value="rejected">Rejected</option>
           </select>
         </div>
       </div>
 
-      <p className="text-xs text-slate-500">
-        CRM outbound is configured by the partner under Settings → CRM outbound.
-      </p>
-
-      <div
-        className={
-          isModal
-            ? "flex flex-shrink-0 items-center justify-between gap-3 border-t border-slate-100 pt-5"
-            : "flex items-center gap-3"
-        }
-      >
-        {isModal && onCancel ? (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="btn-secondary btn-sm"
-            disabled={pending}
-          >
-            Cancel
-          </button>
-        ) : null}
-        <div className={`flex items-center gap-3 ${isModal ? "ml-auto" : ""}`}>
-          <button type="submit" disabled={pending} className="btn-primary btn-sm">
-            {pending ? "Saving…" : "Save Changes"}
-          </button>
-        </div>
+      <div className="flex items-center gap-3">
+        <button type="submit" disabled={pending} className="btn-primary btn-sm">
+          {pending ? "Saving…" : "Save Changes"}
+        </button>
+        {message && (
+          <span className="text-xs text-slate-500">{message}</span>
+        )}
       </div>
     </form>
   );

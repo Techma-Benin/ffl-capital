@@ -1,27 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
+import { LeadStatus } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { verifyCronSecret } from "@/lib/cron/auth";
-import { reprocessUnmatchedLeadsWithCoordinator } from "@/lib/lead-routing/coordinator";
+import { integrityPostLead } from "@/lib/integrity/post";
 
-async function handleCronRequest(request: NextRequest): Promise<NextResponse> {
+const REPROCESS_WINDOW_HOURS = 24;
+
+export async function POST(request: NextRequest) {
   if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await reprocessUnmatchedLeadsWithCoordinator();
-  return NextResponse.json({
-    attempted: result.attempted,
-    posted: result.integrityQueued,
-    matched: result.matched,
-    waiting: result.waiting,
-    errors: result.errors,
-    skipped: result.skipped,
+  const cutoff = new Date();
+  cutoff.setHours(cutoff.getHours() - REPROCESS_WINDOW_HOURS);
+
+  const leads = await prisma.lead.findMany({
+    where: {
+      status: LeadStatus.unmatched,
+      available: true,
+      receivedAt: { lte: cutoff },
+    },
+    take: 25,
   });
-}
 
-export async function GET(request: NextRequest) {
-  return handleCronRequest(request);
-}
+  let posted = 0;
+  const errors: string[] = [];
 
-export async function POST(request: NextRequest) {
-  return handleCronRequest(request);
+  for (const lead of leads) {
+    const result = await integrityPostLead(lead.id);
+    if (result.posted) posted++;
+    else if (result.reason) errors.push(`${lead.id}: ${result.reason}`);
+  }
+
+  return NextResponse.json({ attempted: leads.length, posted, errors });
 }

@@ -7,17 +7,11 @@ export default async function PartnerWalletPage() {
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
-  const [transactions, subscription] = await Promise.all([
-    prisma.transaction.findMany({
-      where: { partnerId },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    }),
-    prisma.billingRecurrence.findFirst({
-      where: { partnerId, active: true },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
+  const transactions = await prisma.transaction.findMany({
+    where: { partnerId },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
 
   const totalTopUp = transactions
     .filter((t) => t.type === "top_up")
@@ -31,16 +25,6 @@ export default async function PartnerWalletPage() {
     <PartnerWalletView
       totalTopUp={totalTopUp}
       totalSpent={totalSpent}
-      subscription={
-        subscription
-          ? {
-              amount: Number(subscription.amount),
-              interval: subscription.interval,
-              nextChargeAt: subscription.nextChargeAt?.toISOString() ?? null,
-              active: subscription.active,
-            }
-          : null
-      }
       transactions={transactions.map((t) => ({
         id: t.id,
         type: t.type,

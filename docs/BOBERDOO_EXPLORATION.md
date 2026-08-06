@@ -788,17 +788,6 @@ Vue admin paginée (~25 filter sets/page) — colonnes : Partner, Company, Filte
 
 **Vendor filters vID=3 IUL :** 0 actifs — la revente Integrity ne passe **pas** par des vendor filter sets configurés (accept all + pricing côté broker/weighted delivery).
 
-**Gap field mapping (4 août 2026) :** résolu dans [`BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md`](./BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md). Implémentation app (août 2026) : Azure ping Realtime IUL + post LC ; Storefront direct post ; lifecycle routing optionnel — voir [BACKEND.md](BACKEND.md).
-
-**`lead_type_thom` (état connu, non confirmé Boberdoo Storefront) :**
-
-| Flow | Delivery wizard | `lead_type_thom` Boberdoo | Référence |
-|------|-----------------|---------------------------|-----------|
-| Storefront IUL | 273 | `Diamond IUL Lead` (client-confirmed) | [BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md](./BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md) |
-| Realtime IUL | 281 | `Indexed Universal Life [IUL] Facebook (Realtime Lead)` | idem + Azure ping |
-| Realtime MP | — | Pas de delivery MP dans liste IUL | LeadConduit : `Mortgage Protection Facebook (Realtime Lead)` |
-| Storefront (exemple LC) | — | — | Exemple curl : `Final Expense` (texte libre, pas liste stricte) |
-
 ---
 
 ## 29. Lead Type IUL — retention & cleanup (pageID=67, ajax icône #2)

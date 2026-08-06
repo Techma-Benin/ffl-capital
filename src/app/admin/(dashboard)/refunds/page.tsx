@@ -1,75 +1,171 @@
 import { prisma } from "@/lib/db";
-import { refundLeadSnapshotFromDelivery } from "@/lib/admin/refund-lead-snapshot";
-import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
-import { getClerkPartnerImageUrlMap } from "@/lib/auth/clerk-profile";
-import {
-  AdminRefundsView,
-  type AdminRefundsStorePayload,
-} from "@/components/admin/admin-refunds-view";
-
-const PARTNER_SHEET_AVATAR_PX = 48;
-
-const refundPartnerInclude = {
-  include: {
-    _count: { select: { leadDeliveries: true } },
-  },
-} as const;
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { RefundReviewActions } from "@/components/admin/refund-review-actions";
+import { RotateCcw } from "lucide-react";
 
 export default async function AdminRefundsPage() {
   const [pending, history] = await Promise.all([
     prisma.refundRequest.findMany({
-      where: { status: "pending" },
-      include: {
-        leadDelivery: { include: { lead: true } },
-        partner: refundPartnerInclude,
-      },
+      where:   { status: "pending" },
+      include: { leadDelivery: { include: { lead: true } }, partner: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.refundRequest.findMany({
-      where: { status: { not: "pending" } },
-      include: {
-        leadDelivery: { include: { lead: true } },
-        partner: refundPartnerInclude,
-      },
+      where:   { status: { not: "pending" } },
+      include: { leadDelivery: { include: { lead: true } }, partner: true },
       orderBy: { reviewedAt: "desc" },
       take: 30,
     }),
   ]);
 
-  const avatarByClerkId = await getClerkPartnerImageUrlMap(
-    [...pending, ...history].map((r) => r.partner.clerkUserId),
-    PARTNER_SHEET_AVATAR_PX,
+  return (
+    <div>
+      <PageHeader
+        title="Refunds"
+        subtitle="Review and approve partner refund requests"
+      />
+
+      {/* Pending queue */}
+      <div className="card mb-6">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">Pending Requests</h2>
+            {pending.length > 0 && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                {pending.length}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          {pending.length === 0 ? (
+            <EmptyState
+              icon={RotateCcw}
+              title="No pending refund requests"
+              description="Refund requests from partners will appear here for review."
+            />
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th>Lead</th>
+                  <th>State</th>
+                  <th>Type</th>
+                  <th>Reason</th>
+                  <th>Amount</th>
+                  <th>Requested</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pending.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {r.partner.firstName} {r.partner.lastName}
+                        </p>
+                        <p className="text-xs text-slate-400">{r.partner.email}</p>
+                      </div>
+                    </td>
+                    <td>
+                      <p className="font-medium text-slate-900">
+                        {r.leadDelivery.lead.firstName} {r.leadDelivery.lead.lastName}
+                      </p>
+                    </td>
+                    <td>
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
+                        {r.leadDelivery.lead.state}
+                      </span>
+                    </td>
+                    <td>
+                      <RefundTypeBadge type={r.refundType} />
+                    </td>
+                    <td className="text-slate-500 max-w-[180px] truncate">
+                      {r.reason ?? "—"}
+                    </td>
+                    <td className="font-semibold text-slate-900">
+                      ${Number(r.leadDelivery.price).toFixed(2)}
+                    </td>
+                    <td className="text-xs text-slate-400">
+                      {new Date(r.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </td>
+                    <td>
+                      <RefundReviewActions refundId={r.id} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* History */}
+      {history.length > 0 && (
+        <div className="card">
+          <div className="border-b border-slate-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-slate-900">Recent History</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th>Lead</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Decision</th>
+                  <th>Reviewed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((r) => (
+                  <tr key={r.id}>
+                    <td className="font-medium text-slate-900">
+                      {r.partner.firstName} {r.partner.lastName}
+                    </td>
+                    <td>
+                      {r.leadDelivery.lead.firstName} {r.leadDelivery.lead.lastName}
+                    </td>
+                    <td>
+                      <RefundTypeBadge type={r.refundType} />
+                    </td>
+                    <td className="font-semibold">${Number(r.leadDelivery.price).toFixed(2)}</td>
+                    <td>
+                      <Badge variant={r.status === "approved" ? "green" : "red"}>
+                        {r.status === "approved" ? "Approved" : "Rejected"}
+                      </Badge>
+                    </td>
+                    <td className="text-xs text-slate-400">
+                      {r.reviewedAt
+                        ? new Date(r.reviewedAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
   );
+}
 
-  function partnerSnapshot(
-    partner: (typeof pending)[number]["partner"],
-  ) {
-    const avatarUrl = partner.clerkUserId
-      ? (avatarByClerkId.get(partner.clerkUserId) ?? null)
-      : null;
-    return refundPartnerSnapshotFromRow(partner, { avatarUrl });
+function RefundTypeBadge({ type }: { type: string }) {
+  if (type === "wrong_filter") {
+    return <Badge variant="yellow">Type A — Wrong Filter</Badge>;
   }
-
-  const initial: AdminRefundsStorePayload = {
-    pending: pending.map((r) => ({
-      id: r.id,
-      partner: partnerSnapshot(r.partner),
-      lead: refundLeadSnapshotFromDelivery(r.leadDelivery, r.partner),
-      refundType: r.refundType,
-      reason: r.reason,
-      amount: Number(r.leadDelivery.price),
-      createdAt: r.createdAt.toISOString(),
-    })),
-    history: history.map((r) => ({
-      id: r.id,
-      partner: partnerSnapshot(r.partner),
-      lead: refundLeadSnapshotFromDelivery(r.leadDelivery, r.partner),
-      refundType: r.refundType,
-      amount: Number(r.leadDelivery.price),
-      status: r.status,
-      reviewedAt: r.reviewedAt?.toISOString() ?? null,
-    })),
-  };
-
-  return <AdminRefundsView initial={initial} />;
+  return <Badge variant="red">Type B — Invalid Phone</Badge>;
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { clsx } from "clsx";
-import { ArrowLeft } from "@/lib/icons/client";
+import { ArrowLeft } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
 export function DevNavLink({

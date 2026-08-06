@@ -1,78 +1,80 @@
-import {
-  reprocessUnmatchedLeadsWithCoordinator,
-  type ReprocessJobResult,
-} from "@/lib/lead-routing/coordinator";
+import { LeadEventType, LeadStatus } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { matchLead } from "@/lib/matching/engine";
 import { integrityPostLead } from "@/lib/integrity/post";
-import { emitLeadEvent } from "@/lib/leads/lead-events";
-import { LeadEventType } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { getReprocessEligibility } from "@/lib/jobs/reprocess-eligibility";
-import { isLeadHeldForReprocess } from "@/lib/jobs/reprocess-hold";
-import { isLifecycleRoutingEnabled } from "@/lib/settings/app-settings";
 
-export type { ReprocessJobResult } from "@/lib/lead-routing/coordinator";
+const REPROCESS_WINDOW_HOURS = 24;
 
-/**
- * Combined unmatched-lead job. When lifecycle routing is enabled, delegates to
- * the shared coordinator; otherwise preserves the legacy delay-based flow.
- */
-export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
-  return reprocessUnmatchedLeadsWithCoordinator();
+export interface ReprocessJobResult {
+  attempted: number;
+  matched: number;
+  integrityQueued: number;
+  errors: string[];
 }
 
-export type ReprocessSingleLeadOptions = {
-  includePartnerIds?: string[];
-  mode?: "manual" | "cron";
-};
+export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
+  const windowStart = new Date();
+  windowStart.setHours(windowStart.getHours() - REPROCESS_WINDOW_HOURS);
 
-export async function reprocessSingleLead(
-  leadId: string,
-  options?: ReprocessSingleLeadOptions,
-) {
-  const mode = options?.mode ?? "manual";
+  const leads = await prisma.lead.findMany({
+    where: {
+      status: LeadStatus.unmatched,
+      available: true,
+    },
+    orderBy: { receivedAt: "asc" },
+    take: 50,
+  });
 
+  let matched = 0;
+  let integrityQueued = 0;
+  const errors: string[] = [];
+
+  for (const lead of leads) {
+    try {
+      if (lead.receivedAt > windowStart) {
+        const result = await matchLead(lead.id);
+        if (result.matched && result.deliveryId) {
+          matched++;
+          await emitLeadEvent(lead.id, LeadEventType.reprocessed, {
+            deliveryId: result.deliveryId,
+            cron: true,
+          });
+        }
+        continue;
+      }
+
+      const postResult = await integrityPostLead(lead.id);
+      if (postResult.posted) {
+        integrityQueued++;
+      } else if (postResult.reason) {
+        errors.push(`${lead.id}: ${postResult.reason}`);
+      }
+    } catch (err) {
+      errors.push(
+        `${lead.id}: ${err instanceof Error ? err.message : "unknown error"}`,
+      );
+    }
+  }
+
+  return {
+    attempted: leads.length,
+    matched,
+    integrityQueued,
+    errors,
+  };
+}
+
+export async function reprocessSingleLead(leadId: string) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) throw new Error("Lead not found");
-
-  const eligibility = getReprocessEligibility({
-    available: lead.available,
-    status: lead.status,
-    categoryResolution: lead.categoryResolution,
-    leadType: lead.leadType,
-  });
-  if (!eligibility.eligible) {
-    throw new Error(eligibility.reason ?? "Lead is not available for reprocessing");
+  if (!lead.available || lead.status !== LeadStatus.unmatched) {
+    throw new Error("Lead is not available for reprocessing");
   }
 
-  if (isLeadHeldForReprocess(leadId) && !options?.includePartnerIds?.length) {
-    throw new Error("Lead is reserved for manual reprocessing");
-  }
-
-  if (await isLifecycleRoutingEnabled()) {
-    const { executeLeadRouting } = await import("@/lib/lead-routing/coordinator");
-    const result = await executeLeadRouting(leadId, {
-      mode: mode === "manual" ? "manual" : "cron",
-    });
-    return {
-      matched: result.action === "matched",
-      lead,
-      deliveryId: result.deliveryId,
-      integrityPosted: result.action === "integrity_posted",
-      reason: result.reason,
-      phase: result.phase,
-    };
-  }
-
-  const result = await matchLead(leadId, {
-    includePartnerIds: options?.includePartnerIds,
-  });
+  const result = await matchLead(leadId);
   if (result.matched && result.deliveryId) {
     return result;
-  }
-
-  if (mode === "manual") {
-    return { matched: false, lead, reason: result.reason };
   }
 
   const postResult = await integrityPostLead(leadId);

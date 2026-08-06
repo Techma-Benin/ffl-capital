@@ -1,5 +1,7 @@
+import type { Appearance } from "@clerk/types";
+
 /** Shared Clerk theme so modals opened from the dark sidebar stay readable. */
-export const clerkAppearance = {
+export const clerkAppearance: Appearance = {
   variables: {
     colorText: "#0f172a",
     colorInputText: "#0f172a",

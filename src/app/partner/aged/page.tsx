@@ -1,83 +1,80 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { LeadType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PartnerAgedView } from "@/components/partner/partner-aged";
-import { getAgedDaysThreshold, getDefaultAgedPrice } from "@/lib/settings/app-settings";
-import {
-  buildAdminAgedLeadsWhere,
-  buildAdminAgedTypeFilterOptions,
-  parseAdminAgedLeadFilters,
-  parsePartnerAgedClientFilters,
-  PARTNER_AGED_CLIENT_LOAD_LIMIT,
-} from "@/lib/admin/admin-aged-leads-filters";
-import {
-  loadEnabledCategoryLabels,
-  resolveLeadTypeDisplay,
-} from "@/lib/lead-categories/category-labels";
+import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
+import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
 
 export default async function PartnerAgedPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    state?: string;
-    type?: string;
-    age?: string;
-    haveIul?: string;
-    page?: string;
-  }>;
+  searchParams: { state?: string; type?: string; age?: string };
 }) {
-  const resolvedSearchParams = await searchParams;
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
-  const agedWhere = await buildAdminAgedLeadsWhere(parseAdminAgedLeadFilters({}));
+  const targeting = await prisma.partner.findUnique({
+    where: { id: partnerId },
+    select: { filterStates: true, leadType: true },
+  });
+  if (!targeting) redirect("/onboarding");
 
-  const [agedLeads, totalEligible, agedPrice, agedDays, categories] = await Promise.all([
+  const extra: Prisma.LeadWhereInput = {
+    state: {
+      in: targeting.filterStates.length > 0 ? targeting.filterStates : ["__none__"],
+    },
+    leadType: targeting.leadType,
+  };
+
+  if (searchParams.state) extra.state = searchParams.state;
+  if (searchParams.type) extra.leadType = searchParams.type as LeadType;
+
+  if (searchParams.age) {
+    const minDays = Number(searchParams.age);
+    const maxCutoff = new Date();
+    maxCutoff.setDate(maxCutoff.getDate() - minDays);
+
+    if (searchParams.age === "30") {
+      const minCutoff = new Date();
+      minCutoff.setDate(minCutoff.getDate() - 60);
+      extra.receivedAt = { lte: maxCutoff, gte: minCutoff };
+    } else if (searchParams.age === "60") {
+      const minCutoff = new Date();
+      minCutoff.setDate(minCutoff.getDate() - 90);
+      extra.receivedAt = { lte: maxCutoff, gte: minCutoff };
+    } else {
+      extra.receivedAt = { lte: maxCutoff };
+    }
+  }
+
+  const [agedLeads, agedPrice] = await Promise.all([
     prisma.lead.findMany({
-      where: agedWhere,
+      where: await buildAgedLeadWhere(extra),
       orderBy: { receivedAt: "asc" },
-      take: PARTNER_AGED_CLIENT_LOAD_LIMIT,
+      take: 100,
     }),
-    prisma.lead.count({ where: agedWhere }),
     getDefaultAgedPrice(),
-    getAgedDaysThreshold(),
-    loadEnabledCategoryLabels(),
   ]);
-
-  const knownTypes = categories.map((category) => category.type);
-  const typeFilterOptions = buildAdminAgedTypeFilterOptions(categories);
 
   return (
     <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading…</div>}>
       <PartnerAgedView
-        agedDays={agedDays}
         agedPrice={agedPrice}
-        allAgedLeads={agedLeads.map((lead) => ({
+        agedLeads={agedLeads.map((lead) => ({
           id: lead.id,
           firstName: lead.firstName,
           lastName: lead.lastName,
           state: lead.state,
           address: lead.address,
-          leadType: lead.leadType ?? "",
-          leadTypeLabel: resolveLeadTypeDisplay({
-            leadType: lead.leadType,
-            categoryResolution: lead.categoryResolution,
-            categoryCandidateTypes: lead.categoryCandidateTypes,
-            categories,
-          }).label,
+          leadType: lead.leadType,
           receivedAt: lead.receivedAt.toISOString(),
-          intent: lead.intent ?? "",
+          trustedformCertUrl: lead.trustedformCertUrl,
+          intent: lead.intent ?? (lead.leadType === "high_intent_iul" ? "High Intent" : "Traditional"),
           haveIul: lead.haveIul,
           primaryGoal: lead.primaryGoal,
         }))}
-        totalEligible={totalEligible}
-        loadCapped={totalEligible > PARTNER_AGED_CLIENT_LOAD_LIMIT}
-        initialFilters={parsePartnerAgedClientFilters(
-          resolvedSearchParams,
-          knownTypes,
-        )}
-        typeFilterOptions={typeFilterOptions}
       />
     </Suspense>
   );

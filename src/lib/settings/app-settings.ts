@@ -29,6 +29,8 @@ export const APP_SETTING_KEYS = {
   trustedformValidationEnabled: "trustedform_validation_enabled",
   duplicateCheckEnabled: "duplicate_check_enabled",
   duplicateCheckWindowDays: "duplicate_check_window_days",
+  leadTypeConfigs: "lead_type_configs",
+  sourceVendorConfigs: "source_vendor_configs",
   resaleVendorConfigs: "resale_vendor_configs",
   integrityPostDelayHours: "integrity_post_delay_hours",
   integrityReprocessEnabled: "integrity_reprocess_enabled",
@@ -39,6 +41,22 @@ export const APP_SETTING_KEYS = {
   lifecycleMidWindowPrimary: "lifecycle_mid_window_primary",
   contactRecipientEmail: "contact_recipient_email",
 } as const;
+
+export interface LeadTypeConfig {
+  defaultPrice?: number;
+  retentionDays?: number;
+}
+
+export interface SourceVendorConfig {
+  label?: string;
+  matchingEnabled?: boolean;
+}
+
+export interface ResaleVendorConfig {
+  pingUrl?: string;
+  postUrl?: string;
+  enabled?: boolean;
+}
 
 async function getSetting<T>(key: string, fallback: T): Promise<T> {
   const row = await prisma.appSetting.findUnique({ where: { key } });
@@ -55,87 +73,11 @@ export async function getDefaultAgedPrice(): Promise<number> {
 }
 
 export async function isAdminApprovalRequired(): Promise<boolean> {
-  const envVal = process.env.ADMIN_APPROVAL_REQUIRED;
-  if (envVal !== undefined) return envVal.toLowerCase() !== "false";
   return getSetting(APP_SETTING_KEYS.adminApprovalRequired, true);
 }
 
-export function resolveIntegrationsMode(
-  fromDb: unknown,
-  envVal: string | undefined,
-  isDev: boolean,
-): "mock" | "live" {
-  if (fromDb === "live" || fromDb === "mock") return fromDb;
-  if (envVal === "live" || envVal === "mock") return envVal;
-  return isDev ? "mock" : "live";
-}
-
 export async function getIntegrationsMode(): Promise<"mock" | "live"> {
-  // Admin Mode control (app_settings) wins so Live/Mock in the UI actually
-  // changes outbound behavior. Env is only a fallback when no setting exists.
-  const row = await prisma.appSetting.findUnique({
-    where: { key: APP_SETTING_KEYS.integrationsMode },
-  });
-  return resolveIntegrationsMode(
-    row?.value,
-    process.env.INTEGRATIONS_MODE,
-    isDevEnvironment(),
-  );
-}
-
-function resolveVendorPostUrl(
-  key: string,
-  config: ResaleVendorConfig,
-): string | undefined {
-  const fromDb = config.postUrl?.trim();
-  if (fromDb) return fromDb;
-  if (key === INTEGRITY_REALTIME_VENDOR_KEY) {
-    return process.env.INTEGRITY_REALTIME_SUBMIT_URL?.trim() || undefined;
-  }
-  if (key === INTEGRITY_STOREFRONT_VENDOR_KEY) {
-    return process.env.INTEGRITY_STOREFRONT_SUBMIT_URL?.trim() || undefined;
-  }
-  return undefined;
-}
-
-/**
- * Read-only helper for the settings UI: what URL would actually be used for
- * this vendor right now (DB override if set, otherwise the env var), without
- * ever writing it back to the DB. Lets the settings screen show that
- * Integrity is already working via the env default even when the DB field
- * is blank.
- */
-export async function getResolvedResaleVendorPostUrl(
-  key: string,
-  config: ResaleVendorConfig,
-): Promise<string | undefined> {
-  return resolveVendorPostUrl(key, config);
-}
-
-export type ResolvedResaleVendor = ResaleVendorConfig & {
-  key: string;
-  postUrl?: string;
-};
-
-export async function getResaleVendor(
-  key: string,
-): Promise<ResolvedResaleVendor | null> {
-  const configs = await getResaleVendorConfigs();
-  const config = configs[key];
-  if (!config) return null;
-  return {
-    key,
-    ...config,
-    postUrl: resolveVendorPostUrl(key, config),
-  };
-}
-
-export async function getIntegrityRealtimeVendor(): Promise<ResolvedResaleVendor | null> {
-  return getResaleVendor(INTEGRITY_REALTIME_VENDOR_KEY);
-}
-
-export async function getIntegrityStorefrontVendor(): Promise<ResolvedResaleVendor | null> {
-  return getResaleVendor(INTEGRITY_STOREFRONT_VENDOR_KEY);
+  return getSetting(APP_SETTING_KEYS.integrationsMode, "mock");
 }
 
 export async function getAgedDaysThreshold(): Promise<number> {
@@ -143,14 +85,10 @@ export async function getAgedDaysThreshold(): Promise<number> {
 }
 
 export async function isTrustedformValidationEnabled(): Promise<boolean> {
-  const envVal = process.env.TRUSTEDFORM_VALIDATION_ENABLED;
-  if (envVal !== undefined) return envVal.toLowerCase() === "true";
   return getSetting(APP_SETTING_KEYS.trustedformValidationEnabled, false);
 }
 
 export async function isDuplicateCheckEnabled(): Promise<boolean> {
-  const envVal = process.env.DUPLICATE_CHECK_ENABLED;
-  if (envVal !== undefined) return envVal.toLowerCase() !== "false";
   return getSetting(APP_SETTING_KEYS.duplicateCheckEnabled, true);
 }
 
@@ -158,78 +96,22 @@ export async function getDuplicateCheckWindowDays(): Promise<number> {
   return getSetting(APP_SETTING_KEYS.duplicateCheckWindowDays, 30);
 }
 
+export async function getLeadTypeConfigs(): Promise<
+  Record<string, LeadTypeConfig>
+> {
+  return getSetting(APP_SETTING_KEYS.leadTypeConfigs, {});
+}
+
+export async function getSourceVendorConfigs(): Promise<
+  Record<string, SourceVendorConfig>
+> {
+  return getSetting(APP_SETTING_KEYS.sourceVendorConfigs, {});
+}
+
 export async function getResaleVendorConfigs(): Promise<
   Record<string, ResaleVendorConfig>
 > {
-  return getSetting(
-    APP_SETTING_KEYS.resaleVendorConfigs,
-    DEFAULT_RESALE_VENDOR_CONFIGS,
-  );
-}
-
-/**
- * Hours a lead must sit unmatched before the cron job sends it to Integrity Connect.
- * Defaults to 24 hours.
- */
-export async function getIntegrityPostDelayHours(): Promise<number> {
-  return getSetting(APP_SETTING_KEYS.integrityPostDelayHours, 24);
-}
-
-/**
- * Master on/off switch for the automated unmatched-lead reprocessing flow
- * (retry match, then escalate to Integrity). Lets an admin pause the flow
- * without touching individual vendor toggles — e.g. during a migration or
- * while investigating a matching issue.
- */
-export async function isIntegrityReprocessEnabled(): Promise<boolean> {
-  return getSetting(APP_SETTING_KEYS.integrityReprocessEnabled, true);
-}
-
-/**
- * When enabled, admin Reprocess actions open a partner picker modal.
- * When disabled (default), reprocess runs immediately against all eligible partners.
- */
-export async function isReprocessPartnerPickerEnabled(): Promise<boolean> {
-  return getSetting(APP_SETTING_KEYS.reprocessPartnerPickerEnabled, false);
-}
-
-export async function isLifecycleRoutingEnabled(): Promise<boolean> {
-  return getSetting(APP_SETTING_KEYS.lifecycleRoutingEnabled, false);
-}
-
-export async function getLifecycleRealtimeCutoffHours(): Promise<number> {
-  return getSetting(APP_SETTING_KEYS.lifecycleRealtimeCutoffHours, 24);
-}
-
-export async function getLifecycleStorefrontCutoffHours(): Promise<number> {
-  return getSetting(APP_SETTING_KEYS.lifecycleStorefrontCutoffHours, 48);
-}
-
-export async function getLifecycleMidWindowPrimary(): Promise<MidWindowPrimary> {
-  const value = await getSetting<string>(
-    APP_SETTING_KEYS.lifecycleMidWindowPrimary,
-    "partner",
-  );
-  return value === "storefront" ? "storefront" : "partner";
-}
-
-export async function getLifecycleSettings(): Promise<LifecycleSettings> {
-  const [enabled, realtimeCutoffHours, storefrontCutoffHours, agedDaysThreshold, midWindowPrimary] =
-    await Promise.all([
-      isLifecycleRoutingEnabled(),
-      getLifecycleRealtimeCutoffHours(),
-      getLifecycleStorefrontCutoffHours(),
-      getAgedDaysThreshold(),
-      getLifecycleMidWindowPrimary(),
-    ]);
-
-  return {
-    enabled,
-    realtimeCutoffHours,
-    storefrontCutoffHours,
-    agedDaysThreshold,
-    midWindowPrimary,
-  };
+  return getSetting(APP_SETTING_KEYS.resaleVendorConfigs, {});
 }
 
 export { DEFAULT_LIFECYCLE_SETTINGS };
