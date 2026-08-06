@@ -1,126 +1,146 @@
 "use client";
 
+import { useState } from "react";
 import { clsx } from "clsx";
-import { Zap } from "lucide-react";
 import { usePortal } from "@/components/layout/portal-provider";
+import { useAdminProfile } from "@/hooks/use-admin-profile";
 import { SidebarNavLink } from "@/components/ui/sidebar-nav-link";
 import {
   SidebarCollapseButton,
   useSidebarEmptyAreaClick,
 } from "@/components/ui/sidebar-toggle";
+import dynamic from "next/dynamic";
+const SidebarUserButton = dynamic(
+  () => import("@/components/ui/sidebar-user-button").then((m) => m.SidebarUserButton),
+  { ssr: false }
+);
+const ManageAccountModal = dynamic(
+  () => import("@/components/partner/manage-account-modal").then((m) => m.ManageAccountModal),
+  { ssr: false }
+);
 import {
-  LayoutDashboard,
+  SquaresFour,
   Users,
   FileText,
-  RotateCcw,
+  ArrowCounterClockwise,
   Archive,
-  Settings,
-  Shield,
-  Upload,
-} from "lucide-react";
+  Gear,
+  Wallet,
+} from "@/lib/icons/client";
+import type { Icon } from "@/lib/icons/client";
+import type { SidebarNavAccent } from "@/components/ui/sidebar-nav-accent";
 
-const navSections = [
-  {
-    label: "Operations",
-    items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-      { href: "/admin/leads", label: "Leads", icon: FileText },
-      { href: "/admin/aged", label: "Aged Leads", icon: Archive },
-      { href: "/admin/refunds", label: "Refunds", icon: RotateCcw },
-      { href: "/admin/integrity", label: "Integrity", icon: Shield },
-    ],
-  },
-  {
-    label: "Management",
-    items: [
-      { href: "/admin/partners", label: "Partners", icon: Users },
-      { href: "/admin/migration", label: "Migration", icon: Upload },
-    ],
-  },
-  {
-    label: "System",
-    items: [
-      { href: "/admin/settings", label: "Settings", icon: Settings },
-    ],
-  },
+/** Flat nav aligned to Pencil mockup. */
+const navItems: {
+  href: string;
+  label: string;
+  icon: Icon;
+  exact?: boolean;
+  accent: SidebarNavAccent;
+}[] = [
+  { href: "/admin", label: "Dashboard", icon: SquaresFour, exact: true, accent: "brand" },
+  { href: "/admin/partners", label: "Partners", icon: Users, accent: "rose" },
+  { href: "/admin/leads", label: "Leads", icon: FileText, accent: "orange" },
+  { href: "/admin/refunds", label: "Refunds", icon: ArrowCounterClockwise, accent: "orange" },
+  { href: "/admin/transactions", label: "Transactions", icon: Wallet, accent: "mint" },
+  { href: "/admin/aged", label: "Aged Leads", icon: Archive, accent: "mint" },
+  { href: "/admin/settings", label: "Settings", icon: Gear, accent: "slate" },
 ];
 
 export function AdminSidebar() {
   const { sidebarCollapsed } = usePortal();
   const handleEmptyAreaClick = useSidebarEmptyAreaClick();
+  const [manageAccountOpen, setManageAccountOpen] = useState(false);
+
+  // Profile from DB (admin_profiles table). Falls back to Clerk on first load.
+  const { profile, patchProfile } = useAdminProfile();
+
+  const displayName =
+    profile
+      ? `${profile.firstName} ${profile.lastName}`.trim()
+      : undefined; // undefined → SidebarUserButton falls back to Clerk
 
   return (
     <aside
       onClick={handleEmptyAreaClick}
       aria-label="Click empty area to toggle sidebar"
       className={clsx(
-        "flex h-screen flex-shrink-0 flex-col bg-sidebar-bg transition-[width] duration-300 ease-out motion-reduce:transition-none",
+        "flex h-screen flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar-bg transition-[width] duration-300 ease-out motion-reduce:transition-none",
         sidebarCollapsed ? "w-[72px]" : "w-60",
       )}
     >
-      {/* Brand */}
       <div
         className={clsx(
-          "flex h-16 items-center border-b border-white/5",
-          sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-5",
+          "flex h-16 items-center border-b border-sidebar-border",
+          sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-4",
         )}
       >
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-700">
-          <Zap size={16} className="text-white" />
+        {/* Logo */}
+        <div className="flex flex-shrink-0 items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-700" />
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-100" />
         </div>
+
+        {/* Title + collapse button */}
         <div
           className={clsx(
-            "min-w-0 flex-col overflow-hidden transition-all duration-300",
-            sidebarCollapsed ? "w-0 opacity-0" : "flex w-auto opacity-100",
+            "flex min-w-0 items-center overflow-hidden transition-all duration-300",
+            sidebarCollapsed ? "w-0 opacity-0" : "w-auto flex-1 opacity-100",
           )}
         >
-          <span className="truncate text-sm font-semibold leading-tight text-white">
-            FFL Capital
-          </span>
-          <span className="text-[10px] font-medium uppercase leading-tight tracking-wider text-sidebar-text">
-            Admin Portal
-          </span>
+          <div className="min-w-0 flex-1 flex-col">
+            <span className="truncate text-sm font-semibold leading-tight text-slate-800">
+              FFL Capital
+            </span>
+            <span className="block text-[11px] font-medium leading-tight text-sidebar-heading">
+              Admin Portal
+            </span>
+          </div>
+          <SidebarCollapseButton />
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
-        {navSections.map((section) => (
-          <div key={section.label}>
-            <p
-              className={clsx(
-                "nav-item-group-label transition-all duration-300",
-                sidebarCollapsed ? "h-0 overflow-hidden py-0 opacity-0" : "opacity-100",
-              )}
-            >
-              {section.label}
-            </p>
-            <div className="space-y-0.5">
-              {section.items.map((item) => (
-                <SidebarNavLink
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  exact={item.exact}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
+        <div className="space-y-0.5">
+          {navItems.map((item) => (
+            <SidebarNavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              icon={item.icon}
+              exact={item.exact}
+              accent={item.accent}
+            />
+          ))}
+        </div>
       </nav>
 
-      <div className="border-t border-white/5 px-3 py-3">
-        <SidebarCollapseButton />
-        <p
-          className={clsx(
-            "mt-2 px-3 text-xs text-sidebar-heading transition-all duration-300",
-            sidebarCollapsed ? "h-0 overflow-hidden opacity-0" : "opacity-100",
-          )}
-        >
-          FFL Capital Platform v1.0
-        </p>
+      <div
+        className={clsx(
+          "border-t border-sidebar-border py-4",
+          sidebarCollapsed ? "px-2" : "px-4",
+        )}
+      >
+        <SidebarUserButton
+          afterSignOutUrl="/admin/sign-in"
+          displayName={displayName}
+          avatarUrl={profile?.avatarUrl}
+          onManageAccount={() => setManageAccountOpen(true)}
+        />
       </div>
+
+      <ManageAccountModal
+        open={manageAccountOpen}
+        onOpenChange={setManageAccountOpen}
+        initialFirstName={profile?.firstName ?? ""}
+        initialLastName={profile?.lastName ?? ""}
+        initialAvatarUrl={profile?.avatarUrl ?? null}
+        syncToDb={false}
+        showAffiliation={false}
+        onSaved={({ firstName, lastName, avatarUrl }) =>
+          patchProfile({ firstName, lastName, avatarUrl: avatarUrl ?? null })
+        }
+      />
     </aside>
   );
 }

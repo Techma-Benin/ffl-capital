@@ -3,8 +3,8 @@
  * Create or promote a Clerk admin user.
  *
  * Usage:
- *   npm run create-admin -- --email admin@example.com
- *   npm run create-admin -- --email admin@example.com --password 'Secret123!'
+ *   pnpm run create-admin -- --email admin@example.com
+ *   pnpm run create-admin -- --email admin@example.com --password 'Secret123!'
  *
  * Requires CLERK_SECRET_KEY in the environment (.env loaded via dotenv if present).
  */
@@ -63,7 +63,7 @@ const { email, password, firstName = "FFL", lastName = "Admin" } = parseArgs(
 
 if (!email) {
   console.error(
-    "Usage: npm run create-admin -- --email you@example.com [--password ...]",
+    "Usage: pnpm run create-admin -- --email you@example.com [--password ...]",
   );
   process.exit(1);
 }

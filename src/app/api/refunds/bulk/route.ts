@@ -8,7 +8,7 @@ const bulkSchema = z.object({
     .array(
       z.object({
         leadDeliveryId: z.string().uuid(),
-        refundType: z.enum(["wrong_filter", "invalid_phone"]),
+        refundType: z.literal("invalid_phone"),
         reason: z.string().max(500).optional(),
       }),
     )

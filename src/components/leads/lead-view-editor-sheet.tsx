@@ -1,0 +1,203 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Sheet, SheetBody } from "@/components/ui/sheet";
+import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
+import type {
+  AdminLeadViewFilters,
+  LeadViewColumn,
+  PartnerLeadViewFilters,
+} from "@/lib/leads/list-view-schema";
+import { LeadColumnSettings } from "@/components/leads/lead-column-settings";
+import { AdminLeadViewFilterFields } from "@/components/leads/admin-lead-view-filter-fields";
+import { PartnerLeadViewFilterFields } from "@/components/leads/partner-lead-view-filter-fields";
+import { notify } from "@/lib/notify";
+import {
+  leadViewDraftsEqual,
+  type LeadViewDraft,
+} from "@/lib/leads/lead-view-draft";
+
+type Scope = "admin" | "partner";
+
+export type LeadViewEditorState = {
+  name: string;
+  filters: AdminLeadViewFilters | PartnerLeadViewFilters;
+  columns: LeadViewColumn[];
+};
+
+function cloneEditorState(initial: LeadViewEditorState): LeadViewEditorState {
+  return {
+    name: initial.name,
+    filters: { ...initial.filters },
+    columns: initial.columns.map((c) => ({ ...c })),
+  };
+}
+
+export function LeadViewEditorSheet({
+  open,
+  onOpenChange,
+  scope,
+  mode,
+  initial,
+  catalog,
+  adminFilterSets,
+  partnerFilterSets,
+  onSave,
+  onApply,
+  pending,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  scope: Scope;
+  mode: "create" | "edit";
+  initial: LeadViewEditorState;
+  catalog: LeadColumnDef[];
+  /** Admin scope only: actual delivery-attribution filter sets. */
+  adminFilterSets?: { id: string; name: string }[];
+  /** Partner scope only: filter sets for the filter-set dropdown. */
+  partnerFilterSets?: { id: string; name: string }[];
+  onSave: (state: LeadViewEditorState) => Promise<void>;
+  onApply?: (state: LeadViewEditorState) => void;
+  pending?: boolean;
+}) {
+  const [state, setState] = useState(() => cloneEditorState(initial));
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const initialRef = useRef(initial);
+  initialRef.current = initial;
+
+  useEffect(() => {
+    if (!open) return;
+    setState(cloneEditorState(initialRef.current));
+    setColumnsOpen(false);
+  }, [open]);
+
+  function setFilters(
+    patch: Partial<AdminLeadViewFilters & PartnerLeadViewFilters>,
+  ) {
+    setState((s) => ({ ...s, filters: { ...s.filters, ...patch } }));
+  }
+
+  async function submit() {
+    if (!state.name.trim()) {
+      notify.error("Name is required");
+      return;
+    }
+    try {
+      await onSave(state);
+      notify.success(mode === "create" ? "View created" : "View saved");
+      onOpenChange(false);
+    } catch {
+      notify.error("Could not save view");
+    }
+  }
+
+  function apply() {
+    if (!state.name.trim()) {
+      notify.error("Name is required");
+      return;
+    }
+    onApply?.(state);
+    notify.success("View applied");
+    onOpenChange(false);
+  }
+
+  const adminFilters = scope === "admin" ? (state.filters as AdminLeadViewFilters) : null;
+  const partnerFilters =
+    scope === "partner" ? (state.filters as PartnerLeadViewFilters) : null;
+  const hasAppliedChanges =
+    mode === "edit" &&
+    !leadViewDraftsEqual(
+      scope,
+      state as LeadViewDraft,
+      initial as LeadViewDraft,
+    );
+
+  const headerActions = (
+    <>
+      <button
+        type="button"
+        className="btn-secondary btn-sm"
+        onClick={() => onOpenChange(false)}
+      >
+        Cancel
+      </button>
+      {hasAppliedChanges && (
+        <button
+          type="button"
+          className="btn-primary btn-sm"
+          onClick={apply}
+        >
+          Apply
+        </button>
+      )}
+      <button
+        type="button"
+        className={hasAppliedChanges ? "btn-secondary btn-sm" : "btn-primary btn-sm"}
+        disabled={pending}
+        onClick={submit}
+      >
+        {pending ? "Saving…" : "Save view"}
+      </button>
+    </>
+  );
+
+  return (
+    <>
+      <Sheet
+        open={open}
+        onOpenChange={onOpenChange}
+        title={mode === "create" ? "New view" : "Edit view"}
+        description="Configure filters and columns for this list view"
+        headerActions={headerActions}
+      >
+        <SheetBody>
+          <div className="space-y-4">
+            <div>
+              <label className="form-label">Name</label>
+              <input
+                className="form-input w-full text-sm"
+                value={state.name}
+                onChange={(e) =>
+                  setState((s) => ({ ...s, name: e.target.value }))
+                }
+              />
+            </div>
+
+            {scope === "admin" && adminFilters && (
+              <AdminLeadViewFilterFields
+                filters={adminFilters}
+                filterSets={adminFilterSets ?? []}
+                onChange={setFilters}
+              />
+            )}
+
+            {scope === "partner" && partnerFilters && partnerFilterSets && (
+              <PartnerLeadViewFilterFields
+                filters={partnerFilters}
+                filterSets={partnerFilterSets}
+                onChange={setFilters}
+              />
+            )}
+
+            <button
+              type="button"
+              className="btn-secondary btn-sm w-full"
+              onClick={() => setColumnsOpen(true)}
+            >
+              Configure columns…
+            </button>
+          </div>
+        </SheetBody>
+      </Sheet>
+
+      <LeadColumnSettings
+        key={`${mode}-${open}`}
+        open={columnsOpen}
+        onOpenChange={setColumnsOpen}
+        catalog={catalog}
+        columns={state.columns}
+        onChange={(columns) => setState((s) => ({ ...s, columns }))}
+      />
+    </>
+  );
+}

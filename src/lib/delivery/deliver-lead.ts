@@ -1,17 +1,37 @@
 import { LeadEventType } from "@prisma/client";
+import { clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { getIntegrationsMode } from "@/lib/settings/app-settings";
 import {
   buildLeadDeliveryEmailHtml,
   buildLeadDeliveryPayload,
+  resolveLeadDeliveryTypeLabel,
 } from "./lead-payload";
-import { deliverToRingy } from "./ringy";
+import { loadEnabledCategoryLabels } from "@/lib/lead-categories/category-labels";
+import { postPartnerCrmOutbound } from "./outbound-http";
+import { sendCrmOutboundFailureEmail } from "./crm-outbound-failure-email";
+import { endpointHostForDisplay } from "./outbound-url-display";
+
+async function getPartnerEmail(partner: { clerkUserId: string | null; email: string }): Promise<string> {
+  if (partner.clerkUserId) {
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(partner.clerkUserId);
+      const primary = user.emailAddresses.find(
+        (e) => e.id === user.primaryEmailAddressId,
+      );
+      if (primary?.emailAddress) return primary.emailAddress;
+    } catch {
+      // fall through to DB email
+    }
+  }
+  return partner.email;
+}
 
 export interface DeliverLeadResult {
   emailSent: boolean;
-  crmPosted: boolean;
-  ringyPosted: boolean;
+  crmOutboundPosted: boolean;
   errors: string[];
 }
 
@@ -20,7 +40,7 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
     where: { id: leadDeliveryId },
     include: {
       lead: true,
-      partner: true,
+      partner: { include: { crmOutboundConfig: true } },
       filterSet: true,
     },
   });
@@ -33,93 +53,190 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
   const mode = await getIntegrationsMode();
   const errors: string[] = [];
   let emailSent = false;
-  let crmPosted = false;
-  let ringyPosted = false;
+  let crmOutboundPosted = false;
 
-  const payload = buildLeadDeliveryPayload(delivery, lead, partner);
-  const leadTypeLabel =
-    lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
+  const partnerEmail = await getPartnerEmail(partner);
+  const partnerWithClerkEmail = { ...partner, email: partnerEmail };
+  const categories = await loadEnabledCategoryLabels();
 
-  const deliveryChannel = filterSet?.deliveryChannel ?? "email";
-  const crmProvider = partner.crmProvider;
+  const payload = buildLeadDeliveryPayload(
+    delivery,
+    lead,
+    partnerWithClerkEmail,
+    categories,
+  );
+  const leadTypeLabel = resolveLeadDeliveryTypeLabel(lead, categories);
+
+  const crmConfig = partner.crmOutboundConfig;
+  const crmEnabled = Boolean(crmConfig?.enabled);
+
+  await emitLeadEvent(lead.id, LeadEventType.delivered, {
+    step: "mode_gate",
+    mode,
+    crmOutboundEnabled: crmEnabled,
+    deliveryId: leadDeliveryId,
+    filterSetId: filterSet?.id ?? null,
+  });
 
   if (mode === "mock") {
-    console.info(
-      `[mock] deliverLead → ${partner.email} | ${lead.firstName} ${lead.lastName} (${lead.state}) channel=${deliveryChannel}`,
-    );
     await emitLeadEvent(lead.id, LeadEventType.delivered, {
+      step: "mock_delivery",
       mock: true,
       deliveryId: leadDeliveryId,
-      channel: deliveryChannel,
+      toEmail: partnerEmail,
+      crmOutboundEnabled: crmEnabled,
     });
     return {
       emailSent: true,
-      crmPosted: crmProvider === "webhook" || deliveryChannel === "webhook",
-      ringyPosted: crmProvider === "ringy" || deliveryChannel === "ringy",
+      crmOutboundPosted: crmEnabled,
       errors: [],
     };
   }
 
-  if (
-    (crmProvider === "ringy" || deliveryChannel === "ringy") &&
-    partner.ringySid
-  ) {
-    const ringyResult = await deliverToRingy(delivery, lead, partner);
-    ringyPosted = ringyResult.success;
-    if (!ringyResult.success) {
-      errors.push(ringyResult.error ?? "Ringy delivery failed");
-    }
-  } else if (
-    (crmProvider === "webhook" || deliveryChannel === "webhook") &&
-    partner.crmWebhookUrl
-  ) {
-    try {
-      const res = await fetch(partner.crmWebhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      crmPosted = res.ok;
-      if (!res.ok) errors.push(`CRM webhook returned ${res.status}`);
-    } catch (err) {
-      errors.push(`CRM webhook failed: ${err instanceof Error ? err.message : "unknown"}`);
-    }
-  }
-
+  // ── Email via Resend (always) ───────────────────────────────────────────
   const resendKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.FROM_EMAIL ?? "leads@fflcapital.com";
 
-  if (
-    resendKey &&
-    (crmProvider === "email_only" || deliveryChannel === "email" || !crmPosted)
-  ) {
-    try {
-      const { Resend } = await import("resend");
-      const resend = new Resend(resendKey);
+  if (resendKey) {
+    const resendMock = process.env.RESEND_MOCK === "true";
+    const fromEmail = resendMock
+      ? "onboarding@resend.dev"
+      : process.env.FROM_EMAIL;
 
-      await resend.emails.send({
-        from: fromEmail,
-        to: partner.email,
-        subject: `New lead delivered — ${lead.state} ${leadTypeLabel}`,
-        html: buildLeadDeliveryEmailHtml(delivery, lead, partner),
+    if (!fromEmail) {
+      const errMsg = "FROM_EMAIL not configured";
+      errors.push(`Email skipped: ${errMsg}`);
+      await emitLeadEvent(lead.id, LeadEventType.delivery_failed, {
+        step: "resend",
+        deliveryId: leadDeliveryId,
+        error: errMsg,
+        resendMock,
+        toEmail: partnerEmail,
       });
-      emailSent = true;
-    } catch (err) {
-      errors.push(`Email failed: ${err instanceof Error ? err.message : "unknown"}`);
+    } else {
+      const toEmail = partnerEmail;
+      const subject = `New lead delivered — ${lead.state} ${leadTypeLabel}`;
+
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(resendKey);
+
+        const result = await resend.emails.send({
+          from: fromEmail,
+          to: toEmail,
+          subject,
+          html: buildLeadDeliveryEmailHtml(
+            delivery,
+            lead,
+            partner,
+            categories,
+          ),
+        });
+
+        if (result.error) {
+          const errMsg = result.error.message ?? "Resend returned an error";
+          errors.push(`Email failed: ${errMsg}`);
+          await emitLeadEvent(lead.id, LeadEventType.delivery_failed, {
+            step: "resend",
+            deliveryId: leadDeliveryId,
+            from: fromEmail,
+            to: toEmail,
+            subject,
+            resendMock,
+            error: errMsg,
+            resendError: result.error,
+          });
+        } else {
+          emailSent = true;
+          await emitLeadEvent(lead.id, LeadEventType.delivered, {
+            step: "resend",
+            deliveryId: leadDeliveryId,
+            from: fromEmail,
+            to: toEmail,
+            subject,
+            resendMock,
+            resendMessageId: result.data?.id ?? null,
+          });
+        }
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : "unknown";
+        errors.push(`Email failed: ${errMsg}`);
+        await emitLeadEvent(lead.id, LeadEventType.delivery_failed, {
+          step: "resend",
+          deliveryId: leadDeliveryId,
+          from: fromEmail,
+          to: toEmail,
+          subject,
+          resendMock,
+          error: errMsg,
+          errorDetail: err instanceof Error ? { name: err.name, message: err.message } : String(err),
+        });
+      }
     }
-  } else if (!resendKey) {
-    console.info(`[deliverLead] RESEND_API_KEY not set — skipping email to ${partner.email}`);
+  } else {
+    await emitLeadEvent(lead.id, LeadEventType.delivery_failed, {
+      step: "resend",
+      deliveryId: leadDeliveryId,
+      error: "RESEND_API_KEY not configured",
+      toEmail: partnerEmail,
+    });
+    errors.push("Email skipped: RESEND_API_KEY not configured");
   }
 
-  const eventType =
+  // ── Optional CRM outbound POST ────────────────────────────────────────────
+  if (crmConfig?.enabled) {
+    const postResult = await postPartnerCrmOutbound(
+      crmConfig,
+      payload as Record<string, unknown>,
+    );
+
+    if (postResult.ok) {
+      crmOutboundPosted = true;
+      await emitLeadEvent(lead.id, LeadEventType.delivered, {
+        step: "crm_outbound",
+        deliveryId: leadDeliveryId,
+        statusCode: postResult.statusCode,
+        endpointHost: endpointHostForDisplay(crmConfig.endpointUrl),
+        bodyPreview: postResult.bodyPreview,
+      });
+    } else {
+      const errMsg = postResult.error ?? "CRM outbound failed";
+      errors.push(errMsg);
+      await emitLeadEvent(lead.id, LeadEventType.delivery_failed, {
+        step: "crm_outbound",
+        deliveryId: leadDeliveryId,
+        error: errMsg,
+        statusCode: postResult.statusCode,
+        endpointHost: endpointHostForDisplay(crmConfig.endpointUrl),
+        successRuleFailed: postResult.successRuleFailed,
+      });
+
+      const failureEmail = await sendCrmOutboundFailureEmail({
+        toEmail: partnerEmail,
+        leadId: lead.id,
+        deliveryId: leadDeliveryId,
+        endpointUrl: crmConfig.endpointUrl,
+        statusCode: postResult.statusCode,
+        errorMessage: errMsg,
+      });
+
+      if (!failureEmail.sent && failureEmail.error) {
+        console.warn(
+          `[deliverLead] CRM failure notice email not sent: ${failureEmail.error}`,
+        );
+      }
+    }
+  }
+
+  const finalEventType =
     errors.length > 0 ? LeadEventType.delivery_failed : LeadEventType.delivered;
 
-  await emitLeadEvent(lead.id, eventType, {
+  await emitLeadEvent(lead.id, finalEventType, {
+    step: "summary",
     deliveryId: leadDeliveryId,
     emailSent,
-    crmPosted,
-    ringyPosted,
+    crmOutboundPosted,
     errors,
+    crmOutboundEnabled: crmEnabled,
   });
 
   if (errors.length > 0) {
@@ -129,5 +246,5 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
     });
   }
 
-  return { emailSent, crmPosted, ringyPosted, errors };
+  return { emailSent, crmOutboundPosted, errors };
 }

@@ -1,7 +1,13 @@
-import { LeadEventType, LeadStatus, Prisma } from "@prisma/client";
+import {
+  LeadCategoryResolution,
+  LeadEventType,
+  LeadStatus,
+  Prisma,
+} from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { normalizeLead } from "@/lib/intake/normalize-lead";
+import { resolveLeadCategory } from "@/lib/intake/resolve-category";
 import type { IntakePayload } from "@/lib/intake/validate-intake";
 import { matchLead } from "@/lib/matching/engine";
 import {
@@ -9,7 +15,10 @@ import {
   findLeadByExternalId,
 } from "@/lib/intake/check-duplicate";
 import { validateTrustedFormCert } from "@/lib/intake/validate-trustedform";
-import { isTrustedformValidationEnabled } from "@/lib/settings/app-settings";
+import {
+  isLifecycleRoutingEnabled,
+  isTrustedformValidationEnabled,
+} from "@/lib/settings/app-settings";
 
 export interface IntakeResult {
   leadId: string;
@@ -68,11 +77,42 @@ export async function processLeadIntake(
     );
   }
 
+  const categories = await prisma.leadCategory.findMany({
+    where: { enabled: true },
+    orderBy: { createdAt: "asc" },
+    select: {
+      type: true,
+      label: true,
+      enabled: true,
+      criteria: {
+        select: { field: true, value: true },
+      },
+    },
+  });
+
+  const categoryResult = resolveLeadCategory(
+    normalized.rawPayload,
+    categories,
+  );
+
+  const categoryResolution =
+    categoryResult.outcome === "one"
+      ? LeadCategoryResolution.matched
+      : categoryResult.outcome === "zero"
+        ? LeadCategoryResolution.no_match
+        : LeadCategoryResolution.multiple_matches;
+
   let trustedformValid: boolean | null = null;
   let trustedformCheckedAt: Date | null = null;
-  let leadStatus: LeadStatus = LeadStatus.unmatched;
+  let leadStatus: LeadStatus =
+    categoryResult.status === "review"
+      ? LeadStatus.review
+      : LeadStatus.unmatched;
 
-  if (normalized.trustedformCertUrl) {
+  if (
+    categoryResult.outcome === "one" &&
+    normalized.trustedformCertUrl
+  ) {
     const tfEnabled = await isTrustedformValidationEnabled();
     if (tfEnabled) {
       const tfResult = await validateTrustedFormCert(normalized.trustedformCertUrl);
@@ -96,10 +136,15 @@ export async function processLeadIntake(
       zip: normalized.zip,
       dob: normalized.dob,
       age: normalized.age,
-      leadType: normalized.leadType,
+      leadType: categoryResult.categoryType,
+      categoryResolution,
+      categoryCandidateTypes: categoryResult.matchedTypes,
       intent: normalized.intent,
       haveIul: normalized.haveIul,
       primaryGoal: normalized.primaryGoal,
+      beneficiary: normalized.beneficiary,
+      historyOfCancer: normalized.historyOfCancer,
+      mortgageLoanAmount: normalized.mortgageLoanAmount,
       stateYouCurrentlyLiveIn: normalized.stateYouCurrentlyLiveIn,
       trustedformCertUrl: normalized.trustedformCertUrl,
       trustedformValid,
@@ -117,17 +162,32 @@ export async function processLeadIntake(
       externalId: normalized.externalId,
       rawPayload: normalized.rawPayload as Prisma.InputJsonValue,
       status: leadStatus,
-      available: leadStatus !== LeadStatus.review,
+      available:
+        categoryResult.available && leadStatus !== LeadStatus.review,
       refundable: true,
     },
   });
 
   await emitLeadEvent(lead.id, LeadEventType.received, {
     source: normalized.source,
-    leadType: normalized.leadType,
+    leadType: categoryResult.categoryType,
+    categoryResolution,
+    categoryCandidateTypes: categoryResult.matchedTypes,
     state: normalized.state,
     externalId: normalized.externalId,
   });
+
+  if (!categoryResult.proceedToPartnerMatching) {
+    const reason =
+      categoryResult.outcome === "zero"
+        ? "Lead flagged for review (no category match)"
+        : "Lead flagged for review (multiple category matches)";
+    return {
+      leadId: lead.id,
+      matched: false,
+      reason,
+    };
+  }
 
   if (leadStatus === LeadStatus.review) {
     await emitLeadEvent(lead.id, LeadEventType.trustedform_failed, {
@@ -140,12 +200,34 @@ export async function processLeadIntake(
     };
   }
 
-  const matchResult = await matchLead(lead.id);
+  try {
+    if (await isLifecycleRoutingEnabled()) {
+      const { executeLeadRouting } = await import("@/lib/lead-routing/coordinator");
+      const routeResult = await executeLeadRouting(lead.id, { mode: "intake" });
+      return {
+        leadId: lead.id,
+        matched: routeResult.action === "matched",
+        reason: routeResult.reason,
+      };
+    }
 
-  return {
-    leadId: lead.id,
-    matched: matchResult.matched,
-    partnerEmail: matchResult.partner?.email,
-    reason: matchResult.reason,
-  };
+    const matchResult = await matchLead(lead.id);
+
+    return {
+      leadId: lead.id,
+      matched: matchResult.matched,
+      partnerEmail: matchResult.partner?.email,
+      reason: matchResult.reason,
+    };
+  } catch (err) {
+    console.error("[intake] matchLead failed after create:", err);
+    return {
+      leadId: lead.id,
+      matched: false,
+      reason:
+        err instanceof Error
+          ? `Matching deferred: ${err.message}`
+          : "Matching deferred due to an internal error",
+    };
+  }
 }

@@ -8,6 +8,11 @@ import { promoteAdminIfEligible } from "./promote-admin";
 export async function getPartnerPostAuthRedirectPath(): Promise<string> {
   const partner = await getCurrentPartner();
   if (partner) return "/partner";
+
+  const user = await currentUser();
+  const role = getRoleFromMetadata(user?.publicMetadata as Record<string, unknown>);
+  if (role === "admin") return "/admin";
+
   return "/onboarding";
 }
 

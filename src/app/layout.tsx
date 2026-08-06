@@ -1,13 +1,17 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
+import { AppDotSpotlight } from "@/components/layout/app-dot-spotlight";
+import { AppToaster } from "@/components/ui/app-toaster";
+import { SolarIconsProvider } from "@/components/providers/solar-icons-provider";
 import { clerkAppearance } from "@/lib/auth/clerk-appearance";
 import { isClerkConfigured } from "@/lib/auth/roles";
 
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
   display: "swap",
 });
 
@@ -22,8 +26,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const body = (
-    <html lang="en" className={inter.variable}>
-      <body className="antialiased">{children}</body>
+    <html lang="en" className={plusJakarta.variable}>
+      <body className="relative font-sans antialiased">
+        <NextTopLoader color="#1d4ed8" height={3} showSpinner={false} />
+        <AppToaster />
+        <AppDotSpotlight />
+        <div className="relative z-[1]">
+          <SolarIconsProvider>{children}</SolarIconsProvider>
+        </div>
+      </body>
     </html>
   );
 
@@ -31,5 +42,9 @@ export default function RootLayout({
     return body;
   }
 
+  // No explicit proxyUrl prop needed: ClerkProvider reads
+  // NEXT_PUBLIC_CLERK_PROXY_URL (set in next.config.mjs, production only)
+  // to route Frontend API requests through src/middleware.ts's
+  // frontendApiProxy instead of Clerk's CNAME subdomain.
   return <ClerkProvider appearance={clerkAppearance}>{body}</ClerkProvider>;
 }

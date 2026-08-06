@@ -4,7 +4,23 @@
 
 @layer base {
   :root {
-    --font-inter: "Inter", system-ui, sans-serif;
+    --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+    --color-brand: #0b3d91;
+    --color-accent: #00a651;
+    --color-page: #f4f7fb;
+    --app-pattern-spacing: 20px;
+    --app-pattern-line: rgb(100 116 139 / 0.05);
+    --app-pattern-line-bright: rgb(100 116 139 / 0.26);
+    /* legacy aliases */
+    --app-dot-size: var(--app-pattern-spacing);
+    --app-dot-color: var(--app-pattern-line);
+    --app-dot-color-bright: var(--app-pattern-line-bright);
+    --app-spotlight-x: 50%;
+    --app-spotlight-y: 50%;
+    /* document.body portal layers: sheets < transient popovers */
+    --z-layer-sheet: 80;
+    --z-layer-popover-backdrop: 90;
+    --z-layer-popover: 100;
   }
 
   * {
@@ -17,7 +33,7 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-app-pattern text-slate-900;
   }
 
   /* Scrollbar styling */
@@ -39,7 +55,81 @@
   }
 }
 
+@layer utilities {
+  .bg-app-pattern,
+  .bg-app-dotted {
+    --_app-line: var(--app-pattern-line);
+    --_app-space: var(--app-pattern-spacing);
+    background-color: var(--color-page);
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent calc(var(--_app-space) - 1px),
+        var(--_app-line) calc(var(--_app-space) - 1px),
+        var(--_app-line) var(--_app-space)
+      ),
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent calc(var(--_app-space) - 1px),
+        var(--_app-line) calc(var(--_app-space) - 1px),
+        var(--_app-line) var(--_app-space)
+      );
+  }
+}
+
 @layer components {
+  .app-pattern-spotlight,
+  .app-dot-spotlight {
+    --_app-line: var(--app-pattern-line-bright);
+    --_app-space: var(--app-pattern-spacing);
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-color: transparent;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent calc(var(--_app-space) - 1px),
+        var(--_app-line) calc(var(--_app-space) - 1px),
+        var(--_app-line) var(--_app-space)
+      ),
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent calc(var(--_app-space) - 1px),
+        var(--_app-line) calc(var(--_app-space) - 1px),
+        var(--_app-line) var(--_app-space)
+      );
+    -webkit-mask-image: radial-gradient(
+      circle 150px at var(--app-spotlight-x) var(--app-spotlight-y),
+      rgb(0 0 0 / 0.9),
+      transparent 72%
+    );
+    mask-image: radial-gradient(
+      circle 150px at var(--app-spotlight-x) var(--app-spotlight-y),
+      rgb(0 0 0 / 0.9),
+      transparent 72%
+    );
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .app-pattern-spotlight.is-visible,
+    .app-dot-spotlight.is-visible {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-pattern-spotlight,
+    .app-dot-spotlight {
+      display: none;
+    }
+  }
+
   /* ── Page heading ── */
   .page-title {
     @apply text-2xl font-bold tracking-tight text-slate-900;
@@ -51,62 +141,219 @@
 
   /* ── Card ── */
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-card;
+    @apply rounded-xl border border-slate-200/80 bg-white shadow-none transition-shadow hover:shadow-card-hover;
   }
 
-  /* ── Stat card ── */
+  /* ── Stat / KPI card ── */
   .stat-card {
-    @apply card p-5 transition-shadow hover:shadow-card-hover;
+    @apply rounded-xl border border-slate-200/80 bg-white p-5 shadow-none transition-shadow hover:shadow-card-hover;
   }
 
-  /* ── Data table ── */
+  .stat-card-pink {
+    @apply rounded-xl border border-transparent bg-pastel-pink p-5 shadow-none transition-shadow hover:shadow-card-hover;
+  }
+
+  .stat-card-orange {
+    @apply rounded-xl border border-transparent bg-pastel-orange p-5 shadow-none transition-shadow hover:shadow-card-hover;
+  }
+
+  .stat-card-mint {
+    @apply rounded-xl border border-transparent bg-pastel-mint p-5 shadow-none transition-shadow hover:shadow-card-hover;
+  }
+
+  .stat-card-blue {
+    @apply rounded-xl border border-transparent bg-pastel-blue p-5 shadow-none transition-shadow hover:shadow-card-hover;
+  }
+
+  .stat-card-purple {
+    @apply rounded-xl border border-transparent bg-pastel-purple p-5 shadow-none transition-shadow hover:shadow-card-hover;
+  }
+
+  .stat-card-peach {
+    @apply rounded-xl border border-transparent bg-pastel-peach p-5 shadow-none transition-shadow hover:shadow-card-hover;
+  }
+
+  /* ── Data table (dense) ── */
   .data-table {
-    @apply min-w-full divide-y divide-slate-100 text-sm;
+    @apply min-w-full table-auto divide-y divide-slate-100 text-sm;
+  }
+
+  /* Shrink date/action/price trailing columns instead of absorbing table slack */
+  .data-table:not(.data-table-recent-leads):not(.data-table-partner-transactions) th:last-child,
+  .data-table:not(.data-table-recent-leads):not(.data-table-partner-transactions) td:last-child {
+    @apply w-px whitespace-nowrap;
+  }
+
+  /* Partner reports: Transaction History */
+  .data-table-partner-transactions {
+    @apply w-full table-fixed;
+  }
+
+  .data-table-partner-transactions col:nth-child(1) {
+    width: 16%;
+  }
+
+  .data-table-partner-transactions col:nth-child(2) {
+    width: 28%;
+  }
+
+  .data-table-partner-transactions col:nth-child(3) {
+    width: 14%;
+  }
+
+  .data-table-partner-transactions col:nth-child(4) {
+    width: 17%;
+  }
+
+  .data-table-partner-transactions col:nth-child(5) {
+    width: 25%;
+  }
+
+  .data-table-partner-transactions th:last-child,
+  .data-table-partner-transactions td:last-child {
+    @apply w-auto whitespace-nowrap;
+  }
+
+  .data-table-partner-transactions th:nth-child(2),
+  .data-table-partner-transactions td:nth-child(2) {
+    @apply min-w-0 max-w-0 truncate;
+  }
+
+  .data-table-partner-transactions th.text-right {
+    text-align: right;
+  }
+
+  /* Partner dashboard Recent Leads: full card width with balanced % columns */
+  .data-table-recent-leads {
+    @apply w-full min-w-[40rem] table-fixed;
+  }
+
+  .data-table-recent-leads col:nth-child(1) {
+    width: 22%;
+  }
+
+  .data-table-recent-leads col:nth-child(2) {
+    width: 8%;
+  }
+
+  .data-table-recent-leads col:nth-child(3) {
+    width: 18%;
+  }
+
+  .data-table-recent-leads col:nth-child(4) {
+    width: 16%;
+  }
+
+  .data-table-recent-leads col:nth-child(5) {
+    width: 12%;
+  }
+
+  .data-table-recent-leads col:nth-child(6) {
+    width: 24%;
+  }
+
+  .data-table-recent-leads th:first-child,
+  .data-table-recent-leads td:first-child {
+    @apply min-w-0 truncate px-5;
+  }
+
+  .data-table-recent-leads th:not(:first-child),
+  .data-table-recent-leads td:not(:first-child) {
+    @apply whitespace-nowrap px-2;
+  }
+
+  .data-table-recent-leads th:last-child,
+  .data-table-recent-leads td:last-child {
+    @apply px-5;
   }
 
   .data-table thead {
-    @apply bg-slate-50/80;
+    @apply bg-slate-50;
   }
 
   .data-table th {
-    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500;
+    @apply px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500;
   }
 
   .data-table td {
-    @apply px-4 py-3.5 text-slate-700;
+    @apply px-3 py-2 text-slate-700;
+  }
+
+  /* After base th text-left so these win; Price column stays right-aligned */
+  .data-table-recent-leads th:not(:nth-child(5)),
+  .data-table-recent-leads td:not(:nth-child(5)) {
+    @apply text-center;
+  }
+
+  .data-table-recent-leads th:nth-child(5),
+  .data-table-recent-leads td:nth-child(5) {
+    @apply text-right tabular-nums;
   }
 
   .data-table tbody tr {
-    @apply border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50;
+    @apply border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/80;
   }
 
-  /* ── Badges ── */
+  /* Row separators for portal table layout mode (no column dividers) */
+  .data-table-grid {
+    @apply border-collapse;
+  }
+
+  .data-table-grid thead tr {
+    @apply border-b border-slate-200;
+  }
+
+  .data-table-grid tbody tr {
+    @apply border-b border-slate-200 last:border-b-0;
+  }
+
+  /* ── Status badges ── */
   .badge {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold;
   }
 
   .badge-green {
-    @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20;
+    @apply badge bg-accent-50 text-accent-700 ring-1 ring-accent-500/15;
   }
 
   .badge-yellow {
-    @apply badge bg-amber-50 text-amber-700 ring-1 ring-amber-600/20;
+    @apply badge bg-amber-50 text-amber-700 ring-1 ring-amber-600/15;
   }
 
   .badge-red {
-    @apply badge bg-red-50 text-red-700 ring-1 ring-red-600/20;
+    @apply badge bg-red-50 text-red-700 ring-1 ring-red-600/15;
   }
 
   .badge-blue {
-    @apply badge bg-blue-50 text-blue-700 ring-1 ring-blue-600/20;
+    @apply badge bg-brand-50 text-brand-700 ring-1 ring-brand-600/15;
+  }
+
+  .badge-sky {
+    @apply badge bg-sky-50 text-sky-700 ring-1 ring-sky-600/15;
+  }
+
+  .badge-indigo {
+    @apply badge bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600/15;
+  }
+
+  .badge-cyan {
+    @apply badge bg-cyan-50 text-cyan-700 ring-1 ring-cyan-600/15;
+  }
+
+  .badge-teal {
+    @apply badge bg-teal-50 text-teal-700 ring-1 ring-teal-600/15;
+  }
+
+  .badge-steel {
+    @apply badge bg-slate-100 text-slate-600 ring-1 ring-brand-600/10;
   }
 
   .badge-slate {
-    @apply badge bg-slate-100 text-slate-600 ring-1 ring-slate-600/20;
+    @apply badge bg-slate-100 text-slate-600 ring-1 ring-slate-500/10;
   }
 
   .badge-purple {
-    @apply badge bg-violet-50 text-violet-700 ring-1 ring-violet-600/20;
+    @apply badge bg-violet-50 text-violet-700 ring-1 ring-violet-600/15;
   }
 
   /* ── Buttons ── */
@@ -115,7 +362,9 @@
   }
 
   .btn-primary {
-    @apply btn bg-brand-700 text-white hover:bg-brand-800 active:bg-brand-900 shadow-sm;
+    @apply btn bg-brand-700 text-white shadow-sm;
+    @apply hover:enabled:bg-brand-800 active:enabled:bg-brand-900;
+    @apply motion-safe:transition-[background-color,box-shadow] motion-safe:duration-200 motion-reduce:transition-none;
   }
 
   .btn-secondary {
@@ -139,6 +388,25 @@
     @apply block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors;
   }
 
+  /* Clerk applies the same "form-input" class to checkboxes (e.g. the
+     "Sign out of all other devices" toggle). Without this override the
+     block/w-full/padding rules above stretch the checkbox into a full-width
+     bar that overlaps its label text. Keep checkboxes/radios small. */
+  .form-input[type="checkbox"],
+  .form-input[type="radio"] {
+    @apply inline-block h-4 w-4 shrink-0 grow-0 basis-auto rounded border-slate-300 p-0 shadow-none accent-brand-600;
+  }
+
+  /* Plain input used across forms (replaces bare browser default) */
+  .input {
+    @apply block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors;
+  }
+
+  /* Underline-only variant — no box border, gray bottom line on focus */
+  .input-line {
+    @apply block w-full bg-transparent border-0 border-b border-slate-200 rounded-none px-0 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0 focus:border-slate-400 transition-colors;
+  }
+
   .form-label {
     @apply block text-sm font-medium text-slate-700 mb-1.5;
   }
@@ -152,21 +420,21 @@
     @apply flex items-center justify-between;
   }
 
-  /* ── Sidebar nav item ── */
+  /* ── Sidebar nav item (light shell) ── */
   .nav-item {
-    @apply flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium text-sidebar-text transition-all;
+    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-text transition-all;
   }
 
-  .nav-item:hover {
-    @apply bg-sidebar-hover text-white;
+  .nav-item:hover:not(.active) {
+    @apply bg-sidebar-hover text-slate-800;
   }
 
   .nav-item.active {
-    @apply bg-sidebar-active text-white;
+    @apply font-semibold;
   }
 
   .nav-item-group-label {
-    @apply px-3 pt-6 pb-1.5 text-xs font-semibold uppercase tracking-widest text-sidebar-heading;
+    @apply px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-sidebar-heading;
   }
 
   /* ── Empty state ── */

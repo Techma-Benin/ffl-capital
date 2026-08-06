@@ -1,0 +1,20 @@
+-- AlterTable
+ALTER TABLE "lead_categories" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "type" SET DATA TYPE TEXT,
+ALTER COLUMN "label" SET DATA TYPE TEXT,
+ALTER COLUMN "integrity_label" SET DATA TYPE TEXT,
+ALTER COLUMN "created_at" SET DATA TYPE TIMESTAMP(3),
+ALTER COLUMN "updated_at" DROP DEFAULT,
+ALTER COLUMN "updated_at" SET DATA TYPE TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "lead_category_criteria" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "created_at" SET DATA TYPE TIMESTAMP(3),
+ALTER COLUMN "updated_at" DROP DEFAULT,
+ALTER COLUMN "updated_at" SET DATA TYPE TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "leads" ALTER COLUMN "lead_type" SET DATA TYPE TEXT;
+
+-- AlterTable
+ALTER TABLE "partner_filter_sets" ALTER COLUMN "lead_type" SET DATA TYPE TEXT;

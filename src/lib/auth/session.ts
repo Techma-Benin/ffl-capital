@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getPartnerId, getPartnerSession } from "@/lib/partner/session";
 import { isPartnerActive } from "@/lib/partner/active";
-import { getRoleFromMetadata } from "./roles";
+import { getRoleFromMetadata, isSuperAdminFromMetadata } from "./roles";
 
 export { isPartnerActive } from "@/lib/partner/active";
 
@@ -19,6 +19,18 @@ export async function requireAdmin() {
   if (role !== "admin") return { error: "forbidden" as const };
 
   return { userId, user };
+}
+
+export async function requireSuperAdmin() {
+  const authResult = await requireAdmin();
+  if ("error" in authResult) return authResult;
+
+  const isSuperAdmin = isSuperAdminFromMetadata(
+    authResult.user?.publicMetadata as Record<string, unknown>,
+  );
+  if (!isSuperAdmin) return { error: "forbidden" as const };
+
+  return authResult;
 }
 
 export async function requirePartner() {

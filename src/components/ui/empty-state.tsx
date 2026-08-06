@@ -1,22 +1,34 @@
-import type { LucideIcon } from "lucide-react";
+import type { Icon } from "@/lib/icons/client";
+import {
+  EmptyStateBlobIcon,
+  type EmptyStateBlobAccent,
+} from "@/components/ui/empty-state-blob-icon";
 
 export function EmptyState({
   icon: Icon,
   title,
   description,
   action,
+  accent,
+  blobIndex,
 }: {
-  icon?: LucideIcon;
+  icon?: Icon;
   title: string;
   description?: string;
   action?: React.ReactNode;
+  accent?: EmptyStateBlobAccent;
+  blobIndex?: number;
 }) {
   return (
-    <div className="empty-state">
+    <div className="empty-state group/empty">
       {Icon && (
-        <div className="mb-4 rounded-full bg-slate-100 p-4">
-          <Icon size={28} className="text-slate-400" />
-        </div>
+        <EmptyStateBlobIcon
+          icon={Icon}
+          seed={title}
+          accent={accent}
+          blobIndex={blobIndex}
+          className="mb-4"
+        />
       )}
       <h3 className="text-base font-semibold text-slate-900">{title}</h3>
       {description && (

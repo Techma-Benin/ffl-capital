@@ -1,160 +1,269 @@
 import { redirect } from "next/navigation";
+import { LeadListViewScope } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PartnerRefundButton } from "@/components/partner/partner-refund-button";
-import { FileText, ShieldCheck } from "lucide-react";
+import { PartnerLeadsListClient } from "@/components/partner/partner-leads-list-client";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { parsePageParams } from "@/lib/pagination";
+import { buildPartnerLeadsWhere } from "@/lib/partner/partner-leads-query";
+import { adminDatePeriodLabel } from "@/lib/admin/admin-date-period";
+import {
+  PARTNER_LEAD_SORT_KEYS,
+  buildPartnerLeadOrderBy,
+  buildPartnerLeadSortHref,
+  parsePartnerLeadSort,
+} from "@/lib/partner/partner-leads-sort";
+import {
+  PARTNER_LEAD_COLUMNS,
+  mergeColumnsWithCatalog,
+  portalColumnsFromView,
+} from "@/lib/leads/list-view-columns";
+import {
+  ensurePartnerDefaultView,
+  getDefaultLeadView,
+  getLeadViewById,
+  listLeadViews,
+} from "@/lib/leads/lead-list-view-service";
+import {
+  loadEnabledCategoryLabels,
+  resolveLeadTypeDisplay,
+} from "@/lib/lead-categories/category-labels";
+import {
+  leadViewSortSchema,
+  parsePartnerFilters,
+  type LeadViewColumn,
+} from "@/lib/leads/list-view-schema";
+import {
+  leadViewDraftsEqual,
+  parseLeadViewDraft,
+} from "@/lib/leads/lead-view-draft";
 
-export default async function PartnerLeadsPage() {
+const BASE_PATH = "/partner/leads";
+
+export default async function PartnerLeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    view?: string;
+    page?: string;
+    pageSize?: string;
+    sort?: string;
+    dir?: string;
+    draft?: string;
+  }>;
+}) {
+  const resolvedSearchParams = await searchParams;
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
-  const deliveries = await prisma.leadDelivery.findMany({
-    where: { partnerId },
-    include: { lead: true, refundRequests: { orderBy: { createdAt: "desc" }, take: 1 } },
-    orderBy: { deliveredAt: "desc" },
-    take: 100,
-  });
+  await ensurePartnerDefaultView(partnerId);
 
-  const totalSpent = deliveries.reduce((sum, d) => sum + Number(d.price), 0);
-  const refundedCount = deliveries.filter(d => d.refundedAt).length;
+  let viewId = resolvedSearchParams.view;
+  if (!viewId) {
+    const defaultView = await getDefaultLeadView(
+      LeadListViewScope.partner,
+      partnerId,
+    );
+    if (defaultView) redirect(`${BASE_PATH}?view=${defaultView.id}`);
+  }
+
+  const view = viewId ? await getLeadViewById(viewId) : null;
+  if (
+    !view ||
+    view.scope !== LeadListViewScope.partner ||
+    view.partnerId !== partnerId
+  ) {
+    const defaultView = await getDefaultLeadView(
+      LeadListViewScope.partner,
+      partnerId,
+    );
+    if (defaultView) redirect(`${BASE_PATH}?view=${defaultView.id}`);
+    redirect(BASE_PATH);
+  }
+
+  const views = await listLeadViews(LeadListViewScope.partner, partnerId);
+  const savedFilters = parsePartnerFilters(view.filters);
+  const sortJson = leadViewSortSchema.parse(view.sort);
+  const savedColumns = mergeColumnsWithCatalog(
+    PARTNER_LEAD_COLUMNS,
+    view.columns as LeadViewColumn[],
+  );
+  const draft = parseLeadViewDraft("partner", resolvedSearchParams.draft);
+  const appliedDraft =
+    draft &&
+    !leadViewDraftsEqual("partner", draft, {
+      name: view.name,
+      filters: savedFilters,
+      columns: savedColumns,
+    })
+      ? draft
+      : null;
+  const filters = appliedDraft
+    ? parsePartnerFilters(appliedDraft.filters)
+    : savedFilters;
+  const columns = appliedDraft
+    ? mergeColumnsWithCatalog(PARTNER_LEAD_COLUMNS, appliedDraft.columns)
+    : savedColumns;
+  const tableColumns = portalColumnsFromView(PARTNER_LEAD_COLUMNS, columns);
+
+  const { page, pageSize, skip } = parsePageParams(resolvedSearchParams);
+  const sortState = parsePartnerLeadSort(sortJson, resolvedSearchParams);
+  const orderBy = buildPartnerLeadOrderBy(sortJson, resolvedSearchParams);
+  const where = await buildPartnerLeadsWhere(partnerId, filters);
+
+  const [total, deliveries, filterSets, distinctStatesRaw, categories] = await Promise.all([
+    prisma.leadDelivery.count({ where }),
+    prisma.leadDelivery.findMany({
+      where,
+      include: {
+        lead: true,
+        refundRequests: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+      orderBy,
+      skip,
+      take: pageSize,
+    }),
+    prisma.partnerFilterSet.findMany({
+      where: { partnerId, isTemplate: false },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.lead.findMany({
+      where: { leadDeliveries: { some: { partnerId } } },
+      select: { state: true },
+      distinct: ["state"],
+      orderBy: { state: "asc" },
+    }),
+    loadEnabledCategoryLabels(),
+  ]);
+
+  const availableStates = distinctStatesRaw.map((l) => l.state);
+  const paginationParams: Record<string, string | undefined> = {
+    view: view.id,
+    sort: resolvedSearchParams.sort,
+    dir: resolvedSearchParams.dir,
+    draft: appliedDraft ? resolvedSearchParams.draft : undefined,
+  };
+
+  const sortHrefMap = Object.fromEntries(
+    PARTNER_LEAD_SORT_KEYS.map((key) => [
+      key,
+      buildPartnerLeadSortHref(BASE_PATH, paginationParams, key, sortState),
+    ]),
+  );
+
+  const filterChips = buildPartnerFilterChips(filters, filterSets);
 
   return (
     <div>
       <PageHeader
         title="My Leads"
-        subtitle="All leads delivered to your account"
+        subtitle="All leads delivered to your account — request refunds individually or in bulk"
+        badge={
+          <span className="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-sm font-semibold text-orange-700">
+            {total}
+          </span>
+        }
       />
 
-      {/* Summary row */}
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        {[
-          { label: "Total Delivered",  value: deliveries.length,              color: "text-slate-900" },
-          { label: "Total Spent",      value: `$${totalSpent.toFixed(2)}`,    color: "text-brand-700" },
-          { label: "Refunded",         value: refundedCount,                  color: "text-amber-600" },
-        ].map((c) => (
-          <div key={c.label} className="card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{c.label}</p>
-            <p className={`mt-1 text-2xl font-bold ${c.color}`}>{c.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="card">
-        <div className="overflow-x-auto">
-          {deliveries.length === 0 ? (
-            <EmptyState
-              icon={FileText}
-              title="No leads delivered yet"
-              description="Once your account is active and funded, leads matching your states will be delivered automatically."
+      <PartnerLeadsListClient
+        basePath={BASE_PATH}
+        views={views}
+        activeView={view}
+        appliedDraft={appliedDraft ? { name: appliedDraft.name, filters, columns } : null}
+        catalog={PARTNER_LEAD_COLUMNS}
+        partnerMeta={{ filterSets, availableStates }}
+        filterSummary={
+          filterChips.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 px-1 text-xs text-slate-500">
+              {filterChips.map((c) => (
+                <span
+                  key={c}
+                  className="rounded-full bg-slate-100 px-2 py-0.5"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          ) : null
+        }
+        deliveries={deliveries.map((d) => {
+          const refundReq = d.refundRequests[0];
+          const isRefunded = !!d.refundedAt;
+          const canRefund = d.lead.refundable && !isRefunded && !refundReq;
+          return {
+            id: d.id,
+            price: Number(d.price),
+            channel: d.channel,
+            deliveredAt: d.deliveredAt.toISOString(),
+            refundedAt: d.refundedAt?.toISOString() ?? null,
+            canRefund,
+            refundStatus: refundReq?.status ?? null,
+            lead: {
+              firstName: d.lead.firstName,
+              lastName: d.lead.lastName,
+              email: d.lead.email,
+              phone: d.lead.phone,
+              state: d.lead.state,
+              address: d.lead.address,
+              leadType: d.lead.leadType ?? "",
+              leadTypeLabel: resolveLeadTypeDisplay({
+                leadType: d.lead.leadType,
+                categoryResolution: d.lead.categoryResolution,
+                categoryCandidateTypes: d.lead.categoryCandidateTypes,
+                categories,
+              }).label,
+              intent: d.lead.intent,
+              haveIul: d.lead.haveIul,
+              primaryGoal: d.lead.primaryGoal,
+              refundable: d.lead.refundable,
+              trustedformCertUrl: d.lead.trustedformCertUrl,
+            },
+          };
+        })}
+        columns={tableColumns}
+        sort={{
+          active: sortState.field,
+          dir: sortState.direction,
+          hrefBySortKey: sortHrefMap,
+        }}
+        pagination={
+          total > 0 ? (
+            <TablePagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              basePath={BASE_PATH}
+              searchParams={paginationParams}
             />
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Lead</th>
-                  <th>Contact</th>
-                  <th>Location</th>
-                  <th>Type</th>
-                  <th>Intent</th>
-                  <th>Have IUL</th>
-                  <th>Goal</th>
-                  <th>Channel</th>
-                  <th>Price</th>
-                  <th>Status</th>
-                  <th>TrustedForm</th>
-                  <th>Delivered</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deliveries.map((d) => {
-                  const refundReq = d.refundRequests[0];
-                  const isRefunded = !!d.refundedAt;
-                  const canRefund = d.lead.refundable && !isRefunded && !refundReq;
-
-                  return (
-                    <tr key={d.id}>
-                      <td>
-                        <p className="font-medium text-slate-900">
-                          {d.lead.firstName} {d.lead.lastName}
-                        </p>
-                        <p className="text-xs text-slate-400">{d.lead.email}</p>
-                      </td>
-                      <td className="text-slate-500">{d.lead.phone}</td>
-                      <td>
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                          {d.lead.state}
-                        </span>
-                        {d.lead.address && (
-                          <p className="mt-0.5 text-xs text-slate-400">{d.lead.address}</p>
-                        )}
-                      </td>
-                      <td>
-                        <Badge variant="blue">
-                          {d.lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                        </Badge>
-                      </td>
-                      <td className="text-xs text-slate-500">{d.lead.intent ?? "—"}</td>
-                      <td className="text-xs text-slate-500">{d.lead.haveIul ?? "—"}</td>
-                      <td className="text-xs text-slate-500">{d.lead.primaryGoal ?? "—"}</td>
-                      <td>
-                        <Badge variant={d.channel === "realtime" ? "green" : "purple"}>
-                          {d.channel === "realtime" ? "Real-time" : "Aged"}
-                        </Badge>
-                      </td>
-                      <td className="font-semibold text-slate-900">${Number(d.price).toFixed(2)}</td>
-                      <td>
-                        {isRefunded ? (
-                          <Badge variant="slate">Refunded</Badge>
-                        ) : refundReq ? (
-                          <Badge variant="yellow">
-                            Refund {refundReq.status === "pending" ? "Pending" : refundReq.status}
-                          </Badge>
-                        ) : (
-                          <Badge variant="green">Active</Badge>
-                        )}
-                      </td>
-                      <td>
-                        {d.lead.trustedformCertUrl ? (
-                          <a
-                            href={d.lead.trustedformCertUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
-                          >
-                            <ShieldCheck size={12} />
-                            Cert
-                          </a>
-                        ) : (
-                          <span className="text-xs text-slate-300">—</span>
-                        )}
-                      </td>
-                      <td className="text-xs text-slate-400">
-                        {new Date(d.deliveredAt).toLocaleString("en-US", {
-                          month: "short",
-                          day:   "numeric",
-                          hour:  "2-digit",
-                          minute:"2-digit",
-                        })}
-                      </td>
-                      <td>
-                        <div className="flex justify-end">
-                          {canRefund && (
-                            <PartnerRefundButton leadDeliveryId={d.id} />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
     </div>
   );
+}
+
+function buildPartnerFilterChips(
+  filters: ReturnType<typeof parsePartnerFilters>,
+  filterSets: { id: string; name: string }[],
+) {
+  const chips: string[] = [];
+  if (filters.filterSetId) {
+    const fs = filterSets.find((f) => f.id === filters.filterSetId);
+    chips.push(`Filter set: ${fs?.name ?? filters.filterSetId}`);
+  }
+  if (filters.locations?.length) chips.push(`Locations: ${filters.locations.join(", ")}`);
+  if (filters.channels?.length) chips.push(`Channel: ${filters.channels.join(", ")}`);
+  if (filters.types?.length) chips.push(`Type: ${filters.types.join(", ")}`);
+  if (filters.statuses?.length) chips.push(`Status: ${filters.statuses.join(", ")}`);
+  if (filters.datePeriod === "custom") {
+    if (filters.from) chips.push(`Delivered from: ${filters.from}`);
+    if (filters.to) chips.push(`Delivered to: ${filters.to}`);
+  } else if (filters.datePeriod) {
+    chips.push(
+      `Delivered: ${adminDatePeriodLabel(filters.datePeriod) ?? filters.datePeriod}`,
+    );
+  }
+  return chips;
 }

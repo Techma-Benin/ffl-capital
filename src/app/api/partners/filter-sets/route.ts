@@ -1,0 +1,150 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/db";
+import { getPartnerId } from "@/lib/partner/session";
+import { listPartnerFilterSets } from "@/lib/partner/default-filter-set";
+import { MIN_FILTER_STATES } from "@/lib/partner/constants";
+import { US_STATE_CODES } from "@/lib/constants/us-states";
+import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import { findFilterSetTemplate } from "@/lib/filter-sets/templates";
+import type { FilterCriteria } from "@/lib/matching/types";
+import type { PartnerFilterSet } from "@prisma/client";
+
+const stateCodeSchema = z.enum(
+  US_STATE_CODES as unknown as [string, ...string[]],
+);
+
+const filterCriteriaSchema = z
+  .object({
+    intent: z.array(z.string()).optional(),
+    haveIul: z.array(z.string()).optional(),
+    ageMin: z.number().int().min(0).optional(),
+    ageMax: z.number().int().min(0).optional(),
+    acceptDays: z.array(z.string()).optional(),
+    acceptHoursStart: z.number().int().min(0).max(23).optional(),
+    acceptHoursEnd: z.number().int().min(0).max(23).optional(),
+  })
+  .passthrough()
+  .optional();
+
+const createSchema = z.object({
+  name: z.string().min(1).max(100),
+  leadType: z.string().min(1),
+  filterStates: z.array(stateCodeSchema).min(1).max(50),
+  priority: z.number().int().min(1).max(10).default(5),
+  active: z.boolean().default(true),
+  sourceTemplateId: z.string().uuid().optional(),
+  filterCriteria: filterCriteriaSchema,
+});
+
+/**
+ * Partner-facing serialization — excludes weekly/monthly limits, which are
+ * admin/template-only fields not editable (or visible) in the partner portal.
+ */
+function serializePartnerFilterSet(fs: Pick<PartnerFilterSet, "id" | "name" | "leadType" | "filterStates" | "priority" | "active" | "filterCriteria">) {
+  return {
+    id: fs.id,
+    name: fs.name,
+    leadType: fs.leadType,
+    filterStates: fs.filterStates,
+    priority: fs.priority,
+    active: fs.active,
+    filterCriteria: stripAttributionCriteria(
+      (fs.filterCriteria ?? {}) as FilterCriteria,
+    ),
+  };
+}
+
+export async function GET() {
+  const partnerId = await getPartnerId();
+  if (!partnerId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const filterSets = await listPartnerFilterSets(partnerId);
+
+  return NextResponse.json(filterSets.map(serializePartnerFilterSet));
+}
+
+export async function POST(request: NextRequest) {
+  const partnerId = await getPartnerId();
+  if (!partnerId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (
+    body &&
+    typeof body === "object" &&
+    "isTemplate" in body &&
+    (body as { isTemplate?: unknown }).isTemplate === true
+  ) {
+    return NextResponse.json(
+      { error: "Partners cannot create templates" },
+      { status: 403 },
+    );
+  }
+
+  const parsed = createSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.errors.map((e) => e.message).join("; ") },
+      { status: 400 },
+    );
+  }
+
+  const {
+    name,
+    leadType,
+    filterStates: rawStates,
+    priority,
+    active,
+    sourceTemplateId,
+    filterCriteria,
+  } = parsed.data;
+  const filterStates = Array.from(new Set(rawStates.map((s) => s.toUpperCase())));
+
+  // Enforce 15-state minimum for active sets
+  if (active && filterStates.length < MIN_FILTER_STATES) {
+    return NextResponse.json(
+      {
+        error: `An active filter set must target at least ${MIN_FILTER_STATES} states. Add more states or save as inactive.`,
+      },
+      { status: 422 },
+    );
+  }
+
+  // Delivery limits are admin/template-only; when a partner creates a filter
+  // set from a template, copy that template's limits onto the new set
+  // server-side rather than accepting them from the client.
+  const template = sourceTemplateId
+    ? await findFilterSetTemplate(sourceTemplateId)
+    : null;
+  const weeklyLimit = template?.weeklyLimit ?? null;
+  const monthlyLimit = template?.monthlyLimit ?? null;
+
+  const created = await prisma.partnerFilterSet.create({
+    data: {
+      partnerId,
+      isTemplate: false,
+      name: name.trim(),
+      leadType,
+      filterStates,
+      priority,
+      active,
+      weeklyLimit,
+      monthlyLimit,
+      filterCriteria: stripAttributionCriteria(
+        (filterCriteria ?? {}) as FilterCriteria,
+      ),
+    },
+  });
+
+  return NextResponse.json(serializePartnerFilterSet(created), { status: 201 });
+}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { Zap, Shield, TrendingUp, Users, ArrowRight, CheckCircle } from "lucide-react";
+import { Lightning, Shield, TrendUp, Users, ArrowRight, CheckCircle } from "@/lib/icons/ssr";
 import { getPostAuthRedirectPath } from "@/lib/auth/redirect";
 
 export default async function HomePage() {
@@ -13,7 +13,7 @@ export default async function HomePage() {
       <nav className="flex h-16 items-center justify-between border-b border-slate-100 px-8">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700">
-            <Zap size={16} className="text-white" />
+            <Lightning size={16} className="text-white" />
           </div>
           <span className="text-sm font-bold text-slate-900">FFL Capital</span>
         </div>
@@ -67,13 +67,13 @@ export default async function HomePage() {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
-                icon: Zap,
+                icon: Lightning,
                 color: "bg-brand-50 text-brand-600",
                 title: "Real-Time Matching",
                 desc: "Leads matched instantly to the highest-priority eligible agent — state, wallet, priority all considered.",
               },
               {
-                icon: TrendingUp,
+                icon: TrendUp,
                 color: "bg-emerald-50 text-emerald-600",
                 title: "Aged Lead Marketplace",
                 desc: "Self-service marketplace for leads 30+ days old at just $5 each. No admin required.",

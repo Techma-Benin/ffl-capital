@@ -1,0 +1,30 @@
+From: Client (FFL Capital)
+Date: August 3, 2026
+Subject: Approved lead routing lifecycle
+
+Approved routing lifecycle for Integrity / platform partner alignment:
+
+0–24 hours
+- Try Integrity Realtime (ILC) only.
+- Retry definitive rejections while inside the acceptance window.
+- Do not automatically match platform partners during this window.
+
+24–48 hours
+- Attempt either platform partner or ILC Storefront first, based on admin-configured priority.
+- Only try the other route after the primary route definitively fails.
+- A pending asynchronous Integrity posting blocks fallback.
+
+48 hours–30 days
+- Platform partners only.
+- Do not automatically retry Realtime or Storefront.
+
+30+ days
+- Preserve existing aged marketplace eligibility, including leads already sold live.
+
+One automatic live sale
+- A successful Realtime, Storefront, or partner sale prevents all further automatic live routing.
+- Only an explicit admin action may redeliver a live-sold lead.
+
+Deployment note (Phase 2 implementation)
+- Lifecycle routing ships behind an admin feature flag that defaults to OFF.
+- Azure ping credentials are env-only and must be rotated before live enablement.

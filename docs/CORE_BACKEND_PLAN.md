@@ -35,7 +35,7 @@ Tous les écarts backend identifiés lors de l’audit, alignés sur la parité 
 | Sujet | Décision |
 |-------|----------|
 | Auto-recharge au seuil de solde | **Reporté** — garder l’abonnement Stripe hebdomadaire actuel |
-| Promotion partner → admin | **Non** — comptes admin et partner séparés (Clerk + `ADMIN_EMAILS`) |
+| Promotion partner → admin | **Historique (juil.) : non** — supersédé août 2026 : invite admin peut promouvoir un user non-admin existant ; portails restent séparés |
 | IntegrityCONNECT live | **Bloqué** sur les specs/API client (Sami) — code prêt en mode mock |
 | Polish UI / design | **Après** le backend core |
 | Twilio SMS | Vide dans Boberdoo aujourd’hui — hors scope |
@@ -135,7 +135,7 @@ Refunds → Type A (rematch) / Type B (lead mort)
 
 1. Intake payload complet → match → events
 2. Rejet doublon
-3. Limite journalière filter set
+3. Limite hebdomadaire filter set
 4. Achat aged (lead backdaté)
 5. Refund A + B
 6. Recherche admin

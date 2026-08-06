@@ -1,170 +1,27 @@
-import { prisma } from "@/lib/db";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/empty-state";
-import Link from "next/link";
-import { Users, MapPin } from "lucide-react";
-import { FilterTabLink } from "@/components/ui/filter-tab-link";
-import { PartnerApprovalActions } from "@/components/admin/partner-approval-actions";
+import {
+  fetchAdminPartnersRawData,
+  parseAdminPartnersListFilters,
+} from "@/lib/admin/partners-raw";
+import { AdminPartnersView } from "@/components/admin/admin-partners-view";
 
 export default async function AdminPartnersPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: Promise<{
+    status?: string;
+    page?: string;
+    pageSize?: string;
+    sort?: string;
+    dir?: string;
+    company?: string;
+    family?: string;
+  }>;
 }) {
-  const statusFilter = searchParams.status;
-
-  const partners = await prisma.partner.findMany({
-    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    take: 100,
-    ...(statusFilter ? { where: { status: statusFilter as never } } : {}),
-  });
-
-  const pendingCount = partners.filter(p => p.status === "pending_approval").length;
-  const activeCount  = partners.filter(p => p.status === "active").length;
-
-  const statusTabs = [
-    { label: "All Partners", value: undefined, count: partners.length },
-    { label: "Pending",      value: "pending_approval", count: pendingCount },
-    { label: "Active",       value: "active",            count: activeCount },
-  ];
+  const resolvedSearchParams = await searchParams;
+  const initialFilters = parseAdminPartnersListFilters(resolvedSearchParams);
+  const raw = await fetchAdminPartnersRawData();
 
   return (
-    <div>
-      <PageHeader
-        title="Partners"
-        subtitle="Manage lead buyers and their accounts"
-      />
-
-      {/* Summary cards */}
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        {[
-          { label: "Total Partners", value: partners.length, color: "text-brand-600" },
-          { label: "Active",         value: activeCount,     color: "text-emerald-600" },
-          { label: "Pending",        value: pendingCount,    color: "text-amber-600" },
-        ].map((c) => (
-          <div key={c.label} className="card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{c.label}</p>
-            <p className={`mt-1 text-2xl font-bold ${c.color}`}>{c.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="card">
-        {/* Filter tabs */}
-        <div className="flex items-center gap-1 border-b border-slate-100 px-4 py-2">
-          {statusTabs.map((tab) => (
-            <FilterTabLink
-              key={tab.label}
-              href={tab.value ? `/admin/partners?status=${tab.value}` : "/admin/partners"}
-              active={statusFilter === tab.value || (!statusFilter && !tab.value)}
-            >
-              {tab.label}
-              <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-                {tab.count}
-              </span>
-            </FilterTabLink>
-          ))}
-        </div>
-
-        <div className="overflow-x-auto">
-          {partners.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="No partners yet"
-              description="Partners will appear here once they sign up and complete onboarding."
-            />
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Partner</th>
-                  <th>Affiliation</th>
-                  <th>Lead Type</th>
-                  <th>States</th>
-                  <th>Status</th>
-                  <th>Priority</th>
-                  <th>Wallet</th>
-                  <th>Lead Buying</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {partners.map((p) => {
-                  const isActive = p.status === "active";
-                  const walletOk = Number(p.walletBalance) >= 25;
-                  const statesOk = p.filterStates.length >= 15;
-                  const leadBuying = isActive && walletOk && statesOk;
-
-                  return (
-                    <tr key={p.id}>
-                      <td>
-                        <Link href={`/admin/partners/${p.id}`} className="hover:text-brand-600">
-                          <p className="font-medium text-slate-900">
-                            {p.firstName} {p.lastName}
-                          </p>
-                          <p className="text-xs text-slate-400">{p.email}</p>
-                        </Link>
-                      </td>
-                      <td className="text-slate-500">{p.affiliation ?? "—"}</td>
-                      <td>
-                        <Badge variant="blue">
-                          {p.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
-                        </Badge>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <MapPin size={12} className="text-slate-400" />
-                          <span className={`text-sm font-medium ${statesOk ? "text-slate-700" : "text-red-500"}`}>
-                            {p.filterStates.length}
-                            {!statesOk && " (min 15)"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <PartnerStatusBadge status={p.status} />
-                      </td>
-                      <td>
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
-                          {p.priority}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`font-semibold ${walletOk ? "text-slate-900" : "text-red-500"}`}>
-                          ${Number(p.walletBalance).toFixed(2)}
-                        </span>
-                      </td>
-                      <td>
-                        <Badge variant={leadBuying ? "green" : "slate"}>
-                          {leadBuying ? "Active" : "Inactive"}
-                        </Badge>
-                      </td>
-                      <td>
-                        {p.status === "pending_approval" ? (
-                          <PartnerApprovalActions partnerId={p.id} />
-                        ) : p.status === "active" ? (
-                          <span className="text-xs text-slate-300 italic">—</span>
-                        ) : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-    </div>
+    <AdminPartnersView raw={raw} initialFilters={initialFilters} />
   );
-}
-
-function PartnerStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { variant: "green" | "yellow" | "red" | "slate"; label: string }> = {
-    active:           { variant: "green",  label: "Active" },
-    pending_approval: { variant: "yellow", label: "Pending" },
-    rejected:         { variant: "red",    label: "Rejected" },
-    disabled:         { variant: "slate",  label: "Disabled" },
-  };
-  const c = map[status] ?? { variant: "slate" as const, label: status };
-  return <Badge variant={c.variant}>{c.label}</Badge>;
 }

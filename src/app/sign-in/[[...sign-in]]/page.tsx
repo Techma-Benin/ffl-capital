@@ -1,6 +1,6 @@
 import { SignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
-import { Zap } from "lucide-react";
+import { Lightning } from "@/lib/icons/ssr";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLeftPanel } from "@/components/auth/auth-left-panel";
@@ -19,7 +19,7 @@ export default async function SignInPage() {
           <br />
           <span className="text-brand-400">faster and smarter.</span>
         </h1>
-        <p className="mt-4 max-w-sm text-sidebar-text leading-relaxed">
+        <p className="mt-4 max-w-sm text-brand-200 leading-relaxed">
           Real-time matching, aged lead marketplace, and a modern portal for every partner — all in one platform.
         </p>
 
@@ -40,24 +40,26 @@ export default async function SignInPage() {
         </div>
       </AuthLeftPanel>
 
-      <div className="flex flex-1 items-center justify-center bg-slate-50 px-6 py-12">
-        <div className="w-full max-w-lg">
+      <div className="flex flex-1 items-center justify-center px-6 py-12">
+        <div className="w-full max-w-sm">
           <div className="mb-8 text-center lg:hidden">
             <Link href="/" className="inline-block transition-opacity hover:opacity-80">
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-700">
-                <Zap size={20} className="text-white" />
+                <Lightning size={20} className="text-white" />
               </div>
               <p className="text-sm font-bold text-slate-900">FFL Capital</p>
             </Link>
           </div>
 
           <h2 className="mb-2 text-2xl font-bold text-slate-900">Partner sign in</h2>
-          <p className="mb-6 text-sm text-slate-500">
-            Sign in to access your partner portal.{" "}
-            <Link href="/sign-up" className="font-medium text-brand-600 hover:underline">
-              New partner? Sign up
-            </Link>
-          </p>
+          <div className="mb-6 space-y-1 text-sm text-slate-500">
+            <p>Sign in to access your partner portal.</p>
+            <p>
+              <Link href="/admin/sign-in" className="font-medium text-brand-600 hover:underline">
+                Admin? Sign in here
+              </Link>
+            </p>
+          </div>
 
           <SignIn forceRedirectUrl={AUTH_CONTINUE_PARTNER} appearance={authClerkAppearance} />
         </div>

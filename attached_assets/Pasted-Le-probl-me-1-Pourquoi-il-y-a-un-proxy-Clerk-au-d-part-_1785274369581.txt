@@ -1,0 +1,73 @@
+Le problème
+1. Pourquoi il y a un proxy Clerk au départ
+Clerk (le fournisseur d'identité) fait tourner une « Frontend API » que ton app appelle en permanence. En production, la voie normale est de lui donner un sous-domaine à toi via un enregistrement DNS : clerk.tondomaine.com → CNAME vers Clerk.
+
+Ici l'app vit sur bakery-cafe.replit.app. Ce domaine appartient à Replit, tu ne peux pas y créer d'enregistrement DNS. Donc pas de CNAME possible.
+
+La solution de repli documentée par Clerk : un proxy. Ton propre serveur expose un chemin et transfère tout à Clerk. C'est clerkProxyMiddleware.ts :
+
+Retiens ce point, c'est toute la suite : l'API de Clerk est servie à travers ton propre domaine.
+
+2. Ce qui se passe quand tu invites quelqu'un
+L'étape 3 n'arrivait jamais.
+
+3. La faute : deux lignes dans le mauvais ordre
+Dans app.ts, avant le correctif :
+
+Express exécute ses middlewares dans l'ordre d'enregistrement. Et app.use("/api/__clerk", proxy) capture toutes les méthodes et tous les sous-chemins sous /api/__clerk. Il avalait donc /api/__clerk/v1/tickets/accept et l'envoyait à Clerk.
+
+Le handler de la ligne 58 était du code mort en production. Son commentaire d'origine le disait même explicitement — « en production le proxy gère ce chemin avant d'arriver ici » — sauf que l'auteur supposait que le vrai endpoint Clerk ferait le travail. Il ne le faisait pas.
+
+4. Pourquoi Clerk ne répondait pas : Cloudflare
+frontend-api.clerk.dev est derrière Cloudflare, qui applique une protection anti-bot sur cette route précise. La requête arrivant de notre serveur n'a aucune empreinte de navigateur. Cloudflare répond par un managed challenge. Capturé en direct :
+
+5. Pourquoi une page blanche et pas le « Just a moment » de Cloudflare
+C'est le point le plus intéressant. Deux raisons indépendantes, chacune suffisante :
+
+(a) Le solveur du challenge ne se charge pas. La page de challenge contient du JavaScript qui doit récupérer son moteur à /cdn-cgi/challenge-platform/h/b/orchestrate/chl. Le navigateur résout ce chemin relatif sur l'origine où il se trouve — bakery-cafe.replit.app. Or ton Express ne proxifie que /api/__clerk/*. Ce chemin-là n'existe pas chez toi → le script ne se charge jamais → rien ne s'affiche.
+
+(b) Le cookie de clearance est instockable. Cloudflare renvoie :
+
+Le navigateur est sur bakery-cafe.replit.app. Un cookie dont l'attribut Domain ne correspond pas à l'hôte de la requête est rejeté sans discussion par le navigateur. Même en résolvant le challenge, il n'aurait rien pu conserver.
+
+Bilan : 403, corps qui ne peut pas s'afficher → page blanche.
+
+6. Ton observation — la pièce qui manquait
+C'est ce que tu as isolé qui a débloqué l'enquête : sur un navigateur qui a déjà de l'état sur l'origine, ça passe.
+
+Ce que ça change n'est pas le correctif, c'est l'historique du bug. Ça explique pourquoi il paraissait intermittent, et surtout pourquoi le correctif du 20 juillet avait été déclaré bon puis rétracté : il avait été validé dans un navigateur qui avait déjà l'app ouverte. Chaque « c'est réparé » passé était un faux positif de test.
+
+Honnêtement : j'ai prouvé que le challenge est réel et reproductible, mais je n'ai pas déterminé quel élément d'état précis fait basculer la décision de Cloudflare (en-têtes Referer/Sec-Fetch-Site, cookies présents, réutilisation de connexion — son score est un mélange). Il faudrait instrumenter la prod pour trancher. Ça ne change rien à la suite, puisque le correctif supprime l'appel.
+
+La solution
+Le changement
+Monter le handler avant le proxy :
+
+Cloudflare n'est plus jamais contacté sur ce chemin. L'invité arrive directement sur la page d'inscription.
+
+Pourquoi ce n'est pas un bricolage
+C'est le point qui rend le correctif défendable plutôt que fragile. La doc Clerk décrit tickets/accept ainsi :
+
+When a user visits an invitation link, they are redirected to a specified URL with a __clerk_ticket query parameter appended.
+
+Une redirection, rien d'autre. Et les 4 appels à createInvitation dans routes/admin.ts passent déjà redirectUrl: ${baseUrl}/sign-up. L'endpoint Clerk aurait donc émis exactement le même en-tête Location que nous. On produit la même redirection, localement, au lieu de la demander à un hôte protégé par Cloudflare.
+
+Et la sécurité ?
+Question légitime : on court-circuite un endpoint, est-ce qu'on affaiblit quelque chose ?
+
+Non. Le ticket est un JWT signé, et l'endpoint accept ne validait rien non plus — il redirigeait. La validation se fait à l'étape suivante, quand <SignUp/> appelle signUp.create({ strategy: "ticket", ticket }), qui interroge Clerk. Un ticket forgé, expiré ou déjà utilisé est rejeté là, comme avant. Passer n'importe quoi dans ?__clerk_ticket= te donne une erreur Clerk, pas un compte.
+
+Portée du changement
+app.get ne réclame que la méthode GET, sur ce chemin exact. Tout le reste continue d'aller au proxy sans modification — vérifié :
+
+Requête	Avant	Après
+GET /api/__clerk/v1/tickets/accept	403 challenge Cloudflare	302 → /sign-up?__clerk_ticket=…
+POST même chemin	proxifié	proxifié
+GET /api/__clerk/v1/client	proxifié	proxifié
+Testé en local avec NODE_ENV=production et le proxy actif, donc dans la configuration exacte où le bug se manifeste. pnpm run typecheck passe. Commit 93c3522, poussé sur main, un seul fichier modifié.
+
+Deux choses à ne pas défaire
+L'ordre de montage. Remettre le handler sous le proxy réintroduit la panne à l'identique.
+redirectUrl sur les invitations (commit 8517318). Le correctif en dépend : c'est lui qui garantit que /sign-up est bien la destination attendue.
+Ce qui reste à faire
+Le correctif est dans main mais pas encore en production — il faut que Replit tire et republie. Ensuite, tester sur un appareil qui n'a jamais ouvert bakery-cafe.replit.app. C'est le seul test qui prouve quelque chose : un navigateur déjà chaud validera le correctif même s'il est faux, c'est précisément le piège dans lequel cette enquête est tombée deux fois.

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { ComponentProps } from "react";
-import { usePortal } from "@/components/layout/portal-provider";
+import { isNavigationPending, usePortal } from "@/components/layout/portal-provider";
 import { Spinner } from "@/components/ui/spinner";
 
 type PortalLinkProps = ComponentProps<typeof Link>;
@@ -18,7 +18,7 @@ function resolveHref(href: PortalLinkProps["href"]): string {
 export function PortalLink({ href, onClick, className, children, ...props }: PortalLinkProps) {
   const { pendingPath, startNavigation } = usePortal();
   const path = resolveHref(href);
-  const pending = path ? pendingPath === path : false;
+  const pending = path ? isNavigationPending(pendingPath, path) : false;
 
   return (
     <Link

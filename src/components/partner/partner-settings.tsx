@@ -1,321 +1,405 @@
 "use client";
 
-import { useState } from "react";
-import { PageHeader } from "@/components/ui/page-header";
-import { ActionButton } from "@/components/ui/action-button";
-import { StatusStrip } from "@/components/ui/status-strip";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
+import { PartnerAvatar } from "@/components/admin/partner-avatar";
+import { PortalLink } from "@/components/ui/portal-link";
 import { usePartner } from "@/components/partner/partner-provider";
 import {
-  US_REGION_STATES,
-  US_STATE_CODES,
-} from "@/lib/constants/us-states";
-import { AlertCircle, Check, MapPin, Settings, Webhook } from "lucide-react";
+  Funnel,
+  Plus,
+  Trash,
+  PencilSimple,
+  ICON_WEIGHT_LINEAR,
+} from "@/lib/icons/client";
+import {
+  partnerFilterSetEditPath,
+  partnerFilterSetNewPath,
+} from "@/lib/filter-sets/routes";
+import { PartnerLeadDeliveryCard } from "@/components/partner/partner-lead-delivery-card";
+import { PartnerWalletSummaryCard } from "@/components/partner/partner-wallet-summary-card";
+import { ManageAccountModal } from "@/components/partner/manage-account-modal";
+import type { PartnerCrmSummary } from "@/lib/partner/types";
 
-const US_STATE_NAMES: Record<string, string> = {
-  AL:"Alabama", AK:"Alaska", AZ:"Arizona", AR:"Arkansas", CA:"California",
-  CO:"Colorado", CT:"Connecticut", DE:"Delaware", FL:"Florida", GA:"Georgia",
-  HI:"Hawaii", ID:"Idaho", IL:"Illinois", IN:"Indiana", IA:"Iowa",
-  KS:"Kansas", KY:"Kentucky", LA:"Louisiana", ME:"Maine", MD:"Maryland",
-  MA:"Massachusetts", MI:"Michigan", MN:"Minnesota", MS:"Mississippi", MO:"Missouri",
-  MT:"Montana", NE:"Nebraska", NV:"Nevada", NH:"New Hampshire", NJ:"New Jersey",
-  NM:"New Mexico", NY:"New York", NC:"North Carolina", ND:"North Dakota", OH:"Ohio",
-  OK:"Oklahoma", OR:"Oregon", PA:"Pennsylvania", RI:"Rhode Island", SC:"South Carolina",
-  SD:"South Dakota", TN:"Tennessee", TX:"Texas", UT:"Utah", VT:"Vermont",
-  VA:"Virginia", WA:"Washington", WV:"West Virginia", WI:"Wisconsin", WY:"Wyoming",
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type PartnerFilterSet = {
+  id: string;
+  name: string;
+  leadType: "traditional_iul" | "high_intent_iul";
+  filterStates: string[];
+  priority: number;
+  active: boolean;
+  priceOverride?: number | null;
+  filterCriteria?: import("@/lib/matching/types").FilterCriteria;
 };
 
-function statesEqual(a: string[], b: string[]) {
-  if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
-  return sortedA.every((code, i) => code === sortedB[i]);
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const partnerStatusLabel: Record<string, string> = {
+  active: "Active",
+  pending_approval: "Pending approval",
+  rejected: "Rejected",
+  disabled: "Disabled",
+};
+
+function formatPartnerDisplayName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+) {
+  const name = [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ");
+  return name || "Partner";
 }
 
-export function PartnerSettingsView() {
-  const { partner, patchPartner } = usePartner();
+function formatMemberSinceShort(value: string) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
 
-  const [selectedStates, setSelectedStates] = useState<string[]>(partner.filterStates);
-  const [webhookUrl, setWebhookUrl] = useState(partner.crmWebhookUrl ?? "");
+// ---------------------------------------------------------------------------
+// Profile banner — light card
+// ---------------------------------------------------------------------------
 
-  const [statesSaving, setStatesSaving] = useState(false);
-  const [statesSuccess, setStatesSuccess] = useState(false);
-  const [statesError, setStatesError] = useState("");
+function ProfileBanner({
+  partner,
+  avatarUrl,
+  walletBalance,
+  onEditProfile,
+}: {
+  partner: ReturnType<typeof usePartner>["partner"];
+  avatarUrl?: string;
+  walletBalance: number;
+  onEditProfile: () => void;
+}) {
+  const statusLabel = partnerStatusLabel[partner.status] ?? partner.status;
+  const isActive = partner.status === "active";
+  const buyingLive = isActive && walletBalance >= 25;
 
-  const [webhookSaving, setWebhookSaving] = useState(false);
-  const [webhookSuccess, setWebhookSuccess] = useState(false);
-  const [webhookError, setWebhookError] = useState("");
+  const sincePart = formatMemberSinceShort(partner.createdAt);
+  const statePart = partner.residenceState?.trim() || null;
+  const locationSince =
+    statePart && sincePart
+      ? `${statePart} · since ${sincePart}`
+      : statePart || (sincePart ? `since ${sincePart}` : null);
 
-  const selected = new Set(selectedStates);
-  const selectedCount = selected.size;
-  const isEligible = selectedCount >= 15;
-  const statesDirty = !statesEqual(selectedStates, partner.filterStates);
-  const webhookDirty = webhookUrl !== (partner.crmWebhookUrl ?? "");
+  const company = partner.affiliation?.trim() || null;
+  const email = partner.email?.trim() || null;
+  const subtitle = [company, email].filter(Boolean).join(" · ");
 
-  function toggleState(code: string) {
-    setSelectedStates((prev) =>
-      prev.includes(code) ? prev.filter((s) => s !== code) : [...prev, code],
-    );
-    setStatesSuccess(false);
-    setStatesError("");
-  }
-
-  function selectStates(states: readonly string[]) {
-    setSelectedStates([...states]);
-    setStatesSuccess(false);
-    setStatesError("");
-  }
-
-  async function saveStates() {
-    setStatesError("");
-    setStatesSuccess(false);
-
-    if (selectedStates.length < 15) {
-      setStatesError("Select at least 15 target states.");
-      return;
-    }
-
-    setStatesSaving(true);
-    try {
-      const res = await fetch("/api/partners/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filterStates: selectedStates }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setStatesError(data.error ?? "Failed to save states");
-        return;
-      }
-      patchPartner({ filterStates: data.filterStates });
-      setStatesSuccess(true);
-    } catch {
-      setStatesError("Request failed. Please try again.");
-    } finally {
-      setStatesSaving(false);
-    }
-  }
-
-  async function saveWebhook() {
-    setWebhookError("");
-    setWebhookSuccess(false);
-    setWebhookSaving(true);
-
-    try {
-      const res = await fetch("/api/partners/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ crmWebhookUrl: webhookUrl.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setWebhookError(data.error ?? "Failed to save webhook");
-        return;
-      }
-      patchPartner({ crmWebhookUrl: data.crmWebhookUrl });
-      setWebhookUrl(data.crmWebhookUrl ?? "");
-      setWebhookSuccess(true);
-    } catch {
-      setWebhookError("Request failed. Please try again.");
-    } finally {
-      setWebhookSaving(false);
-    }
-  }
+  const chipClass =
+    "inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 whitespace-nowrap";
 
   return (
-    <div>
-      <PageHeader
-        title="Settings"
-        subtitle="Configure your lead targeting and delivery preferences"
-      />
-
-      <div className="mb-5 card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Settings size={16} className="text-slate-500" />
-          <h2 className="text-sm font-semibold text-slate-900">Account Settings</h2>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="form-label">Lead Type</label>
-            <select className="form-select" defaultValue={partner.leadType} disabled>
-              <option value="traditional_iul">Traditional IUL</option>
-              <option value="high_intent_iul">High Intent IUL</option>
-            </select>
-            <p className="mt-1 text-xs text-slate-400">Contact admin to change lead type</p>
-          </div>
-          <div>
-            <label className="form-label">Affiliation (Company)</label>
-            <input
-              className="form-input"
-              defaultValue={partner.affiliation ?? ""}
-              placeholder="e.g. Family First Life"
-              disabled
-            />
-            <p className="mt-1 text-xs text-slate-400">Contact admin to update</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-5 card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Webhook size={16} className="text-slate-500" />
-          <h2 className="text-sm font-semibold text-slate-900">CRM Delivery Webhook</h2>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
-            Optional
-          </span>
-        </div>
-        <div className="max-w-xl">
-          <label className="form-label">Webhook URL</label>
-          <div className="flex gap-2">
-            <input
-              type="url"
-              className="form-input flex-1"
-              value={webhookUrl}
-              onChange={(e) => {
-                setWebhookUrl(e.target.value);
-                setWebhookSuccess(false);
-                setWebhookError("");
-              }}
-              placeholder="https://rest.gohighlevel.com/v1/contacts/"
-            />
-            <ActionButton
-              type="button"
-              variant="secondary"
-              className="whitespace-nowrap"
-              loading={webhookSaving}
-              loadingText="Saving…"
-              success={webhookSuccess}
-              successText="Saved"
-              disabled={!webhookDirty}
-              onClick={saveWebhook}
-            >
-              Save
-            </ActionButton>
-          </div>
-          {webhookError && (
-            <p className="mt-2 text-xs text-red-600">{webhookError}</p>
-          )}
-          <p className="mt-1.5 text-xs text-slate-400">
-            We&apos;ll POST lead data (JSON) to this URL on each delivery. Compatible with GHL, Ringy, HubSpot, or any REST endpoint.
+    <div className="card flex flex-col gap-4 overflow-hidden px-6 py-5 sm:flex-row sm:items-center sm:gap-6">
+      {/* Left: avatar + name */}
+      <div className="flex items-center gap-4">
+        <PartnerAvatar
+          avatarUrl={avatarUrl}
+          firstName={partner.firstName}
+          lastName={partner.lastName}
+          size="md"
+        />
+        <div className="min-w-0">
+          <p className="text-base font-bold text-slate-900">
+            {formatPartnerDisplayName(partner.firstName, partner.lastName)}
           </p>
+          {subtitle && (
+            <p className="mt-0.5 truncate text-sm text-slate-500">{subtitle}</p>
+          )}
         </div>
       </div>
 
-      <div className="card p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-slate-500" />
-            <h2 className="text-sm font-semibold text-slate-900">Target States</h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <span
-              className={`text-sm font-semibold ${isEligible ? "text-emerald-600" : "text-amber-600"}`}
-            >
-              {selectedCount} / 50 selected
-            </span>
-            {!isEligible && (
-              <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                <AlertCircle size={11} />
-                Min 15 required
-              </span>
-            )}
-            {isEligible && (
-              <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                <Check size={11} />
-                Eligible
-              </span>
-            )}
-          </div>
-        </div>
+      {/* Right: chips row — status + location + edit */}
+      <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+        {/* Active / status */}
+        <span className={chipClass}>
+          <span
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+              isActive ? "bg-emerald-500" : "bg-slate-400"
+            }`}
+          />
+          {statusLabel}
+        </span>
 
-        {!isEligible && (
-          <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-            You need at least <strong>15 states</strong> selected to be eligible for lead matching.
-            {selectedCount < 15
-              ? ` ${15 - selectedCount} more needed.`
-              : " Eligible once saved."}
-          </div>
+        {/* Buying live */}
+        {isActive && (
+          <span className={chipClass}>
+            {buyingLive ? "Buying live" : "Wallet low"}
+          </span>
         )}
 
-        <div className="mb-4 flex flex-wrap gap-2">
-          <button type="button" onClick={() => selectStates(US_STATE_CODES)} className="btn-secondary btn-sm">
-            Select All
-          </button>
-          <button type="button" onClick={() => selectStates([])} className="btn-secondary btn-sm">
-            Clear All
-          </button>
-          <button type="button" onClick={() => selectStates(US_REGION_STATES.southeast)} className="btn-secondary btn-sm">
-            Select Southeast
-          </button>
-          <button type="button" onClick={() => selectStates(US_REGION_STATES.northeast)} className="btn-secondary btn-sm">
-            Select Northeast
-          </button>
-          <button type="button" onClick={() => selectStates(US_REGION_STATES.midwest)} className="btn-secondary btn-sm">
-            Select Midwest
-          </button>
-          <button type="button" onClick={() => selectStates(US_REGION_STATES.west)} className="btn-secondary btn-sm">
-            Select West
-          </button>
-        </div>
+        {/* Location · since */}
+        {locationSince && (
+          <span className={chipClass}>{locationSince}</span>
+        )}
 
-        <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 lg:grid-cols-10">
-          {US_STATE_CODES.map((code) => {
-            const isSelected = selected.has(code);
+        {/* Edit profile — amber accent */}
+        <button
+          type="button"
+          onClick={onEditProfile}
+          className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 whitespace-nowrap transition-colors hover:bg-amber-100 hover:text-amber-900"
+        >
+          <PencilSimple size={12} weight={ICON_WEIGHT_LINEAR} />
+          Edit profile
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Filter sets — row format
+// ---------------------------------------------------------------------------
+
+function FilterSetsSection() {
+  const router = useRouter();
+  const [filterSets, setFilterSets] = useState<PartnerFilterSet[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/partners/filter-sets");
+      if (!res.ok) throw new Error("Failed to load");
+      setFilterSets(await res.json());
+    } catch {
+      setLoadError("Could not load filter sets.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    setDeleteError("");
+    try {
+      const res = await fetch(`/api/partners/filter-sets/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setDeleteError(data.error ?? "Failed to delete");
+        return;
+      }
+      setFilterSets((prev) => prev?.filter((fs) => fs.id !== id) ?? null);
+      setConfirmDeleteId(null);
+    } catch {
+      setDeleteError("Request failed. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  const loaded = filterSets !== null;
+  const isEmpty = loaded && filterSets.length === 0;
+
+  return (
+    <div className="card overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold text-slate-900">Filter sets</h2>
+          <p className="mt-0.5 text-xs text-slate-400">
+            Targeting rules · at least one active set with ≥15 states is required to receive leads
+          </p>
+        </div>
+        {loaded && !isEmpty && (
+          <PortalLink
+            href={partnerFilterSetNewPath()}
+            className="btn-primary btn-sm inline-flex shrink-0 items-center gap-1"
+          >
+            <Plus size={15} weight={ICON_WEIGHT_LINEAR} />
+            Add filter set
+          </PortalLink>
+        )}
+      </div>
+
+      {loadError && (
+        <p className="px-5 py-4 text-sm text-red-600">{loadError}</p>
+      )}
+
+      {!loaded && !loadError && (
+        <p className="px-5 py-4 text-sm text-slate-400">Loading…</p>
+      )}
+
+      {/* Empty state */}
+      {isEmpty && (
+        <div className="px-5 py-10 text-center">
+          <EmptyStateBlobIcon
+            icon={Funnel}
+            seed="No filter sets yet"
+            accent="amber"
+            size="sm"
+            className="mb-3"
+          />
+          <p className="mb-1 text-sm font-semibold text-slate-900">No filter sets yet</p>
+          <p className="mx-auto mb-5 max-w-xs text-xs text-slate-500">
+            At least one active filter set with ≥15 states is required to receive leads.
+          </p>
+          <PortalLink
+            href={partnerFilterSetNewPath()}
+            className="btn-primary btn-sm inline-flex items-center gap-1"
+          >
+            <Plus size={15} weight={ICON_WEIGHT_LINEAR} />
+            Add filter set
+          </PortalLink>
+        </div>
+      )}
+
+      {/* Rows */}
+      {filterSets && filterSets.length > 0 && (
+        <div>
+          {filterSets.map((fs) => {
+            const eligible = fs.filterStates.length >= 15;
             return (
-              <button
-                key={code}
-                type="button"
-                onClick={() => toggleState(code)}
-                title={US_STATE_NAMES[code]}
-                className={`group relative flex flex-col items-center rounded-lg border-2 px-2 py-2.5 text-center transition-all ${
-                  isSelected
-                    ? "border-brand-500 bg-brand-50 text-brand-700"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:bg-brand-50/50"
-                }`}
+              <div
+                key={fs.id}
+                className="border-b border-slate-100 last:border-b-0"
               >
-                <span className="text-xs font-bold leading-none">{code}</span>
-                <span className="mt-0.5 text-[9px] leading-none text-current opacity-60 truncate w-full text-center">
-                  {US_STATE_NAMES[code]?.split(" ")[0]}
-                </span>
-                {isSelected && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[8px] text-white">
-                    ✓
-                  </span>
-                )}
-              </button>
+                <div
+                  className="flex cursor-pointer items-center justify-between px-5 py-3.5 transition-colors hover:bg-slate-50"
+                  onClick={() => router.push(partnerFilterSetEditPath(fs.id))}
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <span className="truncate text-sm font-medium text-slate-900">
+                      {fs.name}
+                    </span>
+                    <Badge variant={fs.active ? "green" : "slate"}>
+                      {fs.active ? "Active" : "Inactive"}
+                    </Badge>
+                    {!eligible && (
+                      <Badge variant="yellow">Below minimum</Badge>
+                    )}
+                  </div>
+                  <div className="ml-4 flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      title="Delete"
+                      disabled={deletingId === fs.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeleteId(fs.id);
+                      }}
+                      className="rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                    >
+                      <Trash size={13} weight={ICON_WEIGHT_LINEAR} />
+                    </button>
+                  </div>
+                </div>
+              </div>
             );
           })}
+          {deleteError && (
+            <p className="border-t border-slate-100 px-5 py-2 text-xs text-red-600">
+              {deleteError}
+            </p>
+          )}
         </div>
+      )}
 
-        {statesError && (
-          <div className="mt-4">
-            <StatusStrip status="error" title="Could not save states" message={statesError} />
-          </div>
-        )}
-        {statesSuccess && (
-          <div className="mt-4">
-            <StatusStrip
-              status="success"
-              title="Target states saved"
-              message="Your selection is active for future lead matching."
-            />
-          </div>
-        )}
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setConfirmDeleteId(null);
+        }}
+        title="Delete filter set?"
+        description="This cannot be undone."
+        confirmLabel="Delete filter set"
+        variant="danger"
+        loading={deletingId !== null}
+        onConfirm={() => {
+          if (confirmDeleteId) void handleDelete(confirmDeleteId);
+        }}
+      />
+    </div>
+  );
+}
 
-        <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-          <p className="text-xs text-slate-400">
-            Changes to your target states take effect immediately for future lead matching.
-          </p>
-          <ActionButton
-            type="button"
-            loading={statesSaving}
-            loadingText="Saving…"
-            disabled={!statesDirty || !isEligible}
-            onClick={saveStates}
-          >
-            Save Changes
-          </ActionButton>
-        </div>
+// ---------------------------------------------------------------------------
+// Main view
+// ---------------------------------------------------------------------------
+
+export function PartnerSettingsView({
+  initialCrm = null,
+  initialBalance,
+  initialSubscription,
+}: {
+  initialCrm?: PartnerCrmSummary;
+  initialBalance?: number;
+  initialSubscription?: { active: boolean; amount: number } | null;
+}) {
+  const { partner, patchPartner } = usePartner();
+  const { user } = useUser();
+  const router = useRouter();
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash) return;
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    if (id === "crm-outbound") {
+      router.replace("/partner/settings/crm-outbound");
+      return;
+    }
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [router]);
+
+  const balance = initialBalance ?? partner.walletBalance;
+
+  return (
+    <div className="space-y-5">
+      <ManageAccountModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        initialFirstName={partner.firstName}
+        initialLastName={partner.lastName}
+        initialAvatarUrl={partner.avatarUrl}
+        initialAffiliation={partner.affiliation ?? ""}
+        onSaved={({ firstName, lastName, avatarUrl, affiliation }) => {
+          patchPartner({
+            firstName,
+            lastName,
+            avatarUrl: avatarUrl ?? null,
+            ...(affiliation !== undefined && { affiliation }),
+          });
+        }}
+      />
+      {/* Profile banner */}
+      <ProfileBanner
+        partner={partner}
+        avatarUrl={partner.avatarUrl ?? user?.imageUrl ?? undefined}
+        walletBalance={balance}
+        onEditProfile={() => setEditModalOpen(true)}
+      />
+
+      {/* Two-column: Lead delivery + Wallet & billing — equal height */}
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[1fr_360px]">
+        <PartnerLeadDeliveryCard
+          partnerEmail={partner.email}
+          initialCrm={initialCrm}
+        />
+        <PartnerWalletSummaryCard
+          initialBalance={initialBalance}
+          initialSubscription={initialSubscription}
+        />
       </div>
+
+      {/* Filter sets */}
+      <FilterSetsSection />
     </div>
   );
 }

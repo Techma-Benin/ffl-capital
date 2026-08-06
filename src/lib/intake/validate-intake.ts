@@ -2,6 +2,38 @@ import { z } from "zod";
 
 const optionalString = z.string().optional();
 
+function resolveDob(data: Record<string, unknown>): string | undefined {
+  const dob = data.DOB ?? data.dob;
+  return typeof dob === "string" && dob.trim() !== "" ? dob.trim() : undefined;
+}
+
+function resolveTrustedFormUrl(data: Record<string, unknown>): string | undefined {
+  const url =
+    data.Trusted_Form_URL ??
+    data.trustedformCertUrl ??
+    data.trustedform_cert_url ??
+    data.trusted_form_url;
+  return typeof url === "string" && url.trim() !== "" ? url.trim() : undefined;
+}
+
+// NOTE: Have_IUL / Primary_Goal are intentionally NOT enforced here. This
+// schema runs before we know the lead's product (that requires a DB lookup
+// against LeadCategory in processLeadIntake), and Have_IUL/Primary_Goal only
+// apply to IUL products — a Mortgage Protection lead legitimately omits them.
+// Only TrustedForm is enforced at intake for every product; full per-product
+// completeness (including DOB and Mortgage Protection's Beneficiary/History
+// Of Cancer/Mortgage Loan Amount) is checked right before the Integrity post
+// in `src/lib/integrity/required-fields.ts`, once the lead's resolved type is
+// known.
+function missingIntegrityIntakeFields(data: Record<string, unknown>): string[] {
+  const missing: string[] = [];
+  // Temporarily optional: MP Facebook forms don't collect DOB at intake.
+  // Integrity post still validates DOB via required-fields.ts.
+  // if (!resolveDob(data)) missing.push("DOB");
+  if (!resolveTrustedFormUrl(data)) missing.push("Trusted_Form_URL");
+  return missing;
+}
+
 /** Accepts Boberdoo-style field names (underscores) from LeadConduit webhook. */
 export const intakePayloadSchema = z
   .object({
@@ -21,8 +53,14 @@ export const intakePayloadSchema = z
     Primary_Goal: optionalString,
     State_You_Currently_Live_In: z.string().length(2).optional(),
     Intent: optionalString,
+    // Mortgage Protection business
+    Beneficiary: optionalString,
+    History_Of_Cancer: optionalString,
+    Mortgage_Loan_Amount: optionalString,
     // Compliance
     Trusted_Form_URL: z.string().url().optional(),
+    trustedform_cert_url: z.string().url().optional(),
+    trusted_form_url: z.string().url().optional(),
     TCPA_Consent: optionalString,
     TCPA_Language: optionalString,
     LeadiD_Token: optionalString,
@@ -50,6 +88,9 @@ export const intakePayloadSchema = z
     primaryGoal: optionalString,
     stateYouCurrentlyLiveIn: z.string().length(2).optional(),
     intent: optionalString,
+    beneficiary: optionalString,
+    historyOfCancer: optionalString,
+    mortgageLoanAmount: optionalString,
     trustedformCertUrl: z.string().url().optional(),
     tcpaConsent: optionalString,
     tcpaLanguage: optionalString,
@@ -82,6 +123,12 @@ export const intakePayloadSchema = z
       message:
         "Missing required fields: firstName, lastName, email, phone, state",
     },
+  )
+  .refine(
+    (data) => missingIntegrityIntakeFields(data).length === 0,
+    (data) => ({
+      message: `Missing required fields: ${missingIntegrityIntakeFields(data).join(", ")}`,
+    }),
   );
 
 export type IntakePayload = z.infer<typeof intakePayloadSchema>;

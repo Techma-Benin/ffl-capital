@@ -9,6 +9,30 @@ const subscribeSchema = z.object({
   amount: z.number().min(25).max(5000),
 });
 
+export async function GET() {
+  const authResult = await requirePartner();
+  if ("error" in authResult) {
+    return NextResponse.json({ error: authResult.error }, { status: 403 });
+  }
+
+  const subscription = await prisma.billingRecurrence.findFirst({
+    where: { partnerId: authResult.partner.id, active: true },
+    orderBy: { createdAt: "desc" },
+    select: { active: true, amount: true, interval: true, nextChargeAt: true },
+  });
+
+  if (!subscription) {
+    return NextResponse.json(null);
+  }
+
+  return NextResponse.json({
+    active: subscription.active,
+    amount: Number(subscription.amount),
+    interval: subscription.interval,
+    nextChargeAt: subscription.nextChargeAt?.toISOString() ?? null,
+  });
+}
+
 export async function POST(request: NextRequest) {
   const authResult = await requirePartner();
   if ("error" in authResult) {
@@ -37,7 +61,7 @@ export async function POST(request: NextRequest) {
   let customerId = partner.stripeCustomerId;
   if (!customerId) {
     const customer = await stripe.customers.create({
-      email: partner.email,
+      email: authResult.partner.email,
       name: `${partner.firstName} ${partner.lastName}`,
       metadata: { partnerId: partner.id },
     });
@@ -97,4 +121,39 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ url: session.url });
+}
+
+export async function DELETE(_request: NextRequest) {
+  const authResult = await requirePartner();
+  if ("error" in authResult) {
+    return NextResponse.json({ error: authResult.error }, { status: 403 });
+  }
+
+  if (!isStripeConfigured()) {
+    return NextResponse.json(
+      { error: "Stripe is not configured on this environment" },
+      { status: 503 },
+    );
+  }
+
+  const existing = await prisma.billingRecurrence.findFirst({
+    where: { partnerId: authResult.partner.id, active: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "No active subscription found" }, { status: 404 });
+  }
+
+  if (existing.stripeSubscriptionId) {
+    const stripe = getStripe();
+    await stripe.subscriptions.cancel(existing.stripeSubscriptionId);
+  }
+
+  await prisma.billingRecurrence.update({
+    where: { id: existing.id },
+    data: { active: false, nextChargeAt: null },
+  });
+
+  return NextResponse.json({ success: true });
 }

@@ -9,29 +9,55 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Integrity deep blue — primary #0B3D91
         brand: {
-          50:  "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
-          800: "#1e40af",
-          900: "#1e3a8a",
-          950: "#172554",
+          50:  "#E8F0FA",
+          100: "#D0E1F5",
+          200: "#A1C3EB",
+          300: "#72A5E1",
+          400: "#4387D7",
+          500: "#1A5FBD",
+          600: "#0D4BA3",
+          700: "#0B3D91",
+          800: "#093275",
+          900: "#07275A",
+          950: "#041A3D",
         },
+        // Growth green — accent #00A651
+        accent: {
+          50:  "#E6F7EE",
+          100: "#CCEFDD",
+          200: "#99DFBB",
+          300: "#66CF99",
+          400: "#33BF77",
+          500: "#00A651",
+          600: "#008A43",
+          700: "#006E36",
+          800: "#005228",
+          900: "#00361B",
+        },
+        page: "#F4F7FB",
+        // Light portal sidebar (Pencil mockup)
         sidebar: {
-          bg:      "#0f1b35",
-          hover:   "#1a2d52",
-          active:  "#1d4ed8",
-          text:    "#94a3b8",
-          heading: "#64748b",
+          bg:     "#FFFFFF",
+          hover:  "#F8FAFC",
+          active: "#EFF6FF",
+          text:   "#64748B",
+          heading:"#94A3B8",
+          border: "#E8EDF2",
+        },
+        // Pastel KPI card fills (PNG patterns)
+        pastel: {
+          pink:   "#FCE7F3",
+          orange: "#FFEDD5",
+          mint:   "#D1FAE5",
+          blue:   "#DBEAFE",
+          purple: "#EDE9FE",
+          peach:  "#FFF1E6",
         },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "0.5rem",
@@ -45,9 +71,43 @@ const config: Config = {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(400%)" },
         },
+        "onboarding-backdrop-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "onboarding-modal-in": {
+          from: { opacity: "0", transform: "scale(0.94) translateY(10px)" },
+          to: { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
+        "onboarding-icon-pop": {
+          "0%": { opacity: "0", transform: "scale(0.6)" },
+          "70%": { transform: "scale(1.06)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "onboarding-sparkle": {
+          "0%, 100%": { opacity: "0", transform: "scale(0.4) rotate(0deg)" },
+          "50%": { opacity: "1", transform: "scale(1) rotate(12deg)" },
+        },
+        "sheet-backdrop-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "sheet-panel-in": {
+          from: { opacity: "0", transform: "translateX(100%)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
       },
       animation: {
         "nav-progress": "nav-progress 1s ease-in-out infinite",
+        "onboarding-backdrop-in": "onboarding-backdrop-in 0.28s ease-out forwards",
+        "onboarding-modal-in":
+          "onboarding-modal-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "onboarding-icon-pop":
+          "onboarding-icon-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards",
+        "onboarding-sparkle": "onboarding-sparkle 2.4s ease-in-out infinite",
+        "sheet-backdrop-in": "sheet-backdrop-in 0.22s ease-out forwards",
+        "sheet-panel-in":
+          "sheet-panel-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards",
       },
     },
   },

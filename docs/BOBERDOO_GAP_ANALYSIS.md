@@ -1,25 +1,24 @@
 # Boberdoo vs FFL Capital build — gap analysis
 
-> **Purpose:** inventory everything visible in the Capital Leads Boberdoo instance, compare it to what is already built (backend + UI mockup + Next.js shells), and list what is missing so we can update the mockup and implementation plan.  
-> **Date:** 30 June 2026  
-> **Sources:** `docs/BOBERDOO_EXPLORATION.md` (prior browser sessions, ~100 % coverage), live browser snapshot (Home dashboard, session expired on navigation), codebase audit (`src/`, `prisma/`, `design/`).  
-> **Live re-verification:** session 9 (30 Jun 2026) — **All Leads (pageID=2)** captured live; session expired on direct URL navigate to Partners. Re-login required to continue Partners → Refunds → Partner portal.
+> **Purpose:** inventory everything visible in the Capital Leads Boberdoo instance, compare it to what is built, and list remaining gaps.  
+> **Date:** 13 July 2026 (updated from 30 June 2026 baseline)  
+> **Sources:** `docs/BOBERDOO_EXPLORATION.md`, codebase audit (`src/`, `prisma/`, `design/`).
 
 ---
 
-## Executive summary
+## Executive summary (July 2026)
 
-The dissatisfaction with the current backend + mockup is expected: **we have foundations (schema, intake, basic matching, minimal shells) but almost none of the surface area Boberdoo exposes**. The exploration doc is largely complete for *understanding* Boberdoo; what was missing was a **structured build checklist** tied to each screen and action.
+Since the June gap analysis, **most V1 backend and essential UI have been implemented**. The product is testable end-to-end with simulated or LeadConduit intake.
 
-| Layer | Boberdoo (Capital Leads) | Our build today | Gap |
-|-------|--------------------------|-----------------|-----|
-| **Admin UI** | ~20 top-level modules, dense dashboards, per-lead actions | 4 nav links, 4 stat cards, 2 tables, 1 stub | **~90 % UI missing** |
-| **Partner UI** | 7 menu items + Add Funds + Reports | 4 nav links, basic tables, 2 stubs | **~75 % UI missing** |
-| **Backend logic** | Full lifecycle (match → deliver → reprocess → resale → refund) | Intake + match + wallet debit only | **~60 % logic missing** |
-| **DB schema** | N/A (Boberdoo internal) | 9 tables, aligned with PRD | **~85 % schema present** |
-| **Pencil mockup** | 9 screens planned | 9 screens designed | **Mockup ahead of code; still missing several Boberdoo-only admin screens** |
+| Layer | Boberdoo (Capital Leads) | Our build (Jul 2026) | Gap |
+|-------|--------------------------|----------------------|-----|
+| **Admin UI** | ~20 top-level modules, dense dashboards | Dashboard, leads (tabs/filters/search/detail/events), partners (approve/detail/filter sets), refunds, settings, migration, filter list, integrity | **~40 % UI missing** (charts, billing, multi lead-type nav) |
+| **Partner UI** | 7 menu items + Add Funds + Reports | Dashboard, leads (+ refund request), wallet (Stripe), aged marketplace, settings, contact | **~25 % missing** (reports/transactions page, 2FA) |
+| **Backend logic** | Full lifecycle | Intake → match → deliver → reprocess → Integrity mock → refund → aged | **~15 % missing** (Integrity **live**, prod cron scheduler) |
+| **DB schema** | N/A | 11 tables incl. `lead_events`, `partner_filter_sets` | **~90 % present** |
+| **Pencil mockup** | 9 screens planned | 9 screens designed | Mockup still ahead on some Boberdoo-only admin screens |
 
-**Bottom line:** the schema and intake path are on track; the **visible product** (dashboards, workflows, config screens) has not been built yet. This document is the checklist to close that gap.
+**Bottom line:** V1 core is **built and wired**. Remaining work is Boberdoo parity polish, Integrity live credentials, production cutover (LeadConduit URL, Stripe prod, cron scheduler), and advanced admin config screens.
 
 ---
 
@@ -40,13 +39,13 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 | 3 | **Outside Services** | 272 | ✓ (TrustedForm) | ✗ | TrustedForm v4.0 Post validation |
 | 4 | Forms Builder | 333 | ✗ hors scope | ✗ | |
 | 5 | Phone Routing | — | ✗ hors scope | ✗ | |
-| 6 | **Leads** | 2 | ✓ | partial | All / Review / Matched / Unmatched / Declined |
-| 7 | **Lead Search/Delete** | 77 | ✓ | ✗ | Search by ID, phone, email; delete |
-| 8 | **Aged Leads** | 119 | ✓ (innovation) | stub | Browse + Upload today; marketplace target |
-| 9 | **Partners** | 3 | ✓ | partial | List only; no detail / filter sets |
-| 10 | **Filter List** | 92 | ✓ | ✗ | Global view: partner, filter set, price, balance, status |
+| 6 | **Leads** | 2 | ✓ | **strong partial** | Tabs, filters, search, detail + event log, reprocess |
+| 7 | **Lead Search/Delete** | 77 | ✓ | **partial** | Search on leads list ✅; delete API ✅; no dedicated page |
+| 8 | **Aged Leads** | 119 | ✓ (innovation) | **partial** | Partner marketplace ✅; admin browse ✅ |
+| 9 | **Partners** | 3 | ✓ | **strong partial** | List, approve, detail, edit, filter sets view |
+| 10 | **Filter List** | 92 | ✓ | **✅** | `/admin/filter-list` |
 | 11 | Filter Changes | — | nice-to-have | ✗ | Audit log of filter set edits |
-| 12 | **Refunds** | 15, 256 | ✓ | stub | Approve + Browse; partner Request Refund |
+| 12 | **Refunds** | 15, 256 | ✓ | **✅** | Pending queue + history + partner requests |
 | 13 | Reports | — | partial | ✗ | Partner/lead/vendor reports |
 | 14 | **Billing & Payments** | 218 | ✓ | ✗ | Invoices, payment methods |
 | 15 | Compliance | — | ✗ hors scope | ✗ | |
@@ -58,7 +57,7 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 | Widget / control | Boberdoo | Built? |
 |------------------|----------|:------:|
 | Lead type selector (IUL, IUL2, MP, Life, Veteran, FE, Inbound Phone) | ✓ | ✗ |
-| Date range picker (Today, Yesterday, Last 7/30 Days, Custom) | ✓ | ✗ |
+| Date range picker (Today, Yesterday, Last 7/30 Days, Custom) | ✓ | **partial** (Today, Yesterday, Last 7, Custom — no Last 30) |
 | Chart: Lead Sales By Source | ✓ | ✗ |
 | Chart: Leads Overview By Source | ✓ | ✗ |
 | Chart: Leads Overview By Vendors | ✓ | ✗ |
@@ -230,49 +229,68 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 
 ---
 
-## 2. What we have built (current codebase)
+## 2. What we have built (current codebase — July 2026)
 
 ### 2.1 Backend — implemented
 
 | Component | Location | Status |
 |-----------|----------|--------|
-| Prisma schema (9 tables) | `prisma/schema.prisma` | ✅ |
-| Intake validation (Zod) | `src/lib/intake/validate-intake.ts` | ✅ |
-| Boberdoo field normalization | `src/lib/intake/normalize-lead.ts` | ✅ |
-| Intake API | `POST /api/leads/intake` | ✅ |
-| Matching engine (priority + FIFO) | `src/lib/matching/engine.ts` | ✅ |
-| Eligibility rules (15 states, balance, type) | `src/lib/matching/eligibility.ts` | ✅ |
-| Wallet ledger (append-only) | `src/lib/wallet/ledger.ts` | ✅ |
-| Partner onboarding API | `POST /api/partners/onboarding` | ✅ |
-| Partner approval API | `POST /api/admin/partners/approve` | ✅ (no UI) |
-| Health check | `GET /api/health` | ✅ |
-| Dev lead simulator | `/dev/lead-simulator` | ✅ |
-| App settings helper | `src/lib/settings/app-settings.ts` | ✅ |
+| Prisma schema (11 tables) | `prisma/schema.prisma` | ✅ |
+| Intake validation + normalize + process | `src/lib/intake/*` | ✅ |
+| Duplicate detection + TrustedForm validation | `src/lib/intake/*` | ✅ |
+| Intake API (CORS, public) | `POST /api/leads/intake` | ✅ |
+| Matching engine v2 (filter sets, limits) | `src/lib/matching/*` | ✅ |
+| Delivery (Resend, CRM webhook, Ringy) | `src/lib/delivery/*` | ✅ |
+| Refunds Type A/B | `src/lib/refunds/*` | ✅ |
+| Aged purchase | `src/lib/aged/*` | ✅ |
+| Integrity ping/post | `src/lib/integrity/*` | ✅ mock |
+| Cron jobs | `/api/cron/*` | ✅ routes |
+| Stripe wallet + webhook | `/api/wallet/*`, `/api/webhooks/stripe` | ✅ |
+| Lead events audit | `lead_events` + `emitLeadEvent` | ✅ |
+| Partner filter sets CRUD | `/api/admin/partners/[id]/filter-sets` | ✅ |
+| Admin leads APIs | search, export, reprocess, redeliver, refund | ✅ |
+| Dev tools | `/dev/lead-simulator`, `/feeding-platform` | ✅ |
 
-### 2.2 Backend — schema only (no logic/UI)
+### 2.2 Backend — blocked or partial
 
-- `refund_requests` — no workflow
-- `billing_recurrence` — no Stripe subscription
-- `resale_postings` — no Integrity ping/post
-- `migration_jobs` — no import UI
-- Email delivery, CRM webhooks, TrustedForm validation service
-- Cron: reprocess unmatched, age leads at 30 days
-- Transaction history API for partner Reports
+- IntegrityCONNECT **live** — mock only; needs client API credentials
+- Production **cron scheduler** — routes exist; needs Vercel Cron / pg_cron config
+- Stripe **prod** keys — test mode complete
 
 ### 2.3 Frontend — implemented
 
 | Route | Content |
 |-------|---------|
-| `/admin` | 4 stat cards |
-| `/admin/partners` | Table (50 rows, no actions) |
-| `/admin/leads` | Table (50 rows, no filters) |
-| `/admin/refunds` | Placeholder text |
-| `/partner` | 3 stat cards |
-| `/partner/leads` | Delivery table |
-| `/partner/wallet` | Balance + "Phase 3" stub |
-| `/partner/aged` | "Phase 4" stub |
-| `/onboarding` | Form (name, affiliation, state, lead type, 15 states) |
+| `/admin` | Operations dashboard (period filter `?period=&from=&to=`, KPIs, intake/delivery charts, recent leads) |
+| `/admin/leads` | Tabs, filters, search, reprocess actions |
+| `/admin/leads/[id]` | Full detail, event log, delivery timeline, raw payload |
+| `/admin/partners` | List, status tabs, approval actions |
+| `/admin/partners/[id]` | Edit form, filter sets, deliveries, transactions |
+| `/admin/refunds` | Pending queue + approve/reject + history |
+| `/admin/filter-list` | Global filter set matching overview |
+| `/admin/settings` | App settings form |
+| `/admin/migration` | Boberdoo CSV import |
+| `/admin/integrity` | Resale postings view |
+| `/admin/aged` | Aged leads admin browse |
+| `/partner` | Dashboard |
+| `/partner/leads` | Deliveries + refund request |
+| `/partner/wallet` | Stripe top-up + weekly subscribe + transactions |
+| `/partner/aged` | Marketplace browse/purchase |
+| `/partner/settings` | Profile + Lead delivery cards, filter sets |
+| `/partner/settings/crm-outbound` | CRM outbound wizard (POST config) |
+| `/partner/contact` | Contact form |
+| `/onboarding` | Partner signup flow |
 | `/sign-in`, `/sign-up` | Clerk |
+
+### 2.4 Frontend — still missing (V1 polish / P2)
+
+- Admin dashboard charts beyond intake + delivery channel (sales by source, vendor widgets)
+- Dedicated lead search/delete page (search is on leads list; delete API only)
+- Admin lead row actions: redeliver, admin-initiated refund (APIs exist, no UI buttons)
+- Partner Reports / transaction history page (data in wallet page only)
+- Boberdoo-style Settings subtree (lead types, source/vendor, custom deliveries wizard)
+- Billing & invoices PDF
+- Filter set CRUD UI on partner detail (view only today)
 
 ### 2.4 Pencil mockup (`design/ffl-capital-ui-mockup.pen`)
 
@@ -298,45 +316,37 @@ These are **intentional** — not gaps, but must appear in mockup + build:
 
 | Feature | Source | Built? |
 |---------|--------|:------:|
-| Aged leads marketplace (self-service, $5 unit) | PRD §5, call client | stub |
-| Partner can edit target states post-onboarding | Review #1, PRD Q6 | ✗ |
+| Aged leads marketplace (self-service, $5 unit) | PRD §5, call client | **✅** |
+| Partner can edit target states post-onboarding | Review #1, PRD Q6 | **✅** settings page |
 | Modern Integrity-branded UI | PRD §11, proposal | partial |
-| Unified refund workflow in-app | PRD innovation | stub |
-| Post-refund routing (Type A / B) | PRD §5.8 | ✗ |
+| Unified refund workflow in-app | PRD innovation | **✅** |
+| Post-refund routing (Type A / B) | PRD §5.8 | **✅** |
 | Single domain for all partners | PRD constraint | ✓ |
 
 ---
 
-## 4. Priority backlog (recommended build order)
+## 4. Priority backlog (July 2026 — revised)
 
-### P0 — Makes the product feel "real" (mockup + backend)
+### P0 — Production readiness
 
-1. **Admin Leads** — sub-views (Matched / Unmatched / Declined), date filter, lead detail drawer with timeline/log  
-2. **Admin Partners** — detail page, approve/reject actions, edit priority/price/states, filter-set parity (or documented single-profile UX)  
-3. **Partner My Leads** — lead detail, request refund button  
-4. **Partner Wallet** — Stripe Checkout one-time top-up  
-5. **Email delivery** on successful match (Resend)  
-6. **CRM webhook** on match (`crmWebhookUrl`)  
-7. **Admin Refunds** — approve/reject queue wired to ledger  
+1. **LeadConduit cutover** — point prod flow to `/api/leads/intake` ([LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md))
+2. **Cron scheduler** in prod (reprocess + integrity-post)
+3. **IntegrityCONNECT live** — when client provides API specs
+4. **Stripe prod** keys + webhook
 
-### P1 — Parity with Boberdoo lifecycle
+### P1 — Admin UX polish (APIs exist)
 
-8. Unmatched **reprocess job** (24h window)  
-9. **Integrity ping/post** fallback (`resale_postings`)  
-10. **Admin dashboard** — meaningful charts + unmatched alert  
-11. **Partner Dashboard** — leads received today, balance, buying status  
-12. **Filter List** admin view (global matching picture)  
-13. **Lead Search** by ID / phone / email  
-14. Partner **Reports** (transaction history)  
-15. Complete **signup/onboarding** fields (phone, address, billing preference)  
+5. Lead detail actions: **redeliver**, **admin refund** buttons
+6. Admin dashboard charts (simplified vs Boberdoo)
+7. Partner **Reports** page (transaction export)
+8. Filter set **edit UI** on partner detail
 
-### P2 — Innovation & polish
+### P2 — Boberdoo parity (optional V1)
 
-16. **Aged marketplace** (browse, filter, purchase, wallet debit)  
-17. Partner **Settings** — edit states (min 15), CRM URL  
-18. **Migration import** (Excel from Boberdoo export)  
-19. Admin config screens (lead type default price, sources) — or `app_settings` UI  
-20. Weekly billing recurrence (Stripe subscription)  
+9. Lead type sub-nav (IUL2, MP, Veteran, etc.)
+10. Settings subtree (sources, vendors, custom deliveries wizard)
+11. Billing/invoices
+12. Export panel on leads (Excel field picker)
 
 ### P3 — Explicitly out of V1 (document only)
 
@@ -352,12 +362,9 @@ These are **intentional** — not gaps, but must appear in mockup + build:
 
 | Topic | Boberdoo | Our model | Action |
 |-------|----------|-----------|--------|
-| Multiple filter sets per partner | Yes (2+ templates) | Single row on `Partner` | Add `FilterSet` table **or** document V1 single-profile |
-| Filter set templates | Standard / High Intent COPY | `leadType` on partner | OK if one profile per type max |
-| Lead status granularity | Review, Declined, Integrity variants | 5 enum values | Add `declined`, `review` **or** map in UI |
-| Telymonde vendor | Active in prod ($20) | Not modeled | V1: Integrity only **or** generic `ResaleVendor` |
-| Partner delivery credentials | Ringy SID/token per partner | Only `crmWebhookUrl` | Add `crmProvider` + encrypted credentials |
-| Lead log / events | Rich timeline | None | Add `lead_events` table or JSON log |
+| Multiple filter sets per partner | Yes (2+ templates) | `partner_filter_sets` table | **✅ done** |
+| Filter set templates | Standard / High Intent COPY | Per filter set row | OK for V1 |
+| Lead log / events | Rich timeline | `lead_events` table | **✅ done** |
 
 ---
 
@@ -475,26 +482,25 @@ User Settings | 2FA | Email | Twilio | **Source/Vendor Settings** | **Manage Ven
 ## 9. Quick reference — navigation map
 
 ```
-BOBERDOO ADMIN                          OUR APP (today)
+BOBERDOO ADMIN                          OUR APP (Jul 2026)
 ─────────────────────────────────────────────────────────
-Home (charts, widgets)                  /admin (4 cards)
-Settings → Lead Types, Sources,         (none)
+Home (charts, widgets)                  /admin (stats + recent leads)
+Settings → Lead Types, Sources,         /admin/settings (partial)
   Vendors, Custom Deliveries
-Outside Services (TrustedForm)          (none)
-Leads (5 sub-views, actions)            /admin/leads (flat table)
-Lead Search/Delete                      (none)
-Aged Leads                              (none — partner /partner/aged stub)
-Partners + detail + filter sets         /admin/partners (flat table)
-Filter List                             (none)
-Refunds                                 /admin/refunds (stub)
-Billing & Reports                       (none)
+Leads (5 sub-views, actions)            /admin/leads (tabs, filters, search, detail)
+Lead Search/Delete                      search on leads list; delete API only
+Aged Leads                              /admin/aged + /partner/aged marketplace
+Partners + detail + filter sets         /admin/partners + /admin/filter-list
+Refunds                                 /admin/refunds (full workflow)
+Billing & Reports                       (not built)
 ─────────────────────────────────────────────────────────
 PARTNER PORTAL
-Dashboard                               /partner (3 cards)
-My Leads                                /partner/leads
-Add Funds / Wallet                      /partner/wallet (stub)
-Aged Marketplace                        /partner/aged (stub) ← NEW
-Settings / Reports / Contact            (none)
+Dashboard                               /partner
+My Leads + Request Refund               /partner/leads
+Add Funds / Wallet                      /partner/wallet (Stripe)
+Aged Marketplace                        /partner/aged ← innovation
+Settings / Contact                      /partner/settings (+ /crm-outbound), /partner/contact
+Reports                                 (wallet tx only — no reports page)
 Public /signup                          /sign-up + /onboarding
 ```
 

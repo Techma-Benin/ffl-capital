@@ -1,16 +1,19 @@
 import {
   DeliveryChannel,
   Lead,
+  LeadCategoryResolution,
   LeadEventType,
   LeadStatus,
   Partner,
   TransactionType,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { debitWallet } from "@/lib/wallet/ledger";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
 import { findEligibleFilterSets } from "./eligibility";
+import { claimLiveSale } from "@/lib/lead-routing/live-sale";
 
 export interface MatchResult {
   matched: boolean;
@@ -23,14 +26,19 @@ export interface MatchResult {
 
 export async function matchLead(
   leadId: string,
-  options?: { excludePartnerIds?: string[] },
+  options?: { excludePartnerIds?: string[]; includePartnerIds?: string[] },
 ): Promise<MatchResult> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) {
     throw new Error(`Lead not found: ${leadId}`);
   }
 
-  if (!lead.available || lead.status !== LeadStatus.unmatched) {
+  if (
+    !lead.available ||
+    lead.status !== LeadStatus.unmatched ||
+    lead.categoryResolution !== LeadCategoryResolution.matched ||
+    !lead.leadType
+  ) {
     return {
       matched: false,
       lead,
@@ -41,7 +49,7 @@ export async function matchLead(
   const eligible = await findEligibleFilterSets(
     lead.state,
     lead.leadType,
-    options,
+    { ...options, lead },
   );
   if (eligible.length === 0) {
     return {
@@ -58,12 +66,18 @@ export async function matchLead(
       where: { id: leadId },
     });
 
-    if (!freshLead.available || freshLead.status !== LeadStatus.unmatched) {
+    if (
+      !freshLead.available ||
+      freshLead.status !== LeadStatus.unmatched ||
+      freshLead.categoryResolution !== LeadCategoryResolution.matched ||
+      !freshLead.leadType
+    ) {
       return null;
     }
 
+    const partnerId = winner.partnerId ?? winner.partner.id;
     const freshPartner = await tx.partner.findUniqueOrThrow({
-      where: { id: winner.partnerId },
+      where: { id: partnerId },
     });
 
     const price = winner.effectivePrice;
@@ -114,7 +128,7 @@ export async function matchLead(
       deliveryId: delivery.id,
       filterSetId: winner.id,
     };
-  });
+  }, PRISMA_TX_OPTIONS);
 
   if (!result) {
     return {
@@ -124,13 +138,18 @@ export async function matchLead(
     };
   }
 
+  await claimLiveSale(result.lead.id, "partner");
+
   try {
     await deliverLead(result.deliveryId);
   } catch (err) {
-    console.error(
-      `[matchLead] deliverLead failed for ${result.deliveryId}:`,
-      err,
-    );
+    const errMsg = err instanceof Error ? err.message : String(err);
+    await emitLeadEvent(result.lead.id, LeadEventType.delivery_failed, {
+      step: "deliver_lead_threw",
+      deliveryId: result.deliveryId,
+      error: errMsg,
+      errorDetail: err instanceof Error ? { name: err.name, message: err.message } : String(err),
+    });
   }
 
   return {

@@ -1,10 +1,14 @@
 import { currentUser } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import type { Partner } from "@prisma/client";
 import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { syncPartnerToClerk } from "@/lib/auth/clerk-profile";
+import { getRoleFromMetadata } from "@/lib/auth/roles";
 import { serializePartner } from "./serialize";
 import type { PartnerSession } from "./types";
+
+const IMPERSONATE_COOKIE = "admin_view_as_partner_id";
 
 async function findPartnerForUser(userId: string, email?: string | null) {
   return prisma.partner.findFirst({
@@ -18,6 +22,27 @@ async function findPartnerForUser(userId: string, email?: string | null) {
 export const getPartnerId = cache(async (): Promise<string | null> => {
   const user = await currentUser();
   if (!user) return null;
+
+  // Admin impersonation: if the viewer is an admin and the cookie is set,
+  // return the impersonated partner's ID instead.
+  const role = getRoleFromMetadata(
+    user.publicMetadata as Record<string, unknown>,
+  );
+  if (role === "admin") {
+    const cookieStore = await cookies();
+    const impersonatedId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
+    if (impersonatedId) {
+      // Verify the partner actually exists before trusting the cookie.
+      const exists = await prisma.partner.findUnique({
+        where: { id: impersonatedId },
+        select: { id: true },
+      });
+      if (exists) return exists.id;
+    }
+    // No valid impersonation cookie — fall through; admin has no partner row,
+    // so we return null and the caller can handle the redirect.
+    return null;
+  }
 
   const metaId = user.publicMetadata?.partnerId;
   if (typeof metaId === "string" && metaId.length > 0) {
@@ -47,11 +72,46 @@ export const getPartnerSession = cache(async (): Promise<PartnerSession | null> 
   const partnerId = await getPartnerId();
   if (!partnerId) return null;
 
-  const partner = await prisma.partner.findUnique({ where: { id: partnerId } });
+  const partner = await prisma.partner.findUnique({
+    where: { id: partnerId },
+    include: { filterSets: { orderBy: { createdAt: "asc" } } },
+  });
   if (!partner) return null;
 
-  return serializePartner(partner);
+  // Email is not editable and is never synced from Clerk — the DB value is
+  // the sole source of truth. (Previously this synced the current Clerk
+  // user's email onto the partner row, which corrupted partner emails
+  // during admin impersonation since the "current" Clerk user was the
+  // admin, not the partner.)
+  const { filterSets, ...row } = partner;
+  return serializePartner(row, filterSets);
 });
+
+/**
+ * When the current user is an admin, returns the name of the partner being
+ * impersonated (if any) so the layout can render the warning banner.
+ */
+export async function getImpersonatedPartnerName(): Promise<string | null> {
+  const user = await currentUser();
+  if (!user) return null;
+
+  const role = getRoleFromMetadata(
+    user.publicMetadata as Record<string, unknown>,
+  );
+  if (role !== "admin") return null;
+
+  const cookieStore = await cookies();
+  const impersonatedId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
+  if (!impersonatedId) return null;
+
+  const partner = await prisma.partner.findUnique({
+    where: { id: impersonatedId },
+    select: { firstName: true, lastName: true },
+  });
+  if (!partner) return null;
+
+  return `${partner.firstName} ${partner.lastName}`;
+}
 
 /** @deprecated Prefer getPartnerSession in layout or getPartnerId in pages. */
 export async function loadPartnerRecord(): Promise<Partner | null> {
