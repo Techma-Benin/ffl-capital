@@ -374,7 +374,7 @@ lead_categories                   -- classification produit (admin)
 - [x] Admin Integrity (`/admin/integrity`) : liste postings récente ; modal détail avec section collapsible payloads/outcome (lazy `GET /api/admin/integrity/postings/[id]`), timeline événements, raison de rejet depuis lead events ; panneau test avec label Realtime/Storefront + `encodedBody` / `encodedFields`
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace
 - [x] Partner settings (Profile + Lead delivery half/half ; wizard CRM `/partner/settings/crm-outbound`) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner/templates, plus de modal
-- [x] Partner Contact Us (`/partner/contact`) : topics + message, envoi serveur Resend (admin + confirmation), toasts loading/success/failure
+- [x] Partner Contact Us (`/partner/contact`) : topics + message ; topic `other` + champ custom ; envoi Resend (admin + confirmation avec recap + do-not-reply), toasts loading/success/failure
 
 ### Stripe (**test — terminé**)
 

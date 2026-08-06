@@ -494,13 +494,13 @@ UI : `/partner/contact` — formulaire topic + message → `POST /api/partner/co
 
 | Route | Auth | Body | Réponse |
 |-------|------|------|---------|
-| `POST /api/partner/contact` | `requirePartner` | `{ topic, message }` (Zod `partnerContactSchema` ; topics fermés dans `contact-topics.ts`) | `200` `{ ok, confirmationSent, warning? }` ; `400` payload ; `403` auth ; `502` échec envoi admin |
+| `POST /api/partner/contact` | `requirePartner` | `{ topic, message, customTopic? }` (Zod `partnerContactSchema` ; topics fermés dans `contact-topics.ts` ; si `topic === "other"`, `customTopic` requis 1–120 car.) | `200` `{ ok, confirmationSent, warning? }` ; `400` payload ; `403` auth ; `502` échec envoi admin |
 
 Flux (`deliverPartnerContact`) :
 
 1. Destinataire admin via `getContactRecipientEmail()` (`app_settings.contact_recipient_email`, fallback `support@fflcapital.com`)
-2. Email admin Resend (`FROM_EMAIL`, `replyTo` = email session partner)
-3. Confirmation partner Resend — échec confirmation → succès avec `warning` ; échec admin → `502` message générique
+2. Email admin Resend (`FROM_EMAIL`, `replyTo` = email session partner) — sujet `[Partner Portal] {topic label}` ; label = `customTopic` si topic `other`
+3. Confirmation partner Resend — recap topic + message ; footer « do not reply » avec email partner ; échec confirmation → succès avec `warning` ; échec admin → `502` message générique
 
 Helper partagé : `src/lib/email/send-resend-email.ts`. Setting PATCH via `/api/admin/settings` (`contactRecipientEmail`). Tests : `test/current/partner-contact-delivery.test.ts`.
 
