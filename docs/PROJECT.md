@@ -288,40 +288,82 @@ resale_postings                   -- envois IntegrityCONNECT
 
 ---
 
-## 9. Ce qu’on peut construire MAINTENANT (sans accès client)
+## 9. État d’implémentation (juillet 2026)
 
-### Priorité 1 — Fondations (semaine 1)
+> Détail technique : [`docs/BACKEND.md`](BACKEND.md) · Connexion LeadConduit : [`docs/LEADCONDUIT_SETUP.md`](LEADCONDUIT_SETUP.md)
 
-- [ ] Repo GitHub monorepo ou full-stack (React + Node)
-- [ ] Docker Compose PostgreSQL local (+ option Supabase)
-- [ ] Schéma BDD + migrations (partners, agents, leads, wallets, transactions)
-- [ ] Auth Clerk (mode dev) avec rôles `admin` | `agent`
-- [ ] Shell UI Admin + shell Portail Agent (design Integrity : bleu, typo client)
-- [ ] Modèle Partner / Agent + CRUD admin
-- [ ] Flow onboarding agent (états, type lead, approbation admin) — sans Stripe réel
+### ✅ Livré
 
-### Priorité 2 — Moteur métier (mockable)
+| Domaine | Statut |
+|---------|--------|
+| Repo, Next.js 14, Prisma, Supabase | ✅ |
+| Auth Clerk (portails admin + partner séparés ; invitations admin Replit + recovery promote / revoke stale / create-user orphan accepted) | ✅ |
+| Onboarding partner (≥15 états) + approbation admin | ✅ |
+| `POST /api/leads/intake` (format Boberdoo, CORS, public) | ✅ |
+| Pipeline intake : validate, normalize, doublons, TrustedForm, **catégories flexibles**, match, deliver | ✅ |
+| Moteur matching v2 (filter sets, limites H/J, FIFO ; exclut templates) | ✅ |
+| Wallet Stripe (top-up + abonnement hebdo) + ledger | ✅ |
+| Emails livraison (Resend), CRM outbound POST (wizard) | ✅ |
+| Partner Contact Us (formulaire → Resend admin + confirmation ; destinataire `contact_recipient_email`) | ✅ |
+| Remboursements Type A/B (partner + admin) | ✅ |
+| Marketplace aged (achat self-service) | ✅ |
+| Cron reprocess unmatched + Integrity post (routes) | ✅ |
+| Routage lifecycle client + Azure ping Realtime IUL (flag off par défaut) | ✅ août 2026 |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess avec sélection partners**), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (modal détail payloads/outcome/timeline) + panneau test (labels Realtime/Storefront, encoded body), settings (**lead categories** multi-critères + labels Integrity Realtime/Storefront + reclassification automatique ; **lifecycle routing** 24 h/48 h/mid-window ; **Partner contact recipient** sur General → Platform), migration (classification via table catégories), filter list (+ templates) | ✅ |
+| Partner : dashboard, leads (vues sauvegardées avec périodes de livraison), wallet, aged, settings, **contact** (API Resend, plus de mailto), refunds | ✅ |
+| Table `lead_list_views` + CRUD vues admin/partner | ✅ |
+| Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
+| Tables `lead_events`, `partner_filter_sets` (live + `isTemplate`), champs Boberdoo étendus | ✅ |
 
-- [ ] Modèle `Lead` + endpoint webhook **mock** (`POST /api/leads/intake`) pour simuler LeadConduit
-- [ ] Moteur de matching (état + priorité + wallet actif)
-- [ ] Logique statuts lead + file unmatched + retraitement 24 h (job/cron)
-- [ ] Débit wallet simulé
-- [ ] Job aging 30 jours → aged lead marketplace
-- [ ] Emails (Resend/SendGrid avec clé TECHMA ou log console)
+### ⏳ Restant / bloqué client
 
-### Priorité 3 — UI fonctionnelle
+| Domaine | Statut |
+|---------|--------|
+| IntegrityCONNECT **live** (ping/post prod) | ⏸ specs/credentials client — mock en place |
+| Stripe **prod** | ⏳ après validation test keys |
+| Scheduler cron en prod (Vercel/pg_cron) | ⏳ config déploiement |
+| Parité UI Boberdoo complète (charts, multi lead types, billing PDF) | ⏳ hors scope V1 |
+| Cutover LeadConduit prod (URL Boberdoo → app) | ⏳ avec cliente |
 
-- [ ] Dashboard admin : liste leads, filtres statut, gestion partners/agents/priorités/prix
-- [ ] Dashboard agent : leads reçus, wallet (mock), marketplace aged leads (UI)
-- [ ] Pages transactions / factures (structure vide OK)
+### Priorité historique (semaine 1 — **terminé**)
 
-### Priorité 4 — Stripe (mode test)
+- [x] Repo GitHub monorepo full-stack (React + Node)
+- [x] Schéma BDD + migrations (partners, leads, wallets, transactions, filter sets, lead_events)
+- [x] Auth Clerk avec rôles admin | partner
+- [x] Shell UI Admin + shell Portail Partner
+- [x] Flow onboarding agent + approbation admin
 
-- [ ] Top-up wallet, déduction auto, webhooks Stripe test (clé démo TECHMA)
+### Moteur métier (**terminé**)
 
-### À NE PAS bloquer sur les accès
+- [x] Modèle `Lead` + endpoint `POST /api/leads/intake`
+- [x] Moteur de matching (filter sets + priorité + wallet actif)
+- [x] Statuts lead + file unmatched + retraitement 24 h (cron)
+- [x] Débit wallet + ledger
+- [x] Marketplace aged (seuil configurable)
+- [x] Emails (Resend si clé configurée) — livraison lead + Partner Contact Us
+- [x] Partner Contact Us : `/partner/contact` → `POST /api/partner/contact` (Resend) ; destinataire admin configurable (`contact_recipient_email`, défaut `support@fflcapital.com`)
 
-Tout le cœur produit (auth, BDD, matching, aging, UI, wallet mock) peut avancer avec des **leads fictifs** injectés via API mock.
+### UI fonctionnelle (**terminé — polish partiel**)
+
+- [x] Dashboard admin (Operations) : filtre période en en-tête (`?period=` today \| yesterday \| last_7_days \| last_month \| all_time \| custom + `from`/`to` ; défaut last 7 days, redirect canonique `/admin` → `?period=last_7_days` ; `period=custom` sans dates → même défaut) ; presets courts + custom dans la fenêtre 90 j = filtre client sur payload SSR ; **all_time** / custom avant `windowStart` = refetch `GET /api/admin/dashboard` (SSR étendu si URL d’atterrissage) ; **Custom** → modal calendrier ancré en-tête + Apply (URL custom seulement après validation) ; libellé période dans titres KPI/graphiques ; Lead Intake à granularité adaptative (≤1 j horaire ; 2–60 j journalier ; 61–90 j semaines glissantes 7 j libellées au début de bucket ; >90 j mensuel) ; KPIs leads/livraisons, donut Delivering = taux de livraison parmi les leads entrés sur la période (`receivedAt` ; statut `delivered` en compte leads, pas événements `LeadDelivery` ; centre % Delivered ; vide « No leads yet »), leads récents filtrés ; compteurs agents actifs / unmatched (instantanés, hors période)
+- [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, **Type multi-select unifié** (catégories + Unclassified + Multiple category match ; une catégorie matche aussi l’appartenance aux candidats d’un multiple match), attribution par filter set live, colonnes visibles + ordre persistés sur la vue active (`lead_list_views.columns`, PATCH lead-views), toggle cartes/tableau seul en `localStorage` (`admin-leads-table-layout` ; partner : `partner-leads-table-layout`), détail lead **B3** (hero compact, onglets Contact/IUL/Compliance/Tracking/Events, livraisons partenaires + timeline ; **diagnostics payload** + panneau assignation catégorie pour leads `review`) ; `?view=` (redirection legacy `?status=`)
+- [x] Partner leads : vues par partner (défaut « All deliveries »), mêmes primitives UI que l’admin côté liste (colonnes sur la vue, layout en localStorage) ; périodes today/yesterday/7 jours/mois dernier/custom appliquées à `LeadDelivery.deliveredAt`
+- [x] Admin partners : liste, approbation, détail **P5** (profil + conformité CRM : colonne résumé, stats, checklist, filter sets en lignes, activité unifiée ; édition compte (modal « Edit account » depuis l’en-tête ou Account & CRM ; avatar 96px sur la carte profil — photo Clerk si `Partner.clerkUserId` renseigné, sinon initiales du nom ; partenaires seed type « Dashboard Demo » sans compte Clerk lié)), filter sets (création/édition pages `/admin/partners/[id]/filter-sets/new` et `…/[filterSetId]/edit` ; retour filter list via `?returnTo=/admin/filter-list`) ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; toggle cartes/tableau + colonnes masquables (`localStorage` `admin-partners-table-layout`, `admin-partners-visible-columns`)
+- [x] Admin Filter List (`/admin/filter-list`) : sets live + templates SSR ; templates via `/admin/filter-sets/templates/new` et `…/[id]/edit` ; éditeur partagé `FilterSetEditorPage` / `FilterSetForm` (admin live, templates, partner) — plus de modal d’édition ; partner ne voit pas prix/priorité ; Attribution absente du formulaire filter set **et** de l’onboarding (clés stripées à la sauvegarde) ; Intent / Have IUL = multi-select partagé (`AdvancedFiltersFields`) — options = valeurs distinctes leads + **Empty** (`"empty"`), préfetchées SSR via `getLeadFilterCriteriaOptions()` (pas de fetch à l’ouverture du dropdown)
+- [x] Admin refunds : file pending + historique
+- [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`), KPI Available + filtres URL (`state`, `type`, `status`, `age`), tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id`
+- [x] Admin Integrity (`/admin/integrity`) : liste postings récente ; modal détail avec section collapsible payloads/outcome (lazy `GET /api/admin/integrity/postings/[id]`), timeline événements, raison de rejet depuis lead events ; panneau test avec label Realtime/Storefront + `encodedBody` / `encodedFields`
+- [x] Dashboard partner : stats, wallet Stripe, aged marketplace
+- [x] Partner settings (Profile + Lead delivery half/half ; wizard CRM `/partner/settings/crm-outbound`) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner/templates, plus de modal
+- [x] Partner Contact Us (`/partner/contact`) : topics + message ; topic `other` + champ custom ; envoi Resend (admin + confirmation avec recap + do-not-reply), toasts loading/success/failure
+
+### Stripe (**test — terminé**)
+
+- [x] Top-up wallet Checkout + webhook
+- [x] Abonnement hebdomadaire auto-recharge
+- [ ] Clés prod client (après validation E2E)
+
+### Tests sans accès client (**disponible**)
 
 ---
 
@@ -350,7 +392,7 @@ Tout le cœur produit (auth, BDD, matching, aging, UI, wallet mock) peut avancer
 | Intégration | Mode test sans client | Accès nécessaire en prod |
 |-------------|----------------------|--------------------------|
 | **Stripe wallet** | Clés **test** (`sk_test_…`) — compte démo TECHMA ou `stripe sandbox create` | Clés prod client + webhook secret |
-| **Emails** | Console log / [Mailtrap](https://mailtrap.io) / Resend dev | SMTP ou Resend prod client |
+| **Emails** | Console log / [Mailtrap](https://mailtrap.io) / Resend dev | SMTP ou Resend prod client (`RESEND_API_KEY`, `FROM_EMAIL` — aussi Contact Us) |
 | **CRM agent** | [webhook.site](https://webhook.site) ou endpoint local `/api/dev/crm-capture` | URL webhook fournie par chaque agent |
 | **IntegrityCONNECT** | **Mock server** qui répond aux ping/post avec `{ accepted: true }` | Doc API + credentials Integrity (fichier R client) |
 | **LeadConduit réponse** | Retourner `{ "outcome": "success" }` sur notre endpoint | Idem |

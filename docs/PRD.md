@@ -178,9 +178,11 @@ Phase D — Migration Replit (livraison client)
 | `DATABASE_URL` | Postgres (Supabase → Replit) |
 | `CLERK_*` | Auth |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Paiements |
-| `RESEND_API_KEY` | Emails |
-| `INTEGRATIONS_MODE` | `mock` \| `live` |
-| `INTEGRITY_*` | Credentials ping/post (live only) |
+| `RESEND_API_KEY` | Emails (livraison lead + Partner Contact Us) |
+| `FROM_EMAIL` | Expéditeur Resend (requis pour Contact Us et livraisons) |
+| `INTEGRATIONS_MODE` | `mock` \| `live` — fallback si `app_settings.integrations_mode` absent ; admin Mode (Integrations) prime et se sauvegarde immédiatement (prod inclus) ; défaut `mock` en dev, `live` en prod |
+| `INTEGRITY_*` | Submit URLs + Azure ping secrets (live only ; ping env-only) |
+| `INTEGRITY_REALTIME_PING_URL` / `INTEGRITY_PING_VENDOR_ID` / `INTEGRITY_PING_FUNCTIONS_KEY` | Azure `IsAcceptingCampaign` pour Realtime IUL — jamais en BDD |
 | `ADMIN_APPROVAL_REQUIRED` | `true` par défaut — désactivable |
 
 ### Ce qu’on n’utilise PAS volontairement
@@ -259,7 +261,7 @@ Phase D — Migration Replit (livraison client)
 3. **Accès immédiat au portail** en statut `pending_approval` / non actif :
    - Peut voir dashboard, « Mes leads », ajouter une carte Stripe
    - **Ne peut pas** être débité ni recevoir de leads
-   - Peut contacter l’admin via l’app (« activez-moi »)
+   - Peut contacter l’admin via l’app (« activez-moi ») — **Contact Us** `/partner/contact` → email Resend (plus de `mailto:`)
 4. Agent complète **onboarding** (formulaire post-signup) :
    - Nom, affiliation (texte), état de résidence
    - Type lead : Traditional IUL ou High-Intent IUL
@@ -296,6 +298,8 @@ Phase D — Migration Replit (livraison client)
 #### Configuration globale
 - Prix lead temps réel par type (défaut IUL = 25 $)
 - Prix aged lead (défaut 5 $)
+- **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label` (Realtime) + `integrity_label_storefront` (Storefront, fallback Realtime), prix par défaut ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
+- **Destinataire Contact Us partner** (`/admin/settings` → General → Platform) : `contact_recipient_email` (défaut `support@fflcapital.com`)
 - *(Futur)* frais de retraitement
 
 #### Migration historique
@@ -339,6 +343,12 @@ Phase D — Migration Replit (livraison client)
 - Modifier type lead (Traditional / High-Intent)
 - Config récurrence wallet
 - Message bloquant si < 15 états : « Veuillez sélectionner au moins 15 états »
+
+#### Contact Us
+- Page `/partner/contact` : sujet (liste fermée) + message
+- Soumission `POST /api/partner/contact` (auth partner) → email admin via Resend (`reply-to` = email partner) puis confirmation partner
+- Destinataire admin configurable (`contact_recipient_email`) ; échec envoi admin → erreur ; échec confirmation → succès avec avertissement
+- Pas de `mailto:` côté client
 
 ### 5.4 Pipeline d’intake leads
 
@@ -774,7 +784,7 @@ migration_jobs                    │
 | key | string PK | |
 | value | jsonb | |
 
-**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`
+**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`, `lifecycle_routing_enabled` (défaut false), `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`), `contact_recipient_email` (destinataire Partner Contact Us ; défaut `support@fflcapital.com`)
 
 ### Table `migration_jobs`
 
@@ -798,9 +808,9 @@ migration_jobs                    │
 | TrustedForm | Entrée (via LC) | Certificat dans payload | URL factice |
 | Clerk | Auth | Login, rôles | Instance dev |
 | Stripe | Entrée | Top-up wallet | sk_test TECHMA |
-| Resend | Sortie | Emails | Mailtrap / log |
-| IntegrityCONNECT | Sortie | Revente leads | Mock server |
-| CRM agent | Sortie | Webhook JSON | webhook.site |
+| Resend | Sortie | Emails (livraison lead + Contact Us partner) | Mailtrap / log |
+| IntegrityCONNECT | Sortie | Revente leads | Auto post LC + `is_test=yes` (mock) |
+| CRM agent | Sortie | POST JSON (config partner) | wizard Test + `pnpm run test:outbound` |
 
 **Contrat réponse LeadConduit :** `{ "outcome": "success", "reason": "" }`
 
@@ -886,8 +896,9 @@ Fichiers JSON représentatifs dans `fixtures/` — format aligné sur Boberdoo u
 
 - Stripe test top-up manuel + récurrent
 - Ledger transactions, statut actif
-- Emails lead livré
-- Portail agent : mes leads, wallet
+- Emails lead livré (Resend)
+- Contact Us partner (Resend, destinataire admin configurable)
+- Portail partner : mes leads, wallet
 
 ### Phase 4 — Aged & remboursements (semaine 4)
 

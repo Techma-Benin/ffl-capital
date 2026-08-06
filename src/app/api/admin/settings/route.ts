@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
-import { APP_SETTING_KEYS } from "@/lib/settings/app-settings";
-
+import {
+  APP_SETTING_KEYS,
+  getContactRecipientEmail,
+  getResaleVendorConfigs,
+  getResolvedResaleVendorPostUrl,
+} from "@/lib/settings/app-settings";
 const settingsSchema = z.object({
   defaultRealtimePrice: z.number().positive().optional(),
   defaultAgedPrice: z.number().positive().optional(),
@@ -26,6 +30,14 @@ const settingsSchema = z.object({
     postUrl: z.string().url().optional(),
     enabled: z.boolean().optional(),
   })).optional(),
+  integrityPostDelayHours: z.number().int().min(1).optional(),
+  integrityReprocessEnabled: z.boolean().optional(),
+  reprocessPartnerPickerEnabled: z.boolean().optional(),
+  lifecycleRoutingEnabled: z.boolean().optional(),
+  lifecycleRealtimeCutoffHours: z.number().int().min(1).optional(),
+  lifecycleStorefrontCutoffHours: z.number().int().min(1).optional(),
+  lifecycleMidWindowPrimary: z.enum(["partner", "storefront"]).optional(),
+  contactRecipientEmail: z.string().trim().email().optional(),
 });
 
 const KEY_MAP: Record<string, string> = {
@@ -40,6 +52,14 @@ const KEY_MAP: Record<string, string> = {
   leadTypeConfigs: APP_SETTING_KEYS.leadTypeConfigs,
   sourceVendorConfigs: APP_SETTING_KEYS.sourceVendorConfigs,
   resaleVendorConfigs: APP_SETTING_KEYS.resaleVendorConfigs,
+  integrityPostDelayHours: APP_SETTING_KEYS.integrityPostDelayHours,
+  integrityReprocessEnabled: APP_SETTING_KEYS.integrityReprocessEnabled,
+  reprocessPartnerPickerEnabled: APP_SETTING_KEYS.reprocessPartnerPickerEnabled,
+  lifecycleRoutingEnabled: APP_SETTING_KEYS.lifecycleRoutingEnabled,
+  lifecycleRealtimeCutoffHours: APP_SETTING_KEYS.lifecycleRealtimeCutoffHours,
+  lifecycleStorefrontCutoffHours: APP_SETTING_KEYS.lifecycleStorefrontCutoffHours,
+  lifecycleMidWindowPrimary: APP_SETTING_KEYS.lifecycleMidWindowPrimary,
+  contactRecipientEmail: APP_SETTING_KEYS.contactRecipientEmail,
 };
 
 export async function GET() {
@@ -54,7 +74,26 @@ export async function GET() {
     },
   });
 
-  const settings = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const settings: Record<string, unknown> = Object.fromEntries(
+    rows.map((r) => [r.key, r.value]),
+  );
+
+  // Annotate each resale vendor config with the URL that would actually be
+  // used right now (DB override, or the env var fallback) so the UI can show
+  // it's working even when the stored postUrl is blank — without persisting
+  // the resolved value back into the DB.
+  const resaleConfigs = await getResaleVendorConfigs();
+  const resaleConfigsWithResolved: Record<string, unknown> = {};
+  for (const [key, config] of Object.entries(resaleConfigs)) {
+    resaleConfigsWithResolved[key] = {
+      ...config,
+      resolvedPostUrl: await getResolvedResaleVendorPostUrl(key, config),
+    };
+  }
+  settings[APP_SETTING_KEYS.resaleVendorConfigs] = resaleConfigsWithResolved;
+  settings[APP_SETTING_KEYS.contactRecipientEmail] =
+    await getContactRecipientEmail();
+
   return NextResponse.json({ settings });
 }
 

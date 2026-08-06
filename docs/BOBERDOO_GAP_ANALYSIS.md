@@ -206,7 +206,7 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 | Settings | password only in Boberdoo | ✗ | **V1 improvement:** edit states + CRM |
 | Reports | ✓ transactions | ✗ | |
 | Add Funds | ✓ Stripe | stub | "Phase 3" placeholder |
-| Contact Us | ✓ | ✗ | |
+| Contact Us | ✓ | ✓ | Form → `POST /api/partner/contact` (Resend) ; not mailto |
 | 2FA Settings | ✓ | ✗ | optional (Clerk may cover) |
 | **Aged Leads / Marketplace** | ✗ in Boberdoo | stub | **our innovation** |
 | Request Refund | ✓ | ✗ | |
@@ -263,15 +263,25 @@ Everything below appears in the Boberdoo admin sidebar (confirmed Home snapshot 
 
 | Route | Content |
 |-------|---------|
-| `/admin` | 4 stat cards |
-| `/admin/partners` | Table (50 rows, no actions) |
-| `/admin/leads` | Table (50 rows, no filters) |
-| `/admin/refunds` | Placeholder text |
-| `/partner` | 3 stat cards |
-| `/partner/leads` | Delivery table |
-| `/partner/wallet` | Balance + "Phase 3" stub |
-| `/partner/aged` | "Phase 4" stub |
-| `/onboarding` | Form (name, affiliation, state, lead type, 15 states) |
+| `/admin` | Operations dashboard (period filter `?period=&from=&to=`, KPIs, intake/delivery charts, recent leads) |
+| `/admin/leads` | Tabs, filters, search, reprocess actions |
+| `/admin/leads/[id]` | Full detail, event log, delivery timeline, raw payload |
+| `/admin/partners` | List, status tabs, approval actions |
+| `/admin/partners/[id]` | Edit form, filter sets, deliveries, transactions |
+| `/admin/refunds` | Pending queue + approve/reject + history |
+| `/admin/filter-list` | Global filter set matching overview |
+| `/admin/settings` | App settings form |
+| `/admin/migration` | Boberdoo CSV import |
+| `/admin/integrity` | Resale postings view |
+| `/admin/aged` | Aged leads admin browse |
+| `/partner` | Dashboard |
+| `/partner/leads` | Deliveries + refund request |
+| `/partner/wallet` | Stripe top-up + weekly subscribe + transactions |
+| `/partner/aged` | Marketplace browse/purchase |
+| `/partner/settings` | Profile + Lead delivery cards, filter sets |
+| `/partner/settings/crm-outbound` | CRM outbound wizard (POST config) |
+| `/partner/contact` | Contact form → Resend (`POST /api/partner/contact`) |
+| `/onboarding` | Partner signup flow |
 | `/sign-in`, `/sign-up` | Clerk |
 
 ### 2.4 Pencil mockup (`design/ffl-capital-ui-mockup.pen`)
@@ -374,7 +384,7 @@ When updating `design/ffl-capital-ui-mockup.pen`, add or refine:
 - [ ] Partner — Request Refund flow (from My Leads row)  
 - [ ] Partner — Settings (state editor — **new vs Boberdoo**)  
 - [ ] Partner — Reports / transaction list  
-- [ ] Partner — Contact Us (simple form or mailto)  
+- [x] Partner — Contact Us (form → Resend admin email + confirmation ; recipient in Admin Settings)  
 - [ ] Refine Admin Dashboard charts (not 100 % Boberdoo — modern subset)  
 
 ---
