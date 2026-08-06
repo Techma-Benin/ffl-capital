@@ -85,7 +85,7 @@ HTTP status: `401`
 | `State` or `State_You_Currently_Live_In` | `state` | Required |
 | `Intent` | `intent` | Stored on lead; does not set `leadType` |
 | `SRC` | `source` | Also used in category criteria (`field=SRC`, exact match) |
-| `DOB` | `dob` | Optional at intake (temporarily — MP Facebook forms often omit); required before Integrity post |
+| `DOB` | `dob` | Optional at intake (temporarily — MP Facebook forms often omit); always sent on outbound post (`""` when blank); LC RealTime may reject if missing |
 | `Age` | `age` | |
 | `Trusted_Form_URL` (or `trustedform_cert_url`) | `trustedformCertUrl` | **Required** — TrustedForm certificate |
 | `LeadiD_Token` | `leadidToken` | Jornaya token |
@@ -128,7 +128,7 @@ Creating or deleting an enabled category, changing criteria, or toggling `enable
 
 ### Outbound field mapping (Internal → Integrity Connect / LeadConduit)
 
-Shared builders always include `address_1` (empty string when missing). When DOB is set, both `dob` (`m/d/Y`) and `dob_mmddyyyy_thom` (`MM/dd/yyyy`) are sent. Form encoding preserves blank `address_1`.
+Shared builders always include `address_1`, `dob`, and `dob_mmddyyyy_thom` (empty strings when missing). When DOB is set, both `dob` (`m/d/Y`) and `dob_mmddyyyy_thom` (`MM/dd/yyyy`) are formatted accordingly. Form encoding preserves blank `address_1`.
 
 | Internal field | LeadConduit parameter | Notes |
 |----------------|----------------------|-------|
@@ -138,7 +138,7 @@ Shared builders always include `address_1` (empty string when missing). When DOB
 | `lead.phone` | `phone_1` | |
 | `lead.state` | `state` | |
 | `lead.dob` | `dob` | Format `m/d/Y` when present |
-| `lead.dob` | `dob_mmddyyyy_thom` | Format `MM/dd/yyyy`; **required for RealTime** |
+| `lead.dob` | `dob_mmddyyyy_thom` | Format `MM/dd/yyyy` when set; empty string when blank (LC RealTime acceptance criteria) |
 | category Realtime / Storefront labels | `lead_type_thom` | Realtime label; Storefront label → Realtime → default IUL |
 | `lead.externalId ?? lead.id` | `vendor_lead_id_thom` | **Required for Storefront** |
 | `lead.address` | `address_1` | Always sent; `""` when missing |
@@ -148,7 +148,7 @@ Shared builders always include `address_1` (empty string when missing). When DOB
 | `lead.leadidToken` | `universal_leadid` | Jornaya token |
 | `lead.ipAddress` | `ip_address` | |
 | `lead.age` | `age` | |
-| `lead.haveIul` | `has_iul_thom` | When present |
+| `lead.haveIul` | `has_iul_thom` | IUL leads only; empty string when blank; omitted for MP |
 | `lead.primaryGoal` | `primary_goal_thom` | When present |
 | `lead.source` | `campaign_source` | |
 | `lead.subId` | `campaign_id` | |
@@ -183,7 +183,9 @@ INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c
 
 After pull (local or Replit): `pnpm run ensure:integrity-env` fills blank **public** Integrity defaults into `.env` (URLs + VendorId; idempotent; never overwrites non-empty; never prints secrets). It does **not** write `INTEGRITY_PING_FUNCTIONS_KEY` — set that in Replit Secrets or `.env`. Hooked from `scripts/post-merge.sh`.
 
-Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override submit URLs when `postUrl` is set. Azure ping credentials are **env-only** — not stored in the database. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. Outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately, including prod); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset; default is `mock` in dev and `live` in prod. **Mock mode** (dev or prod): automatic Integrity posts (intake / cron / lifecycle / `integrityPostLead`) still send real HTTP to LeadConduit with `is_test=yes` via `applyIntegrityAutoPostTestFlag`; live auto posts do not force `is_test`. Realtime IUL Azure `IsAcceptingCampaign` is skipped in mock (auto-accept) so test leads do not gate or skew production campaign decisions. Admin Integrity test buttons always include `is_test=yes`; in mock they short-circuit with “Mock mode — no HTTP request sent” (admin test route only).
+Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override submit URLs when `postUrl` is set. Azure ping credentials are **env-only** — not stored in the database. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. Outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately, including prod); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset; default is `mock` in dev and `live` in prod. **Mock mode** (dev or prod): automatic Integrity posts (intake / cron / lifecycle / `integrityPostLead`) still send real HTTP to LeadConduit with `is_test=yes` via `applyIntegrityAutoPostTestFlag`; live auto posts do not force `is_test`. Realtime IUL Azure `IsAcceptingCampaign` is skipped in mock (auto-accept) so test leads do not gate or skew production campaign decisions. **Admin Integrity test buttons** always POST real HTTP to LeadConduit with `is_test=yes` (mock and live); `integrations_mode` does not short-circuit the test route.
+
+**Boberdoo parity:** Outbound posts (`src/lib/integrity/post.ts`) always send HTTP — no local pre-flight gate on `required-fields.ts`. LeadConduit accept/reject is recorded from the LC response (`integrity_posted` / `integrity_rejected`). `required-fields.ts` is advisory for admin UI warnings only.
 
 **Ensure env** (after pull / Replit): `pnpm run ensure:integrity-env`
 
@@ -199,13 +201,15 @@ IF resaleMode = realtime:
   → IF Realtime IUL lead type → Azure IsAcceptingCampaign ping (env secrets)
      (mock: skip live Azure call, treat as accepted; LC post still goes with is_test=yes)
   → POST to resolved integrity_realtime postUrl (DB or INTEGRITY_REALTIME_SUBMIT_URL)
-     (mock auto post: same HTTP + is_test=yes)
-  → Required fields: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
+     (mock auto post: same HTTP + is_test=yes; always HTTP — no local missing-field gate)
+  → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
+  → LC failure → integrity_rejected with LC response body
 
 IF resaleMode = storefront:
   → POST directly to resolved integrity_storefront postUrl (no LC ping)
-     (mock auto post: same HTTP + is_test=yes)
-  → Required fields: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
+     (mock auto post: same HTTP + is_test=yes; always HTTP)
+  → LC Storefront acceptance criteria: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
+  → LC failure → integrity_rejected with LC response body
 ```
 
 ### Unmatched lead lifecycle (optional)
@@ -251,7 +255,7 @@ LeadConduit can POST back a result after processing. This closes the loop: submi
 | `failure` | `ResalePosting` → `rejected`; emits `integrity_rejected` event with reason + webhook `response` body |
 | `error` | Logs error; leaves `ResalePosting` as `pending` for retry; emits `integrity_error` event with webhook `response` body |
 
-Outbound posts (`src/lib/integrity/post.ts`) similarly store `requestPayload` and LeadConduit `response` on `integrity_posted` / `integrity_rejected` / `integrity_missing_fields` events.
+Outbound posts (`src/lib/integrity/post.ts`) store `requestPayload` and LeadConduit `response` on `integrity_posted` / `integrity_rejected` events. Older postings may have legacy `integrity_missing_fields` events from a prior local pre-flight gate.
 
 **Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`). Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, and rejection reason derived from those events (empty for older postings without stored payloads).
 
@@ -269,7 +273,7 @@ Authorization: admin session required
 Body: { "flow": "realtime" | "storefront", ... }
 ```
 
-Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. Always includes `is_test=yes`. In integrations **mock** mode this route short-circuits (no HTTP) with “Mock mode — no HTTP request sent”; in **live** it POSTs to LeadConduit. Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`.
+Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. Always includes `is_test=yes` and **always** POSTs real HTTP to LeadConduit (mock and live integrations mode). Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`. `checkRequiredIntegrityFields` warnings in the lead picker are advisory only.
 
 ### Manual curl — RealTime flow
 

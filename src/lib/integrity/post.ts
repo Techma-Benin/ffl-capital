@@ -27,7 +27,6 @@ import {
 } from "./build-payload";
 import { logIntegrityAction, urlHost } from "./log";
 import { realtimeIulCampaignPing } from "./azure-ping";
-import { checkRequiredIntegrityFields } from "./required-fields";
 
 export interface IntegrityPostResult {
   posted: boolean;
@@ -96,40 +95,6 @@ async function skipIntegrityPost(
     outcome: "skipped",
   });
   return { posted: false, reason };
-}
-
-async function rejectPostingMissingFields(
-  postingId: string,
-  leadId: string,
-  missing: string[],
-  vendorKey: string,
-  mode: ResaleMode,
-  requestPayload?: Record<string, string | undefined>,
-): Promise<string> {
-  const reason = `Missing required field(s) for Integrity: ${missing.join(", ")}`;
-  await prisma.resalePosting.update({
-    where: { id: postingId },
-    data: { status: ResaleStatus.rejected },
-  });
-  await emitLeadEvent(leadId, LeadEventType.integrity_missing_fields, {
-    postingId,
-    missingFields: missing,
-    reason,
-    vendor: vendorKey,
-    mode,
-    outcome: "rejected",
-    ...(requestPayload ? { requestPayload } : {}),
-  });
-  logIntegrityAction("post_missing_fields", {
-    leadId,
-    postingId,
-    vendor: vendorKey,
-    mode,
-    missingFields: missing,
-    reason,
-    outcome: "rejected",
-  });
-  return reason;
 }
 
 type IntegritySubmitResult =
@@ -329,19 +294,6 @@ export async function integrityPostLead(
           reference: posting.id,
         };
   const builtPayload = applyIntegrityAutoPostTestFlag(rawPayload, integrationsMode);
-
-  const requiredFieldsCheck = checkRequiredIntegrityFields(lead, integrityMode);
-  if (!requiredFieldsCheck.ok) {
-    const reason = await rejectPostingMissingFields(
-      posting.id,
-      leadId,
-      requiredFieldsCheck.missing,
-      vendorKey,
-      resaleMode,
-      builtPayload,
-    );
-    return { posted: false, reason };
-  }
 
   if (resaleMode === ResaleMode.realtime) {
     const ping = await realtimeIulCampaignPing(leadId, ResaleMode.realtime);

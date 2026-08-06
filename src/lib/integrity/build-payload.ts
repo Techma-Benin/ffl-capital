@@ -177,8 +177,8 @@ export function buildIntegrityLeadPayload(
     phone_1: lead.phone,
     state: formatStateForIntegrity(lead.state),
     lead_type_thom: leadTypeThom,
-    dob: formatDobMdY(lead.dob),
-    dob_mmddyyyy_thom: formatDobMmDdYyyy(lead.dob),
+    dob: formatDobMdY(lead.dob) ?? "",
+    dob_mmddyyyy_thom: formatDobMmDdYyyy(lead.dob) ?? "",
     vendor_lead_id_thom: vendorLeadId,
     address_1: lead.address ?? "",
     city: lead.city ?? undefined,
@@ -194,7 +194,7 @@ export function buildIntegrityLeadPayload(
   };
 
   if (lead.leadType?.includes("iul")) {
-    payload.has_iul_thom = lead.haveIul ?? undefined;
+    payload.has_iul_thom = lead.haveIul ?? "";
     payload.primary_goal_thom = lead.primaryGoal ?? undefined;
   }
 

@@ -105,7 +105,7 @@ describe("Integrity state formatting", () => {
     assert.equal(payload.dob_mmddyyyy_thom, "06/02/1980");
   });
 
-  test("buildIntegrityLeadPayload omits other optional fields when null", () => {
+  test("buildIntegrityLeadPayload sends empty DOB and IUL fields when null (Boberdoo parity)", () => {
     const payload = buildIntegrityLeadPayload(
       minimalLead({
         dob: null,
@@ -124,15 +124,15 @@ describe("Integrity state formatting", () => {
     );
 
     assert.ok("address_1" in payload);
+    assert.equal(payload.dob, "");
+    assert.equal(payload.dob_mmddyyyy_thom, "");
+    assert.equal(payload.has_iul_thom, "");
     assert.equal("city" in payload, false);
     assert.equal("postal_code" in payload, false);
-    assert.equal("dob" in payload, false);
-    assert.equal("dob_mmddyyyy_thom" in payload, false);
     assert.equal("age" in payload, false);
     assert.equal("trustedform_cert_url" in payload, false);
     assert.equal("universal_leadid" in payload, false);
     assert.equal("ip_address" in payload, false);
-    assert.equal("has_iul_thom" in payload, false);
     assert.equal("primary_goal_thom" in payload, false);
     assert.equal("campaign_source" in payload, false);
     assert.equal("campaign_id" in payload, false);

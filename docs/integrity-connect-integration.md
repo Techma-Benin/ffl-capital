@@ -323,13 +323,16 @@ All responses are JSON with an `outcome` field:
 
 These are the mappings from our internal lead object properties to the LeadConduit HTTP parameter names.
 
-**Intake requirement:** `/api/leads/intake` rejects payloads missing `Trusted_Form_URL` (or `trustedform_cert_url`) with `{ outcome: "error", reason: "Missing required fields: …" }`. `DOB` is temporarily optional at intake (MP Facebook forms often omit it); `Have_IUL` / `Primary_Goal` are product-specific and not enforced at intake. Per-product completeness (including `DOB`) is checked before Integrity post via `src/lib/integrity/required-fields.ts`.
+**Intake requirement:** `/api/leads/intake` rejects payloads missing `Trusted_Form_URL` (or `trustedform_cert_url`) with `{ outcome: "error", reason: "Missing required fields: …" }`. `DOB` is temporarily optional at intake (MP Facebook forms often omit it); `Have_IUL` / `Primary_Goal` are product-specific and not enforced at intake. `src/lib/integrity/required-fields.ts` is **advisory only** (admin Integrity test panel lead-picker warnings) — it does **not** block outbound HTTP.
+
+**Boberdoo parity (outbound posts):** Automatic and admin-test posts always send HTTP to LeadConduit. There is no local pre-flight gate that skips the request for missing fields. LeadConduit accept/reject is recorded from the LC response body (`integrity_posted` / `integrity_rejected`).
 
 **Outbound payload shape:** `buildIntegrityLeadPayload` and `buildIntegrityStorefrontPayload` omit optional fields when the lead has no value. Exceptions and parity notes:
 
 - `address_1` is **always** included (empty string when the lead has no address); `encodeIntegrityFormBody` keeps blank `address_1` in the form-urlencoded body.
-- When DOB is present, both `dob` (`m/d/Y`) and `dob_mmddyyyy_thom` (`MM/dd/yyyy`) are sent.
-- TrustedForm (`trustedform_cert_url`), Jornaya (`universal_leadid`), `has_iul_thom`, and `primary_goal_thom` are included when present.
+- `dob` and `dob_mmddyyyy_thom` are **always** included (empty strings when DOB is blank); when present, formats are `m/d/Y` and `MM/dd/yyyy` respectively.
+- TrustedForm (`trustedform_cert_url`) and Jornaya (`universal_leadid`) are included when present.
+- `has_iul_thom` is sent for **IUL** leads only (empty string when blank); **not** included for Mortgage Protection. `primary_goal_thom` is included for IUL when present.
 - `lead_type_thom` comes from the lead category row only: Realtime uses `integrity_label`; Storefront uses `integrity_label_storefront`, then `integrity_label` on the same category (`resolveIntegrityLabelForMode`). Built-in defaults are seeded at deploy — see `pnpm db:sync-integrity-labels` and `integrity-label-defaults.ts`.
 - Mortgage Protection–specific fields (`beneficiary_thom`, `history_of_cancer_thom`, `mortgage_loan_amount_thom`) are included only for `mortgage_protection` leads, and omitted when missing.
 - Ping payloads (`buildIntegrityPingPayload`) include only `first_name`, `last_name`, `state`, `lead_type_thom`, and `vendor_lead_id_thom`. **Deprecated for Storefront** — app no longer pings LeadConduit before Storefront post.
@@ -342,7 +345,7 @@ These are the mappings from our internal lead object properties to the LeadCondu
 | `lead.phone` | `phone_1` | |
 | `lead.state` | `state` | |
 | `lead.dob` | `dob` | Format `m/d/Y` when present |
-| `lead.dob` | `dob_mmddyyyy_thom` | Format `MM/dd/yyyy`; required before Integrity RealTime post |
+| `lead.dob` | `dob_mmddyyyy_thom` | Format `MM/dd/yyyy` when set; empty string when blank (LC RealTime acceptance criteria) |
 | `lead.leadType` / category labels | `lead_type_thom` | RealTime: category Realtime label (or default IUL string); Storefront: Storefront label → Realtime → default |
 | `lead.id` or `lead.externalId` | `vendor_lead_id_thom` | Required for Storefront |
 | `lead.address` | `address_1` | Always sent; `""` when missing |
@@ -352,7 +355,7 @@ These are the mappings from our internal lead object properties to the LeadCondu
 | `lead.leadidToken` | `universal_leadid` | Jornaya token |
 | `lead.ipAddress` | `ip_address` | |
 | `lead.age` | `age` | |
-| `lead.haveIul` | `has_iul_thom` | Send when present (`"yes"` / `"no"`) |
+| `lead.haveIul` | `has_iul_thom` | IUL leads only; empty string when blank; omitted for MP |
 | `lead.primaryGoal` | `primary_goal_thom` | Send when present |
 | `lead.source` | `campaign_source` | |
 | `lead.subId` | `campaign_id` | |
@@ -382,12 +385,14 @@ IF vendor disabled → skip (integrity_skipped)
 
 IF resaleMode = realtime:
   → IF lead type is Realtime IUL → Azure IsAcceptingCampaign ping (env secrets)
-  → POST to INTEGRITY_REALTIME_SUBMIT_URL (or vendor postUrl)
-  → Required: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
+  → POST to INTEGRITY_REALTIME_SUBMIT_URL (or vendor postUrl) — always HTTP; no local missing-field gate
+  → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
+  → LC failure → integrity_rejected with LC response body
 
 IF resaleMode = storefront:
-  → POST directly to INTEGRITY_STOREFRONT_SUBMIT_URL (no LC ping gate)
-  → Required: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
+  → POST directly to INTEGRITY_STOREFRONT_SUBMIT_URL (no LC ping gate) — always HTTP
+  → LC Storefront acceptance criteria: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
+  → LC failure → integrity_rejected with LC response body
 ```
 
 ### Unmatched lead lifecycle (admin flag `lifecycle_routing_enabled`, default OFF)
@@ -438,7 +443,7 @@ Requires `INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_P
 
 ### Admin Integrity test panel (preferred)
 
-`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and returns `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields before/after send. Manual payload overrides preserve blank `address_1`. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
+`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and **always** POSTs real HTTP to LeadConduit with `is_test=yes` (mock and live integrations mode). Returns the raw LC response plus `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payload overrides preserve blank `address_1`. `checkRequiredIntegrityFields` warnings are advisory in the lead picker only. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
 
 ### General Approach
 

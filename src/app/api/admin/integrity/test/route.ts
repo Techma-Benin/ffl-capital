@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
   const integrationsMode = await getIntegrationsMode();
   const submitUrl = vendor.postUrl;
 
-  if (!submitUrl && integrationsMode === "live") {
+  if (!submitUrl) {
     return NextResponse.json(
       {
         error: `${flow === "realtime" ? "INTEGRITY_REALTIME_SUBMIT_URL" : "INTEGRITY_STOREFRONT_SUBMIT_URL"} is not configured`,
@@ -187,36 +187,11 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (integrationsMode === "mock") {
-    logIntegrityAction("test_mock", {
-      flow,
-      vendor: vendorKey,
-      enabled: vendor.enabled,
-      integrationsMode,
-      lead_type_thom: testFields.lead_type_thom,
-      outcome: "mock",
-    });
-    return NextResponse.json({
-      flow,
-      submitUrl: submitUrl ?? null,
-      httpStatus: 200,
-      lead: leadSummary,
-      payload: testFields,
-      encodedBody,
-      encodedFields: Object.fromEntries(new URLSearchParams(encodedBody).entries()),
-      pingPreview,
-      response: {
-        outcome: "success",
-        message: "Mock mode — no HTTP request sent",
-      },
-    });
-  }
-
   let rawResponse: unknown;
   let httpStatus: number;
 
   try {
-    const res = await fetch(submitUrl!, {
+    const res = await fetch(submitUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -230,6 +205,7 @@ export async function POST(request: NextRequest) {
       flow,
       vendor: vendorKey,
       enabled: vendor.enabled,
+      integrationsMode,
       httpStatus,
       outcome:
         typeof rawResponse === "object" &&
@@ -257,6 +233,7 @@ export async function POST(request: NextRequest) {
       pingPreview,
       response: rawResponse,
       requiredFieldsCheck,
+      integrationsMode,
     },
     { status: 200 },
   );

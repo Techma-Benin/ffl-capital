@@ -1,6 +1,11 @@
 import type { Lead } from "@prisma/client";
-import { formatStateForIntegrity } from "@/lib/constants/us-states";
 import type { IntegrityResaleMode } from "./build-payload";
+
+/**
+ * Advisory field checks for admin UI warnings (Integrity test panel lead picker).
+ * Does NOT block outbound HTTP — posts go to LeadConduit regardless; vendor
+ * accept/reject responses are recorded from the LC response body.
+ */
 
 export type RequiredFieldContext = {
   mode: IntegrityResaleMode;
