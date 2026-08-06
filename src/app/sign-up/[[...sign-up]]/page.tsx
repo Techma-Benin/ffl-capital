@@ -1,6 +1,6 @@
 import { SignUp } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
-import { ArrowLeft } from "@/lib/icons/ssr";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLeftPanel } from "@/components/auth/auth-left-panel";
@@ -19,7 +19,7 @@ export default async function SignUpPage() {
           <br />
           <span className="text-brand-400">IUL leads today.</span>
         </h1>
-        <p className="mt-4 max-w-sm text-brand-200 leading-relaxed">
+        <p className="mt-4 max-w-sm text-sidebar-text leading-relaxed">
           Create your account, select your target states, fund your wallet, and start receiving matched leads automatically.
         </p>
 
@@ -36,14 +36,14 @@ export default async function SignUpPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold">{s.label}</p>
-                <p className="text-xs text-brand-200">{s.desc}</p>
+                <p className="text-xs text-sidebar-text">{s.desc}</p>
               </div>
             </div>
           ))}
         </div>
       </AuthLeftPanel>
 
-      <div className="flex flex-1 items-center justify-center px-6 py-12">
+      <div className="flex flex-1 items-center justify-center bg-slate-50 px-6 py-12">
         <div className="w-full max-w-lg">
           <Link
             href="/sign-in"

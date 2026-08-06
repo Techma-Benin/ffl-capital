@@ -8,7 +8,7 @@ import { intakePayloadSchema } from "@/lib/intake/validate-intake";
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+  "Access-Control-Allow-Headers": "Content-Type",
 };
 
 export async function OPTIONS() {
@@ -16,20 +16,6 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
-  // Shared-secret validation: if LEADCONDUIT_WEBHOOK_SECRET is set, require
-  // a matching X-Api-Key header. When the env var is absent the check is
-  // skipped so local dev works without configuration.
-  const webhookSecret = process.env.LEADCONDUIT_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const apiKey = request.headers.get("x-api-key");
-    if (!apiKey || apiKey !== webhookSecret) {
-      return NextResponse.json(
-        { outcome: "error", reason: "Unauthorized" },
-        { status: 401, headers: CORS_HEADERS },
-      );
-    }
-  }
-
   try {
     const body = await request.json();
     const parsed = intakePayloadSchema.safeParse(body);

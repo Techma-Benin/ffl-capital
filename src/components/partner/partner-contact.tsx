@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { ActionButton } from "@/components/ui/action-button";
+import { StatusStrip } from "@/components/ui/status-strip";
 import { usePartner } from "@/components/partner/partner-provider";
-import { notify } from "@/lib/notify";
-import { EnvelopeSimple, ICON_WEIGHT, PaperPlaneTilt } from "@/lib/icons/client";
+import { Mail, Send } from "lucide-react";
 
 const SUPPORT_EMAIL = "support@fflcapital.com";
 
@@ -48,26 +48,28 @@ export function PartnerContactView() {
 
   const [subject, setSubject] = useState<SubjectValue>(defaultSubject);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
   const [opening, setOpening] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
+    setSent(false);
 
     if (!message.trim()) {
-      notify.error("Please enter a message before sending.");
+      setError("Please enter a message before sending.");
       return;
     }
 
     setOpening(true);
     window.location.href = buildMailto(subject, message, partner);
-    notify.success("Email client opened", {
-      description: "If your email app did not open, use the address above.",
-    });
+    setSent(true);
     setOpening(false);
   }
 
   return (
-    <div>
+    <div className="mx-auto max-w-xl">
       <PageHeader
         title="Contact Us"
         subtitle="Send a message to the FFL Capital support team"
@@ -75,11 +77,9 @@ export function PartnerContactView() {
 
       <form onSubmit={handleSubmit} className="card p-6 sm:p-8">
         <div className="mb-6 flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
-          <EnvelopeSimple
-            size={32}
-            weight={ICON_WEIGHT}
-            className="flex-shrink-0 text-cyan-700"
-          />
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm">
+            <Mail size={16} />
+          </div>
           <div className="min-w-0 text-sm">
             <p className="text-slate-500">Email</p>
             <a
@@ -90,6 +90,19 @@ export function PartnerContactView() {
             </a>
           </div>
         </div>
+
+        <StatusStrip
+          status={error ? "error" : sent ? "success" : null}
+          title={error ? "Message required" : sent ? "Email client opened" : undefined}
+          message={
+            error
+              ? error
+              : sent
+                ? "If your email app did not open, use the address above."
+                : undefined
+          }
+          className="mb-6"
+        />
 
         <div className="space-y-5">
           <div>
@@ -102,6 +115,8 @@ export function PartnerContactView() {
               value={subject}
               onChange={(e) => {
                 setSubject(e.target.value as SubjectValue);
+                setSent(false);
+                setError("");
               }}
             >
               {SUBJECTS.map((option) => (
@@ -127,6 +142,8 @@ export function PartnerContactView() {
               value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
+                setSent(false);
+                setError("");
               }}
             />
           </div>
@@ -137,7 +154,7 @@ export function PartnerContactView() {
             </p>
             <ActionButton
               type="submit"
-              icon={<PaperPlaneTilt size={15} />}
+              icon={<Send size={15} />}
               className="flex-shrink-0"
               loading={opening}
               loadingText="Opening email…"

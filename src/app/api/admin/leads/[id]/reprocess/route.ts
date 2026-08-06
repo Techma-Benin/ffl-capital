@@ -4,16 +4,15 @@ import { reprocessSingleLead } from "@/lib/jobs/reprocess-unmatched";
 
 export async function POST(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   const authResult = await requireAdmin();
   if ("error" in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
-  const { id } = await params;
   try {
-    const result = await reprocessSingleLead(id, { mode: "manual" });
+    const result = await reprocessSingleLead(params.id);
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(

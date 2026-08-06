@@ -5,7 +5,7 @@ import { requirePartner } from "@/lib/auth/session";
 
 const refundSchema = z.object({
   leadDeliveryId: z.string().uuid(),
-  refundType: z.literal("invalid_phone"),
+  refundType: z.enum(["wrong_filter", "invalid_phone"]),
   reason: z.string().max(500).optional(),
 });
 

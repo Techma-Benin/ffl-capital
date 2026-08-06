@@ -1,32 +1,12 @@
-import {
-  LeadCategoryResolution,
-  LeadEventType,
-  LeadStatus,
-  ResaleMode,
-  ResaleStatus,
-} from "@prisma/client";
+import { LeadEventType, LeadStatus, ResaleMode, ResaleStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
+import { getIntegrationsMode } from "@/lib/settings/app-settings";
 import {
-  getIntegrationsMode,
-  getIntegrityRealtimeVendor,
-  getIntegrityStorefrontVendor,
-} from "@/lib/settings/app-settings";
-import {
-  INTEGRITY_REALTIME_VENDOR_KEY,
-  INTEGRITY_STOREFRONT_VENDOR_KEY,
-} from "@/lib/settings/resale-vendor-keys";
-import { integrityRealtimeSkipReason } from "@/lib/constants/us-states";
-import {
-  applyIntegrityAutoPostTestFlag,
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
-  encodeIntegrityFormBody,
-  type IntegrityLabelSources,
-  type IntegrityResaleMode,
 } from "./build-payload";
-import { logIntegrityAction, urlHost } from "./log";
-import { realtimeIulCampaignPing } from "./azure-ping";
+import { integrityPing } from "./ping";
 
 export interface IntegrityPostResult {
   posted: boolean;
@@ -34,168 +14,15 @@ export interface IntegrityPostResult {
   reason?: string;
 }
 
-async function rejectPosting(
-  postingId: string,
-  leadId: string,
-  reason: string,
-  vendorKey: string,
-  mode: ResaleMode,
-  extras?: {
-    requestPayload?: Record<string, string | undefined>;
-    response?: unknown;
-  },
-): Promise<void> {
-  await prisma.resalePosting.update({
-    where: { id: postingId },
-    data: { status: ResaleStatus.rejected },
-  });
-  await emitLeadEvent(leadId, LeadEventType.integrity_rejected, {
-    postingId,
-    reason,
-    vendor: vendorKey,
-    mode,
-    outcome: "rejected",
-    ...(extras?.requestPayload ? { requestPayload: extras.requestPayload } : {}),
-    ...(extras?.response !== undefined ? { response: extras.response } : {}),
-  });
-  logIntegrityAction("post_rejected", {
-    leadId,
-    postingId,
-    vendor: vendorKey,
-    mode,
-    reason,
-    outcome: "rejected",
-  });
-}
-
-async function skipIntegrityPost(
-  leadId: string,
-  reason: string,
-  fields: {
-    vendor: string;
-    mode: ResaleMode;
-    enabled?: boolean;
-    integrationsMode?: string;
-  },
-): Promise<IntegrityPostResult> {
-  await emitLeadEvent(leadId, LeadEventType.integrity_skipped, {
-    reason,
-    vendor: fields.vendor,
-    mode: fields.mode,
-    enabled: fields.enabled,
-    integrationsMode: fields.integrationsMode,
-    outcome: "skipped",
-  });
-  logIntegrityAction("post_skipped", {
-    leadId,
-    vendor: fields.vendor,
-    mode: fields.mode,
-    enabled: fields.enabled,
-    reason,
-    outcome: "skipped",
-  });
-  return { posted: false, reason };
-}
-
-type IntegritySubmitResult =
-  | { ok: true; externalLeadId?: string; response?: unknown }
-  | { ok: false; reason: string; response?: unknown };
-
-/** Exported for unit tests (mock fetch). */
-export async function submitToIntegrity(
-  url: string,
-  payload: Record<string, string | undefined>,
-  logFields: Record<string, unknown>,
-): Promise<IntegritySubmitResult> {
-  logIntegrityAction("post_attempt", {
-    ...logFields,
-    urlHost: urlHost(url),
-    outcome: "attempt",
-  });
-
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-      },
-      body: encodeIntegrityFormBody(payload),
-    });
-  } catch (err) {
-    const reason = `Network error: ${String(err)}`;
-    logIntegrityAction("post_response", { ...logFields, outcome: "error", reason });
-    return { ok: false, reason };
-  }
-
-  if (!res.ok) {
-    const reason = `HTTP ${res.status}`;
-    let response: unknown = { httpStatus: res.status };
-    try {
-      const text = await res.text();
-      try {
-        response = { httpStatus: res.status, body: JSON.parse(text) };
-      } catch {
-        response = { httpStatus: res.status, body: text };
-      }
-    } catch {
-      /* keep status-only */
-    }
-    logIntegrityAction("post_response", { ...logFields, outcome: "error", reason, httpStatus: res.status });
-    return { ok: false, reason, response };
-  }
-
-  let data: { outcome?: string; lead?: { id?: string }; reason?: string };
-  try {
-    data = (await res.json()) as typeof data;
-  } catch {
-    const reason = "Non-JSON response from LeadConduit";
-    logIntegrityAction("post_response", { ...logFields, outcome: "error", reason });
-    return { ok: false, reason };
-  }
-
-  if (data.outcome === "failure" || data.outcome === "error") {
-    const reason = data.reason ?? `Rejected: ${data.outcome}`;
-    logIntegrityAction("post_response", { ...logFields, outcome: "rejected", reason });
-    return { ok: false, reason, response: data };
-  }
-
-  logIntegrityAction("post_response", {
-    ...logFields,
-    outcome: "success",
-    externalLeadId: data.lead?.id,
-  });
-  return { ok: true, externalLeadId: data.lead?.id, response: data };
-}
-
-function toIntegrityMode(mode: ResaleMode): IntegrityResaleMode {
-  return mode === ResaleMode.storefront ? "storefront" : "realtime";
-}
-
 export async function integrityPostLead(
   leadId: string,
   options?: { mode?: ResaleMode },
 ): Promise<IntegrityPostResult> {
   const resaleMode = options?.mode ?? ResaleMode.realtime;
-  const integrityMode = toIntegrityMode(resaleMode);
-  const vendorKey =
-    resaleMode === ResaleMode.storefront
-      ? INTEGRITY_STOREFRONT_VENDOR_KEY
-      : INTEGRITY_REALTIME_VENDOR_KEY;
-  const vendor =
-    resaleMode === ResaleMode.storefront
-      ? await getIntegrityStorefrontVendor()
-      : await getIntegrityRealtimeVendor();
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return { posted: false, reason: "Lead not found" };
-  if (
-    lead.status !== LeadStatus.unmatched ||
-    !lead.available ||
-    lead.categoryResolution !== LeadCategoryResolution.matched ||
-    !lead.leadType
-  ) {
+  if (lead.status !== LeadStatus.unmatched || !lead.available) {
     return { posted: false, reason: "Lead not eligible for Integrity post" };
   }
 
@@ -206,137 +33,59 @@ export async function integrityPostLead(
     return { posted: false, reason: "Already posted to Integrity" };
   }
 
-  if (!vendor) {
-    return skipIntegrityPost(leadId, `Integrity ${resaleMode} vendor not configured`, {
-      vendor: vendorKey,
-      mode: resaleMode,
-      enabled: false,
-    });
+  const ping = await integrityPing(leadId);
+  if (!ping.accepted) {
+    return { posted: false, reason: ping.message ?? "Integrity ping rejected" };
   }
 
-  if (!vendor.enabled) {
-    return skipIntegrityPost(leadId, `Integrity ${resaleMode} vendor disabled`, {
-      vendor: vendorKey,
-      mode: resaleMode,
-      enabled: false,
-    });
-  }
+  const mode = await getIntegrationsMode();
+  let externalRef = ping.externalRef;
 
-  const category = await prisma.leadCategory.findUnique({
-    where: { type: lead.leadType },
-    select: { integrityLabel: true, integrityLabelStorefront: true },
-  });
-  const labelSources: IntegrityLabelSources = {
-    realtime: category?.integrityLabel ?? null,
-    storefront: category?.integrityLabelStorefront ?? null,
-  };
-  const integrationsMode = await getIntegrationsMode();
-  const isTestPost = integrationsMode === "mock";
-
-  const submitUrl = vendor.postUrl;
-  if (!submitUrl) {
-    return skipIntegrityPost(
-      leadId,
-      `${resaleMode === ResaleMode.realtime ? "INTEGRITY_REALTIME_SUBMIT_URL" : "INTEGRITY_STOREFRONT_SUBMIT_URL"} not configured`,
-      { vendor: vendorKey, mode: resaleMode, enabled: vendor.enabled, integrationsMode },
-    );
-  }
-
-  if (resaleMode === ResaleMode.realtime) {
-    const stateSkipReason = integrityRealtimeSkipReason(lead.state);
-    if (stateSkipReason) {
-      return skipIntegrityPost(leadId, stateSkipReason, {
-        vendor: vendorKey,
-        mode: resaleMode,
-        enabled: vendor.enabled,
-        integrationsMode,
-      });
+  if (mode === "live") {
+    const postUrl = process.env.INTEGRITY_POST_URL;
+    if (!postUrl) {
+      return { posted: false, reason: "INTEGRITY_POST_URL not configured" };
     }
-  }
 
-  const logFields = {
-    leadId,
-    vendor: vendorKey,
-    mode: resaleMode,
-    enabled: vendor.enabled,
-    integrationsMode,
-    isTest: isTestPost,
-    lead_type_thom:
+    const body =
       resaleMode === ResaleMode.storefront
-        ? buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources)
-            .lead_type_thom
-        : buildIntegrityLeadPayload(lead, labelSources.realtime, { mode: integrityMode })
-            .lead_type_thom,
-  };
+        ? buildIntegrityStorefrontPayload(lead)
+        : buildIntegrityLeadPayload(lead);
+
+    const res = await fetch(postUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      return { posted: false, reason: `Post failed: ${res.status}` };
+    }
+
+    const data = (await res.json()) as { ref?: string };
+    externalRef = data.ref ?? externalRef;
+  } else {
+    console.info(`[mock] Integrity ${resaleMode} post for lead ${leadId}`);
+  }
 
   const posting = existing
     ? await prisma.resalePosting.update({
         where: { id: existing.id },
-        data: { status: ResaleStatus.pending, externalRef: null, postedAt: new Date() },
+        data: {
+          status: ResaleStatus.pending,
+          externalRef,
+          postedAt: new Date(),
+        },
       })
     : await prisma.resalePosting.create({
         data: {
           leadId,
           mode: resaleMode,
           status: ResaleStatus.pending,
+          externalRef,
           postedAt: new Date(),
         },
       });
-
-  const rawPayload =
-    resaleMode === ResaleMode.storefront
-      ? {
-          ...buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources),
-          reference: posting.id,
-        }
-      : {
-          ...buildIntegrityLeadPayload(lead, labelSources.realtime, { mode: integrityMode }),
-          reference: posting.id,
-        };
-  const builtPayload = applyIntegrityAutoPostTestFlag(rawPayload, integrationsMode);
-
-  if (resaleMode === ResaleMode.realtime) {
-    const ping = await realtimeIulCampaignPing(leadId, ResaleMode.realtime);
-    if (!ping.accepted) {
-      await rejectPosting(
-        posting.id,
-        leadId,
-        ping.message ?? "Realtime IUL campaign ping declined",
-        vendorKey,
-        resaleMode,
-        {
-          requestPayload: builtPayload,
-          response: {
-            pingAccepted: false,
-            campaignAccepted: ping.campaignAccepted,
-            message: ping.message,
-          },
-        },
-      );
-      return {
-        posted: false,
-        reason: ping.message ?? "Realtime IUL campaign ping declined",
-      };
-    }
-  }
-
-  const result = await submitToIntegrity(submitUrl, builtPayload, logFields);
-
-  if (!result.ok) {
-    await rejectPosting(posting.id, leadId, result.reason, vendorKey, resaleMode, {
-      requestPayload: builtPayload,
-      response: result.response,
-    });
-    return { posted: false, reason: result.reason };
-  }
-
-  const resolvedExternalRef = result.externalLeadId;
-  if (resolvedExternalRef) {
-    await prisma.resalePosting.update({
-      where: { id: posting.id },
-      data: { externalRef: resolvedExternalRef },
-    });
-  }
 
   await prisma.lead.update({
     where: { id: leadId },
@@ -346,18 +95,7 @@ export async function integrityPostLead(
   await emitLeadEvent(leadId, LeadEventType.integrity_posted, {
     postingId: posting.id,
     mode: resaleMode,
-    vendor: vendorKey,
-    outcome: "posted",
-    isTest: isTestPost,
-    integrationsMode,
-    requestPayload: builtPayload,
-    response: result.response ?? { externalLeadId: resolvedExternalRef },
-  });
-
-  logIntegrityAction("post_complete", {
-    ...logFields,
-    postingId: posting.id,
-    outcome: isTestPost ? "posted_test" : "posted",
+    externalRef,
   });
 
   return { posted: true, postingId: posting.id };

@@ -4,31 +4,19 @@
  */
 
 import assert from "node:assert/strict";
-import { PartnerStatus } from "@prisma/client";
+import { LeadType, PartnerStatus } from "@prisma/client";
 
 // Inline copies of pure functions to avoid TS import in .mjs
-function getEffectivePrice(filterSet, partner, defaultPrice) {
-  if (filterSet.priceOverride !== null && filterSet.priceOverride !== undefined) {
-    return Number(filterSet.priceOverride);
-  }
-  if (partner.priceOverride !== null && partner.priceOverride !== undefined) {
-    return Number(partner.priceOverride);
-  }
+function getEffectivePrice(partner, defaultPrice) {
+  if (partner.priceOverride !== null) return Number(partner.priceOverride);
   return defaultPrice;
 }
 
-function isFilterSetEligibleForLead(
-  filterSet,
-  partner,
-  leadState,
-  leadType,
-  effectivePrice,
-) {
+function isPartnerEligibleForLead(partner, leadState, leadType, effectivePrice) {
   if (partner.status !== PartnerStatus.active) return false;
-  if (!filterSet.active) return false;
-  if (filterSet.filterStates.length < 15) return false;
-  if (!filterSet.filterStates.includes(leadState)) return false;
-  if (filterSet.leadType !== leadType) return false;
+  if (partner.filterStates.length < 15) return false;
+  if (!partner.filterStates.includes(leadState)) return false;
+  if (partner.leadType !== leadType) return false;
   if (Number(partner.walletBalance) < effectivePrice) return false;
   return true;
 }
@@ -40,37 +28,25 @@ const TX_STATES = [
 
 const basePartner = {
   status: PartnerStatus.active,
+  filterStates: TX_STATES,
+  leadType: LeadType.high_intent_iul,
   walletBalance: 500,
   priceOverride: null,
 };
 
-const baseFilterSet = {
-  active: true,
-  filterStates: TX_STATES,
-  leadType: "high_intent_iul",
-  priceOverride: null,
-};
-
-// Test: eligible filter set
+// Test: eligible partner
 assert.equal(
-  isFilterSetEligibleForLead(
-    baseFilterSet,
-    basePartner,
-    "TX",
-    "high_intent_iul",
-    25,
-  ),
+  isPartnerEligibleForLead(basePartner, "TX", LeadType.high_intent_iul, 25),
   true,
-  "Active filter set with 15+ states and balance should be eligible",
+  "Active partner with 15+ states and balance should be eligible",
 );
 
 // Test: insufficient wallet
 assert.equal(
-  isFilterSetEligibleForLead(
-    baseFilterSet,
+  isPartnerEligibleForLead(
     { ...basePartner, walletBalance: 5 },
     "TX",
-    "high_intent_iul",
+    LeadType.high_intent_iul,
     25,
   ),
   false,
@@ -79,28 +55,21 @@ assert.equal(
 
 // Test: too few states
 assert.equal(
-  isFilterSetEligibleForLead(
-    { ...baseFilterSet, filterStates: ["TX", "CA", "FL", "NY", "IL"] },
-    basePartner,
+  isPartnerEligibleForLead(
+    { ...basePartner, filterStates: ["TX", "CA", "FL", "NY", "IL"] },
     "TX",
-    "high_intent_iul",
+    LeadType.high_intent_iul,
     25,
   ),
   false,
-  "Filter set with <15 states should be excluded",
+  "Partner with <15 states should be excluded",
 );
 
 // Test: wrong state
 assert.equal(
-  isFilterSetEligibleForLead(
-    baseFilterSet,
-    basePartner,
-    "CA",
-    "high_intent_iul",
-    25,
-  ),
+  isPartnerEligibleForLead(basePartner, "CA", LeadType.high_intent_iul, 25),
   false,
-  "Filter set without CA should be excluded for CA lead",
+  "Partner without CA in filter should be excluded for CA lead",
 );
 
 // Test: FIFO sort order
@@ -123,18 +92,8 @@ assert.equal(
   "FIFO: oldest partner wins on tie",
 );
 
-// Test: price override on filter set
-assert.equal(
-  getEffectivePrice({ priceOverride: 20 }, { priceOverride: null }, 25),
-  20,
-);
-assert.equal(
-  getEffectivePrice({ priceOverride: null }, { priceOverride: 18 }, 25),
-  18,
-);
-assert.equal(
-  getEffectivePrice({ priceOverride: null }, { priceOverride: null }, 25),
-  25,
-);
+// Test: price override
+assert.equal(getEffectivePrice({ priceOverride: 20 }, 25), 20);
+assert.equal(getEffectivePrice({ priceOverride: null }, 25), 25);
 
 console.log("All matching logic tests passed.");

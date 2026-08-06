@@ -1,134 +1,54 @@
-import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Archive } from "@/lib/icons/ssr";
+import { Archive } from "lucide-react";
+import Link from "next/link";
+import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
-import { TablePagination } from "@/components/ui/table-pagination";
-import { parsePageParams } from "@/lib/pagination";
-import { formatUsd } from "@/lib/format-money";
-import { AdminAgedLeadsTable } from "@/components/admin/admin-aged-leads-table";
-import { AdminAgedLeadsFilters } from "@/components/admin/admin-aged-leads-filters";
-import {
-  buildAdminAgedLeadsWhere,
-  parseAdminAgedLeadFilters,
-} from "@/lib/admin/admin-aged-leads-filters";
-import {
-  buildAdminAgedLeadOrderBy,
-  parseAdminAgedLeadSort,
-  sortHrefMap,
-} from "@/lib/admin/admin-aged-leads-sort";
-import { refundLeadSnapshotFromAgedListing } from "@/lib/admin/refund-lead-snapshot";
-import { US_STATE_CODES } from "@/lib/constants/us-states";
-import {
-  loadEnabledCategoryLabels,
-  resolveLeadTypeDisplay,
-  buildCategoryFilterOptions,
-} from "@/lib/lead-categories/category-labels";
 
-const BASE_PATH = "/admin/aged";
-
-export default async function AdminAgedPage({
-  searchParams,
-}: {
-  searchParams: Promise<{
-    page?: string;
-    sort?: string;
-    dir?: string;
-    state?: string;
-    type?: string;
-    status?: string;
-    age?: string;
-  }>;
-}) {
-  const resolvedSearchParams = await searchParams;
-  const categories = await loadEnabledCategoryLabels();
-  const filters = parseAdminAgedLeadFilters(
-    resolvedSearchParams,
-    categories.map((category) => category.type),
-  );
-  const agedWhere = await buildAdminAgedLeadsWhere(filters);
-  const { page, pageSize, skip } = parsePageParams(resolvedSearchParams);
-  const { sort, dir } = parseAdminAgedLeadSort(resolvedSearchParams);
-  const orderBy = buildAdminAgedLeadOrderBy(sort, dir);
-  const hrefBySortKey = sortHrefMap(BASE_PATH, resolvedSearchParams);
-
-  const [leads, total, agedPrice, agedDays] = await Promise.all([
+export default async function AdminAgedPage() {
+  const agedWhere = await buildAgedLeadWhere();
+  const [leads, agedPrice, stateCounts, agedDays] = await Promise.all([
     prisma.lead.findMany({
       where: agedWhere,
-      orderBy,
-      skip,
-      take: pageSize,
-      include: {
-        leadDeliveries: {
-          include: { partner: true },
-          orderBy: { deliveredAt: "desc" },
-          take: 1,
-        },
-      },
+      orderBy: { receivedAt: "asc" },
+      take: 100,
     }),
-    prisma.lead.count({ where: agedWhere }),
     getDefaultAgedPrice(),
+    prisma.lead.groupBy({
+      by: ["state"],
+      where: agedWhere,
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 10,
+    }),
     import("@/lib/settings/app-settings").then((m) => m.getAgedDaysThreshold()),
   ]);
-
-  const stateOptions = US_STATE_CODES.map((code) => ({
-    value: code,
-    label: code,
-  }));
-
-  const typeFilterOptions = [
-    { value: "all", label: "All" },
-    ...buildCategoryFilterOptions(categories),
-  ];
-
-  const rows = leads.map((lead) => ({
-    id: lead.id,
-    firstName: lead.firstName,
-    lastName: lead.lastName,
-    state: lead.state,
-    leadType: lead.leadType ?? "",
-    leadTypeLabel: resolveLeadTypeDisplay({
-      leadType: lead.leadType,
-      categoryResolution: lead.categoryResolution,
-      categoryCandidateTypes: lead.categoryCandidateTypes,
-      categories,
-    }).label,
-    status: lead.status,
-    ageDays: Math.floor(
-      (Date.now() - lead.receivedAt.getTime()) / (1000 * 60 * 60 * 24),
-    ),
-    sheetLead: refundLeadSnapshotFromAgedListing(lead, {
-      agedPrice,
-      latestDelivery: lead.leadDeliveries[0] ?? null,
-    }),
-  }));
 
   return (
     <div>
       <PageHeader
         title="Aged Leads"
-        subtitle={`Leads ${agedDays}+ days old — default price ${formatUsd(agedPrice)}`}
-        badge={
-          <span
-            title={`${total.toLocaleString()} available`}
-            className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-teal-200 bg-teal-50 px-1 text-xs font-semibold tabular-nums text-teal-700"
-          >
-            {total.toLocaleString()}
-          </span>
-        }
+        subtitle={`Leads ${agedDays}+ days old — default price $${agedPrice}`}
       />
 
-      <Suspense
-        fallback={
-          <div className="mb-5 min-h-[36px] animate-pulse rounded-md bg-slate-50" />
-        }
-      >
-        <AdminAgedLeadsFilters
-          stateOptions={stateOptions}
-          typeFilterOptions={typeFilterOptions}
-        />
-      </Suspense>
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <div className="card p-4">
+          <p className="text-xs font-semibold uppercase text-slate-500">Available</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{leads.length}</p>
+        </div>
+        <div className="card p-4 sm:col-span-2">
+          <p className="text-xs font-semibold uppercase text-slate-500 mb-2">Top states</p>
+          <div className="flex flex-wrap gap-2">
+            {stateCounts.map((s) => (
+              <span key={s.state} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium">
+                {s.state}: {s._count.id}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <div className="card">
         <div className="overflow-x-auto">
@@ -137,25 +57,47 @@ export default async function AdminAgedPage({
               icon={Archive}
               title="No aged leads"
               description="Leads become eligible 30 days after receipt."
-              accent="teal"
             />
           ) : (
-            <AdminAgedLeadsTable
-              leads={rows}
-              agedPrice={agedPrice}
-              sort={sort}
-              dir={dir}
-              hrefBySortKey={hrefBySortKey}
-            />
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>State</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Age (days)</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leads.map((lead) => {
+                  const ageDays = Math.floor(
+                    (Date.now() - lead.receivedAt.getTime()) / (1000 * 60 * 60 * 24),
+                  );
+                  return (
+                    <tr key={lead.id}>
+                      <td>
+                        <Link href={`/admin/leads/${lead.id}`} className="font-medium hover:text-brand-600">
+                          {lead.firstName} {lead.lastName}
+                        </Link>
+                      </td>
+                      <td>{lead.state}</td>
+                      <td>
+                        <Badge variant="blue">
+                          {lead.leadType === "traditional_iul" ? "Trad. IUL" : "High Intent"}
+                        </Badge>
+                      </td>
+                      <td className="capitalize">{lead.status.replace("_", " ")}</td>
+                      <td>{ageDays}d</td>
+                      <td className="font-semibold">${agedPrice.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
-        <TablePagination
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          basePath={BASE_PATH}
-          searchParams={resolvedSearchParams}
-        />
       </div>
     </div>
   );

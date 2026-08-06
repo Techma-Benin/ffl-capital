@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { clsx } from "clsx";
-import { SidebarSimple, ICON_WEIGHT } from "@/lib/icons/client";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { usePortal } from "@/components/layout/portal-provider";
 
 /** Toggle the sidebar when clicking empty space (not links or buttons). */
@@ -24,14 +24,19 @@ export function SidebarCollapseButton() {
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); toggleSidebar(); }}
-      title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      onClick={toggleSidebar}
       aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      className={clsx(
-        "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-sidebar-heading transition-colors hover:bg-black/5 hover:text-slate-700",
-      )}
+      className="nav-item w-full justify-center text-sidebar-heading hover:text-white"
     >
-      <SidebarSimple size={16} weight={ICON_WEIGHT} mirrored={sidebarCollapsed} />
+      {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+      <span
+        className={clsx(
+          "truncate transition-all duration-300",
+          sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100",
+        )}
+      >
+        Collapse sidebar
+      </span>
     </button>
   );
 }

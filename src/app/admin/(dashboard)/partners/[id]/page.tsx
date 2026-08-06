@@ -1,191 +1,135 @@
 import { notFound } from "next/navigation";
-import { getClerkPartnerImageUrl } from "@/lib/auth/clerk-profile";
+import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { StatCard } from "@/components/ui/stat-card";
-import { PartnerDetailEditProvider } from "@/components/admin/partner-detail-edit-provider";
-import { PartnerDetailHeader } from "@/components/admin/partner-detail-header";
-import { PartnerFilterSetsPanel } from "@/components/admin/partner-filter-sets-panel";
-import { PartnerProfileCard } from "@/components/admin/partner-profile-card";
-import { PartnerAccountCrmCard } from "@/components/admin/partner-account-crm-card";
-import { PartnerDetailActivity } from "@/components/admin/partner-detail-activity";
-import { Funnel, Wallet, UsersThree } from "@/lib/icons/ssr";
-import { formatUsd, moneyValueClassName } from "@/lib/format-money";
-import { clsx } from "clsx";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
+import { PartnerEditForm } from "@/components/admin/partner-edit-form";
+import { ArrowLeft } from "lucide-react";
 
 export default async function AdminPartnerDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
   const partner = await prisma.partner.findUnique({
-    where: { id },
+    where: { id: params.id },
     include: {
-      filterSets: {
-        where: { isTemplate: false },
-        orderBy: { createdAt: "asc" },
-      },
-      crmOutboundConfig: true,
-      transactions: { orderBy: { createdAt: "desc" }, take: 10 },
+      transactions: { orderBy: { createdAt: "desc" }, take: 15 },
       leadDeliveries: {
         orderBy: { deliveredAt: "desc" },
         take: 10,
         include: { lead: true },
-      },
-      _count: {
-        select: {
-          leadDeliveries: true,
-          filterSets: { where: { active: true, isTemplate: false } },
-        },
       },
     },
   });
 
   if (!partner) notFound();
 
-  const avatarUrl = await getClerkPartnerImageUrl(partner.clerkUserId);
-
-  const walletBalance = Number(partner.walletBalance);
-  const walletLow = walletBalance < 25;
-  const displayName = `${partner.firstName} ${partner.lastName}`;
-  const filterSetRows = partner.filterSets.map((fs) => ({
-    id: fs.id,
-    name: fs.name,
-    leadType: fs.leadType,
-    filterStates: fs.filterStates,
-    priority: fs.priority,
-    priceOverride: fs.priceOverride ? Number(fs.priceOverride) : null,
-    active: fs.active,
-    weeklyLimit: fs.weeklyLimit,
-    monthlyLimit: fs.monthlyLimit,
-    filterCriteria: (fs.filterCriteria ?? {}) as import("@/lib/matching/types").FilterCriteria,
-  }));
-
-  const crmMappings = partner.crmOutboundConfig?.fieldMappings;
-  const mappingCount = Array.isArray(crmMappings) ? crmMappings.length : 0;
-
-  const editInitial = {
-    priority: partner.priority,
-    priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
-    status: partner.status,
-  };
-
   return (
-    <PartnerDetailEditProvider
-      partnerId={partner.id}
-      displayName={displayName}
-      editInitial={editInitial}
-    >
-      <div className="pb-10">
-        <PartnerDetailHeader
-          title="Partner profile"
-          partnerId={partner.id}
-          partnerStatus={partner.status}
-        />
+    <div>
+      <PageHeader
+        title={`${partner.firstName} ${partner.lastName}`}
+        subtitle={partner.email}
+        action={
+          <Link href="/admin/partners" className="btn-secondary btn-sm inline-flex items-center gap-1">
+            <ArrowLeft size={14} />
+            Back
+          </Link>
+        }
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
-        <aside className="sticky top-6 max-h-[calc(100dvh-3rem)] self-start space-y-3 overflow-y-auto">
-          <PartnerProfileCard
-            partnerId={partner.id}
-            firstName={partner.firstName}
-            lastName={partner.lastName}
-            email={partner.email}
-            status={partner.status}
-            affiliation={partner.affiliation}
-            createdAt={partner.createdAt}
-            walletBalance={walletBalance}
-            priority={partner.priority}
-            avatarUrl={avatarUrl}
-          />
+      <div className="mb-6 grid gap-3 sm:grid-cols-4">
+        {[
+          { label: "Status", value: partner.status },
+          { label: "Wallet", value: `$${Number(partner.walletBalance).toFixed(2)}` },
+          { label: "States", value: partner.filterStates.length },
+          { label: "Priority", value: partner.priority },
+        ].map((c) => (
+          <div key={c.label} className="card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{c.label}</p>
+            <p className="mt-1 text-lg font-bold text-slate-900">{c.value}</p>
+          </div>
+        ))}
+      </div>
 
-          <div className="card overflow-hidden rounded-xl">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <h2 className="text-sm font-semibold text-slate-900">Contact details</h2>
-            </div>
-            <div className="space-y-3 px-4 py-3">
-              {[
-                { label: "Email", value: partner.email },
-                {
-                  label: "Affiliation",
-                  value: partner.affiliation ?? "—",
-                },
-              ].map((field) => (
-                <div key={field.label}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    {field.label}
-                  </p>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {field.value}
-                  </p>
-                </div>
+      <PartnerEditForm
+        partnerId={partner.id}
+        initial={{
+          priority: partner.priority,
+          priceOverride: partner.priceOverride ? Number(partner.priceOverride) : null,
+          status: partner.status,
+        }}
+      />
+
+      <div className="mt-6 card">
+        <div className="border-b border-slate-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-slate-900">Recent Deliveries</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Lead</th>
+                <th>State</th>
+                <th>Channel</th>
+                <th>Price</th>
+                <th>Delivered</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partner.leadDeliveries.map((d) => (
+                <tr key={d.id}>
+                  <td className="font-medium">
+                    {d.lead.firstName} {d.lead.lastName}
+                  </td>
+                  <td>{d.lead.state}</td>
+                  <td>
+                    <Badge variant={d.channel === "realtime" ? "green" : "purple"}>
+                      {d.channel}
+                    </Badge>
+                  </td>
+                  <td>${Number(d.price).toFixed(2)}</td>
+                  <td className="text-xs text-slate-400">
+                    {new Date(d.deliveredAt).toLocaleDateString()}
+                  </td>
+                </tr>
               ))}
-            </div>
-          </div>
-        </aside>
-
-        <div className="min-w-0 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <StatCard
-              label="Wallet balance"
-              value={formatUsd(walletBalance)}
-              icon={Wallet}
-              accent={walletLow ? "red" : "emerald"}
-              valueClassName={clsx("tabular-nums text-left", walletLow ? "text-red-600" : "text-slate-900")}
-              blobIndex={0}
-            />
-            <StatCard
-              label="Leads purchased"
-              value={partner._count.leadDeliveries.toLocaleString()}
-              icon={UsersThree}
-              accent="blue"
-              blobIndex={1}
-            />
-            <StatCard
-              label="Filter sets active"
-              value={partner._count.filterSets}
-              icon={Funnel}
-              accent="purple"
-              blobIndex={2}
-            />
-          </div>
-
-          <PartnerAccountCrmCard
-            crmOutboundEnabled={partner.crmOutboundConfig?.enabled ?? false}
-            crmOutboundEndpointUrl={partner.crmOutboundConfig?.endpointUrl ?? null}
-            crmOutboundMappingCount={mappingCount}
-            walletBalance={walletBalance}
-          />
-
-          <PartnerFilterSetsPanel
-            partnerId={partner.id}
-            defaultStates={partner.filterStates}
-            filterSets={filterSetRows}
-            layout="document"
-          />
-
-          <PartnerDetailActivity
-            deliveries={partner.leadDeliveries.map((d) => ({
-              id: d.id,
-              deliveredAt: d.deliveredAt,
-              price: Number(d.price),
-              channel: d.channel,
-              lead: {
-                firstName: d.lead.firstName,
-                lastName: d.lead.lastName,
-                state: d.lead.state,
-              },
-            }))}
-            transactions={partner.transactions.map((t) => ({
-              id: t.id,
-              createdAt: t.createdAt,
-              type: t.type,
-              amount: Number(t.amount),
-              balanceAfter: Number(t.balanceAfter),
-            }))}
-          />
+            </tbody>
+          </table>
         </div>
       </div>
+
+      <div className="mt-6 card">
+        <div className="border-b border-slate-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-slate-900">Transaction History</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Balance After</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partner.transactions.map((t) => (
+                <tr key={t.id}>
+                  <td>{t.type}</td>
+                  <td className={Number(t.amount) > 0 ? "text-emerald-600" : ""}>
+                    {Number(t.amount) > 0 ? "+" : ""}${Math.abs(Number(t.amount)).toFixed(2)}
+                  </td>
+                  <td>${Number(t.balanceAfter).toFixed(2)}</td>
+                  <td className="text-xs text-slate-400">
+                    {new Date(t.createdAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </PartnerDetailEditProvider>
+    </div>
   );
 }

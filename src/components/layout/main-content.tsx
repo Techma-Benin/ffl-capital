@@ -15,12 +15,7 @@ export function MainContent({
   const { isNavigating } = usePortal();
 
   return (
-    <main
-      className={clsx(
-        "relative flex min-h-0 flex-1 flex-col overflow-y-auto p-6",
-        className,
-      )}
-    >
+    <main className={clsx("relative flex-1 overflow-y-auto p-6", className)}>
       <NavProgress />
       {isNavigating ? <PageSkeleton /> : children}
     </main>

@@ -1,7 +1,7 @@
-import { PrismaClient, PartnerStatus } from "@prisma/client";
-import { dirname } from "path";
+import { PrismaClient, LeadType, PartnerStatus } from "@prisma/client";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { seedUnmatchedLeads } from "./seed-unmatched-leads.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -25,18 +25,6 @@ const APP_SETTING_KEYS = {
 };
 
 const prisma = new PrismaClient();
-
-function defaultFilterSet(filterStates, leadType, active = true, priority = 5) {
-  return {
-    create: {
-      name: "Default",
-      leadType,
-      filterStates,
-      active,
-      priority,
-    },
-  };
-}
 
 async function seedAppSettings() {
   const defaults = [
@@ -78,27 +66,12 @@ async function main() {
       lastName: "Older",
       affiliation: "Test Agency",
       residenceState: "TX",
+      leadType: LeadType.high_intent_iul,
       filterStates: TX_STATES,
-      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul", true, 8),
       priority: 8,
       walletBalance: 500,
       status: PartnerStatus.active,
       createdAt: baseDate,
-      // Sample CRM outbound so Partner Settings shows the configured Lead delivery UI.
-      crmOutboundConfig: {
-        create: {
-          enabled: true,
-          endpointUrl: "https://crm.example.com/leads",
-          httpMethod: "POST",
-          authType: "bearer",
-          authConfig: { token: "seed-demo-token" },
-          fieldMappings: [
-            { source: "firstName", target: "first_name" },
-            { source: "email", target: "email" },
-          ],
-          successRule: { require2xx: true },
-        },
-      },
     },
   });
 
@@ -109,8 +82,8 @@ async function main() {
       lastName: "Newer",
       affiliation: "Test Agency",
       residenceState: "TX",
+      leadType: LeadType.high_intent_iul,
       filterStates: TX_STATES,
-      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul", true, 8),
       priority: 8,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -125,8 +98,8 @@ async function main() {
       lastName: "Priority10",
       affiliation: "FFL Capital Test",
       residenceState: "TX",
+      leadType: LeadType.high_intent_iul,
       filterStates: TX_STATES,
-      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul", true, 10),
       priority: 10,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -140,8 +113,8 @@ async function main() {
       lastName: "Partner",
       affiliation: "West Coast Agency",
       residenceState: "CA",
+      leadType: LeadType.high_intent_iul,
       filterStates: CA_STATES,
-      filterSets: defaultFilterSet(CA_STATES, "high_intent_iul"),
       priority: 5,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -155,8 +128,8 @@ async function main() {
       lastName: "Balance",
       affiliation: "Test Agency",
       residenceState: "TX",
+      leadType: LeadType.high_intent_iul,
       filterStates: TX_STATES,
-      filterSets: defaultFilterSet(TX_STATES, "high_intent_iul"),
       priority: 10,
       walletBalance: 5,
       status: PartnerStatus.active,
@@ -170,8 +143,8 @@ async function main() {
       lastName: "States",
       affiliation: "Test Agency",
       residenceState: "TX",
+      leadType: LeadType.high_intent_iul,
       filterStates: FEW_STATES,
-      filterSets: defaultFilterSet(FEW_STATES, "high_intent_iul"),
       priority: 10,
       walletBalance: 500,
       status: PartnerStatus.active,
@@ -185,16 +158,13 @@ async function main() {
       lastName: "Approval",
       affiliation: "Test Agency",
       residenceState: "TX",
+      leadType: LeadType.traditional_iul,
       filterStates: TX_STATES,
-      filterSets: defaultFilterSet(TX_STATES, "traditional_iul", false),
       priority: 5,
       walletBalance: 500,
       status: PartnerStatus.pending_approval,
     },
   });
-
-  console.log("Seeding unmatched demo leads…");
-  const unmatchedLeads = await seedUnmatchedLeads(prisma);
 
   console.log("Seed complete:", {
     txHighPriority: txHighPriority.id,
@@ -204,10 +174,6 @@ async function main() {
     lowBalance: lowBalance.id,
     tooFewStates: tooFewStates.id,
     pendingPartner: pendingPartner.id,
-    unmatchedLeads: unmatchedLeads.map((l) => ({
-      name: l.name,
-      state: l.state,
-    })),
   });
 }
 
