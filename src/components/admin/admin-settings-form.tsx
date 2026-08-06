@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LeadCategoryManager } from "@/components/admin/lead-category-manager";
 import { IntegrityTestPanel } from "@/components/admin/integrity-test-panel";
+import { DEFAULT_CONTACT_RECIPIENT_EMAIL } from "@/lib/settings/contact-recipient";
 import { DEFAULT_RESALE_VENDOR_CONFIGS } from "@/lib/settings/resale-vendor-defaults";
 import {
   isSystemResaleVendorKey,
@@ -403,6 +404,7 @@ export function AdminSettingsForm({
     lifecycleRealtimeCutoffHours: 24,
     lifecycleStorefrontCutoffHours: 48,
     lifecycleMidWindowPrimary: "partner" as "partner" | "storefront",
+    contactRecipientEmail: DEFAULT_CONTACT_RECIPIENT_EMAIL,
   });
 
   const [resaleVendors, setResaleVendors] = useState<ResaleVendorRow[]>([]);
@@ -443,6 +445,11 @@ export function AdminSettingsForm({
             s.lifecycle_mid_window_primary === "storefront"
               ? "storefront"
               : "partner",
+          contactRecipientEmail:
+            typeof s.contact_recipient_email === "string" &&
+            s.contact_recipient_email.trim()
+              ? s.contact_recipient_email.trim()
+              : DEFAULT_CONTACT_RECIPIENT_EMAIL,
         });
         setResaleVendors(
           buildResaleRows(
@@ -496,6 +503,7 @@ export function AdminSettingsForm({
         lifecycleRealtimeCutoffHours: form.lifecycleRealtimeCutoffHours,
         lifecycleStorefrontCutoffHours: form.lifecycleStorefrontCutoffHours,
         lifecycleMidWindowPrimary: form.lifecycleMidWindowPrimary,
+        contactRecipientEmail: form.contactRecipientEmail.trim(),
       };
       payload.integrationsMode = form.integrationsMode;
       const res = await fetch("/api/admin/settings", {
@@ -590,8 +598,36 @@ export function AdminSettingsForm({
                     description="Partners must be approved before buying"
                     checked={form.adminApprovalRequired}
                     onChange={(v) => setForm({ ...form, adminApprovalRequired: v })}
-                    last
                   />
+                  <div style={{ paddingTop: 4, paddingBottom: 4 }}>
+                    <label
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: "#030229",
+                        display: "block",
+                        marginBottom: 6,
+                      }}
+                    >
+                      Partner contact recipient
+                    </label>
+                    <input
+                      type="email"
+                      value={form.contactRecipientEmail}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          contactRecipientEmail: e.target.value,
+                        })
+                      }
+                      placeholder={DEFAULT_CONTACT_RECIPIENT_EMAIL}
+                      className="form-input"
+                      required
+                    />
+                    <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 6 }}>
+                      Inbox that receives Contact Us messages from partners.
+                    </p>
+                  </div>
                 </div>
               </div>
 

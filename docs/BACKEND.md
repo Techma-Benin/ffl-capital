@@ -36,6 +36,7 @@
 | Stripe Checkout top-up + webhook | ✅ |
 | Auto-recharge hebdomadaire (abonnement Stripe) | ✅ |
 | Email livraison lead (Resend) | ✅ (si `RESEND_API_KEY`) |
+| Partner Contact Us (Resend → admin + confirmation) | ✅ `POST /api/partner/contact` |
 | CRM outbound partner (POST self-service) | ✅ — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | Remboursements Type A / Type B | ✅ |
 | Marketplace aged (achat + débit wallet) | ✅ |
@@ -437,7 +438,7 @@ Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/
 | Intégration | Mode | Variables / notes |
 |-------------|------|-------------------|
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
-| Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` |
+| Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` — livraison lead **et** Partner Contact Us ; destinataire Contact Us = `app_settings.contact_recipient_email` (défaut `support@fflcapital.com`, UI Admin → Settings → General → Platform) |
 | CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | IntegrityCONNECT | mock/live (admin + env) | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; **Realtime IUL** : ping Azure `IsAcceptingCampaign` avant post LC (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY` — env-only, jamais en BDD) ; Storefront : post direct sans ping LC ; mode sorties via `getIntegrationsMode()` : `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` si pas de valeur DB, défaut `mock` (dev) / `live` (prod). Dropdown Mode (Settings → Integrations / Integrity Connect) visible et persistable en prod ; **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire. **Mock auto posts** : HTTP réel vers LeadConduit avec `is_test=yes` (`applyIntegrityAutoPostTestFlag`) ; ping Azure Realtime IUL skippé (auto-accept). Live auto posts ne forcent pas `is_test`. **Boberdoo parity** : posts auto toujours HTTP — pas de gate local `required-fields.ts` ; rejets LC → `integrity_rejected` avec body LC. `required-fields.ts` = avertissements admin seulement. Boutons admin test : toujours HTTP réel + `is_test=yes` (mock et live) |
 | Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
@@ -486,6 +487,22 @@ Quand **activé** (cycle client approuvé — voir `docs/client_email_lead_routi
 **Flux direct (partner picker OFF, défaut)** : clic Reprocess → `POST …/bulk-reprocess` sans `partnerIds` (match tous les partenaires éligibles, pas de modal ni hold).
 
 Setting admin : `reprocess_partner_picker_enabled` (`app_settings`, défaut `false`) — toggle « Partner picker on reprocess » dans Settings → General → Lead lifecycle.
+
+### Partner Contact Us
+
+UI : `/partner/contact` — formulaire topic + message → `POST /api/partner/contact` (plus de `mailto:` client).
+
+| Route | Auth | Body | Réponse |
+|-------|------|------|---------|
+| `POST /api/partner/contact` | `requirePartner` | `{ topic, message }` (Zod `partnerContactSchema` ; topics fermés dans `contact-topics.ts`) | `200` `{ ok, confirmationSent, warning? }` ; `400` payload ; `403` auth ; `502` échec envoi admin |
+
+Flux (`deliverPartnerContact`) :
+
+1. Destinataire admin via `getContactRecipientEmail()` (`app_settings.contact_recipient_email`, fallback `support@fflcapital.com`)
+2. Email admin Resend (`FROM_EMAIL`, `replyTo` = email session partner)
+3. Confirmation partner Resend — échec confirmation → succès avec `warning` ; échec admin → `502` message générique
+
+Helper partagé : `src/lib/email/send-resend-email.ts`. Setting PATCH via `/api/admin/settings` (`contactRecipientEmail`). Tests : `test/current/partner-contact-delivery.test.ts`.
 
 | Route | Body | Réponse | Comportement |
 |-------|------|---------|--------------|
@@ -640,3 +657,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-05 | `getIntegrationsMode()` : résolution unifiée DB → env → défaut (mock dev / live prod) ; Mode admin visible et persistable en prod |
 | 2026-08-05 | `pnpm run ensure:integrity-env` : defaults Integrity publics (URLs + VendorId) dans `.env` après pull ; clé Azure jamais commitée ; branché sur `scripts/post-merge.sh` |
 | 2026-08-06 | Boberdoo parity Integrity : posts toujours HTTP (pas de gate `required-fields`) ; rejets LC → `integrity_rejected` ; admin test toujours HTTP + `is_test=yes` ; payload DOB/`has_iul_thom` aligné Boberdoo |
+| 2026-08-05 | Partner Contact Us : `POST /api/partner/contact` via Resend ; setting `contact_recipient_email` (Admin Settings → General → Platform) ; plus de `mailto:` |

@@ -14,9 +14,11 @@ import type {
   LifecycleSettings,
   MidWindowPrimary,
 } from "@/lib/lead-routing/types";
+import { DEFAULT_CONTACT_RECIPIENT_EMAIL } from "@/lib/settings/contact-recipient";
 
 export type { ResaleVendorConfig } from "@/lib/settings/resale-vendor-defaults";
 export { DEFAULT_RESALE_VENDOR_CONFIGS } from "@/lib/settings/resale-vendor-defaults";
+export { DEFAULT_CONTACT_RECIPIENT_EMAIL } from "@/lib/settings/contact-recipient";
 
 export const APP_SETTING_KEYS = {
   defaultRealtimePrice: "default_realtime_price",
@@ -35,6 +37,7 @@ export const APP_SETTING_KEYS = {
   lifecycleRealtimeCutoffHours: "lifecycle_realtime_cutoff_hours",
   lifecycleStorefrontCutoffHours: "lifecycle_storefront_cutoff_hours",
   lifecycleMidWindowPrimary: "lifecycle_mid_window_primary",
+  contactRecipientEmail: "contact_recipient_email",
 } as const;
 
 async function getSetting<T>(key: string, fallback: T): Promise<T> {
@@ -231,6 +234,22 @@ export async function getLifecycleSettings(): Promise<LifecycleSettings> {
 
 export { DEFAULT_LIFECYCLE_SETTINGS };
 
+/**
+ * Inbox that receives partner Contact Us messages.
+ * Falls back to support@fflcapital.com when unset so existing deployments work
+ * without a migration.
+ */
+export async function getContactRecipientEmail(): Promise<string> {
+  const value = await getSetting<string | null>(
+    APP_SETTING_KEYS.contactRecipientEmail,
+    null,
+  );
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  return DEFAULT_CONTACT_RECIPIENT_EMAIL;
+}
+
 export async function seedAppSettings(): Promise<void> {
   const defaults: Array<{ key: string; value: Prisma.InputJsonValue }> = [
     { key: APP_SETTING_KEYS.defaultRealtimePrice, value: 25 },
@@ -252,6 +271,10 @@ export async function seedAppSettings(): Promise<void> {
     { key: APP_SETTING_KEYS.lifecycleRealtimeCutoffHours, value: 24 },
     { key: APP_SETTING_KEYS.lifecycleStorefrontCutoffHours, value: 48 },
     { key: APP_SETTING_KEYS.lifecycleMidWindowPrimary, value: "partner" },
+    {
+      key: APP_SETTING_KEYS.contactRecipientEmail,
+      value: DEFAULT_CONTACT_RECIPIENT_EMAIL,
+    },
   ];
 
   for (const { key, value } of defaults) {

@@ -46,7 +46,8 @@ pnpm install
 
 # 2. Configurer la base de données
 cp .env.example .env
-# Remplir DATABASE_URL (Replit Postgres le fournit), CLERK_*, STRIPE_* selon besoin
+# Remplir DATABASE_URL (Replit Postgres le fournit), CLERK_*, STRIPE_*, RESEND_* selon besoin
+# (RESEND_API_KEY + FROM_EMAIL : emails livraison + Partner Contact Us ; destinataire Contact Us dans Admin Settings)
 pnpm run ensure:integrity-env   # defaults Integrity manquants (idempotent)
 
 # 3. Migrations et seed
@@ -107,6 +108,7 @@ pnpm run make-super-admin -- --email admin@example.com
 | POST | `/api/leads/intake` | Webhook LeadConduit (format Boberdoo, public, CORS) |
 | POST | `/api/wallet/checkout` | Stripe top-up (partner auth) |
 | POST | `/api/refunds` | Demande remboursement partner |
+| POST | `/api/partner/contact` | Contact Us partner (Resend → admin + confirmation) |
 | POST | `/api/cron/reprocess-unmatched` | Retraitement leads (Bearer CRON_SECRET) |
 | POST | `/api/cron/integrity-post` | Post Integrity unmatched (Bearer CRON_SECRET) |
 | POST | `/api/admin/lead-routing/preview` | Preview lifecycle routing policy (admin auth) |
@@ -126,8 +128,8 @@ Pour recevoir de **vrais** leads LeadConduit en local : ngrok + [LEADCONDUIT_SET
 
 | Portail | Routes |
 |---------|--------|
-| Admin | `/admin` — dashboard, leads, partners, refunds, aged, integrity, settings (lead categories, integrations), migration, filter list ; auth `/admin/sign-in`, invite-only `/admin/sign-up` |
-| Partner | `/partner` — dashboard, leads, wallet, aged, settings, contact ; auth `/sign-in`, `/sign-up` |
+| Admin | `/admin` — dashboard, leads, partners, refunds, aged, integrity, settings (lead categories, integrations, contact recipient), migration, filter list ; auth `/admin/sign-in`, invite-only `/admin/sign-up` |
+| Partner | `/partner` — dashboard, leads, wallet, aged, settings, contact (Resend) ; auth `/sign-in`, `/sign-up` |
 
 ## Structure
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import {
   APP_SETTING_KEYS,
+  getContactRecipientEmail,
   getResaleVendorConfigs,
   getResolvedResaleVendorPostUrl,
 } from "@/lib/settings/app-settings";
@@ -29,6 +30,7 @@ const settingsSchema = z.object({
   lifecycleRealtimeCutoffHours: z.number().int().min(1).optional(),
   lifecycleStorefrontCutoffHours: z.number().int().min(1).optional(),
   lifecycleMidWindowPrimary: z.enum(["partner", "storefront"]).optional(),
+  contactRecipientEmail: z.string().trim().email().optional(),
 });
 
 const KEY_MAP: Record<string, string> = {
@@ -48,6 +50,7 @@ const KEY_MAP: Record<string, string> = {
   lifecycleRealtimeCutoffHours: APP_SETTING_KEYS.lifecycleRealtimeCutoffHours,
   lifecycleStorefrontCutoffHours: APP_SETTING_KEYS.lifecycleStorefrontCutoffHours,
   lifecycleMidWindowPrimary: APP_SETTING_KEYS.lifecycleMidWindowPrimary,
+  contactRecipientEmail: APP_SETTING_KEYS.contactRecipientEmail,
 };
 
 export async function GET() {
@@ -77,6 +80,8 @@ export async function GET() {
     };
   }
   settings[APP_SETTING_KEYS.resaleVendorConfigs] = resaleConfigsWithResolved;
+  settings[APP_SETTING_KEYS.contactRecipientEmail] =
+    await getContactRecipientEmail();
 
   return NextResponse.json({ settings });
 }

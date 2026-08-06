@@ -5,52 +5,22 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ActionButton } from "@/components/ui/action-button";
 import { usePartner } from "@/components/partner/partner-provider";
 import { notify } from "@/lib/notify";
+import {
+  CONTACT_TOPICS,
+  type ContactTopicValue,
+} from "@/lib/partner/contact-topics";
 import { EnvelopeSimple, ICON_WEIGHT, PaperPlaneTilt } from "@/lib/icons/client";
-
-const SUPPORT_EMAIL = "support@fflcapital.com";
-
-const SUBJECTS = [
-  { value: "activation", label: "Account activation request" },
-  { value: "account", label: "Account question" },
-  { value: "refund", label: "Refund request" },
-  { value: "lead-quality", label: "Lead quality issue" },
-  { value: "billing", label: "Billing question" },
-  { value: "technical", label: "Technical issue" },
-  { value: "other", label: "Other" },
-] as const;
-
-type SubjectValue = (typeof SUBJECTS)[number]["value"];
-
-function buildMailto(
-  subjectValue: SubjectValue,
-  message: string,
-  partner: { id: string; email: string; firstName: string; lastName: string; status: string },
-) {
-  const subjectLabel = SUBJECTS.find((s) => s.value === subjectValue)?.label ?? "Support request";
-  const subjectLine = `[Partner Portal] ${subjectLabel}`;
-  const body = [
-    message.trim(),
-    "",
-    "---",
-    `Partner: ${partner.firstName} ${partner.lastName}`,
-    `Email: ${partner.email}`,
-    `Partner ID: ${partner.id}`,
-    `Status: ${partner.status}`,
-  ].join("\n");
-
-  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subjectLine)}&body=${encodeURIComponent(body)}`;
-}
 
 export function PartnerContactView() {
   const { partner } = usePartner();
-  const defaultSubject: SubjectValue =
+  const defaultSubject: ContactTopicValue =
     partner.status === "pending_approval" ? "activation" : "account";
 
-  const [subject, setSubject] = useState<SubjectValue>(defaultSubject);
+  const [subject, setSubject] = useState<ContactTopicValue>(defaultSubject);
   const [message, setMessage] = useState("");
-  const [opening, setOpening] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     if (!message.trim()) {
@@ -58,12 +28,42 @@ export function PartnerContactView() {
       return;
     }
 
-    setOpening(true);
-    window.location.href = buildMailto(subject, message, partner);
-    notify.success("Email client opened", {
-      description: "If your email app did not open, use the address above.",
-    });
-    setOpening(false);
+    setSending(true);
+    try {
+      const res = await fetch("/api/partner/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: subject, message: message.trim() }),
+      });
+
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        warning?: string;
+        confirmationSent?: boolean;
+      };
+
+      if (!res.ok) {
+        notify.error(
+          typeof data.error === "string" && data.error
+            ? data.error
+            : "Failed to send your message. Please try again.",
+        );
+        return;
+      }
+
+      setMessage("");
+      if (data.warning) {
+        notify.success("Message sent", { description: data.warning });
+      } else {
+        notify.success("Message sent", {
+          description: "You will receive a confirmation email shortly.",
+        });
+      }
+    } catch {
+      notify.error("Failed to send your message. Please try again.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -81,13 +81,11 @@ export function PartnerContactView() {
             className="flex-shrink-0 text-cyan-700"
           />
           <div className="min-w-0 text-sm">
-            <p className="text-slate-500">Email</p>
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="font-medium text-slate-900 hover:text-brand-600"
-            >
-              {SUPPORT_EMAIL}
-            </a>
+            <p className="text-slate-500">Support</p>
+            <p className="font-medium text-slate-900">
+              Messages are emailed to the FFL Capital administrator. You will
+              get a confirmation when your message is received.
+            </p>
           </div>
         </div>
 
@@ -100,11 +98,12 @@ export function PartnerContactView() {
               id="contact-subject"
               className="form-select"
               value={subject}
+              disabled={sending}
               onChange={(e) => {
-                setSubject(e.target.value as SubjectValue);
+                setSubject(e.target.value as ContactTopicValue);
               }}
             >
-              {SUBJECTS.map((option) => (
+              {CONTACT_TOPICS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -125,6 +124,7 @@ export function PartnerContactView() {
                   : "Describe your question or issue…"
               }
               value={message}
+              disabled={sending}
               onChange={(e) => {
                 setMessage(e.target.value);
               }}
@@ -139,8 +139,9 @@ export function PartnerContactView() {
               type="submit"
               icon={<PaperPlaneTilt size={15} />}
               className="flex-shrink-0"
-              loading={opening}
-              loadingText="Opening email…"
+              loading={sending}
+              loadingText="Sending…"
+              disabled={sending}
             >
               Send
             </ActionButton>
