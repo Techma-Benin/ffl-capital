@@ -17,11 +17,17 @@ export function PartnerContactView() {
     partner.status === "pending_approval" ? "activation" : "account";
 
   const [subject, setSubject] = useState<ContactTopicValue>(defaultSubject);
+  const [customTopic, setCustomTopic] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (subject === "other" && !customTopic.trim()) {
+      notify.error("Please describe your topic before sending.");
+      return;
+    }
 
     if (!message.trim()) {
       notify.error("Please enter a message before sending.");
@@ -30,10 +36,19 @@ export function PartnerContactView() {
 
     setSending(true);
     try {
+      const payload: {
+        topic: ContactTopicValue;
+        message: string;
+        customTopic?: string;
+      } = { topic: subject, message: message.trim() };
+      if (subject === "other") {
+        payload.customTopic = customTopic.trim();
+      }
+
       const res = await fetch("/api/partner/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: subject, message: message.trim() }),
+        body: JSON.stringify(payload),
       });
 
       const data = (await res.json().catch(() => ({}))) as {
@@ -52,6 +67,7 @@ export function PartnerContactView() {
       }
 
       setMessage("");
+      setCustomTopic("");
       if (data.warning) {
         notify.success("Message sent", { description: data.warning });
       } else {
@@ -100,7 +116,11 @@ export function PartnerContactView() {
               value={subject}
               disabled={sending}
               onChange={(e) => {
-                setSubject(e.target.value as ContactTopicValue);
+                const next = e.target.value as ContactTopicValue;
+                setSubject(next);
+                if (next !== "other") {
+                  setCustomTopic("");
+                }
               }}
             >
               {CONTACT_TOPICS.map((option) => (
@@ -110,6 +130,26 @@ export function PartnerContactView() {
               ))}
             </select>
           </div>
+
+          {subject === "other" && (
+            <div>
+              <label htmlFor="contact-custom-topic" className="form-label">
+                Your topic
+              </label>
+              <input
+                id="contact-custom-topic"
+                type="text"
+                className="form-input"
+                placeholder="Briefly describe what your message is about"
+                value={customTopic}
+                maxLength={120}
+                disabled={sending}
+                onChange={(e) => {
+                  setCustomTopic(e.target.value);
+                }}
+              />
+            </div>
+          )}
 
           <div>
             <label htmlFor="contact-message" className="form-label">

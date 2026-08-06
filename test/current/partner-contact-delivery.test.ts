@@ -42,6 +42,23 @@ describe("partner contact request validation", () => {
     });
     assert.equal(result.success, false);
   });
+
+  test("rejects other without customTopic", () => {
+    const result = partnerContactSchema.safeParse({
+      topic: "other",
+      message: "Hello",
+    });
+    assert.equal(result.success, false);
+  });
+
+  test("accepts other with customTopic", () => {
+    const result = partnerContactSchema.safeParse({
+      topic: "other",
+      customTopic: "Partnership inquiry",
+      message: "Hello",
+    });
+    assert.equal(result.success, true);
+  });
 });
 
 describe("partner contact email builders", () => {
@@ -60,16 +77,48 @@ describe("partner contact email builders", () => {
     assert.match(email.html, /active/);
   });
 
-  test("confirmation email acknowledges receipt", () => {
+  test("confirmation email acknowledges receipt with message recap", () => {
     const email = buildPartnerConfirmationEmail({
       topic: "refund",
+      message: "Please refund lead #42",
       partnerFirstName: "Ada",
+      partnerEmail: "partner@example.com",
     });
 
     assert.equal(email.subject, "We received your message");
     assert.match(email.html, /Hi Ada/);
     assert.match(email.html, /Refund request/);
-    assert.match(email.html, /reply soon/);
+    assert.match(email.html, /Please refund lead #42/);
+    assert.match(email.html, /do not reply to this email/);
+    assert.match(email.html, /partner@example.com/);
+  });
+
+  test("admin email uses custom topic when topic is other", () => {
+    const email = buildAdminContactEmail({
+      topic: "other",
+      customTopic: "Partnership inquiry",
+      message: "Interested in co-marketing",
+      partner,
+    });
+
+    assert.match(email.subject, /Partnership inquiry/);
+    assert.match(email.html, /Partnership inquiry/);
+    assert.match(email.html, /Interested in co-marketing/);
+    assert.doesNotMatch(email.subject, /\[Partner Portal\] Other$/);
+  });
+
+  test("confirmation email uses custom topic when topic is other", () => {
+    const email = buildPartnerConfirmationEmail({
+      topic: "other",
+      customTopic: "Partnership inquiry",
+      message: "Interested in co-marketing",
+      partnerFirstName: "Ada",
+      partnerEmail: "partner@example.com",
+    });
+
+    assert.match(email.html, /Partnership inquiry/);
+    assert.match(email.html, /Interested in co-marketing/);
+    assert.match(email.html, /do not reply to this email/);
   });
 });
 
@@ -105,7 +154,12 @@ describe("partner contact delivery", () => {
     const sent: SendResendEmailParams[] = [];
 
     const result = await deliverPartnerContact(
-      { topic: "other", message: "General question", partner },
+      {
+        topic: "other",
+        customTopic: "General question",
+        message: "General question",
+        partner,
+      },
       {
         getRecipientEmail: async () => DEFAULT_CONTACT_RECIPIENT_EMAIL,
         sendEmail: async (params) => {

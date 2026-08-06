@@ -18,3 +18,14 @@ export const CONTACT_TOPIC_VALUES = CONTACT_TOPICS.map((t) => t.value) as [
 export function contactTopicLabel(value: ContactTopicValue): string {
   return CONTACT_TOPICS.find((t) => t.value === value)?.label ?? "Support request";
 }
+
+export function resolveContactTopicLabel(
+  topic: ContactTopicValue,
+  customTopic?: string,
+): string {
+  if (topic === "other") {
+    const trimmed = customTopic?.trim();
+    return trimmed && trimmed.length > 0 ? trimmed : "Other";
+  }
+  return contactTopicLabel(topic);
+}

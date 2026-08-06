@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
   const result = await deliverPartnerContact({
     topic: parsed.data.topic,
     message: parsed.data.message,
+    customTopic: parsed.data.customTopic,
     partner: {
       id: partner.id,
       email: partner.email,

@@ -1,7 +1,7 @@
 import { sendResendEmail } from "@/lib/email/send-resend-email";
 import { getContactRecipientEmail } from "@/lib/settings/app-settings";
 import {
-  contactTopicLabel,
+  resolveContactTopicLabel,
   type ContactTopicValue,
 } from "@/lib/partner/contact-topics";
 
@@ -16,6 +16,7 @@ export type PartnerContactIdentity = {
 export type DeliverPartnerContactInput = {
   topic: ContactTopicValue;
   message: string;
+  customTopic?: string;
   partner: PartnerContactIdentity;
 };
 
@@ -40,14 +41,19 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function formatMessageHtml(message: string): string {
+  return escapeHtml(message.trim()).replace(/\n/g, "<br/>");
+}
+
 export function buildAdminContactEmail(params: {
   topic: ContactTopicValue;
   message: string;
+  customTopic?: string;
   partner: PartnerContactIdentity;
 }): { subject: string; html: string } {
-  const topicLabel = contactTopicLabel(params.topic);
+  const topicLabel = resolveContactTopicLabel(params.topic, params.customTopic);
   const subject = `[Partner Portal] ${topicLabel}`;
-  const safeMessage = escapeHtml(params.message.trim()).replace(/\n/g, "<br/>");
+  const safeMessage = formatMessageHtml(params.message);
 
   const html = `
     <div style="font-family:system-ui,sans-serif;color:#0f172a">
@@ -69,20 +75,27 @@ export function buildAdminContactEmail(params: {
 
 export function buildPartnerConfirmationEmail(params: {
   topic: ContactTopicValue;
+  customTopic?: string;
+  message: string;
   partnerFirstName: string;
+  partnerEmail: string;
 }): { subject: string; html: string } {
-  const topicLabel = contactTopicLabel(params.topic);
+  const topicLabel = resolveContactTopicLabel(params.topic, params.customTopic);
   const subject = "We received your message";
   const firstName = params.partnerFirstName.trim() || "there";
+  const safeMessage = formatMessageHtml(params.message);
 
   const html = `
     <div style="font-family:system-ui,sans-serif;color:#0f172a">
       <p>Hi ${escapeHtml(firstName)},</p>
-      <p>
-        Your message about <strong>${escapeHtml(topicLabel)}</strong> was received
-        by the FFL Capital administrator. You will receive a reply soon.
+      <p>We received your message and will reply soon.</p>
+      <p><strong>Topic:</strong> ${escapeHtml(topicLabel)}</p>
+      <p><strong>Message:</strong></p>
+      <p>${safeMessage}</p>
+      <p style="color:#64748b;font-size:13px">
+        This is an automated confirmation. Please do not reply to this email —
+        the administrator will contact you at ${escapeHtml(params.partnerEmail)}.
       </p>
-      <p style="color:#64748b;font-size:13px">This is an automated confirmation.</p>
     </div>
   `.trim();
 
@@ -123,7 +136,10 @@ export async function deliverPartnerContact(
 
   const confirmation = buildPartnerConfirmationEmail({
     topic: input.topic,
+    customTopic: input.customTopic,
+    message: input.message,
     partnerFirstName: input.partner.firstName,
+    partnerEmail: input.partner.email,
   });
 
   const confirmationSend = await sendEmail({
