@@ -555,6 +555,7 @@ Le cron draine la work queue via le coordinator (Integrity seulement si lifecycl
 |-------|------|
 | `GET /api/admin/integrity/postings` | Liste légère (50 derniers `resale_postings` + lead basique). **Pas** de payloads complets ; `rejectionReason` toujours `null` ici ; `integrityOutcome` dérivé des événements (ex. `no_campaign_available`). |
 | `GET /api/admin/integrity/postings/[id]` | Détail : résumé posting + événements Integrity du lead filtrés par `postingId` ; dérive `rejectionReason`, `outcome`, `requestPayload`, `response` depuis les payloads d’événements. |
+| `POST /api/admin/integrity/postings/[id]/reprocess` | Reprocess admin : renvoie le lead vers Integrity via `adminReprocessIntegrityPosting` → `integrityPostLead` (`forceAdminRetry`, `postingId`). Mode = celui du posting (jamais Realtime ↔ Storefront). Bloqué si lead `liveSoldAt` ou posting `sold`. Autorise retry des leads `pending` / `integrity_posted` (admin only). Respecte vendor enabled + mock `is_test`. 400 si non posté. |
 | `POST /api/admin/integrity/test` | Soumission test LeadConduit sans enregistrement BDD ; toujours `is_test=yes` + HTTP réel vers LeadConduit (mock et live) ; résout le label Realtime vs Storefront ; `checkRequiredIntegrityFields` = avertissements lead picker seulement ; renvoie `encodedBody` / `encodedFields` pour vérifier `address_1` et les champs DOB (voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)). |
 
 **Persistance événements** (`lead_events.payload`) :
@@ -563,7 +564,7 @@ Le cron draine la work queue via le coordinator (Integrity seulement si lifecycl
 - Webhook `POST /api/webhooks/integrity` : `integrity_accepted` / `integrity_rejected` / `integrity_no_campaign` / `integrity_error` stockent le body webhook sous `response` ; échec « No Campaign Available » → `integrity_no_campaign` (pas `integrity_rejected`) ; classification via `classify.ts` — NCA restaure `unmatched` + `nextRoutingAttemptAt` ; rejet terminal → bloc Integrity + suite partners si fenêtre partner-capable.
 - Postings plus anciens peuvent n’avoir ni payloads ni raison de rejet (empty state UI).
 
-UI : `/admin/integrity` — libellés centralisés (`src/lib/integrity/event-labels.ts`) ; badge **No Campaign Available** quand `integrityOutcome=no_campaign_available` ; modal détail à onglets horizontaux (Posting detail par défaut, Integrity payloads & outcome, Events — un onglet actif à la fois) ; lazy-load du détail `[id]`.
+UI : `/admin/integrity` — libellés centralisés (`src/lib/integrity/event-labels.ts`) ; badge **No Campaign Available** quand `integrityOutcome=no_campaign_available` ; modal détail à onglets horizontaux (Posting detail par défaut, Integrity payloads & outcome, Events — un onglet actif à la fois) ; lazy-load du détail `[id]` ; bouton **Reprocess** dans l’en-tête du modal (`POST …/postings/[id]/reprocess`, désactivé si posting sold / vente live).
 
 ---
 

@@ -311,11 +311,20 @@ function toIntegrityMode(mode: ResaleMode): IntegrityResaleMode {
   return mode === ResaleMode.storefront ? "storefront" : "realtime";
 }
 
+export type IntegrityPostLeadOptions = {
+  mode?: ResaleMode;
+  /** Admin-only: retry a pending posting and allow integrity_posted leads. */
+  forceAdminRetry?: boolean;
+  /** When set, reuse this posting row (must belong to lead + mode). */
+  postingId?: string;
+};
+
 export async function integrityPostLead(
   leadId: string,
-  options?: { mode?: ResaleMode },
+  options?: IntegrityPostLeadOptions,
 ): Promise<IntegrityPostResult> {
   const resaleMode = options?.mode ?? ResaleMode.realtime;
+  const forceAdminRetry = options?.forceAdminRetry === true;
   const integrityMode = toIntegrityMode(resaleMode);
   const vendorKey =
     resaleMode === ResaleMode.storefront
@@ -328,8 +337,19 @@ export async function integrityPostLead(
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return { posted: false, reason: "Lead not found" };
+
+  if (lead.liveSoldAt != null) {
+    return {
+      posted: false,
+      reason: "Lead already has a live sale — Integrity reprocess is blocked",
+    };
+  }
+
+  const statusEligible =
+    lead.status === LeadStatus.unmatched ||
+    (forceAdminRetry && lead.status === LeadStatus.integrity_posted);
   if (
-    lead.status !== LeadStatus.unmatched ||
+    !statusEligible ||
     !lead.available ||
     lead.categoryResolution !== LeadCategoryResolution.matched ||
     !lead.leadType
@@ -337,10 +357,38 @@ export async function integrityPostLead(
     return { posted: false, reason: "Lead not eligible for Integrity post" };
   }
 
-  const existing = await prisma.resalePosting.findFirst({
-    where: { leadId, mode: resaleMode },
-  });
-  if (existing && existing.status !== ResaleStatus.rejected) {
+  if (forceAdminRetry && lead.status === LeadStatus.integrity_posted) {
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: { status: LeadStatus.unmatched },
+    });
+  }
+
+  const existing = options?.postingId
+    ? await prisma.resalePosting.findFirst({
+        where: { id: options.postingId, leadId, mode: resaleMode },
+      })
+    : await prisma.resalePosting.findFirst({
+        where: { leadId, mode: resaleMode },
+        orderBy: { postedAt: "desc" },
+      });
+
+  if (options?.postingId && !existing) {
+    return { posted: false, reason: "Posting not found for this lead and mode" };
+  }
+
+  if (existing?.status === ResaleStatus.sold) {
+    return {
+      posted: false,
+      reason: "Posting already sold — Integrity reprocess is blocked",
+    };
+  }
+
+  if (
+    existing &&
+    existing.status !== ResaleStatus.rejected &&
+    !forceAdminRetry
+  ) {
     return { posted: false, reason: "Already posted to Integrity" };
   }
 
@@ -505,4 +553,41 @@ export async function integrityPostStorefrontLead(
   leadId: string,
 ): Promise<IntegrityPostResult> {
   return integrityPostLead(leadId, { mode: ResaleMode.storefront });
+}
+
+/**
+ * Admin explicit reprocess of an existing Integrity posting.
+ * Uses the posting's mode (realtime / storefront); never switches vendors.
+ * Blocks live-sold leads and sold postings.
+ */
+export async function adminReprocessIntegrityPosting(
+  postingId: string,
+): Promise<IntegrityPostResult> {
+  const posting = await prisma.resalePosting.findUnique({
+    where: { id: postingId },
+    select: {
+      id: true,
+      leadId: true,
+      mode: true,
+      status: true,
+      lead: { select: { liveSoldAt: true } },
+    },
+  });
+
+  if (!posting) {
+    return { posted: false, reason: "Posting not found" };
+  }
+
+  if (posting.status === ResaleStatus.sold || posting.lead.liveSoldAt != null) {
+    return {
+      posted: false,
+      reason: "Lead already has a live sale — Integrity reprocess is blocked",
+    };
+  }
+
+  return integrityPostLead(posting.leadId, {
+    mode: posting.mode,
+    postingId: posting.id,
+    forceAdminRetry: true,
+  });
 }

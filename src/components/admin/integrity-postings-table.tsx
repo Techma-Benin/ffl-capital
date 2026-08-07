@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
 import { paginateClientList } from "@/lib/client-table-pagination";
-import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
+import {
+  ArrowCounterClockwise,
+  X,
+  ICON_WEIGHT_LINEAR,
+} from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
 import {
   formatIntegrityEventType,
   formatIntegrityOutcome,
   formatResaleStatusLabel,
 } from "@/lib/integrity/event-labels";
+import { notify } from "@/lib/notify";
 
 const POSTINGS_PAGE_SIZE = 25;
 
@@ -94,8 +99,11 @@ function PostingModal({
     posting.rejectionReason,
   );
   const [integrity, setIntegrity] = useState<IntegrityDetail | null>(null);
+  const [detailStatus, setDetailStatus] = useState<ResaleStatus>(posting.status);
+  const [reprocessPending, setReprocessPending] = useState(false);
+  const [detailReloadKey, setDetailReloadKey] = useState(0);
 
-  useEffect(() => {
+  const loadDetail = useCallback(() => {
     let cancelled = false;
     setDetailLoading(true);
     setDetailError(null);
@@ -109,13 +117,14 @@ function PostingModal({
           throw new Error(body?.error ?? `HTTP ${res.status}`);
         }
         return res.json() as Promise<{
-          posting: { rejectionReason: string | null };
+          posting: { rejectionReason: string | null; status?: ResaleStatus };
           integrity: IntegrityDetail;
         }>;
       })
       .then((data) => {
         if (cancelled) return;
         setRejectionReason(data.posting.rejectionReason);
+        if (data.posting.status) setDetailStatus(data.posting.status);
         setIntegrity(data.integrity);
       })
       .catch((err: unknown) => {
@@ -131,6 +140,41 @@ function PostingModal({
     };
   }, [posting.id]);
 
+  useEffect(() => {
+    return loadDetail();
+  }, [loadDetail, detailReloadKey]);
+
+  async function handleReprocess() {
+    if (reprocessPending) return;
+    setReprocessPending(true);
+    try {
+      const res = await fetch(
+        `/api/admin/integrity/postings/${posting.id}/reprocess`,
+        { method: "POST" },
+      );
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        posted?: boolean;
+        reason?: string;
+      } | null;
+      if (!res.ok) {
+        throw new Error(
+          data?.error ?? data?.reason ?? "Integrity reprocess failed",
+        );
+      }
+      notify.success(
+        `Re-sent to Integrity ${posting.mode === "storefront" ? "Storefront" : "RealTime"}`,
+      );
+      setDetailReloadKey((k) => k + 1);
+    } catch (err) {
+      notify.error(
+        err instanceof Error ? err.message : "Integrity reprocess failed",
+      );
+    } finally {
+      setReprocessPending(false);
+    }
+  }
+
   const hasPayloadData =
     integrity &&
     (integrity.requestPayload ||
@@ -138,6 +182,7 @@ function PostingModal({
       integrity.outcome);
 
   const events = integrity?.events ?? [];
+  const reprocessBlocked = detailStatus === "sold";
 
   return (
     <div
@@ -155,12 +200,33 @@ function PostingModal({
             </h2>
             <p className="text-xs text-slate-400 font-mono mt-0.5">{posting.id}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600"
-          >
-            <X size={18} weight={ICON_WEIGHT_LINEAR} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void handleReprocess()}
+              disabled={reprocessPending || reprocessBlocked}
+              title={
+                reprocessBlocked
+                  ? "Sold postings cannot be reprocessed (live sale)"
+                  : `Send again via Integrity ${posting.mode === "storefront" ? "Storefront" : "RealTime"}`
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40"
+            >
+              <ArrowCounterClockwise
+                size={14}
+                weight={ICON_WEIGHT_LINEAR}
+                className={reprocessPending ? "animate-spin" : ""}
+                aria-hidden
+              />
+              {reprocessPending ? "Sending…" : "Reprocess"}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600"
+            >
+              <X size={18} weight={ICON_WEIGHT_LINEAR} />
+            </button>
+          </div>
         </div>
 
         {/* Tab bar — same underline pattern as admin settings */}
@@ -233,7 +299,7 @@ function PostingModal({
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                   <div>
                     <span className="text-slate-500">Status</span>
-                    <p className="mt-0.5">{statusBadge(posting.status, integrity?.outcome)}</p>
+                    <p className="mt-0.5">{statusBadge(detailStatus, integrity?.outcome)}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Mode</span>
@@ -269,7 +335,7 @@ function PostingModal({
                 </div>
               )}
 
-              {posting.status === "rejected" && !rejectionReason && !detailLoading && (
+              {detailStatus === "rejected" && !rejectionReason && !detailLoading && (
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
                     Rejection reason

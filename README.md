@@ -113,7 +113,7 @@ pnpm run make-super-admin -- --email admin@example.com
 | POST | `/api/cron/integrity-post` | Post Integrity unmatched (Bearer CRON_SECRET) |
 | POST | `/api/admin/lead-routing/preview` | Preview lifecycle routing policy (admin auth) |
 
-Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, **lead-routing preview**, partners, filter sets, refunds, **integrity postings** (list + detail payloads) — voir [BACKEND.md](docs/BACKEND.md).
+Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, **lead-routing preview**, partners, filter sets, refunds, **integrity postings** (list + detail payloads + reprocess) — voir [BACKEND.md](docs/BACKEND.md).
 
 ## Dev tools
 

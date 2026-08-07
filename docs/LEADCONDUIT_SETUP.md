@@ -258,7 +258,7 @@ LeadConduit can POST back a result after processing. This closes the loop: submi
 
 Outbound posts (`src/lib/integrity/post.ts`) store `requestPayload` and LeadConduit `response` on `integrity_posted`, `integrity_rejected`, and `integrity_no_campaign` events. Older postings may have legacy `integrity_missing_fields` events from a prior local pre-flight gate.
 
-**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`) and includes `integrityOutcome` per row (e.g. `no_campaign_available`). UI badges show **No Campaign Available** instead of **Rejected** for that outcome. Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, and rejection reason derived from those events (empty for older postings without stored payloads).
+**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`) and includes `integrityOutcome` per row (e.g. `no_campaign_available`). UI badges show **No Campaign Available** instead of **Rejected** for that outcome. Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, and rejection reason derived from those events (empty for older postings without stored payloads). Modal header **Reprocess** calls `POST /api/admin/integrity/postings/[id]/reprocess` — reuses the posting’s mode via `integrityPostLead` (admin force-retry); blocked for live-sold leads and sold postings.
 
 ---
 
