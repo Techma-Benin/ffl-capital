@@ -2,11 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { Lead } from "@prisma/client";
 
-import {
-  formatStateForIntegrity,
-  integrityRealtimeSkipReason,
-  isIntegrityRealtimeEligibleState,
-} from "../../src/lib/constants/us-states";
+import { formatStateForIntegrity } from "../../src/lib/constants/us-states";
 import { buildIntegrityLeadPayload } from "../../src/lib/integrity/build-payload";
 
 function minimalLead(overrides: Partial<Lead> = {}): Lead {
@@ -75,20 +71,6 @@ describe("Integrity state formatting", () => {
 
     assert.equal(payload.state, "Texas");
     assert.notEqual(payload.state, "TX");
-  });
-
-  test("eligible Realtime states are recognized", () => {
-    for (const code of ["UT", "MT", "WI", "TX", "OH", "MI", "FL", "AZ"]) {
-      assert.equal(isIntegrityRealtimeEligibleState(code), true);
-    }
-  });
-
-  test("ineligible state CO skips Realtime with explicit reason", () => {
-    assert.equal(isIntegrityRealtimeEligibleState("CO"), false);
-    assert.equal(
-      integrityRealtimeSkipReason("CO"),
-      "Integrity Realtime: no campaign for state CO",
-    );
   });
 
   test("buildIntegrityLeadPayload always includes address_1 as empty string when missing", () => {

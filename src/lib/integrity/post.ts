@@ -16,7 +16,6 @@ import {
   INTEGRITY_REALTIME_VENDOR_KEY,
   INTEGRITY_STOREFRONT_VENDOR_KEY,
 } from "@/lib/settings/resale-vendor-keys";
-import { integrityRealtimeSkipReason } from "@/lib/constants/us-states";
 import {
   applyIntegrityAutoPostTestFlag,
   buildIntegrityLeadPayload,
@@ -240,18 +239,6 @@ export async function integrityPostLead(
       `${resaleMode === ResaleMode.realtime ? "INTEGRITY_REALTIME_SUBMIT_URL" : "INTEGRITY_STOREFRONT_SUBMIT_URL"} not configured`,
       { vendor: vendorKey, mode: resaleMode, enabled: vendor.enabled, integrationsMode },
     );
-  }
-
-  if (resaleMode === ResaleMode.realtime) {
-    const stateSkipReason = integrityRealtimeSkipReason(lead.state);
-    if (stateSkipReason) {
-      return skipIntegrityPost(leadId, stateSkipReason, {
-        vendor: vendorKey,
-        mode: resaleMode,
-        enabled: vendor.enabled,
-        integrationsMode,
-      });
-    }
   }
 
   const logFields = {
