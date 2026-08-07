@@ -3,6 +3,7 @@ import { LeadEventType, ResaleMode, ResaleStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { claimLiveSale } from "@/lib/lead-routing/live-sale";
+import { isNoCampaignAvailableReason } from "@/lib/integrity/no-campaign";
 
 /**
  * POST /api/webhooks/integrity
@@ -124,12 +125,17 @@ export async function POST(request: NextRequest) {
       data: { status: ResaleStatus.rejected },
     });
 
-    await emitLeadEvent(posting.leadId, LeadEventType.integrity_rejected, {
-      postingId: resolvedPostingId,
-      reason,
-      outcome: "rejected",
-      response: body,
-    });
+    const noCampaign = reason != null && isNoCampaignAvailableReason(reason);
+    await emitLeadEvent(
+      posting.leadId,
+      noCampaign ? LeadEventType.integrity_no_campaign : LeadEventType.integrity_rejected,
+      {
+        postingId: resolvedPostingId,
+        reason,
+        outcome: noCampaign ? "no_campaign_available" : "rejected",
+        response: body,
+      },
+    );
   } else {
     // "error" or unknown — log and leave pending for retry
     console.error(

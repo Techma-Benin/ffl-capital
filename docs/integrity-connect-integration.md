@@ -196,7 +196,7 @@ The `lead_type_thom` field **must** contain one of these exact strings or the le
 
 ### Realtime state campaigns
 
-All Realtime leads are posted to LeadConduit regardless of state. Integrity Realtime only accepts leads from states with active campaigns on their side — for other states, LeadConduit may return **"No Campaign Available"**. That is a rejection from LeadConduit, not a local skip.
+All Realtime leads are posted to LeadConduit regardless of state. Integrity Realtime only accepts leads from states with active campaigns on their side — for other states, LeadConduit may return **"No Campaign Available"**. That is a rejection from LeadConduit, not a local skip. The platform records it as `integrity_no_campaign` (outcome `no_campaign_available`), distinct from generic `integrity_rejected` (outcome `rejected`).
 
 | States with active Realtime campaigns (reference) |
 |---|
@@ -325,7 +325,7 @@ These are the mappings from our internal lead object properties to the LeadCondu
 
 **Intake requirement:** `/api/leads/intake` rejects payloads missing `Trusted_Form_URL` (or `trustedform_cert_url`) with `{ outcome: "error", reason: "Missing required fields: …" }`. `DOB` is temporarily optional at intake (MP Facebook forms often omit it); `Have_IUL` / `Primary_Goal` are product-specific and not enforced at intake. `src/lib/integrity/required-fields.ts` is **advisory only** (admin Integrity test panel lead-picker warnings) — it does **not** block outbound HTTP.
 
-**Boberdoo parity (outbound posts):** Automatic and admin-test posts always send HTTP to LeadConduit. There is no local pre-flight gate that skips the request for missing fields. LeadConduit accept/reject is recorded from the LC response body (`integrity_posted` / `integrity_rejected`).
+**Boberdoo parity (outbound posts):** Automatic and admin-test posts always send HTTP to LeadConduit. There is no local pre-flight gate that skips the request for missing fields. LeadConduit accept/reject is recorded from the LC response body (`integrity_posted` / `integrity_rejected` / `integrity_no_campaign` when the reason contains "No Campaign Available").
 
 **Outbound payload shape:** `buildIntegrityLeadPayload` and `buildIntegrityStorefrontPayload` omit optional fields when the lead has no value. Exceptions and parity notes:
 
@@ -387,12 +387,12 @@ IF resaleMode = realtime:
   → IF lead type is Realtime IUL → Azure IsAcceptingCampaign ping (env secrets)
   → POST to INTEGRITY_REALTIME_SUBMIT_URL (or vendor postUrl) — always HTTP; no local missing-field gate
   → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
-  → LC failure → integrity_rejected with LC response body
+  → LC failure → integrity_rejected (outcome rejected) OR integrity_no_campaign (outcome no_campaign_available) when reason contains "No Campaign Available"; LC response body stored on event
 
 IF resaleMode = storefront:
   → POST directly to INTEGRITY_STOREFRONT_SUBMIT_URL (no LC ping gate) — always HTTP
   → LC Storefront acceptance criteria: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
-  → LC failure → integrity_rejected with LC response body
+  → LC failure → integrity_rejected or integrity_no_campaign (same detection as Realtime); LC response body stored on event
 ```
 
 ### Unmatched lead lifecycle (admin flag `lifecycle_routing_enabled`, default OFF)

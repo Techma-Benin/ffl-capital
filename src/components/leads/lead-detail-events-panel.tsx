@@ -1,5 +1,6 @@
 import { formatDateTimeLong } from "@/lib/format-datetime";
 import { formatUsdPlain } from "@/lib/format-money";
+import { formatIntegrityEventType } from "@/lib/integrity/event-labels";
 import type { LeadDetailEvent } from "@/components/leads/lead-detail-types";
 
 export function LeadDetailEventsPanel({ events }: { events: LeadDetailEvent[] }) {
@@ -51,6 +52,9 @@ export function LeadDetailEventsPanel({ events }: { events: LeadDetailEvent[] })
 }
 
 function formatLeadDetailEventType(type: string): string {
+  if (type.startsWith("integrity_")) {
+    return formatIntegrityEventType(type);
+  }
   return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 

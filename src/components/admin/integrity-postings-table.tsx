@@ -7,6 +7,11 @@ import { ClientTablePagination } from "@/components/ui/table-pagination";
 import { paginateClientList } from "@/lib/client-table-pagination";
 import { X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
+import {
+  formatIntegrityEventType,
+  formatIntegrityOutcome,
+  formatResaleStatusLabel,
+} from "@/lib/integrity/event-labels";
 
 const POSTINGS_PAGE_SIZE = 25;
 
@@ -28,6 +33,7 @@ export interface PostingRow {
     leadType: string | null;
   };
   rejectionReason: string | null;
+  integrityOutcome?: string | null;
 }
 
 type IntegrityEventRow = {
@@ -44,10 +50,14 @@ type IntegrityDetail = {
   events: IntegrityEventRow[];
 };
 
-function statusBadge(status: ResaleStatus) {
-  if (status === "sold") return <Badge variant="green">sold</Badge>;
-  if (status === "rejected") return <Badge variant="red">rejected</Badge>;
-  return <Badge variant="yellow">{status}</Badge>;
+function statusBadge(status: ResaleStatus, integrityOutcome?: string | null) {
+  if (integrityOutcome === "no_campaign_available") {
+    return <Badge variant="yellow">No Campaign Available</Badge>;
+  }
+  const label = formatResaleStatusLabel(status, integrityOutcome);
+  if (status === "sold") return <Badge variant="green">{label}</Badge>;
+  if (status === "rejected") return <Badge variant="red">{label}</Badge>;
+  return <Badge variant="yellow">{label}</Badge>;
 }
 
 function JsonBlock({ value }: { value: unknown }) {
@@ -223,7 +233,7 @@ function PostingModal({
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                   <div>
                     <span className="text-slate-500">Status</span>
-                    <p className="mt-0.5">{statusBadge(posting.status)}</p>
+                    <p className="mt-0.5">{statusBadge(posting.status, integrity?.outcome)}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Mode</span>
@@ -297,7 +307,7 @@ function PostingModal({
                         Outcome
                       </p>
                       <p className="text-sm font-medium text-slate-900 capitalize">
-                        {integrity.outcome}
+                        {formatIntegrityOutcome(integrity.outcome)}
                       </p>
                     </div>
                   )}
@@ -357,7 +367,7 @@ function PostingModal({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono text-[11px] text-slate-700">
-                          {event.type}
+                          {formatIntegrityEventType(event.type)}
                         </span>
                         <span
                           className="text-[10px] text-slate-400"
@@ -420,7 +430,7 @@ export function IntegrityPostingsTable({ postings }: { postings: PostingRow[] })
               </td>
               <td>{p.lead.state}</td>
               <td className="capitalize">{p.mode}</td>
-              <td>{statusBadge(p.status)}</td>
+              <td>{statusBadge(p.status, p.integrityOutcome)}</td>
               <td className="text-xs text-slate-500">{p.externalRef ?? "—"}</td>
               <td className="text-xs text-slate-400" suppressHydrationWarning>
                 {formatDateTime(p.postedAt)}

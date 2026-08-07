@@ -11,6 +11,7 @@ import {
 import { buildCategoryPayloadDiagnostics } from "@/lib/lead-categories/payload-diagnostics";
 import { getReprocessEligibility } from "@/lib/jobs/reprocess-eligibility";
 import { isReprocessPartnerPickerEnabled } from "@/lib/settings/app-settings";
+import { integrityTimelineLabel } from "@/lib/integrity/event-labels";
 
 const PARTNER_SHEET_AVATAR_PX = 48;
 import {
@@ -75,6 +76,19 @@ export default async function AdminLeadDetailPage({
 
   const leadEvents = await getLeadEvents(id);
 
+  const integrityEventByPostingId = new Map<string, string>();
+  for (const event of leadEvents) {
+    if (!event.type.startsWith("integrity_")) continue;
+    const payload =
+      event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)
+        ? (event.payload as Record<string, unknown>)
+        : null;
+    const postingId = payload?.postingId;
+    if (typeof postingId === "string") {
+      integrityEventByPostingId.set(postingId, event.type);
+    }
+  }
+
   const timeline: AdminLeadDetailTimelineItem[] = [
     {
       at: lead.receivedAt.toISOString(),
@@ -95,7 +109,7 @@ export default async function AdminLeadDetailPage({
     ),
     ...lead.resalePostings.map((p) => ({
       at: (p.postedAt ?? p.createdAt).toISOString(),
-      label: `Integrity ${p.status}`,
+      label: integrityTimelineLabel(p.status, integrityEventByPostingId.get(p.id)),
       detail: p.externalRef ?? p.mode,
     })),
   ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());

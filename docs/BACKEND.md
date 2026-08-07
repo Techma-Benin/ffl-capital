@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 5 août 2026
+> Dernière mise à jour : 7 août 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -146,6 +146,7 @@ POST /api/leads/intake
 - `20260730120000_add_category_assigned_event` — `LeadEventType.category_assigned` (assignation manuelle admin)
 - `20260805120000_add_integrity_label_storefront` — `lead_categories.integrity_label_storefront` (label Integrity Storefront ; nullable)
 - `20260805180000_add_live_sale_provenance` — `leads.live_sold_at`, `leads.live_sale_channel`
+- `20260807120000_add_integrity_no_campaign_event` — `LeadEventType.integrity_no_campaign` (rejets LeadConduit « No Campaign Available », distinct de `integrity_rejected`)
 
 **`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`.
 
@@ -440,7 +441,7 @@ Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
 | Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` — livraison lead **et** Partner Contact Us ; destinataire Contact Us = `app_settings.contact_recipient_email` (défaut `support@fflcapital.com`, UI Admin → Settings → General → Platform) |
 | CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
-| IntegrityCONNECT | mock/live (admin + env) | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; **Realtime IUL** : ping Azure `IsAcceptingCampaign` avant post LC (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY` — env-only, jamais en BDD) ; Storefront : post direct sans ping LC ; mode sorties via `getIntegrationsMode()` : `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` si pas de valeur DB, défaut `mock` (dev) / `live` (prod). Dropdown Mode (Settings → Integrations / Integrity Connect) visible et persistable en prod ; **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire. **Mock auto posts** : HTTP réel vers LeadConduit avec `is_test=yes` (`applyIntegrityAutoPostTestFlag`) ; ping Azure Realtime IUL skippé (auto-accept). Live auto posts ne forcent pas `is_test`. **Boberdoo parity** : posts auto toujours HTTP — pas de gate local `required-fields.ts` ; rejets LC → `integrity_rejected` avec body LC. `required-fields.ts` = avertissements admin seulement. Boutons admin test : toujours HTTP réel + `is_test=yes` (mock et live) |
+| IntegrityCONNECT | mock/live (admin + env) | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; **Realtime IUL** : ping Azure `IsAcceptingCampaign` avant post LC (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY` — env-only, jamais en BDD) ; Storefront : post direct sans ping LC ; mode sorties via `getIntegrationsMode()` : `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` si pas de valeur DB, défaut `mock` (dev) / `live` (prod). Dropdown Mode (Settings → Integrations / Integrity Connect) visible et persistable en prod ; **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire. **Mock auto posts** : HTTP réel vers LeadConduit avec `is_test=yes` (`applyIntegrityAutoPostTestFlag`) ; ping Azure Realtime IUL skippé (auto-accept). Live auto posts ne forcent pas `is_test`. **Boberdoo parity** : posts auto toujours HTTP — pas de gate local `required-fields.ts` ; rejets LC → `integrity_rejected` (outcome `rejected`) ou `integrity_no_campaign` (outcome `no_campaign_available`) quand la raison contient « No Campaign Available » (`src/lib/integrity/no-campaign.ts`) ; body LC stocké sur l’événement. `required-fields.ts` = avertissements admin seulement. Boutons admin test : toujours HTTP réel + `is_test=yes` (mock et live) |
 | Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
 
 ---
@@ -518,17 +519,17 @@ Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads 
 
 | Route | Rôle |
 |-------|------|
-| `GET /api/admin/integrity/postings` | Liste légère (50 derniers `resale_postings` + lead basique). **Pas** de payloads complets ; `rejectionReason` toujours `null` ici. |
+| `GET /api/admin/integrity/postings` | Liste légère (50 derniers `resale_postings` + lead basique). **Pas** de payloads complets ; `rejectionReason` toujours `null` ici ; `integrityOutcome` dérivé des événements (ex. `no_campaign_available`). |
 | `GET /api/admin/integrity/postings/[id]` | Détail : résumé posting + événements Integrity du lead filtrés par `postingId` ; dérive `rejectionReason`, `outcome`, `requestPayload`, `response` depuis les payloads d’événements. |
 | `POST /api/admin/integrity/test` | Soumission test LeadConduit sans enregistrement BDD ; toujours `is_test=yes` + HTTP réel vers LeadConduit (mock et live) ; résout le label Realtime vs Storefront ; `checkRequiredIntegrityFields` = avertissements lead picker seulement ; renvoie `encodedBody` / `encodedFields` pour vérifier `address_1` et les champs DOB (voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md)). |
 
 **Persistance événements** (`lead_events.payload`) :
 
-- Post sortant (`src/lib/integrity/post.ts`) : `integrity_posted`, `integrity_rejected` stockent `requestPayload` et `response` (réponse LeadConduit / ping) quand disponibles, plus `postingId`. Anciens événements `integrity_missing_fields` possibles (gate local retiré).
-- Webhook `POST /api/webhooks/integrity` : `integrity_accepted` / `integrity_rejected` / `integrity_error` stockent le body webhook sous `response`.
+- Post sortant (`src/lib/integrity/post.ts`) : `integrity_posted`, `integrity_rejected`, `integrity_no_campaign` stockent `requestPayload` et `response` (réponse LeadConduit / ping) quand disponibles, plus `postingId` et `outcome`. Anciens événements `integrity_missing_fields` possibles (gate local retiré).
+- Webhook `POST /api/webhooks/integrity` : `integrity_accepted` / `integrity_rejected` / `integrity_no_campaign` / `integrity_error` stockent le body webhook sous `response` ; échec « No Campaign Available » → `integrity_no_campaign` (pas `integrity_rejected`).
 - Postings plus anciens peuvent n’avoir ni payloads ni raison de rejet (empty state UI).
 
-UI : `/admin/integrity` — modal détail à onglets horizontaux (Posting detail par défaut, Integrity payloads & outcome, Events — un onglet actif à la fois) ; lazy-load du détail `[id]`.
+UI : `/admin/integrity` — libellés centralisés (`src/lib/integrity/event-labels.ts`) ; badge **No Campaign Available** quand `integrityOutcome=no_campaign_available` ; modal détail à onglets horizontaux (Posting detail par défaut, Integrity payloads & outcome, Events — un onglet actif à la fois) ; lazy-load du détail `[id]`.
 
 ---
 
@@ -657,4 +658,5 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-05 | `getIntegrationsMode()` : résolution unifiée DB → env → défaut (mock dev / live prod) ; Mode admin visible et persistable en prod |
 | 2026-08-05 | `pnpm run ensure:integrity-env` : defaults Integrity publics (URLs + VendorId) dans `.env` après pull ; clé Azure jamais commitée ; branché sur `scripts/post-merge.sh` |
 | 2026-08-06 | Boberdoo parity Integrity : posts toujours HTTP (pas de gate `required-fields`) ; rejets LC → `integrity_rejected` ; admin test toujours HTTP + `is_test=yes` ; payload DOB/`has_iul_thom` aligné Boberdoo |
+| 2026-08-07 | Rejets LeadConduit « No Campaign Available » : événement `integrity_no_campaign` (outcome `no_campaign_available`), distinct de `integrity_rejected` ; détection `no-campaign.ts` ; webhook + postings API/UI (`integrityOutcome`, badges) |
 | 2026-08-05 | Partner Contact Us : `POST /api/partner/contact` via Resend ; setting `contact_recipient_email` (Admin Settings → General → Platform) ; plus de `mailto:` |

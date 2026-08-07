@@ -7,6 +7,7 @@ const INTEGRITY_EVENT_TYPES: LeadEventType[] = [
   LeadEventType.integrity_posted,
   LeadEventType.integrity_accepted,
   LeadEventType.integrity_rejected,
+  LeadEventType.integrity_no_campaign,
   LeadEventType.integrity_error,
   LeadEventType.integrity_missing_fields,
 ];
@@ -111,6 +112,8 @@ export async function GET(
       outcome = "accepted";
     } else if (event.type === LeadEventType.integrity_posted) {
       outcome = "posted";
+    } else if (event.type === LeadEventType.integrity_no_campaign) {
+      outcome = "no_campaign_available";
     }
   }
 
@@ -120,6 +123,7 @@ export async function GET(
     if (
       typeof reason === "string" &&
       (event.type === LeadEventType.integrity_rejected ||
+        event.type === LeadEventType.integrity_no_campaign ||
         event.type === LeadEventType.integrity_missing_fields ||
         event.type === LeadEventType.integrity_error)
     ) {

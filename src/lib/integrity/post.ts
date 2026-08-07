@@ -26,11 +26,64 @@ import {
 } from "./build-payload";
 import { logIntegrityAction, urlHost } from "./log";
 import { realtimeIulCampaignPing } from "./azure-ping";
+import { isNoCampaignAvailableReason } from "./no-campaign";
 
 export interface IntegrityPostResult {
   posted: boolean;
   postingId?: string;
   reason?: string;
+}
+
+async function noCampaignPosting(
+  postingId: string,
+  leadId: string,
+  reason: string,
+  vendorKey: string,
+  mode: ResaleMode,
+  extras?: {
+    requestPayload?: Record<string, string | undefined>;
+    response?: unknown;
+  },
+): Promise<void> {
+  await prisma.resalePosting.update({
+    where: { id: postingId },
+    data: { status: ResaleStatus.rejected },
+  });
+  await emitLeadEvent(leadId, LeadEventType.integrity_no_campaign, {
+    postingId,
+    reason,
+    vendor: vendorKey,
+    mode,
+    outcome: "no_campaign_available",
+    ...(extras?.requestPayload ? { requestPayload: extras.requestPayload } : {}),
+    ...(extras?.response !== undefined ? { response: extras.response } : {}),
+  });
+  logIntegrityAction("post_no_campaign", {
+    leadId,
+    postingId,
+    vendor: vendorKey,
+    mode,
+    reason,
+    outcome: "no_campaign_available",
+  });
+}
+
+async function failIntegrityPosting(
+  postingId: string,
+  leadId: string,
+  reason: string,
+  vendorKey: string,
+  mode: ResaleMode,
+  extras?: {
+    requestPayload?: Record<string, string | undefined>;
+    response?: unknown;
+  },
+): Promise<void> {
+  if (isNoCampaignAvailableReason(reason)) {
+    await noCampaignPosting(postingId, leadId, reason, vendorKey, mode, extras);
+    return;
+  }
+  await rejectPosting(postingId, leadId, reason, vendorKey, mode, extras);
 }
 
 async function rejectPosting(
@@ -156,7 +209,10 @@ export async function submitToIntegrity(
 
   if (data.outcome === "failure" || data.outcome === "error") {
     const reason = data.reason ?? `Rejected: ${data.outcome}`;
-    logIntegrityAction("post_response", { ...logFields, outcome: "rejected", reason });
+    const outcome = isNoCampaignAvailableReason(reason)
+      ? "no_campaign_available"
+      : "rejected";
+    logIntegrityAction("post_response", { ...logFields, outcome, reason });
     return { ok: false, reason, response: data };
   }
 
@@ -285,7 +341,7 @@ export async function integrityPostLead(
   if (resaleMode === ResaleMode.realtime) {
     const ping = await realtimeIulCampaignPing(leadId, ResaleMode.realtime);
     if (!ping.accepted) {
-      await rejectPosting(
+      await failIntegrityPosting(
         posting.id,
         leadId,
         ping.message ?? "Realtime IUL campaign ping declined",
@@ -310,7 +366,7 @@ export async function integrityPostLead(
   const result = await submitToIntegrity(submitUrl, builtPayload, logFields);
 
   if (!result.ok) {
-    await rejectPosting(posting.id, leadId, result.reason, vendorKey, resaleMode, {
+    await failIntegrityPosting(posting.id, leadId, result.reason, vendorKey, resaleMode, {
       requestPayload: builtPayload,
       response: result.response,
     });

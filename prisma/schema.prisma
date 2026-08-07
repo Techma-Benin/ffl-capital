@@ -41,6 +41,7 @@ enum LeadEventType {
   integrity_posted
   integrity_accepted
   integrity_rejected
+  integrity_no_campaign
   integrity_skipped
   integrity_error
   integrity_missing_fields
