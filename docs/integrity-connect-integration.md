@@ -443,7 +443,7 @@ Requires `INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_P
 
 ### Admin Integrity test panel (preferred)
 
-`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and **always** POSTs real HTTP to LeadConduit with `is_test=yes` (mock and live integrations mode). Returns the raw LC response plus `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payload overrides preserve blank `address_1`. `checkRequiredIntegrityFields` warnings are advisory in the lead picker only. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
+`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and **always** POSTs real HTTP to LeadConduit with `is_test=yes` (mock and live integrations mode). Returns the raw LC response plus `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payload overrides use `prepareManualTestFields` (blank `address_1` preserved; other blank optionals stripped; always `is_test=yes`). `checkRequiredIntegrityFields` warnings are advisory in the lead picker only. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
 
 ### General Approach
 
