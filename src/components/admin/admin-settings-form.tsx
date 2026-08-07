@@ -692,43 +692,43 @@ export function AdminSettingsForm({
                 title="Lead routing"
               />
               <div style={{ padding: "16px 20px 18px" }}>
-                <div style={{ marginBottom: 8 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                    }}
-                  >
-                    <label
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 14,
+                    marginBottom: 8,
+                  }}
+                >
+                  <div>
+                    <div
                       style={{
                         fontSize: 14,
                         fontWeight: 800,
                         color: "#030229",
-                        margin: 0,
-                        flexShrink: 0,
                       }}
                     >
                       Aged days threshold
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={form.agedDaysThreshold}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          agedDaysThreshold: Number(e.target.value),
-                        })
-                      }
-                      className="form-input"
-                      style={{ width: 160 }}
-                    />
+                    </div>
+                    <div style={{ fontSize: 13, color: "#8b8a99", marginTop: 2 }}>
+                      Leads older than this enter the passive aged marketplace
+                      (excluded from automatic routing).
+                    </div>
                   </div>
-                  <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 6 }}>
-                    Leads older than this enter the passive aged marketplace (excluded
-                    from automatic routing).
-                  </p>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.agedDaysThreshold}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        agedDaysThreshold: Number(e.target.value),
+                      })
+                    }
+                    className="form-input"
+                    style={{ width: 88, flexShrink: 0 }}
+                  />
                 </div>
 
                 <p
