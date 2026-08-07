@@ -415,7 +415,7 @@ lead_categories                   -- classification produit (admin)
 | **Stripe wallet** | Clés **test** (`sk_test_…`) — compte démo TECHMA ou `stripe sandbox create` | Clés prod client + webhook secret |
 | **Emails** | Console log / [Mailtrap](https://mailtrap.io) / Resend dev | SMTP ou Resend prod client (`RESEND_API_KEY`, `FROM_EMAIL` — aussi Contact Us) |
 | **CRM agent** | [webhook.site](https://webhook.site) ou endpoint local `/api/dev/crm-capture` | URL webhook fournie par chaque agent |
-| **IntegrityCONNECT** | Auto posts mock → LeadConduit avec `is_test=yes` (ping Azure skippé) ; admin test toujours HTTP réel + `is_test=yes` (mock et live) | Doc API + credentials Integrity (fichier R client) |
+| **IntegrityCONNECT** | Auto posts mock → LeadConduit avec `is_test=yes` (ping Azure skippé) ; admin test short-circuit mock | Doc API + credentials Integrity (fichier R client) |
 | **LeadConduit réponse** | Retourner `{ "outcome": "success" }` sur notre endpoint | Idem |
 
 **Pattern recommandé :** mode sorties `mock|live` via admin Settings → Integrations (clé `app_settings.integrations_mode`, persistée dès le changement de Mode, prod inclus). En mock, CRM et la plupart des sorties loggent localement ; **Integrity auto posts** envoient du HTTP LeadConduit avec `is_test=yes` (ping Azure skippé). En live, vraies APIs. Résolution : `app_settings.integrations_mode` prime, puis env `INTEGRATIONS_MODE`, puis défaut (`mock` en dev, `live` en prod).

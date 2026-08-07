@@ -273,7 +273,7 @@ Authorization: admin session required
 Body: { "flow": "realtime" | "storefront", ... }
 ```
 
-Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. Always includes `is_test=yes` and **always** POSTs real HTTP to LeadConduit (mock and live integrations mode). Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads go through `prepareManualTestFields` (blank `address_1` preserved; other blank optionals stripped; always `is_test=yes`). `checkRequiredIntegrityFields` warnings in the lead picker are advisory only.
+Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. Always includes `is_test=yes` and **always** POSTs real HTTP to LeadConduit (mock and live integrations mode). Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`. `checkRequiredIntegrityFields` warnings in the lead picker are advisory only.
 
 ### Manual curl — RealTime flow
 

@@ -499,7 +499,7 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 - **Real-time post** : vente immédiate via LeadConduit ; pour les leads **IUL Realtime**, ping Azure `IsAcceptingCampaign` avant le post (parité Boberdoo delivery 281)
 - **Storefront post** : envoi direct LeadConduit (pas de ping gate LC) ; réconciliation via webhook callback
 
-**Mock :** les posts Integrity automatiques envoient toujours du HTTP vers LeadConduit avec `is_test=yes` ; le ping Azure Realtime IUL est skippé (auto-accept). Les posts live auto ne forcent pas `is_test`. Les boutons admin test incluent toujours `is_test=yes` et POSTent toujours du HTTP réel vers LeadConduit (mock et live).
+**Mock :** les posts Integrity automatiques envoient toujours du HTTP vers LeadConduit avec `is_test=yes` ; le ping Azure Realtime IUL est skippé (auto-accept). Les posts live auto ne forcent pas `is_test`. Les boutons admin test incluent toujours `is_test=yes` et, en mock, short-circuitent sans HTTP.
 
 **Déclenchement :** selon fenêtre lifecycle (flag on) ou après délai legacy 24 h (flag off).
 
@@ -900,7 +900,7 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 
 | Service | Comportement mock |
 |---------|-------------------|
-| Integrity | Auto posts : HTTP LeadConduit réel avec `is_test=yes` ; ping Azure Realtime IUL skippé (auto-accept). Admin test : toujours HTTP + `is_test=yes` |
+| Integrity | Auto posts : HTTP LeadConduit réel avec `is_test=yes` ; ping Azure Realtime IUL skippé (auto-accept). Admin test : pas d’HTTP |
 | CRM outbound | Pas d’HTTP réel ; événements `crm_outbound` / échecs tracés |
 | Email | Console / Mailtrap |
 | Stripe | Vraies clés test (pas mock) |
