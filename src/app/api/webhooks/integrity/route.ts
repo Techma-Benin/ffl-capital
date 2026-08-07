@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LeadEventType, ResaleMode, ResaleStatus } from "@prisma/client";
+import { LeadEventType, LeadStatus, ResaleMode, ResaleStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { claimLiveSale } from "@/lib/lead-routing/live-sale";
+import {
+  classifyIntegrityFailure,
+  formatIntegrityBlockReason,
+} from "@/lib/integrity/classify";
 import { isNoCampaignAvailableReason } from "@/lib/integrity/no-campaign";
 
 /**
@@ -29,7 +33,6 @@ export async function POST(request: NextRequest) {
       console.warn(
         "[integrity-webhook] Unauthorized callback — bad or missing X-Api-Key",
       );
-      // Return 200 to prevent LeadConduit retry storms on auth misconfiguration
       return NextResponse.json(
         { received: true, error: "Unauthorized" },
         { status: 200 },
@@ -53,33 +56,25 @@ export async function POST(request: NextRequest) {
   const reason = body.reason as string | undefined;
   const externalLeadId = leadData?.id;
 
-  // Resolve postingId from multiple sources
   const postingId =
     request.nextUrl.searchParams.get("postingId") ??
     (body.posting_id as string | undefined) ??
     (body.reference as string | undefined);
 
-  // Resolve the ResalePosting record
   let posting = postingId
     ? await prisma.resalePosting.findUnique({ where: { id: postingId } })
     : null;
 
-  // Fallback: look up by vendor_lead_id_thom → lead → latest pending posting
   if (!posting) {
     const vendorLeadId = body.vendor_lead_id_thom as string | undefined;
     if (vendorLeadId) {
-      // vendor_lead_id_thom is lead.externalId ?? lead.id
       const lead = await prisma.lead.findFirst({
         where: {
-          OR: [
-            { externalId: vendorLeadId },
-            { id: vendorLeadId },
-          ],
+          OR: [{ externalId: vendorLeadId }, { id: vendorLeadId }],
         },
       });
 
       if (lead) {
-        // Find the most recent pending posting for this lead
         posting = await prisma.resalePosting.findFirst({
           where: { leadId: lead.id, status: ResaleStatus.pending },
           orderBy: { postedAt: "desc" },
@@ -125,19 +120,52 @@ export async function POST(request: NextRequest) {
       data: { status: ResaleStatus.rejected },
     });
 
-    const noCampaign = reason != null && isNoCampaignAvailableReason(reason);
+    const failureClass = classifyIntegrityFailure({
+      outcome: "failure",
+      reason: reason ?? null,
+    });
+    const noCampaign =
+      failureClass === "retryable_no_campaign" ||
+      (reason != null && isNoCampaignAvailableReason(reason));
+
+    if (failureClass === "terminal_business_rejection") {
+      await prisma.lead.update({
+        where: { id: posting.leadId },
+        data: {
+          integrityBlockedAt: new Date(),
+          integrityBlockedReason: formatIntegrityBlockReason(reason),
+          status: LeadStatus.unmatched,
+          nextRoutingAttemptAt: new Date(),
+        },
+      });
+    } else {
+      // Retryable NCA / other — restore to unmatched queue
+      await prisma.lead.updateMany({
+        where: {
+          id: posting.leadId,
+          status: { in: [LeadStatus.integrity_posted, LeadStatus.unmatched] },
+        },
+        data: {
+          status: LeadStatus.unmatched,
+          nextRoutingAttemptAt: new Date(),
+        },
+      });
+    }
+
     await emitLeadEvent(
       posting.leadId,
-      noCampaign ? LeadEventType.integrity_no_campaign : LeadEventType.integrity_rejected,
+      noCampaign
+        ? LeadEventType.integrity_no_campaign
+        : LeadEventType.integrity_rejected,
       {
         postingId: resolvedPostingId,
         reason,
         outcome: noCampaign ? "no_campaign_available" : "rejected",
+        failureClass,
         response: body,
       },
     );
   } else {
-    // "error" or unknown — log and leave pending for retry
     console.error(
       `[integrity-webhook] Error outcome for posting ${resolvedPostingId}: ${reason}`,
     );

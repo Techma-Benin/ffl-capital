@@ -24,6 +24,11 @@ import {
   type IntegrityLabelSources,
   type IntegrityResaleMode,
 } from "./build-payload";
+import {
+  classifyIntegrityFailure,
+  formatIntegrityBlockReason,
+  type IntegrityFailureClass,
+} from "./classify";
 import { logIntegrityAction, urlHost } from "./log";
 import { realtimeIulCampaignPing } from "./azure-ping";
 import { isNoCampaignAvailableReason } from "./no-campaign";
@@ -32,6 +37,34 @@ export interface IntegrityPostResult {
   posted: boolean;
   postingId?: string;
   reason?: string;
+  failureClass?: IntegrityFailureClass;
+}
+
+async function markIntegrityBlocked(
+  leadId: string,
+  reason: string,
+): Promise<void> {
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: {
+      integrityBlockedAt: new Date(),
+      integrityBlockedReason: formatIntegrityBlockReason(reason),
+    },
+  });
+}
+
+async function restoreLeadForRouting(leadId: string): Promise<void> {
+  await prisma.lead.updateMany({
+    where: {
+      id: leadId,
+      status: LeadStatus.integrity_posted,
+      available: true,
+    },
+    data: {
+      status: LeadStatus.unmatched,
+      nextRoutingAttemptAt: new Date(),
+    },
+  });
 }
 
 async function noCampaignPosting(
@@ -49,12 +82,14 @@ async function noCampaignPosting(
     where: { id: postingId },
     data: { status: ResaleStatus.rejected },
   });
+  await restoreLeadForRouting(leadId);
   await emitLeadEvent(leadId, LeadEventType.integrity_no_campaign, {
     postingId,
     reason,
     vendor: vendorKey,
     mode,
     outcome: "no_campaign_available",
+    failureClass: "retryable_no_campaign",
     ...(extras?.requestPayload ? { requestPayload: extras.requestPayload } : {}),
     ...(extras?.response !== undefined ? { response: extras.response } : {}),
   });
@@ -77,13 +112,54 @@ async function failIntegrityPosting(
   extras?: {
     requestPayload?: Record<string, string | undefined>;
     response?: unknown;
+    httpStatus?: number;
+    isNetworkError?: boolean;
+    outcome?: string;
   },
-): Promise<void> {
-  if (isNoCampaignAvailableReason(reason)) {
+): Promise<IntegrityFailureClass> {
+  const failureClass = classifyIntegrityFailure({
+    outcome: extras?.outcome ?? "failure",
+    reason,
+    httpStatus: extras?.httpStatus,
+    isNetworkError: extras?.isNetworkError,
+  });
+
+  if (failureClass === "retryable_no_campaign") {
     await noCampaignPosting(postingId, leadId, reason, vendorKey, mode, extras);
-    return;
+    return failureClass;
   }
+
+  if (failureClass === "operational_failure") {
+    await prisma.resalePosting.update({
+      where: { id: postingId },
+      data: { status: ResaleStatus.rejected },
+    });
+    await restoreLeadForRouting(leadId);
+    await emitLeadEvent(leadId, LeadEventType.integrity_error, {
+      postingId,
+      reason,
+      vendor: vendorKey,
+      mode,
+      outcome: "operational_failure",
+      failureClass,
+      ...(extras?.requestPayload ? { requestPayload: extras.requestPayload } : {}),
+      ...(extras?.response !== undefined ? { response: extras.response } : {}),
+    });
+    logIntegrityAction("post_operational_failure", {
+      leadId,
+      postingId,
+      vendor: vendorKey,
+      mode,
+      reason,
+      outcome: "operational_failure",
+    });
+    return failureClass;
+  }
+
   await rejectPosting(postingId, leadId, reason, vendorKey, mode, extras);
+  await markIntegrityBlocked(leadId, reason);
+  await restoreLeadForRouting(leadId);
+  return failureClass;
 }
 
 async function rejectPosting(
@@ -107,6 +183,7 @@ async function rejectPosting(
     vendor: vendorKey,
     mode,
     outcome: "rejected",
+    failureClass: "terminal_business_rejection",
     ...(extras?.requestPayload ? { requestPayload: extras.requestPayload } : {}),
     ...(extras?.response !== undefined ? { response: extras.response } : {}),
   });
@@ -146,12 +223,18 @@ async function skipIntegrityPost(
     reason,
     outcome: "skipped",
   });
-  return { posted: false, reason };
+  return { posted: false, reason, failureClass: "operational_failure" };
 }
 
 type IntegritySubmitResult =
   | { ok: true; externalLeadId?: string; response?: unknown }
-  | { ok: false; reason: string; response?: unknown };
+  | {
+      ok: false;
+      reason: string;
+      response?: unknown;
+      httpStatus?: number;
+      isNetworkError?: boolean;
+    };
 
 /** Exported for unit tests (mock fetch). */
 export async function submitToIntegrity(
@@ -178,7 +261,7 @@ export async function submitToIntegrity(
   } catch (err) {
     const reason = `Network error: ${String(err)}`;
     logIntegrityAction("post_response", { ...logFields, outcome: "error", reason });
-    return { ok: false, reason };
+    return { ok: false, reason, isNetworkError: true };
   }
 
   if (!res.ok) {
@@ -195,7 +278,7 @@ export async function submitToIntegrity(
       /* keep status-only */
     }
     logIntegrityAction("post_response", { ...logFields, outcome: "error", reason, httpStatus: res.status });
-    return { ok: false, reason, response };
+    return { ok: false, reason, response, httpStatus: res.status };
   }
 
   let data: { outcome?: string; lead?: { id?: string }; reason?: string };
@@ -341,7 +424,7 @@ export async function integrityPostLead(
   if (resaleMode === ResaleMode.realtime) {
     const ping = await realtimeIulCampaignPing(leadId, ResaleMode.realtime);
     if (!ping.accepted) {
-      await failIntegrityPosting(
+      const failureClass = await failIntegrityPosting(
         posting.id,
         leadId,
         ping.message ?? "Realtime IUL campaign ping declined",
@@ -354,11 +437,13 @@ export async function integrityPostLead(
             campaignAccepted: ping.campaignAccepted,
             message: ping.message,
           },
+          outcome: "failure",
         },
       );
       return {
         posted: false,
         reason: ping.message ?? "Realtime IUL campaign ping declined",
+        failureClass,
       };
     }
   }
@@ -366,11 +451,21 @@ export async function integrityPostLead(
   const result = await submitToIntegrity(submitUrl, builtPayload, logFields);
 
   if (!result.ok) {
-    await failIntegrityPosting(posting.id, leadId, result.reason, vendorKey, resaleMode, {
-      requestPayload: builtPayload,
-      response: result.response,
-    });
-    return { posted: false, reason: result.reason };
+    const failureClass = await failIntegrityPosting(
+      posting.id,
+      leadId,
+      result.reason,
+      vendorKey,
+      resaleMode,
+      {
+        requestPayload: builtPayload,
+        response: result.response,
+        httpStatus: result.httpStatus,
+        isNetworkError: result.isNetworkError,
+        outcome: "failure",
+      },
+    );
+    return { posted: false, reason: result.reason, failureClass };
   }
 
   const resolvedExternalRef = result.externalLeadId;
