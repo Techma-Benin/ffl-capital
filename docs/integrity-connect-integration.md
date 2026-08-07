@@ -80,18 +80,6 @@ The `lead_type_thom` field **must** contain one of these exact strings or the le
 | `address_2` | string | Second line (apt, unit) |
 | `city` | city | City |
 | `state` | state | Full state name on outbound posts (e.g. `Texas`, not `TX`) |
-
-### Realtime state campaigns
-
-Integrity Realtime only accepts leads from states with active campaigns. Our system skips (does not reject) Realtime posts for other states with reason `Integrity Realtime: no campaign for state {code}`.
-
-| Eligible states (full names) |
-|---|
-| Utah, Montana, Wisconsin, Texas, Ohio, Michigan, Florida, Arizona |
-
-A LeadConduit response of **"No Campaign Available"** for an ineligible state (e.g. Colorado) is expected — it means the state is not in Integrity's active Realtime campaigns, not a payload error.
-
-Internal storage and partner matching continue to use 2-letter state codes; only Integrity outbound payloads use full state names via `formatStateForIntegrity()`.
 | `postal_code` | postal_code | Zip code |
 | `county` | string | County |
 | `age` | range | Age |
@@ -205,6 +193,18 @@ Internal storage and partner matching continue to use 2-letter state codes; only
 | `desired_retirement_age_thom` | number | Desired retirement age |
 | `mortgage_balance` | number | Current mortgage balance |
 | `redir_url` | url | Redirect URL after submission |
+
+### Realtime state campaigns
+
+All Realtime leads are posted to LeadConduit regardless of state. Integrity Realtime only accepts leads from states with active campaigns on their side — for other states, LeadConduit may return **"No Campaign Available"**. That is a rejection from LeadConduit, not a local skip.
+
+| States with active Realtime campaigns (reference) |
+|---|
+| Utah, Montana, Wisconsin, Texas, Ohio, Michigan, Florida, Arizona |
+
+The admin test panel displays this list for reference only; it does not gate outbound posts.
+
+Internal storage and partner matching continue to use 2-letter state codes; only Integrity outbound payloads use full state names via `formatStateForIntegrity()`.
 
 ---
 
