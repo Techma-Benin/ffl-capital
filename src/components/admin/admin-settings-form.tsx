@@ -874,12 +874,6 @@ export function AdminSettingsForm({
                 >
                   Automation
                 </p>
-                <ToggleRow
-                  label="Automatic routing worker"
-                  description="Pauses the cron due-queue worker. Manual reprocess actions still run."
-                  checked={form.integrityReprocessEnabled}
-                  onChange={(v) => setForm({ ...form, integrityReprocessEnabled: v })}
-                />
                 {form.lifecycleRoutingEnabled && (
                   <ToggleRow
                     label="Automatic partner reprocessing after 48 hours"
@@ -893,6 +887,12 @@ export function AdminSettingsForm({
                     }
                   />
                 )}
+                <ToggleRow
+                  label="Automatic routing worker"
+                  description="Pauses the cron due-queue worker. Manual reprocess actions still run."
+                  checked={form.integrityReprocessEnabled}
+                  onChange={(v) => setForm({ ...form, integrityReprocessEnabled: v })}
+                />
 
                 <p
                   style={{
