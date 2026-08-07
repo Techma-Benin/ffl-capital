@@ -86,7 +86,7 @@ const traditionalIul: Category = {
   enabled: true,
   criteria: [
     { field: "SRC", value: "IUL_LeadConduit" },
-    { field: "Intent", value: "Standard" },
+    { field: "Intent_Type", value: "Standard" },
   ],
 };
 
@@ -128,16 +128,15 @@ describe("planned manual category assignment", () => {
         rawPayload: {
           ...unclassifiedLead.rawPayload,
           SRC: "wrong_source",
-          Intent: "High Intent",
+          Intent_Type: "High",
         },
       },
       category: traditionalIul,
     });
 
     assert.equal(result.update.rawPayload.SRC, "IUL_LeadConduit");
-    assert.equal(result.update.rawPayload.Intent, "Standard");
+    assert.equal(result.update.rawPayload.Intent_Type, "Standard");
     assert.equal(result.update.source, "IUL_LeadConduit");
-    assert.equal(result.update.intent, "Standard");
     assert.deepEqual(result.overwrittenCriteria, [
       {
         field: "SRC",
@@ -145,8 +144,8 @@ describe("planned manual category assignment", () => {
         nextValue: "IUL_LeadConduit",
       },
       {
-        field: "Intent",
-        previousValue: "High Intent",
+        field: "Intent_Type",
+        previousValue: "High",
         nextValue: "Standard",
       },
     ]);

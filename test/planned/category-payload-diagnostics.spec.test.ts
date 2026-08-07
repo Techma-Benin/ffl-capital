@@ -47,7 +47,7 @@ const categories: Category[] = [
     enabled: true,
     criteria: [
       { field: "SRC", value: "IUL_LeadConduit" },
-      { field: "Intent", value: "Standard" },
+      { field: "Intent_Type", value: "Standard" },
     ],
   },
   {
@@ -70,13 +70,13 @@ describe("planned category payload diagnostics", () => {
     const feature = await loadFeature();
 
     const fields = feature.buildCategoryPayloadDiagnostics(
-      { SRC: "unknown", Intent: "Standard" },
+      { SRC: "unknown", Intent_Type: "Standard" },
       categories,
     );
 
     assert.deepEqual(
       fields.map((entry) => entry.field),
-      ["Campaign_Name", "Intent", "SRC"],
+      ["Campaign_Name", "Intent_Type", "SRC"],
     );
   });
 
@@ -84,13 +84,13 @@ describe("planned category payload diagnostics", () => {
     const feature = await loadFeature();
 
     const fields = feature.buildCategoryPayloadDiagnostics(
-      { SRC: "unknown", Intent: "Standard" },
+      { SRC: "unknown", Intent_Type: "Standard" },
       categories,
     );
 
     assert.deepEqual(fields, [
       { field: "Campaign_Name", present: false, value: undefined },
-      { field: "Intent", present: true, value: "Standard" },
+      { field: "Intent_Type", present: true, value: "Standard" },
       { field: "SRC", present: true, value: "unknown" },
     ]);
   });

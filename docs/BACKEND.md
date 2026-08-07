@@ -153,8 +153,9 @@ POST /api/leads/intake
 - `20260805180000_add_live_sale_provenance` — `leads.live_sold_at`, `leads.live_sale_channel`
 - `20260807120000_add_integrity_no_campaign_event` — `LeadEventType.integrity_no_campaign` (rejets LeadConduit « No Campaign Available », distinct de `integrity_rejected`)
 - `20260807180000_add_lead_routing_queue_state` — file due / claim lease / bloc Integrity sur `leads` ; index `resale_postings.lead_id` ; backfill `next_routing_attempt_at` + blocs depuis `integrity_rejected`
+- `20260807192500_align_iul_category_intent_type_criteria` — critères IUL : `SRC=IUL_LeadConduit` + `Intent_Type` (`Standard` / `High`) ; remplace l’ancien SRC high-intent seul
 
-**`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`.
+**`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`. Defaults IUL : `traditional_iul` / `high_intent_iul` partagent `SRC=IUL_LeadConduit` et se distinguent par `Intent_Type` (`Standard` / `High`).
 
 **`leads` (catégorisation) :** `lead_type` (string, nullable) ; `category_resolution` (`matched` \| `no_match` \| `multiple_matches`) ; `category_candidate_types` (text[], types des catégories qui ont matché). Zéro ou plusieurs matchs → `status=review`, `available=false`, pas de matching partenaire ni post Integrity.
 
@@ -304,6 +305,7 @@ Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `
 | `Trusted_Form_URL` | `trustedform_cert_url` |
 | `TCPA_Consent`, `TCPA_Language`, `LeadiD_Token` | colonnes homonymes |
 | `SRC` | `source` ; critère fréquent pour catégories (`field=SRC`, match exact) |
+| `Intent_Type` | Non mappé en colonne lead ; critère seed IUL (`Standard` / `High`) avec `SRC` |
 | `Landing_Page`, `Sub_ID`, `Pub_ID` | tracking |
 | `Unique_Identifier` | `external_id` |
 | `Lead_Type` | `boberdoo_lead_type` |
@@ -314,7 +316,7 @@ Réponse LeadConduit : `{ "outcome": "success", "reason": "" }` (chaîne vide en
 
 **Note TrustedForm :** le certificat arrive dans le payload webhook (Meta → LeadConduit → plateforme). Pas besoin d'accès admin TrustedForm pour l'intake — il suffit de rediriger le webhook vers `/api/leads/intake` quand on coupe Boberdoo.
 
-**Résolution catégorie (intake) :** `evaluateLeadCategories` (`src/lib/lead-categories/flexible-lead-categories.ts`) compare le **payload brut** aux catégories `enabled`. Tous les critères d'une catégorie doivent matcher (AND) ; une seule catégorie gagnante → `leadType` = son `type` ; zéro ou plusieurs → `status=review`, matching et Integrity ignorés. Pas de fallback `Intent` / `SRC` implicite hors critères configurés. Détail LeadConduit : [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
+**Résolution catégorie (intake) :** `evaluateLeadCategories` (`src/lib/lead-categories/flexible-lead-categories.ts`) compare le **payload brut** aux catégories `enabled`. Tous les critères d'une catégorie doivent matcher (AND) ; une seule catégorie gagnante → `leadType` = son `type` ; zéro ou plusieurs → `status=review`, matching et Integrity ignorés. Pas de fallback `Intent` / `Intent_Type` / `SRC` implicite hors critères configurés. Détail LeadConduit : [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
 
 ---
 
@@ -692,4 +694,5 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-06 | Boberdoo parity Integrity : posts toujours HTTP (pas de gate `required-fields`) ; rejets LC → `integrity_rejected` ; admin test toujours HTTP + `is_test=yes` ; payload DOB/`has_iul_thom` aligné Boberdoo |
 | 2026-08-07 | Rejets LeadConduit « No Campaign Available » : événement `integrity_no_campaign` (outcome `no_campaign_available`), distinct de `integrity_rejected` ; détection `no-campaign.ts` ; webhook + postings API/UI (`integrityOutcome`, badges) |
 | 2026-08-07 | File de routage fiable : état due/claim/bloc sur `leads` ; work queue par fenêtre ; Partner-only si lifecycle off ; NCA retry 15/30/60 ; rejets métier → bloc permanent ; hold manuel = lease BDD ; setting `lifecycle_partner_auto_reprocess_enabled` ; UI Lead routing redesign |
+| 2026-08-07 | Critères seed IUL : `SRC=IUL_LeadConduit` + `Intent_Type` (`Standard` / `High`) ; migration `20260807192500` ; plus de `IUL_LeadConduit_HighIntent` comme critère High Intent |
 | 2026-08-05 | Partner Contact Us : `POST /api/partner/contact` via Resend ; setting `contact_recipient_email` (Admin Settings → General → Platform) ; plus de `mailto:` |

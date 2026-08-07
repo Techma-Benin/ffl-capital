@@ -51,7 +51,7 @@ const categories: Category[] = [
     enabled: true,
     criteria: [
       { field: "SRC", value: "IUL_LeadConduit" },
-      { field: "Intent", value: "Standard" },
+      { field: "Intent_Type", value: "Standard" },
     ],
   },
   {
@@ -84,7 +84,7 @@ describe("planned import and historical category classification", () => {
     const feature = await loadFeature();
 
     const result = feature.classifyImportedLead(
-      { SRC: "ModGate_Unknown", Intent: "High Intent" },
+      { SRC: "ModGate_Unknown", Intent_Type: "High" },
       categories,
     );
 

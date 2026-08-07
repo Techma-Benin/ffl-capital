@@ -15,13 +15,13 @@ Context from July 13 call analysis and Active Prospect / Boberdoo exploration.
 - Exactly one category → `lead.leadType` = that category’s `type`, `categoryResolution = matched`, normal matching proceeds.
 - Zero or multiple categories → `status = review`, `leadType = null`, partner matching and Integrity post are skipped.
 
-Default SRC-based rules were backfilled from the former `lead_categories.src` column (e.g. `IUL_LeadConduit` → `traditional_iul`). There is **no** implicit fallback from `Intent` or partial SRC strings.
+Default seeded rules: both IUL types use `SRC=IUL_LeadConduit` and differ by `Intent_Type` (`Standard` → `traditional_iul`, `High` → `high_intent_iul`). Mortgage / veteran remain SRC-only. There is **no** implicit fallback from `Intent` / `Intent_Type` or partial SRC strings outside configured criteria.
 
 Admin configures categories at `/admin/settings` → **Lead categories**.
 
 Rule changes also re-evaluate existing non-finalized leads from `rawPayload` with the same evaluator. Creating/deleting an enabled category or changing criteria/`enabled` synchronizes `leadType`, resolution, candidates, status, and availability; `delivered`, `integrity_posted`, `aged_listed`, and `dead` leads are never changed. A newly unique match returns to `unmatched` / available for later reprocessing, without immediate matching or delivery.
 
-The client confirmed (call 13-7, minute 6:09) that high intent and regular IUL share the same Active Prospect flow; differentiation is via form/source fields. Either a separate Facebook page or distinct SRC values remain compatible — configure matching criteria in admin.
+The client confirmed (call 13-7, minute 6:09) that high intent and regular IUL share the same Active Prospect flow; differentiation is via form/source fields. Default seeds use shared `SRC` plus `Intent_Type`; distinct SRC values remain configurable in admin if needed.
 
 ---
 
@@ -81,8 +81,8 @@ The existing Boberdoo XML nodes in Active Prospect **cannot be duplicated** for 
 
 | Source Name | Role |
 |------------|------|
-| `IUL_LeadConduit` | Main Meta intake via LeadConduit |
-| `IUL_LeadConduit_HighIntent` | High-intent variant |
+| `IUL_LeadConduit` | Main Meta intake via LeadConduit (Traditional + High Intent share this SRC; intent split via `Intent_Type`) |
+| `IUL_LeadConduit_HighIntent` | Legacy Boberdoo high-intent source name — **not** used in current app seed criteria |
 | `IUL_Zapier` | Alternative Zapier intake (flow is deactivated in Active Prospect) |
 | `2nd_chance` | Re-uploaded / second-pass leads |
 
@@ -109,5 +109,5 @@ The existing Boberdoo XML nodes in Active Prospect **cannot be duplicated** for 
 - `docs/BOBERDOO_EXPLORATION.md` — Sections 3, 4, 24, 25
 - `src/lib/lead-categories/flexible-lead-categories.ts` — Category evaluation and admin schemas
 - `src/lib/intake/process-intake.ts` — Intake orchestration
-- `docs/LEADCONDUIT_SETUP.md` — Payload mapping and default SRC criteria
+- `docs/LEADCONDUIT_SETUP.md` — Payload mapping and default category criteria (`SRC` + `Intent_Type` for IUL)
 - `docs/BACKEND.md` — Admin APIs and schema

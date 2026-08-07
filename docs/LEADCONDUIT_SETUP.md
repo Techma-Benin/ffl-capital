@@ -84,6 +84,7 @@ HTTP status: `401`
 | `Primary_Phone` | `phone` | Required |
 | `State` or `State_You_Currently_Live_In` | `state` | Required |
 | `Intent` | `intent` | Stored on lead; does not set `leadType` |
+| `Intent_Type` | *(category criterion only)* | Exact match in default IUL category rules (`Standard` / `High`); not mapped to a lead column |
 | `SRC` | `source` | Also used in category criteria (`field=SRC`, exact match) |
 | `DOB` | `dob` | Optional at intake (temporarily — MP Facebook forms often omit); always sent on outbound post (`""` when blank); LC RealTime may reject if missing |
 | `Age` | `age` | |
@@ -111,18 +112,18 @@ HTTP status: `401`
 | 0 categories | `no_match` | `null` | `review` | skipped | skipped |
 | 2+ categories | `multiple_matches` | `null` | `review` | skipped | skipped |
 
-Default seeded criteria (migrated from former `lead_categories.src` column):
+Default seeded criteria (both IUL types share `SRC`; they differ by `Intent_Type` — exact case-sensitive match):
 
-| Category `type` | Criterion |
-|-----------------|-----------|
-| `traditional_iul` | `SRC` = `IUL_LeadConduit` |
-| `high_intent_iul` | `SRC` = `IUL_LeadConduit_HighIntent` |
+| Category `type` | Criteria (AND) |
+|-----------------|----------------|
+| `traditional_iul` | `SRC` = `IUL_LeadConduit` **and** `Intent_Type` = `Standard` |
+| `high_intent_iul` | `SRC` = `IUL_LeadConduit` **and** `Intent_Type` = `High` |
 | `mortgage_protection` | `SRC` = `Mortgage_LeadConduit` |
 | `final_expense` | `SRC` = `Veteran_LeadConduit` |
 
 Admin UI: `/admin/settings` → **Lead categories** — multi-criteria editor; internal `type` is server-generated from label (not supplied on create). Each category has an **Integrity Realtime label** (`integrityLabel`) and optional **Integrity Storefront label** (`integrityLabelStorefront`); blank Storefront falls back to Realtime, then the default IUL Realtime string.
 
-There is **no** implicit fallback from `Intent` or partial `SRC` matching; unmatched payloads require admin review or new category rules.
+There is **no** implicit fallback from `Intent`, `Intent_Type`, or partial `SRC` matching outside configured criteria; unmatched payloads require admin review or new category rules.
 
 Creating or deleting an enabled category, changing criteria, or toggling `enabled` re-evaluates all non-finalized leads from their stored raw webhook payload with this same evaluator. Final statuses (`delivered`, `integrity_posted`, `aged_listed`, `dead`) are excluded. A newly unique match becomes `unmatched` and available for the normal reprocess flow; the category API itself does not immediately match or deliver it.
 
