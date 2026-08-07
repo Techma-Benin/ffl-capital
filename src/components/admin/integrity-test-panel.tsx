@@ -2,11 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatDateTime } from "@/lib/format-datetime";
-import {
-  formatStateForIntegrity,
-  INTEGRITY_REALTIME_ELIGIBLE_STATE_CODES,
-  US_STATE_NAMES,
-} from "@/lib/constants/us-states";
+import { formatStateForIntegrity } from "@/lib/constants/us-states";
 import {
   buildLeadTypeThomOptions,
   resolveIntegrityLabelForMode,
@@ -80,10 +76,6 @@ const HARDCODED_DEFAULTS: ModalFields = {
   primary_goal_thom: "Stability",
   vendor_lead_id_thom: "test-001",
 };
-
-const INTEGRITY_REALTIME_STATES_LABEL = INTEGRITY_REALTIME_ELIGIBLE_STATE_CODES.map(
-  (code) => US_STATE_NAMES[code],
-).join(", ");
 
 function formatDobMmDdYyyy(dob: string | null): string {
   if (!dob) return "";
@@ -537,25 +529,13 @@ export function IntegrityTestPanel({
                   ] as const
                 ).map((key) => (
                   <div key={key} className="space-y-1">
-                    <label className="form-label">
-                      {key}
-                      {key === "address_1" && (
-                        <span className="ml-2 text-slate-400 font-normal">
-                          (always sent, even if blank)
-                        </span>
-                      )}
-                    </label>
+                    <label className="form-label">{key}</label>
                     <input
                       type="text"
                       className="form-input text-sm"
                       value={modal.fields[key] ?? ""}
                       onChange={(e) => setField(key, e.target.value)}
                     />
-                    {key === "state" && modal.flow === "realtime" && (
-                      <p className="text-xs text-slate-500">
-                        Realtime campaigns: {INTEGRITY_REALTIME_STATES_LABEL}
-                      </p>
-                    )}
                   </div>
                 ))}
               </div>
