@@ -137,31 +137,6 @@ export function encodeIntegrityFormBody(
   return params.toString();
 }
 
-/** Fields that must remain in the encoded body even when blank (Boberdoo parity). */
-export const INTEGRITY_PRESERVE_BLANK_KEYS = new Set(["address_1"]);
-
-/**
- * Admin Integrity test path: drop blank optional fields, keep Boberdoo-required
- * blanks (e.g. address_1), normalize state, always force is_test=yes.
- */
-export function prepareManualTestFields(
-  manualPayload: Record<string, string>,
-): Record<string, string> {
-  const filtered = Object.fromEntries(
-    Object.entries(manualPayload).filter(([key, value]) => {
-      if (value == null) return false;
-      if (INTEGRITY_PRESERVE_BLANK_KEYS.has(key)) return true;
-      return value.trim() !== "";
-    }),
-  ) as Record<string, string>;
-
-  if (filtered.state) {
-    filtered.state = formatStateForIntegrity(filtered.state);
-  }
-
-  return { ...filtered, is_test: "yes" };
-}
-
 /**
  * Automatic Integrity posts in integrations mock mode still hit LeadConduit,
  * but always include is_test=yes. Live auto posts do not force the flag.

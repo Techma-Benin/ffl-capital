@@ -5,10 +5,10 @@ import {
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
   encodeIntegrityFormBody,
-  prepareManualTestFields,
   resolveIntegrityLabelForMode,
   type IntegrityLabelSources,
 } from "@/lib/integrity/build-payload";
+import { formatStateForIntegrity } from "@/lib/constants/us-states";
 import { logIntegrityAction } from "@/lib/integrity/log";
 import { realtimeIulCampaignPing } from "@/lib/integrity/azure-ping";
 import { redactSecrets } from "@/lib/integrity/redact-secrets";
@@ -22,6 +22,27 @@ import {
   INTEGRITY_REALTIME_VENDOR_KEY,
   INTEGRITY_STOREFRONT_VENDOR_KEY,
 } from "@/lib/settings/resale-vendor-keys";
+
+/** Fields that must remain in the encoded body even when blank (Boberdoo parity). */
+const PRESERVE_BLANK_KEYS = new Set(["address_1"]);
+
+function prepareManualTestFields(
+  manualPayload: Record<string, string>,
+): Record<string, string> {
+  const filtered = Object.fromEntries(
+    Object.entries(manualPayload).filter(([key, value]) => {
+      if (value == null) return false;
+      if (PRESERVE_BLANK_KEYS.has(key)) return true;
+      return value.trim() !== "";
+    }),
+  ) as Record<string, string>;
+
+  if (filtered.state) {
+    filtered.state = formatStateForIntegrity(filtered.state);
+  }
+
+  return { ...filtered, is_test: "yes" };
+}
 
 export async function POST(request: NextRequest) {
   const adminCheck = await requireAdmin();
