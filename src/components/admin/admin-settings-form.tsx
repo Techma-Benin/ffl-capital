@@ -622,7 +622,7 @@ export function AdminSettingsForm({
                 title="Default pricing"
               />
               <div style={{ padding: "16px 20px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <label
                       style={{
