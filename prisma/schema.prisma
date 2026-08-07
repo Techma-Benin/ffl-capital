@@ -297,6 +297,14 @@ model Lead {
   agedAvailableAfter      DateTime?              @map("aged_available_after")
   liveSoldAt              DateTime?              @map("live_sold_at")
   liveSaleChannel         String?                @map("live_sale_channel")
+  lastRoutingAttemptAt    DateTime?              @map("last_routing_attempt_at")
+  nextRoutingAttemptAt    DateTime?              @map("next_routing_attempt_at")
+  routingAttemptCount     Int                    @default(0) @map("routing_attempt_count")
+  integrityBlockedAt      DateTime?              @map("integrity_blocked_at")
+  integrityBlockedReason  String?                @map("integrity_blocked_reason")
+  routingClaimedAt        DateTime?              @map("routing_claimed_at")
+  routingClaimedBy        String?                @map("routing_claimed_by")
+  routingClaimExpiresAt   DateTime?              @map("routing_claim_expires_at")
   createdAt               DateTime               @default(now()) @map("created_at")
   updatedAt               DateTime               @updatedAt @map("updated_at")
 
@@ -307,6 +315,9 @@ model Lead {
   @@index([state, status, available])
   @@index([receivedAt])
   @@index([available, receivedAt])
+  @@index([status, available, nextRoutingAttemptAt])
+  @@index([status, available, receivedAt])
+  @@index([routingClaimExpiresAt])
   @@index([externalId])
   @@index([email, phone])
   @@map("leads")
@@ -417,6 +428,7 @@ model ResalePosting {
 
   lead Lead @relation(fields: [leadId], references: [id])
 
+  @@index([leadId])
   @@map("resale_postings")
 }
 
