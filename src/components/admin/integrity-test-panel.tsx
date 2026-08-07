@@ -327,35 +327,45 @@ export function IntegrityTestPanel({
                 flexWrap: "wrap",
               }}
             >
-              <select
-                value={selectedLeadId}
-                onChange={(e) => setSelectedLeadId(e.target.value)}
-                className="form-select"
-                style={{ flex: 1, minWidth: 260 }}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flex: 1,
+                  minWidth: 0,
+                  alignItems: "center",
+                }}
               >
-                <option value="">Use test payload (Mike Jones)</option>
-                {leads.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.firstName} {l.lastName} — {l.leadType ?? "unknown"} · {l.state} ·{" "}
-                    {formatDateTime(l.receivedAt)}
-                  </option>
-                ))}
-              </select>
-              {!selectedLeadId && categories.length > 0 && (
                 <select
-                  value={testCategoryType}
-                  onChange={(e) => setTestCategoryType(e.target.value)}
+                  value={selectedLeadId}
+                  onChange={(e) => setSelectedLeadId(e.target.value)}
                   className="form-select"
-                  style={{ minWidth: 200 }}
-                  title="Lead category used for lead_type_thom when no lead is selected"
+                  style={{ flex: 1, minWidth: 0 }}
                 >
-                  {categories.map((c) => (
-                    <option key={c.type} value={c.type}>
-                      {c.label ?? c.type}
+                  <option value="">Use test payload (Mike Jones)</option>
+                  {leads.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.firstName} {l.lastName} — {l.leadType ?? "unknown"} · {l.state} ·{" "}
+                      {formatDateTime(l.receivedAt)}
                     </option>
                   ))}
                 </select>
-              )}
+                {!selectedLeadId && categories.length > 0 && (
+                  <select
+                    value={testCategoryType}
+                    onChange={(e) => setTestCategoryType(e.target.value)}
+                    className="form-select"
+                    style={{ flex: 1, minWidth: 0 }}
+                    title="Lead category used for lead_type_thom when no lead is selected"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.type} value={c.type}>
+                        {c.label ?? c.type}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => openModal("realtime")}
