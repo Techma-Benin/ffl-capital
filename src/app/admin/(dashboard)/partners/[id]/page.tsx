@@ -26,11 +26,16 @@ export default async function AdminPartnerDetailPage({
         orderBy: { createdAt: "asc" },
       },
       crmOutboundConfig: true,
-      transactions: { orderBy: { createdAt: "desc" }, take: 10 },
-      leadDeliveries: {
-        orderBy: { deliveredAt: "desc" },
+      transactions: {
+        orderBy: { createdAt: "desc" },
         take: 10,
-        include: { lead: true },
+        include: {
+          leadDelivery: {
+            include: {
+              lead: { select: { firstName: true, lastName: true } },
+            },
+          },
+        },
       },
       _count: {
         select: {
@@ -84,7 +89,7 @@ export default async function AdminPartnerDetailPage({
         />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
-        <aside className="sticky top-6 max-h-[calc(100dvh-3rem)] self-start space-y-3 overflow-y-auto">
+        <aside className="space-y-3 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:self-start lg:overflow-y-auto">
           <PartnerProfileCard
             partnerId={partner.id}
             firstName={partner.firstName}
@@ -164,23 +169,16 @@ export default async function AdminPartnerDetailPage({
           />
 
           <PartnerDetailActivity
-            deliveries={partner.leadDeliveries.map((d) => ({
-              id: d.id,
-              deliveredAt: d.deliveredAt,
-              price: Number(d.price),
-              channel: d.channel,
-              lead: {
-                firstName: d.lead.firstName,
-                lastName: d.lead.lastName,
-                state: d.lead.state,
-              },
-            }))}
             transactions={partner.transactions.map((t) => ({
               id: t.id,
               createdAt: t.createdAt,
               type: t.type,
               amount: Number(t.amount),
               balanceAfter: Number(t.balanceAfter),
+              description: t.description ?? null,
+              leadName: t.leadDelivery?.lead
+                ? `${t.leadDelivery.lead.firstName} ${t.leadDelivery.lead.lastName}`
+                : null,
             }))}
           />
         </div>

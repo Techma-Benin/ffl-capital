@@ -29,6 +29,13 @@ const PortalContext = createContext<PortalContextValue | null>(null);
 
 const STORAGE_KEY = "ffl-sidebar-collapsed";
 
+/** Tailwind `lg` — desktop shell; below this the sidebar auto-collapses. */
+const DESKTOP_MIN_WIDTH_PX = 1024;
+
+function isDesktopViewport(): boolean {
+  return window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH_PX}px)`).matches;
+}
+
 type NavigationLocationRef = MutableRefObject<{ fullPath: string }>;
 
 function PortalNavigationSync({
@@ -63,8 +70,19 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setHydrated(true);
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "true") setSidebarCollapsed(true);
+    const applyViewportSidebar = () => {
+      if (!isDesktopViewport()) {
+        setSidebarCollapsed(true);
+        return;
+      }
+      setSidebarCollapsed(localStorage.getItem(STORAGE_KEY) === "true");
+    };
+    applyViewportSidebar();
+
+    const mql = window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH_PX}px)`);
+    const onChange = () => applyViewportSidebar();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
   }, []);
 
   useEffect(() => {
@@ -95,7 +113,10 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem(STORAGE_KEY, String(next));
+      // Persist preference only on desktop so auto-collapse does not overwrite it.
+      if (isDesktopViewport()) {
+        localStorage.setItem(STORAGE_KEY, String(next));
+      }
       return next;
     });
   }, []);

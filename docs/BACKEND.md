@@ -528,7 +528,7 @@ Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads 
 - Webhook `POST /api/webhooks/integrity` : `integrity_accepted` / `integrity_rejected` / `integrity_error` stockent le body webhook sous `response`.
 - Postings plus anciens peuvent n’avoir ni payloads ni raison de rejet (empty state UI).
 
-UI : `/admin/integrity` — modal détail avec section collapsible « Integrity payloads & outcome » (lazy-load du détail `[id]`).
+UI : `/admin/integrity` — modal détail à onglets horizontaux (Posting detail par défaut, Integrity payloads & outcome, Events — un onglet actif à la fois) ; lazy-load du détail `[id]`.
 
 ---
 

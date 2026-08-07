@@ -371,12 +371,6 @@ const IconResale = () => (
   </svg>
 );
 
-const IconTrash = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-    <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
-  </svg>
-);
-
 /* ─── main form ─────────────────────────────────────────────────────────── */
 
 export function AdminSettingsForm({
@@ -541,10 +535,6 @@ export function AdminSettingsForm({
     if (resaleModal?.index == null) return;
     setResaleVendors((prev) => prev.filter((_, i) => i !== resaleModal.index));
     setResaleModal(null);
-  }
-  function deleteResaleByIndex(idx: number, e: React.MouseEvent) {
-    e.stopPropagation();
-    setResaleVendors((prev) => prev.filter((_, i) => i !== idx));
   }
 
   if (loading) {
@@ -960,11 +950,10 @@ export function AdminSettingsForm({
             <table className="w-full" style={{ borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  {["Vendor", "Status", "Post URL", "Actions"].map((col, i) => (
+                  {["Vendor", "Status", "Post URL"].map((col) => (
                     <th
                       key={col}
-                      className="px-3.5 py-2.5 text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap"
-                      style={{ textAlign: i === 3 ? "right" : "left" }}
+                      className="px-3.5 py-2.5 text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap text-left"
                     >
                       {col}
                     </th>
@@ -1038,41 +1027,12 @@ export function AdminSettingsForm({
                         <span style={{ color: "#d7d6e0" }}>—</span>
                       )}
                     </td>
-                    <td className="px-3.5 py-[11px]" style={{ textAlign: "right" }}>
-                      {!isSystemResaleVendorKey(row.key) && (
-                        <button
-                          type="button"
-                          onClick={(e) => deleteResaleByIndex(i, e)}
-                          className="inline-flex items-center justify-center rounded-lg transition-colors"
-                          style={{
-                            width: 30,
-                            height: 30,
-                            border: "1.5px solid #ececf3",
-                            background: "#fff",
-                            color: "#8b8a99",
-                            cursor: "pointer",
-                          }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#c0392b";
-                            (e.currentTarget as HTMLButtonElement).style.borderColor = "#ffd9cc";
-                            (e.currentTarget as HTMLButtonElement).style.background = "#fdf6f4";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#8b8a99";
-                            (e.currentTarget as HTMLButtonElement).style.borderColor = "#ececf3";
-                            (e.currentTarget as HTMLButtonElement).style.background = "#fff";
-                          }}
-                        >
-                          <IconTrash />
-                        </button>
-                      )}
-                    </td>
                   </tr>
                 ))}
                 {resaleVendors.length === 0 && (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={3}
                       className="px-3.5 py-6 text-center text-sm text-[#8b8a99]"
                     >
                       No resale vendors configured
