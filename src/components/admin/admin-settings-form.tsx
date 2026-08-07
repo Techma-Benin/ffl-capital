@@ -693,26 +693,38 @@ export function AdminSettingsForm({
               />
               <div style={{ padding: "16px 20px 18px" }}>
                 <div style={{ marginBottom: 8 }}>
-                  <label
+                  <div
                     style={{
-                      fontSize: 14,
-                      fontWeight: 800,
-                      color: "#030229",
-                      display: "block",
-                      marginBottom: 6,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
                     }}
                   >
-                    Aged days threshold
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.agedDaysThreshold}
-                    onChange={(e) =>
-                      setForm({ ...form, agedDaysThreshold: Number(e.target.value) })
-                    }
-                    className="form-input"
-                  />
+                    <label
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: "#030229",
+                        margin: 0,
+                        flexShrink: 0,
+                      }}
+                    >
+                      Aged days threshold
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={form.agedDaysThreshold}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          agedDaysThreshold: Number(e.target.value),
+                        })
+                      }
+                      className="form-input"
+                      style={{ width: 160 }}
+                    />
+                  </div>
                   <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 6 }}>
                     Leads older than this enter the passive aged marketplace (excluded
                     from automatic routing).
