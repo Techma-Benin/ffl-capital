@@ -258,7 +258,7 @@ export { DEFAULT_LIFECYCLE_SETTINGS };
 
 /**
  * Inbox that receives partner Contact Us messages.
- * Falls back to support@fflcapital.com when unset so existing deployments work
+ * Falls back to sami@ffl-capital.com when unset so existing deployments work
  * without a migration.
  */
 export async function getContactRecipientEmail(): Promise<string> {

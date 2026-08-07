@@ -366,7 +366,7 @@ lead_categories                   -- classification produit (admin)
 - [x] Débit wallet + ledger
 - [x] Marketplace aged (seuil configurable)
 - [x] Emails (Resend si clé configurée) — livraison lead + Partner Contact Us
-- [x] Partner Contact Us : `/partner/contact` → `POST /api/partner/contact` (Resend) ; destinataire admin configurable (`contact_recipient_email`, défaut `support@fflcapital.com`)
+- [x] Partner Contact Us : `/partner/contact` → `POST /api/partner/contact` (Resend) ; destinataire admin configurable (`contact_recipient_email`, défaut `sami@ffl-capital.com`)
 
 ### UI fonctionnelle (**terminé — polish partiel**)
 

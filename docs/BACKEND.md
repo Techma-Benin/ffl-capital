@@ -449,7 +449,7 @@ Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/
 | Intégration | Mode | Variables / notes |
 |-------------|------|-------------------|
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
-| Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` — livraison lead **et** Partner Contact Us ; destinataire Contact Us = `app_settings.contact_recipient_email` (défaut `support@fflcapital.com`, UI Admin → Settings → General → Platform) |
+| Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` — livraison lead **et** Partner Contact Us ; destinataire Contact Us = `app_settings.contact_recipient_email` (défaut `sami@ffl-capital.com`, UI Admin → Settings → General → Platform) |
 | CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | IntegrityCONNECT | mock/live (admin + env) | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; **Realtime IUL** : ping Azure `IsAcceptingCampaign` avant post LC (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY` — env-only, jamais en BDD) ; Storefront : post direct sans ping LC ; mode sorties via `getIntegrationsMode()` : `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` si pas de valeur DB, défaut `mock` (dev) / `live` (prod). Dropdown Mode (Settings → Integrations / Integrity Connect) visible et persistable en prod ; **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire. **Mock auto posts** : HTTP réel vers LeadConduit avec `is_test=yes` (`applyIntegrityAutoPostTestFlag`) ; ping Azure Realtime IUL skippé (auto-accept). Live auto posts ne forcent pas `is_test`. **Boberdoo parity** : posts auto toujours HTTP — pas de gate local `required-fields.ts` ; rejets LC → `integrity_rejected` (outcome `rejected`) ou `integrity_no_campaign` (outcome `no_campaign_available`) quand la raison contient « No Campaign Available » (`src/lib/integrity/no-campaign.ts`) ; body LC stocké sur l’événement. `required-fields.ts` = avertissements admin seulement. Boutons admin test : toujours HTTP réel + `is_test=yes` (mock et live) |
 | Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
@@ -532,7 +532,7 @@ UI : `/partner/contact` — formulaire topic + message → `POST /api/partner/co
 
 Flux (`deliverPartnerContact`) :
 
-1. Destinataire admin via `getContactRecipientEmail()` (`app_settings.contact_recipient_email`, fallback `support@fflcapital.com`)
+1. Destinataire admin via `getContactRecipientEmail()` (`app_settings.contact_recipient_email`, fallback `sami@ffl-capital.com`)
 2. Email admin Resend (`FROM_EMAIL`, `replyTo` = email session partner) — sujet `[Partner Portal] {topic label}` ; label = `customTopic` si topic `other`
 3. Confirmation partner Resend — recap topic + message ; footer « do not reply » avec email partner ; échec confirmation → succès avec `warning` ; échec admin → `502` message générique
 
