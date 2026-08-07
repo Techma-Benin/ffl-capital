@@ -204,12 +204,14 @@ IF resaleMode = realtime:
   → POST to resolved integrity_realtime postUrl (DB or INTEGRITY_REALTIME_SUBMIT_URL)
      (mock auto post: same HTTP + is_test=yes; always HTTP — no local missing-field gate)
   → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
+  → LC success (outcome success) → ResalePosting sold immediately (soldAt, claimLiveSale, integrity_accepted); not left pending for webhook
   → LC failure → integrity_rejected (outcome rejected) OR integrity_no_campaign (outcome no_campaign_available) when reason contains "No Campaign Available"; LC response body stored on event
 
 IF resaleMode = storefront:
   → POST directly to resolved integrity_storefront postUrl (no LC ping)
      (mock auto post: same HTTP + is_test=yes; always HTTP)
   → LC Storefront acceptance criteria: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
+  → LC success → same immediate sold path as Realtime
   → LC failure → integrity_rejected or integrity_no_campaign (same detection); LC response body stored on event
 ```
 
@@ -252,13 +254,15 @@ LeadConduit can POST back a result after processing. This closes the loop: submi
 
 | `outcome` | Action |
 |-----------|--------|
-| `success` | `ResalePosting` → `sold`; emits `integrity_accepted` event (payload includes webhook `response` body); records LeadConduit `lead.id` |
+| `success` | `ResalePosting` → `sold` (idempotent if already sold by sync submit); emits `integrity_accepted` event (payload includes webhook `response` body); records LeadConduit `lead.id` |
 | `failure` | `ResalePosting` → `rejected`; emits `integrity_rejected` (generic) or `integrity_no_campaign` (reason contains "No Campaign Available") with reason + webhook `response` body |
 | `error` | Logs error; leaves `ResalePosting` as `pending` for retry; emits `integrity_error` event with webhook `response` body |
 
-Outbound posts (`src/lib/integrity/post.ts`) store `requestPayload` and LeadConduit `response` on `integrity_posted`, `integrity_rejected`, and `integrity_no_campaign` events. Older postings may have legacy `integrity_missing_fields` events from a prior local pre-flight gate.
+**Sync submit note:** On the outbound POST response, LeadConduit `outcome: success` already marks the posting **sold** (`soldAt`, `claimLiveSale`, `integrity_accepted`). The webhook is optional confirmation and must stay idempotent when the posting is already sold.
 
-**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`) and includes `integrityOutcome` per row (e.g. `no_campaign_available`). UI badges show **No Campaign Available** instead of **Rejected** for that outcome. Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, rejection reason derived from those events (empty for older postings without stored payloads), plus enriched lead fields and categories for Review payload prefill. Modal header **Reprocess** opens the shared **Review payload** edit modal (same as Connection test); **Send** POSTs optional `{ manualPayload }` to `POST /api/admin/integrity/postings/[id]/reprocess` — reuses the posting’s mode via `integrityPostLead` (admin force-retry); blocked for live-sold leads and sold postings.
+Outbound posts (`src/lib/integrity/post.ts`) refresh `postedAt` when a real Integrity post/reprocess starts; they store `requestPayload` and LeadConduit `response` on `integrity_posted`, `integrity_rejected`, and `integrity_no_campaign` events. Older postings may have legacy `integrity_missing_fields` events from a prior local pre-flight gate.
+
+**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`) and includes `integrityOutcome` per row (e.g. `no_campaign_available`). UI badges: **Sold** (green) for success/sold; **No Campaign Available** (yellow) for `no_campaign_available` — not generic Rejected. Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, rejection reason derived from those events (empty for older postings without stored payloads), plus enriched lead fields. Modal header **Reprocess** POSTs immediately to `POST /api/admin/integrity/postings/[id]/reprocess` (loading on button; success closes PostingModal; error keeps open + toast) — reuses the posting’s mode via `integrityPostLead` (admin force-retry); blocked for live-sold leads and sold postings. Shared **Review payload** edit modal (`IntegrityPayloadEditModal`) is for Connection test only.
 
 ---
 
@@ -274,7 +278,7 @@ Authorization: admin session required
 Body: { "flow": "realtime" | "storefront", ... }
 ```
 
-Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. The Connection test UI opens the shared **Review payload** modal before send (optional `{ manualPayload }`). Always includes `is_test=yes` and **always** POSTs real HTTP to LeadConduit (mock and live integrations mode). Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`. `checkRequiredIntegrityFields` warnings in the lead picker are advisory only.
+Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. The Connection test UI opens the **Review payload** modal before send (optional `{ manualPayload }`) — this modal is for Connection test only, not PostingModal Reprocess. Always includes `is_test=yes` and **always** POSTs real HTTP to LeadConduit (mock and live integrations mode). Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`. `checkRequiredIntegrityFields` warnings in the lead picker are advisory only.
 
 ### Manual curl — RealTime flow
 

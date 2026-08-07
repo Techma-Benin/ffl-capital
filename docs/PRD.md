@@ -312,10 +312,11 @@ Phase D — Migration Replit (livraison client)
 - **Feature livrée en V1** même si exécution différée
 
 #### Revente Integrity
-- Vue postings (`/admin/integrity`) : statut, mode realtime/storefront ; modal détail avec outcome, payloads request/response et timeline d’événements Integrity (lazy-load détail API)
-- **Reprocess** admin depuis le modal : ouvre **Review payload** (même modal que Connection test) pour éditer avant envoi ; prefill lead + prior `requestPayload` ; mode verrouillé (Realtime ou Storefront) ; **Send** → chemin Integrity réel avec `manualPayload` optionnel ; interdit si vente live (`liveSoldAt`) ou posting `sold`
+- Vue postings (`/admin/integrity`) : statut, mode realtime/storefront ; modal détail avec outcome, payloads request/response et timeline d’événements Integrity (lazy-load détail API) ; badge **Sold** (vert) sur succès ; badge distinct **No Campaign Available** (jaune) pour `no_campaign_available`
+- **Reprocess** admin depuis le modal : envoi immédiat `POST /api/admin/integrity/postings/[id]/reprocess` (loading sur le bouton ; succès ferme le modal ; erreur toast + modal ouvert) ; mode verrouillé (Realtime ou Storefront) ; interdit si vente live (`liveSoldAt`) ou posting `sold`
+- Modal partagé **Review payload** (`IntegrityPayloadEditModal`) : Connection test uniquement
 - Raison de rejet dérivée des lead events quand disponibles (postings anciens : empty state)
-- Réconciliation storefront (import log journalier — manuel ou auto selon API)
+- Réconciliation storefront (import log journalier — manuel ou auto selon API) ; webhook `success` idempotent si déjà sold au submit sync
 
 ### 5.3 Portail agent
 
@@ -500,16 +501,18 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 ### 5.12 Revente IntegrityCONNECT
 
 **Modes :**
-- **Real-time post** : vente immédiate via LeadConduit ; pour les leads **IUL Realtime**, ping Azure `IsAcceptingCampaign` avant le post (parité Boberdoo delivery 281)
-- **Storefront post** : envoi direct LeadConduit (pas de ping gate LC) ; réconciliation via webhook callback
+- **Real-time post** : vente immédiate via LeadConduit ; pour les leads **IUL Realtime**, ping Azure `IsAcceptingCampaign` avant le post (parité Boberdoo delivery 281) ; `outcome: success` sur le submit → posting **sold** immédiatement (pas d’attente webhook)
+- **Storefront post** : envoi direct LeadConduit (pas de ping gate LC) ; même sold immédiat sur success sync ; webhook callback optionnel / idempotent
 
 **Mock :** les posts Integrity automatiques envoient toujours du HTTP vers LeadConduit avec `is_test=yes` ; le ping Azure Realtime IUL est skippé (auto-accept). Les posts live auto ne forcent pas `is_test`. Les boutons admin test incluent toujours `is_test=yes` et, en mock, short-circuitent sans HTTP.
 
 **Déclenchement :** selon fenêtre lifecycle (flag on) ou matching Partner-only (flag off — jamais Integrity auto).
 
-**Admin :** liste postings ; détail payloads + événements (lead enrichi pour prefill) ; **Reprocess** via modal Review payload puis `POST /api/admin/integrity/postings/[id]/reprocess` (`{ manualPayload }` optionnel, mode du posting, bloqué si sold / vente live) ; Connection test partage le même modal ; preview routage (`POST /api/admin/lead-routing/preview`) ; preflight Azure (`pnpm run preflight:integrity-azure`).
+**Admin :** liste postings (badge **Sold** / **No Campaign Available**) ; détail payloads + événements ; **Reprocess** immédiat `POST /api/admin/integrity/postings/[id]/reprocess` (bloqué si sold / vente live) ; Connection test via modal Review payload ; preview routage (`POST /api/admin/lead-routing/preview`) ; preflight Azure (`pnpm run preflight:integrity-azure`).
 
 **Routing mode :** `lifecycle_routing_enabled` (**off** par défaut = Partner-only) ; cutoffs 24 h / 48 h ; mid-window primary `partner` ou `storefront` ; `lifecycle_partner_auto_reprocess_enabled` pour le cron partners 48 h–30 j.
+
+**Échecs Integrity :** NCA → `retryable_no_campaign` (backoff cron 15/30/60 min) ; autres rejets métier → `terminal_business_rejection` (`integrityBlockedAt`, pas de retry Integrity auto ; Reprocess manuel disponible) ; 429/5xx/réseau = opérationnel.
 
 **Implémentation :** `src/lib/lead-routing/` (policy, work-queue, coordinator) + `src/lib/integrity/` (dont `classify.ts`) ; specs Boberdoo : [BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md](BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md).
 

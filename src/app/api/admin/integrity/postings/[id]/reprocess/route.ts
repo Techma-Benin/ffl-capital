@@ -5,8 +5,9 @@ import { adminReprocessIntegrityPosting } from "@/lib/integrity/post";
 /**
  * POST /api/admin/integrity/postings/[id]/reprocess
  * Admin-only: re-send the lead to Integrity using this posting's mode
- * (realtime or storefront). Optional JSON body `{ manualPayload }` overrides
- * the built payload (reference / is_test still server-controlled).
+ * (realtime or storefront). Optional JSON body `{ manualPayload }` is supported
+ * for Connection-test-style overrides; the PostingModal Reprocess button sends
+ * with an empty body (payload built from the lead).
  * Blocks live-sold leads / sold postings.
  */
 export async function POST(

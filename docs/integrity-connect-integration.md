@@ -387,12 +387,14 @@ IF resaleMode = realtime:
   → IF lead type is Realtime IUL → Azure IsAcceptingCampaign ping (env secrets)
   → POST to INTEGRITY_REALTIME_SUBMIT_URL (or vendor postUrl) — always HTTP; no local missing-field gate
   → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
+  → LC success (outcome success) → ResalePosting **sold** immediately (`soldAt`, `claimLiveSale`, `integrity_accepted`); not left `pending` for webhook
   → LC failure → integrity_rejected (outcome rejected) OR integrity_no_campaign (outcome no_campaign_available) when reason contains "No Campaign Available"; LC response body stored on event
   → classifyIntegrityFailure: NCA = retryable (lead unmatched + nextRoutingAttemptAt 15/30/60 min); other business failure = permanent Integrity block (both modes); 429/5xx/network = operational backoff
 
 IF resaleMode = storefront:
   → POST directly to INTEGRITY_STOREFRONT_SUBMIT_URL (no LC ping gate) — always HTTP
   → LC Storefront acceptance criteria: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
+  → LC success → same immediate sold path as Realtime
   → LC failure → integrity_rejected or integrity_no_campaign (same detection as Realtime); same classifyIntegrityFailure rules; LC response body stored on event
 ```
 
@@ -400,11 +402,11 @@ IF resaleMode = storefront:
 
 | Class | Trigger | Lifecycle effect |
 |-------|---------|------------------|
-| `retryable_no_campaign` | Normalized reason « No Campaign Available » | Restore `unmatched`; schedule retry (15 / 30 / 60 min) |
-| `terminal_business_rejection` | Other LC business failure | Set `integrityBlockedAt` + reason; **no further Realtime or Storefront posts**; continue via partners in partner-capable windows |
+| `retryable_no_campaign` | Normalized reason « No Campaign Available » | Restore `unmatched`; cron backoff 15 / 30 / 60 min (`noCampaignBackoffMinutes`); Integrity may retry while in window |
+| `terminal_business_rejection` | Other LC business failure | Set `integrityBlockedAt` + reason; **no further auto Realtime or Storefront posts** (cron does not retry Integrity); continue via partners in partner-capable windows; manual Reprocess on posting modal still available |
 | `operational_failure` | Network error, HTTP 429 / 5xx (and similar transport) | Technical backoff (5 / 10 / 20 min); no permanent block |
 
-Async webhook rejections use the same classifier.
+Async webhook rejections use the same classifier. Webhook `success` is idempotent if the posting was already marked sold on sync submit.
 
 ### Unmatched lead routing (`lifecycle_routing_enabled`, default OFF)
 
@@ -459,11 +461,11 @@ Requires `INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_P
 
 ### Admin Integrity test panel (preferred)
 
-`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and **always** POSTs real HTTP to LeadConduit with `is_test=yes` (mock and live integrations mode). The Connection test UI opens the shared **Review payload** modal (`integrity-payload-edit-modal.tsx`) before send; optional `{ manualPayload }` overrides preserve blank `address_1`. Returns the raw LC response plus `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. `checkRequiredIntegrityFields` warnings are advisory in the lead picker only. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
+`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and **always** POSTs real HTTP to LeadConduit with `is_test=yes` (mock and live integrations mode). The Connection test UI opens the **Review payload** modal (`integrity-payload-edit-modal.tsx`) before send; optional `{ manualPayload }` overrides preserve blank `address_1`. (PostingModal Reprocess does **not** use this modal.) Returns the raw LC response plus `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. `checkRequiredIntegrityFields` warnings are advisory in the lead picker only. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
 
 ### Admin Integrity posting reprocess
 
-Posting detail **Reprocess** opens the same **Review payload** modal (prefill from lead + prior `requestPayload`; flow locked to the posting’s mode). **Send** calls `POST /api/admin/integrity/postings/[id]/reprocess` with optional `{ manualPayload }` (admin session), which re-sends through the real Integrity post path (`adminReprocessIntegrityPosting` → `integrityPostLead` with `forceAdminRetry` + `postingId`). Mode always comes from the existing posting (never switches Realtime ↔ Storefront). Blocked when the lead has `liveSoldAt` or the posting is `sold`. Still respects vendor enabled and mock `is_test` behavior. On success the edit modal closes and the posting detail refreshes.
+Posting detail **Reprocess** POSTs immediately to `POST /api/admin/integrity/postings/[id]/reprocess` (admin session; loading on button). Re-sends through the real Integrity post path (`adminReprocessIntegrityPosting` → `integrityPostLead` with `forceAdminRetry` + `postingId`; refreshes `postedAt`). Mode always comes from the existing posting (never switches Realtime ↔ Storefront). Blocked when the lead has `liveSoldAt` or the posting is `sold`. Still respects vendor enabled and mock `is_test` behavior. On success the PostingModal closes; on error it stays open with a toast. Shared **Review payload** modal (`IntegrityPayloadEditModal`) remains for Connection test only — not used by Reprocess.
 
 ### General Approach
 

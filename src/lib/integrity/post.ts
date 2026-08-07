@@ -33,6 +33,7 @@ import {
 import { logIntegrityAction, urlHost } from "./log";
 import { realtimeIulCampaignPing } from "./azure-ping";
 import { isNoCampaignAvailableReason } from "./no-campaign";
+import { claimLiveSale } from "@/lib/lead-routing/live-sale";
 
 export interface IntegrityPostResult {
   posted: boolean;
@@ -524,17 +525,27 @@ export async function integrityPostLead(
   }
 
   const resolvedExternalRef = result.externalLeadId;
-  if (resolvedExternalRef) {
-    await prisma.resalePosting.update({
-      where: { id: posting.id },
-      data: { externalRef: resolvedExternalRef },
-    });
-  }
+  const liveChannel =
+    resaleMode === ResaleMode.storefront
+      ? "integrity_storefront"
+      : "integrity_realtime";
+
+  // LeadConduit `outcome: success` means the lead was sold to Integrity —
+  // mark sold immediately (do not leave the posting pending for a webhook).
+  await prisma.resalePosting.update({
+    where: { id: posting.id },
+    data: {
+      status: ResaleStatus.sold,
+      externalRef: resolvedExternalRef ?? posting.externalRef,
+      soldAt: new Date(),
+    },
+  });
 
   await prisma.lead.update({
     where: { id: leadId },
     data: { status: LeadStatus.integrity_posted },
   });
+  await claimLiveSale(leadId, liveChannel);
 
   await emitLeadEvent(leadId, LeadEventType.integrity_posted, {
     postingId: posting.id,
@@ -547,10 +558,21 @@ export async function integrityPostLead(
     response: result.response ?? { externalLeadId: resolvedExternalRef },
   });
 
+  await emitLeadEvent(leadId, LeadEventType.integrity_accepted, {
+    postingId: posting.id,
+    mode: resaleMode,
+    vendor: vendorKey,
+    externalLeadId: resolvedExternalRef,
+    outcome: "accepted",
+    isTest: isTestPost,
+    integrationsMode,
+    response: result.response ?? { externalLeadId: resolvedExternalRef },
+  });
+
   logIntegrityAction("post_complete", {
     ...logFields,
     postingId: posting.id,
-    outcome: isTestPost ? "posted_test" : "posted",
+    outcome: isTestPost ? "posted_test" : "sold",
   });
 
   return { posted: true, postingId: posting.id };

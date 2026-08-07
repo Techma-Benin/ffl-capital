@@ -38,6 +38,10 @@ export function formatResaleStatusLabel(status: string, outcome?: string | null)
   if (outcome === "no_campaign_available") {
     return "No Campaign Available";
   }
+  // Sync or webhook acceptance — always surface as Sold in the postings table.
+  if (status === "sold" || outcome === "accepted") {
+    return "Sold";
+  }
   return RESALE_STATUS_LABELS[status] ?? status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 

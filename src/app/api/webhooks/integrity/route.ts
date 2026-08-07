@@ -93,27 +93,30 @@ export async function POST(request: NextRequest) {
   const resolvedPostingId = posting.id;
 
   if (outcome === "success") {
-    await prisma.resalePosting.update({
-      where: { id: resolvedPostingId },
-      data: {
-        status: ResaleStatus.sold,
-        externalRef: externalLeadId ?? posting.externalRef,
-        soldAt: new Date(),
-      },
-    });
+    // Sync post path may already have marked sold; keep webhook idempotent.
+    if (posting.status !== ResaleStatus.sold) {
+      await prisma.resalePosting.update({
+        where: { id: resolvedPostingId },
+        data: {
+          status: ResaleStatus.sold,
+          externalRef: externalLeadId ?? posting.externalRef,
+          soldAt: new Date(),
+        },
+      });
 
-    const liveChannel =
-      posting.mode === ResaleMode.storefront
-        ? "integrity_storefront"
-        : "integrity_realtime";
-    await claimLiveSale(posting.leadId, liveChannel);
+      const liveChannel =
+        posting.mode === ResaleMode.storefront
+          ? "integrity_storefront"
+          : "integrity_realtime";
+      await claimLiveSale(posting.leadId, liveChannel);
 
-    await emitLeadEvent(posting.leadId, LeadEventType.integrity_accepted, {
-      postingId: resolvedPostingId,
-      externalLeadId,
-      outcome: "accepted",
-      response: body,
-    });
+      await emitLeadEvent(posting.leadId, LeadEventType.integrity_accepted, {
+        postingId: resolvedPostingId,
+        externalLeadId,
+        outcome: "accepted",
+        response: body,
+      });
+    }
   } else if (outcome === "failure") {
     await prisma.resalePosting.update({
       where: { id: resolvedPostingId },

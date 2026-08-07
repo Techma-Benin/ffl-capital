@@ -62,7 +62,7 @@ export async function GET() {
             type: { in: INTEGRITY_OUTCOME_EVENT_TYPES },
           },
           orderBy: { createdAt: "asc" },
-          select: { payload: true },
+          select: { type: true, payload: true },
         })
       : [];
 
@@ -71,8 +71,12 @@ export async function GET() {
     const payload = asObject(event.payload);
     const postingId = payload?.postingId;
     if (typeof postingId !== "string" || !postingIds.has(postingId)) continue;
-    if (typeof payload.outcome === "string") {
+    if (typeof payload?.outcome === "string") {
       outcomeByPostingId.set(postingId, payload.outcome);
+    } else if (event.type === LeadEventType.integrity_no_campaign) {
+      outcomeByPostingId.set(postingId, "no_campaign_available");
+    } else if (event.type === LeadEventType.integrity_accepted) {
+      outcomeByPostingId.set(postingId, "accepted");
     }
   }
 

@@ -52,6 +52,11 @@ describe("Integrity event labels", () => {
       "No Campaign Available",
     );
   });
+
+  test("formats sold / accepted as Sold", () => {
+    assert.equal(formatResaleStatusLabel("sold"), "Sold");
+    assert.equal(formatResaleStatusLabel("pending", "accepted"), "Sold");
+  });
 });
 
 describe("submitToIntegrity no-campaign response", () => {
