@@ -567,32 +567,63 @@ export function AdminSettingsForm({
 
         {/* ── GENERAL TAB ────────────────────────────────────────────────── */}
         {tab === "general" && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 14,
-              alignItems: "start",
-            }}
-          >
-            {/* Left column: Platform + Default pricing */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-              {/* Platform card */}
-              <div className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)]">
-                <CardHead
-                  iconBg="rgba(96,91,255,0.12)"
-                  icon={<IconPlatform />}
-                  title="Platform"
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {/* Platform card */}
+            <div className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)]">
+              <CardHead
+                iconBg="rgba(96,91,255,0.12)"
+                icon={<IconPlatform />}
+                title="Platform"
+              />
+              <div style={{ padding: "6px 20px 16px" }}>
+                <ToggleRow
+                  label="Require admin approval for new partners"
+                  description="Partners must be approved before buying"
+                  checked={form.adminApprovalRequired}
+                  onChange={(v) => setForm({ ...form, adminApprovalRequired: v })}
                 />
-                <div style={{ padding: "6px 20px 16px" }}>
-                  <ToggleRow
-                    label="Require admin approval for new partners"
-                    description="Partners must be approved before buying"
-                    checked={form.adminApprovalRequired}
-                    onChange={(v) => setForm({ ...form, adminApprovalRequired: v })}
+                <div style={{ paddingTop: 4, paddingBottom: 4 }}>
+                  <label
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: "#030229",
+                      display: "block",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Partner contact recipient
+                  </label>
+                  <input
+                    type="email"
+                    value={form.contactRecipientEmail}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        contactRecipientEmail: e.target.value,
+                      })
+                    }
+                    placeholder={DEFAULT_CONTACT_RECIPIENT_EMAIL}
+                    className="form-input"
+                    required
                   />
-                  <div style={{ paddingTop: 4, paddingBottom: 4 }}>
+                  <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 6 }}>
+                    Inbox that receives Contact Us messages from partners.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Default pricing card */}
+            <div className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)]">
+              <CardHead
+                iconBg="rgba(58,151,76,0.1)"
+                icon={<IconPricing />}
+                title="Default pricing"
+              />
+              <div style={{ padding: "16px 20px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div>
                     <label
                       style={{
                         fontSize: 14,
@@ -602,107 +633,58 @@ export function AdminSettingsForm({
                         marginBottom: 6,
                       }}
                     >
-                      Partner contact recipient
+                      Realtime price ($)
                     </label>
                     <input
-                      type="email"
-                      value={form.contactRecipientEmail}
+                      type="number"
+                      min={1}
+                      step={0.01}
+                      value={form.defaultRealtimePrice}
                       onChange={(e) =>
-                        setForm({
-                          ...form,
-                          contactRecipientEmail: e.target.value,
-                        })
+                        setForm({ ...form, defaultRealtimePrice: Number(e.target.value) })
                       }
-                      placeholder={DEFAULT_CONTACT_RECIPIENT_EMAIL}
                       className="form-input"
-                      required
                     />
-                    <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 6 }}>
-                      Inbox that receives Contact Us messages from partners.
-                    </p>
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: "#030229",
+                        display: "block",
+                        marginBottom: 6,
+                      }}
+                    >
+                      Aged price ($)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      step={0.01}
+                      value={form.defaultAgedPrice}
+                      onChange={(e) =>
+                        setForm({ ...form, defaultAgedPrice: Number(e.target.value) })
+                      }
+                      className="form-input"
+                    />
                   </div>
                 </div>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "#8b8a99",
+                    marginTop: 12,
+                  }}
+                >
+                  Per-category prices in{" "}
+                  <strong style={{ color: "#605BFF" }}>Categories</strong>{" "}
+                  override these globals.
+                </p>
               </div>
-
-              {/* Default pricing card */}
-              <div className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)]">
-                <CardHead
-                  iconBg="rgba(58,151,76,0.1)"
-                  icon={<IconPricing />}
-                  title="Default pricing"
-                />
-                <div style={{ padding: "16px 20px" }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 14,
-                    }}
-                  >
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 800,
-                          color: "#030229",
-                          display: "block",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Realtime price ($)
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        step={0.01}
-                        value={form.defaultRealtimePrice}
-                        onChange={(e) =>
-                          setForm({ ...form, defaultRealtimePrice: Number(e.target.value) })
-                        }
-                        className="form-input"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 800,
-                          color: "#030229",
-                          display: "block",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Aged price ($)
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        step={0.01}
-                        value={form.defaultAgedPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, defaultAgedPrice: Number(e.target.value) })
-                        }
-                        className="form-input"
-                      />
-                    </div>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "#8b8a99",
-                      marginTop: 12,
-                    }}
-                  >
-                    Per-category prices in{" "}
-                    <strong style={{ color: "#605BFF" }}>Categories</strong>{" "}
-                    override these globals.
-                  </p>
-                </div>
-              </div>
-
             </div>
 
-            {/* Right column: Lead routing */}
+            {/* Lead routing */}
             <div className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)]">
               <CardHead
                 iconBg="rgba(255,214,107,0.22)"
@@ -776,8 +758,8 @@ export function AdminSettingsForm({
                     </p>
                     <div
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
+                        display: "flex",
+                        flexDirection: "column",
                         gap: 14,
                         marginBottom: 8,
                       }}
@@ -972,7 +954,6 @@ export function AdminSettingsForm({
                 )}
               </div>
             </div>
-
           </div>
         )}
 
