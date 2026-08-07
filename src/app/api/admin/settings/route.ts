@@ -30,6 +30,7 @@ const settingsSchema = z.object({
   lifecycleRealtimeCutoffHours: z.number().int().min(1).optional(),
   lifecycleStorefrontCutoffHours: z.number().int().min(1).optional(),
   lifecycleMidWindowPrimary: z.enum(["partner", "storefront"]).optional(),
+  lifecyclePartnerAutoReprocessEnabled: z.boolean().optional(),
   contactRecipientEmail: z.string().trim().email().optional(),
 });
 
@@ -50,6 +51,8 @@ const KEY_MAP: Record<string, string> = {
   lifecycleRealtimeCutoffHours: APP_SETTING_KEYS.lifecycleRealtimeCutoffHours,
   lifecycleStorefrontCutoffHours: APP_SETTING_KEYS.lifecycleStorefrontCutoffHours,
   lifecycleMidWindowPrimary: APP_SETTING_KEYS.lifecycleMidWindowPrimary,
+  lifecyclePartnerAutoReprocessEnabled:
+    APP_SETTING_KEYS.lifecyclePartnerAutoReprocessEnabled,
   contactRecipientEmail: APP_SETTING_KEYS.contactRecipientEmail,
 };
 

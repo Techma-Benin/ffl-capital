@@ -45,6 +45,17 @@ function notifyReprocessResult(data: {
   }
 }
 
+async function resolveShouldShowPicker(leadIds: string[]): Promise<boolean> {
+  const res = await fetch("/api/admin/leads/bulk-reprocess/partner-route", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ leadIds }),
+  });
+  if (!res.ok) return false;
+  const data = (await res.json()) as { partnerPrimary?: boolean };
+  return Boolean(data.partnerPrimary);
+}
+
 export function useAdminReprocess({
   reprocessPartnerPickerEnabled,
   onSuccess,
@@ -65,14 +76,31 @@ export function useAdminReprocess({
 
       if (reprocessPartnerPickerEnabled) {
         try {
+          const showPicker = await resolveShouldShowPicker(leadIds);
+          if (!showPicker) {
+            setPending(true);
+            try {
+              const data = await directReprocess(leadIds);
+              notifyReprocessResult(data);
+              handleSuccess();
+            } finally {
+              setPending(false);
+            }
+            return;
+          }
+
           const res = await fetch("/api/admin/leads/bulk-reprocess/hold", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ leadIds }),
           });
           if (!res.ok) {
-            const data = (await res.json().catch(() => ({}))) as { error?: string };
-            throw new Error(data.error ?? "Failed to reserve leads for reprocessing");
+            const data = (await res.json().catch(() => ({}))) as {
+              error?: string;
+            };
+            throw new Error(
+              data.error ?? "Failed to reserve leads for reprocessing",
+            );
           }
           setDialogLeadIds(leadIds);
           setDialogOpen(true);
@@ -93,7 +121,9 @@ export function useAdminReprocess({
         handleSuccess();
       } catch (err) {
         notify.error(
-          err instanceof Error ? err.message : "Reprocess failed. Please try again.",
+          err instanceof Error
+            ? err.message
+            : "Reprocess failed. Please try again.",
         );
       } finally {
         setPending(false);

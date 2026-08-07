@@ -23,6 +23,7 @@ describe("Phase 2 lifecycle policy boundaries", () => {
         ageHours,
         liveSold: false,
         integrityPosting: "rejected",
+        integrityBlocked: false,
         settings,
       });
       assert.equal(result.phase, "realtime");
@@ -37,6 +38,7 @@ describe("Phase 2 lifecycle policy boundaries", () => {
         ageHours,
         liveSold: false,
         integrityPosting: "rejected",
+        integrityBlocked: false,
         settings,
       });
       assert.equal(result.phase, "partner_or_storefront");
@@ -50,6 +52,7 @@ describe("Phase 2 lifecycle policy boundaries", () => {
       ageHours: 30,
       liveSold: false,
       integrityPosting: "pending",
+      integrityBlocked: false,
       settings,
     });
     assert.equal(result.phase, "waiting");
@@ -63,6 +66,7 @@ describe("Phase 2 lifecycle policy boundaries", () => {
         ageHours,
         liveSold: false,
         integrityPosting: "rejected",
+        integrityBlocked: false,
         settings,
       });
       assert.equal(result.phase, "partners_only");
@@ -76,6 +80,7 @@ describe("Phase 2 lifecycle policy boundaries", () => {
       ageHours: 24 * 30,
       liveSold: false,
       integrityPosting: "rejected",
+      integrityBlocked: false,
       settings,
     });
     assert.equal(result.phase, "aged_marketplace");
@@ -87,6 +92,7 @@ describe("Phase 2 lifecycle policy boundaries", () => {
       ageHours: 30,
       liveSold: true,
       integrityPosting: "sold",
+      integrityBlocked: false,
       settings,
     });
     assert.equal(result.phase, "live_sold");
@@ -98,10 +104,52 @@ describe("Phase 2 lifecycle policy boundaries", () => {
       ageHours: 24 * 30,
       liveSold: true,
       integrityPosting: "sold",
+      integrityBlocked: false,
       settings,
     });
     assert.equal(result.phase, "aged_marketplace");
     assert.equal(result.primaryRoute, "aged_marketplace");
+  });
+
+  test("lifecycle off is Partner-only with no Integrity routes", () => {
+    const off = { ...DEFAULT_LIFECYCLE_SETTINGS, enabled: false };
+    for (const ageHours of [1, 30, 60]) {
+      const result = evaluateLifecyclePolicy({
+        ageHours,
+        liveSold: false,
+        integrityPosting: "none",
+        integrityBlocked: false,
+        settings: off,
+      });
+      assert.equal(result.phase, "partner_only_mode");
+      assert.equal(result.primaryRoute, "partner");
+      assert.equal(result.fallbackRoute, null);
+    }
+  });
+
+  test("Integrity-blocked realtime waits for partner window", () => {
+    const result = evaluateLifecyclePolicy({
+      ageHours: 12,
+      liveSold: false,
+      integrityPosting: "rejected",
+      integrityBlocked: true,
+      settings,
+    });
+    assert.equal(result.phase, "waiting");
+    assert.equal(result.primaryRoute, null);
+  });
+
+  test("Integrity-blocked mid-window is partner only", () => {
+    const result = evaluateLifecyclePolicy({
+      ageHours: 30,
+      liveSold: false,
+      integrityPosting: "rejected",
+      integrityBlocked: true,
+      settings,
+    });
+    assert.equal(result.phase, "partner_or_storefront");
+    assert.equal(result.primaryRoute, "partner");
+    assert.equal(result.fallbackRoute, null);
   });
 });
 

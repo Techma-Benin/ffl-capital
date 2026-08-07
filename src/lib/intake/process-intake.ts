@@ -165,6 +165,13 @@ export async function processLeadIntake(
       available:
         categoryResult.available && leadStatus !== LeadStatus.review,
       refundable: true,
+      nextRoutingAttemptAt:
+        categoryResult.available &&
+        leadStatus !== LeadStatus.review &&
+        categoryResolution === "matched" &&
+        categoryResult.categoryType
+          ? new Date()
+          : null,
     },
   });
 

@@ -37,6 +37,8 @@ export const APP_SETTING_KEYS = {
   lifecycleRealtimeCutoffHours: "lifecycle_realtime_cutoff_hours",
   lifecycleStorefrontCutoffHours: "lifecycle_storefront_cutoff_hours",
   lifecycleMidWindowPrimary: "lifecycle_mid_window_primary",
+  lifecyclePartnerAutoReprocessEnabled:
+    "lifecycle_partner_auto_reprocess_enabled",
   contactRecipientEmail: "contact_recipient_email",
 } as const;
 
@@ -168,31 +170,32 @@ export async function getResaleVendorConfigs(): Promise<
 }
 
 /**
- * Hours a lead must sit unmatched before the cron job sends it to Integrity Connect.
- * Defaults to 24 hours.
+ * @deprecated Legacy delay-based path removed. Key retained for rollback only;
+ * routing no longer reads this value for active behavior.
  */
 export async function getIntegrityPostDelayHours(): Promise<number> {
   return getSetting(APP_SETTING_KEYS.integrityPostDelayHours, 24);
 }
 
 /**
- * Master on/off switch for the automated unmatched-lead reprocessing flow
- * (retry match, then escalate to Integrity). Lets an admin pause the flow
- * without touching individual vendor toggles — e.g. during a migration or
- * while investigating a matching issue.
+ * Master on/off switch for the automated unmatched-lead routing worker.
+ * Pauses cron draining; does not block manual reprocess actions.
  */
 export async function isIntegrityReprocessEnabled(): Promise<boolean> {
   return getSetting(APP_SETTING_KEYS.integrityReprocessEnabled, true);
 }
 
 /**
- * When enabled, admin Reprocess actions open a partner picker modal.
- * When disabled (default), reprocess runs immediately against all eligible partners.
+ * When enabled, admin Reprocess actions open a partner picker modal when
+ * Partner is the active route. When disabled, reprocess runs immediately.
  */
 export async function isReprocessPartnerPickerEnabled(): Promise<boolean> {
   return getSetting(APP_SETTING_KEYS.reprocessPartnerPickerEnabled, false);
 }
 
+/**
+ * Routing mode: on = Integrity lifecycle windows; off = Partner-only (no Integrity).
+ */
 export async function isLifecycleRoutingEnabled(): Promise<boolean> {
   return getSetting(APP_SETTING_KEYS.lifecycleRoutingEnabled, false);
 }
@@ -213,15 +216,33 @@ export async function getLifecycleMidWindowPrimary(): Promise<MidWindowPrimary> 
   return value === "storefront" ? "storefront" : "partner";
 }
 
+/**
+ * When true (default), cron auto-routes partners in the 48h–30d window.
+ * Manual partner reprocess remains available when false.
+ */
+export async function isLifecyclePartnerAutoReprocessEnabled(): Promise<boolean> {
+  return getSetting(
+    APP_SETTING_KEYS.lifecyclePartnerAutoReprocessEnabled,
+    true,
+  );
+}
+
 export async function getLifecycleSettings(): Promise<LifecycleSettings> {
-  const [enabled, realtimeCutoffHours, storefrontCutoffHours, agedDaysThreshold, midWindowPrimary] =
-    await Promise.all([
-      isLifecycleRoutingEnabled(),
-      getLifecycleRealtimeCutoffHours(),
-      getLifecycleStorefrontCutoffHours(),
-      getAgedDaysThreshold(),
-      getLifecycleMidWindowPrimary(),
-    ]);
+  const [
+    enabled,
+    realtimeCutoffHours,
+    storefrontCutoffHours,
+    agedDaysThreshold,
+    midWindowPrimary,
+    partnerAutoReprocessEnabled,
+  ] = await Promise.all([
+    isLifecycleRoutingEnabled(),
+    getLifecycleRealtimeCutoffHours(),
+    getLifecycleStorefrontCutoffHours(),
+    getAgedDaysThreshold(),
+    getLifecycleMidWindowPrimary(),
+    isLifecyclePartnerAutoReprocessEnabled(),
+  ]);
 
   return {
     enabled,
@@ -229,6 +250,7 @@ export async function getLifecycleSettings(): Promise<LifecycleSettings> {
     storefrontCutoffHours,
     agedDaysThreshold,
     midWindowPrimary,
+    partnerAutoReprocessEnabled,
   };
 }
 
@@ -271,6 +293,10 @@ export async function seedAppSettings(): Promise<void> {
     { key: APP_SETTING_KEYS.lifecycleRealtimeCutoffHours, value: 24 },
     { key: APP_SETTING_KEYS.lifecycleStorefrontCutoffHours, value: 48 },
     { key: APP_SETTING_KEYS.lifecycleMidWindowPrimary, value: "partner" },
+    {
+      key: APP_SETTING_KEYS.lifecyclePartnerAutoReprocessEnabled,
+      value: true,
+    },
     {
       key: APP_SETTING_KEYS.contactRecipientEmail,
       value: DEFAULT_CONTACT_RECIPIENT_EMAIL,

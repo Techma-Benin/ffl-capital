@@ -10,8 +10,13 @@ import {
 } from "@/lib/lead-categories/category-labels";
 import { buildCategoryPayloadDiagnostics } from "@/lib/lead-categories/payload-diagnostics";
 import { getReprocessEligibility } from "@/lib/jobs/reprocess-eligibility";
-import { isReprocessPartnerPickerEnabled } from "@/lib/settings/app-settings";
+import {
+  getLifecycleSettings,
+  isReprocessPartnerPickerEnabled,
+} from "@/lib/settings/app-settings";
 import { integrityTimelineLabel } from "@/lib/integrity/event-labels";
+import { evaluateLifecyclePolicy } from "@/lib/lead-routing/policy";
+import { ResaleStatus } from "@prisma/client";
 
 const PARTNER_SHEET_AVATAR_PX = 48;
 import {
@@ -73,6 +78,26 @@ export default async function AdminLeadDetailPage({
     leadType: lead.leadType,
   });
   const reprocessPartnerPickerEnabled = await isReprocessPartnerPickerEnabled();
+
+  const lifecycleSettings = await getLifecycleSettings();
+  const now = new Date();
+  const ageHours =
+    (now.getTime() - lead.receivedAt.getTime()) / (1000 * 60 * 60);
+  let integrityPosting: "none" | "pending" | "rejected" | "sold" = "none";
+  if (lead.resalePostings.some((p) => p.status === ResaleStatus.sold)) {
+    integrityPosting = "sold";
+  } else if (lead.resalePostings.some((p) => p.status === ResaleStatus.pending)) {
+    integrityPosting = "pending";
+  } else if (lead.resalePostings.some((p) => p.status === ResaleStatus.rejected)) {
+    integrityPosting = "rejected";
+  }
+  const routingPolicy = evaluateLifecyclePolicy({
+    ageHours,
+    liveSold: lead.liveSoldAt != null,
+    integrityPosting,
+    integrityBlocked: lead.integrityBlockedAt != null,
+    settings: lifecycleSettings,
+  });
 
   const leadEvents = await getLeadEvents(id);
 
@@ -203,6 +228,10 @@ export default async function AdminLeadDetailPage({
         ipAddress: lead.ipAddress,
         userAgent: lead.userAgent,
         rawPayload: lead.rawPayload,
+        routingPhase: routingPolicy.phase,
+        lastRoutingAttemptAt: lead.lastRoutingAttemptAt?.toISOString() ?? null,
+        nextRoutingAttemptAt: lead.nextRoutingAttemptAt?.toISOString() ?? null,
+        integrityBlockedReason: lead.integrityBlockedReason,
       }}
       deliveries={deliveries}
       timeline={timeline}

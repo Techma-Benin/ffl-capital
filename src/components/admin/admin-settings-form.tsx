@@ -391,13 +391,13 @@ export function AdminSettingsForm({
     trustedformValidationEnabled: false,
     duplicateCheckEnabled: true,
     duplicateCheckWindowDays: 30,
-    integrityPostDelayHours: 24,
     integrityReprocessEnabled: true,
     reprocessPartnerPickerEnabled: false,
     lifecycleRoutingEnabled: false,
     lifecycleRealtimeCutoffHours: 24,
     lifecycleStorefrontCutoffHours: 48,
     lifecycleMidWindowPrimary: "partner" as "partner" | "storefront",
+    lifecyclePartnerAutoReprocessEnabled: true,
     contactRecipientEmail: DEFAULT_CONTACT_RECIPIENT_EMAIL,
   });
 
@@ -423,7 +423,6 @@ export function AdminSettingsForm({
           trustedformValidationEnabled: Boolean(s.trustedform_validation_enabled ?? false),
           duplicateCheckEnabled: Boolean(s.duplicate_check_enabled ?? true),
           duplicateCheckWindowDays: Number(s.duplicate_check_window_days ?? 30),
-          integrityPostDelayHours: Number(s.integrity_post_delay_hours ?? 24),
           integrityReprocessEnabled: Boolean(s.integrity_reprocess_enabled ?? true),
           reprocessPartnerPickerEnabled: Boolean(
             s.reprocess_partner_picker_enabled ?? false,
@@ -439,6 +438,9 @@ export function AdminSettingsForm({
             s.lifecycle_mid_window_primary === "storefront"
               ? "storefront"
               : "partner",
+          lifecyclePartnerAutoReprocessEnabled: Boolean(
+            s.lifecycle_partner_auto_reprocess_enabled ?? true,
+          ),
           contactRecipientEmail:
             typeof s.contact_recipient_email === "string" &&
             s.contact_recipient_email.trim()
@@ -490,13 +492,14 @@ export function AdminSettingsForm({
         duplicateCheckEnabled: form.duplicateCheckEnabled,
         duplicateCheckWindowDays: form.duplicateCheckWindowDays,
         resaleVendorConfigs,
-        integrityPostDelayHours: form.integrityPostDelayHours,
         integrityReprocessEnabled: form.integrityReprocessEnabled,
         reprocessPartnerPickerEnabled: form.reprocessPartnerPickerEnabled,
         lifecycleRoutingEnabled: form.lifecycleRoutingEnabled,
         lifecycleRealtimeCutoffHours: form.lifecycleRealtimeCutoffHours,
         lifecycleStorefrontCutoffHours: form.lifecycleStorefrontCutoffHours,
         lifecycleMidWindowPrimary: form.lifecycleMidWindowPrimary,
+        lifecyclePartnerAutoReprocessEnabled:
+          form.lifecyclePartnerAutoReprocessEnabled,
         contactRecipientEmail: form.contactRecipientEmail.trim(),
       };
       payload.integrationsMode = form.integrationsMode;
@@ -699,189 +702,233 @@ export function AdminSettingsForm({
 
             </div>
 
-            {/* Right column: Lead lifecycle (full height) */}
+            {/* Right column: Lead routing */}
             <div className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)]">
               <CardHead
                 iconBg="rgba(255,214,107,0.22)"
                 icon={<IconLifecycle />}
-                title="Lead lifecycle"
+                title="Lead routing"
               />
               <div style={{ padding: "16px 20px 18px" }}>
-                {/* Two threshold inputs */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 14,
-                    marginBottom: 4,
-                  }}
-                >
-                  <div>
-                    <label
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 800,
-                        color: "#030229",
-                        display: "block",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Aged days threshold
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={form.agedDaysThreshold}
-                      onChange={(e) =>
-                        setForm({ ...form, agedDaysThreshold: Number(e.target.value) })
-                      }
-                      className="form-input"
-                    />
-                    <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 6 }}>
-                      Leads older than this move to the aged marketplace.
-                    </p>
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 800,
-                        color: "#030229",
-                        display: "block",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Integrity unmatched delay (hours)
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={form.integrityPostDelayHours}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          integrityPostDelayHours: Number(e.target.value),
-                        })
-                      }
-                      className="form-input"
-                    />
-                    <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 6 }}>
-                      Unmatched leads younger than this are retried for matching every
-                      cron run; older ones are sent to Integrity.
-                    </p>
-                  </div>
+                <div style={{ marginBottom: 8 }}>
+                  <label
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: "#030229",
+                      display: "block",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Aged days threshold
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.agedDaysThreshold}
+                    onChange={(e) =>
+                      setForm({ ...form, agedDaysThreshold: Number(e.target.value) })
+                    }
+                    className="form-input"
+                  />
+                  <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 6 }}>
+                    Leads older than this enter the passive aged marketplace (excluded
+                    from automatic routing).
+                  </p>
                 </div>
 
-                {/* Toggle rows */}
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "#8b8a99",
+                    margin: "16px 0 4px",
+                  }}
+                >
+                  Routing mode
+                </p>
                 <ToggleRow
-                  label="Client-approved lifecycle routing"
-                  description="When off, existing delay-based reprocessing applies. When on, enforces 0–24h Realtime, 24–48h priority/fallback, and 48h–30d partners-only routing."
+                  label="Integrity lifecycle routing"
+                  description={
+                    form.lifecycleRoutingEnabled
+                      ? "On: 0–24h Realtime, 24–48h priority/fallback, 48h–30d Partner."
+                      : "Off: Partner-only routing — no Integrity Realtime or Storefront at any age."
+                  }
                   checked={form.lifecycleRoutingEnabled}
                   onChange={(v) => setForm({ ...form, lifecycleRoutingEnabled: v })}
                 />
+
                 {form.lifecycleRoutingEnabled && (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr",
-                      gap: 14,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 800,
-                          color: "#030229",
-                          display: "block",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Realtime cutoff (hours)
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={form.lifecycleRealtimeCutoffHours}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            lifecycleRealtimeCutoffHours: Number(e.target.value),
-                          })
-                        }
-                        className="form-input"
-                      />
+                  <>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        color: "#8b8a99",
+                        margin: "12px 0 4px",
+                      }}
+                    >
+                      Lifecycle windows
+                    </p>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr 1fr",
+                        gap: 14,
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div>
+                        <label
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 800,
+                            color: "#030229",
+                            display: "block",
+                            marginBottom: 6,
+                          }}
+                        >
+                          Realtime cutoff (hours)
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={form.lifecycleRealtimeCutoffHours}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              lifecycleRealtimeCutoffHours: Number(e.target.value),
+                            })
+                          }
+                          className="form-input"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 800,
+                            color: "#030229",
+                            display: "block",
+                            marginBottom: 6,
+                          }}
+                        >
+                          Storefront cutoff (hours)
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={form.lifecycleStorefrontCutoffHours}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              lifecycleStorefrontCutoffHours: Number(e.target.value),
+                            })
+                          }
+                          className="form-input"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 800,
+                            color: "#030229",
+                            display: "block",
+                            marginBottom: 6,
+                          }}
+                        >
+                          24–48h primary route
+                        </label>
+                        <select
+                          value={form.lifecycleMidWindowPrimary}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              lifecycleMidWindowPrimary: e.target.value as
+                                | "partner"
+                                | "storefront",
+                            })
+                          }
+                          className="form-input"
+                        >
+                          <option value="partner">Platform partner</option>
+                          <option value="storefront">ILC Storefront</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 800,
-                          color: "#030229",
-                          display: "block",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Storefront cutoff (hours)
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={form.lifecycleStorefrontCutoffHours}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            lifecycleStorefrontCutoffHours: Number(e.target.value),
-                          })
-                        }
-                        className="form-input"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 800,
-                          color: "#030229",
-                          display: "block",
-                          marginBottom: 6,
-                        }}
-                      >
-                        24–48h primary route
-                      </label>
-                      <select
-                        value={form.lifecycleMidWindowPrimary}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            lifecycleMidWindowPrimary: e.target.value as
-                              | "partner"
-                              | "storefront",
-                          })
-                        }
-                        className="form-input"
-                      >
-                        <option value="partner">Platform partner</option>
-                        <option value="storefront">ILC Storefront</option>
-                      </select>
-                    </div>
-                  </div>
+                  </>
                 )}
+
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "#8b8a99",
+                    margin: "12px 0 4px",
+                  }}
+                >
+                  Automation
+                </p>
                 <ToggleRow
-                  label="Automated reprocessing"
-                  description="Every 15 min: retry matching unmatched leads, then escalate old ones to Integrity. Turn off to pause the whole flow."
+                  label="Automatic routing worker"
+                  description="Pauses the cron due-queue worker. Manual reprocess actions still run."
                   checked={form.integrityReprocessEnabled}
                   onChange={(v) => setForm({ ...form, integrityReprocessEnabled: v })}
                 />
+                {form.lifecycleRoutingEnabled && (
+                  <ToggleRow
+                    label="Automatic partner reprocessing after 48 hours"
+                    description="When off, 48h–30d leads are not drained by cron; manual partner reprocess remains available."
+                    checked={form.lifecyclePartnerAutoReprocessEnabled}
+                    onChange={(v) =>
+                      setForm({
+                        ...form,
+                        lifecyclePartnerAutoReprocessEnabled: v,
+                      })
+                    }
+                  />
+                )}
+
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "#8b8a99",
+                    margin: "12px 0 4px",
+                  }}
+                >
+                  Manual reprocessing
+                </p>
                 <ToggleRow
                   label="Partner picker on reprocess"
-                  description="When on, Reprocess opens a modal to choose partners. When off, reprocess runs immediately against all eligible partners."
+                  description="When Partner is the active route, Reprocess opens a modal to choose partners. Selected partners never fall back to Storefront."
                   checked={form.reprocessPartnerPickerEnabled}
                   onChange={(v) =>
                     setForm({ ...form, reprocessPartnerPickerEnabled: v })
                   }
                 />
+
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "#8b8a99",
+                    margin: "12px 0 4px",
+                  }}
+                >
+                  Intake safeguards
+                </p>
                 <ToggleRow
                   label="TrustedForm validation on intake"
                   checked={form.trustedformValidationEnabled}

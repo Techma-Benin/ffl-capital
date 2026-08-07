@@ -2,20 +2,20 @@ import {
   reprocessUnmatchedLeadsWithCoordinator,
   type ReprocessJobResult,
 } from "@/lib/lead-routing/coordinator";
-import { matchLead } from "@/lib/matching/engine";
-import { integrityPostLead } from "@/lib/integrity/post";
-import { emitLeadEvent } from "@/lib/leads/lead-events";
-import { LeadEventType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getReprocessEligibility } from "@/lib/jobs/reprocess-eligibility";
 import { isLeadHeldForReprocess } from "@/lib/jobs/reprocess-hold";
-import { isLifecycleRoutingEnabled } from "@/lib/settings/app-settings";
+import {
+  evaluateLifecyclePolicy,
+  isPartnerPrimaryRoute,
+} from "@/lib/lead-routing/policy";
+import { getLifecycleSettings } from "@/lib/settings/app-settings";
+import { ResaleStatus } from "@prisma/client";
 
 export type { ReprocessJobResult } from "@/lib/lead-routing/coordinator";
 
 /**
- * Combined unmatched-lead job. When lifecycle routing is enabled, delegates to
- * the shared coordinator; otherwise preserves the legacy delay-based flow.
+ * Combined unmatched-lead job — fair claim-based due queue.
  */
 export async function reprocessUnmatchedLeads(): Promise<ReprocessJobResult> {
   return reprocessUnmatchedLeadsWithCoordinator();
@@ -25,6 +25,47 @@ export type ReprocessSingleLeadOptions = {
   includePartnerIds?: string[];
   mode?: "manual" | "cron";
 };
+
+async function resolveIntegrityPostingState(
+  leadId: string,
+): Promise<"none" | "pending" | "rejected" | "sold"> {
+  const postings = await prisma.resalePosting.findMany({
+    where: { leadId },
+    orderBy: { postedAt: "desc" },
+  });
+  if (postings.some((p) => p.status === ResaleStatus.sold)) return "sold";
+  if (postings.some((p) => p.status === ResaleStatus.pending)) return "pending";
+  if (postings.some((p) => p.status === ResaleStatus.rejected)) return "rejected";
+  return "none";
+}
+
+/** Whether the Partner picker should appear for these leads. */
+export async function shouldShowPartnerPickerForLeads(
+  leadIds: string[],
+): Promise<boolean> {
+  if (leadIds.length === 0) return false;
+  const settings = await getLifecycleSettings();
+  const leads = await prisma.lead.findMany({ where: { id: { in: leadIds } } });
+  if (leads.length === 0) return false;
+
+  const now = new Date();
+  for (const lead of leads) {
+    const ageHours =
+      (now.getTime() - lead.receivedAt.getTime()) / (1000 * 60 * 60);
+    const integrityPosting = await resolveIntegrityPostingState(lead.id);
+    const policy = evaluateLifecyclePolicy({
+      ageHours,
+      liveSold: lead.liveSoldAt != null,
+      integrityPosting,
+      integrityBlocked: lead.integrityBlockedAt != null,
+      settings,
+    });
+    if (!isPartnerPrimaryRoute(policy)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 export async function reprocessSingleLead(
   leadId: string,
@@ -45,40 +86,27 @@ export async function reprocessSingleLead(
     throw new Error(eligibility.reason ?? "Lead is not available for reprocessing");
   }
 
-  if (isLeadHeldForReprocess(leadId) && !options?.includePartnerIds?.length) {
+  if (
+    (await isLeadHeldForReprocess(leadId)) &&
+    !options?.includePartnerIds?.length &&
+    mode !== "manual"
+  ) {
     throw new Error("Lead is reserved for manual reprocessing");
   }
 
-  if (await isLifecycleRoutingEnabled()) {
-    const { executeLeadRouting } = await import("@/lib/lead-routing/coordinator");
-    const result = await executeLeadRouting(leadId, {
-      mode: mode === "manual" ? "manual" : "cron",
-    });
-    return {
-      matched: result.action === "matched",
-      lead,
-      deliveryId: result.deliveryId,
-      integrityPosted: result.action === "integrity_posted",
-      reason: result.reason,
-      phase: result.phase,
-    };
-  }
-
-  const result = await matchLead(leadId, {
+  const { executeLeadRouting } = await import("@/lib/lead-routing/coordinator");
+  const result = await executeLeadRouting(leadId, {
+    mode: mode === "manual" ? "manual" : "cron",
     includePartnerIds: options?.includePartnerIds,
+    strictPartnerAllowlist: !!options?.includePartnerIds?.length,
   });
-  if (result.matched && result.deliveryId) {
-    return result;
-  }
 
-  if (mode === "manual") {
-    return { matched: false, lead, reason: result.reason };
-  }
-
-  const postResult = await integrityPostLead(leadId);
-  if (postResult.posted) {
-    return { matched: false, lead, integrityPosted: true };
-  }
-
-  return { matched: false, lead, reason: result.reason ?? postResult.reason };
+  return {
+    matched: result.action === "matched",
+    lead,
+    deliveryId: result.deliveryId,
+    integrityPosted: result.action === "integrity_posted",
+    reason: result.reason,
+    phase: result.phase,
+  };
 }

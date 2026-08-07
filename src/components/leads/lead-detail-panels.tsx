@@ -97,6 +97,27 @@ export function LeadDetailTrackingPanel({
       <LeadDetailFieldRow label="External ID" value={lead.externalId} />
       <LeadDetailFieldRow label="IP Address" value={lead.ipAddress} />
       <LeadDetailFieldRow label="User Agent" value={lead.userAgent} />
+      {lead.routingPhase != null && (
+        <LeadDetailFieldRow label="Routing phase" value={lead.routingPhase} />
+      )}
+      {lead.lastRoutingAttemptAt != null && (
+        <LeadDetailFieldRow
+          label="Last routing attempt"
+          value={formatDateTimeLong(lead.lastRoutingAttemptAt) ?? undefined}
+        />
+      )}
+      {lead.nextRoutingAttemptAt != null && (
+        <LeadDetailFieldRow
+          label="Next routing attempt"
+          value={formatDateTimeLong(lead.nextRoutingAttemptAt) ?? undefined}
+        />
+      )}
+      {lead.integrityBlockedReason != null && (
+        <LeadDetailFieldRow
+          label="Integrity block"
+          value={lead.integrityBlockedReason}
+        />
+      )}
     </LeadDetailFieldList>
   );
 }

@@ -4,7 +4,8 @@ export type RoutingPhase =
   | "waiting"
   | "partners_only"
   | "aged_marketplace"
-  | "live_sold";
+  | "live_sold"
+  | "partner_only_mode";
 
 export type RoutingRoute =
   | "integrity_realtime"
@@ -21,18 +22,24 @@ export type LiveSaleChannel =
   | "integrity_realtime"
   | "integrity_storefront";
 
+export type RoutingAgeWindow = "realtime" | "mid" | "partners_only";
+
 export interface LifecycleSettings {
+  /** When true: age-window Integrity lifecycle. When false: Partner-only (no Integrity). */
   enabled: boolean;
   realtimeCutoffHours: number;
   storefrontCutoffHours: number;
   agedDaysThreshold: number;
   midWindowPrimary: MidWindowPrimary;
+  /** When true, cron may auto-route partners in the 48h–30d window. */
+  partnerAutoReprocessEnabled: boolean;
 }
 
 export interface LifecyclePolicyInput {
   ageHours: number;
   liveSold: boolean;
   integrityPosting: IntegrityPostingState;
+  integrityBlocked: boolean;
   settings: LifecycleSettings;
 }
 
@@ -41,4 +48,10 @@ export interface LifecyclePolicyResult {
   primaryRoute: RoutingRoute | null;
   fallbackRoute: RoutingRoute | null;
   reason?: string;
+}
+
+export interface RoutingScheduleUpdate {
+  lastRoutingAttemptAt: Date;
+  nextRoutingAttemptAt: Date | null;
+  routingAttemptCount: number;
 }

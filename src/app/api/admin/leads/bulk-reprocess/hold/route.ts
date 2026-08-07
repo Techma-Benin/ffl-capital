@@ -43,6 +43,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  holdLeadsForReprocess(leadIds);
+  await holdLeadsForReprocess(leadIds);
   return NextResponse.json({ held: leadIds.length });
 }

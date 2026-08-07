@@ -7,6 +7,7 @@ const previewSchema = z.object({
   ageHours: z.number().nonnegative(),
   liveSold: z.boolean(),
   integrityPosting: z.enum(["none", "pending", "rejected", "sold"]),
+  integrityBlocked: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {

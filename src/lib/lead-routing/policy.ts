@@ -12,28 +12,22 @@ export const DEFAULT_LIFECYCLE_SETTINGS: LifecycleSettings = {
   storefrontCutoffHours: 48,
   agedDaysThreshold: 30,
   midWindowPrimary: "partner",
+  partnerAutoReprocessEnabled: true,
 };
 
-function oppositeMidWindowRoute(
-  primary: MidWindowPrimary,
-): RoutingRoute {
+function oppositeMidWindowRoute(primary: MidWindowPrimary): RoutingRoute {
   return primary === "partner" ? "integrity_storefront" : "partner";
 }
 
 /**
- * Pure lifecycle policy: decides the next routing phase and routes from lead
- * age, live-sale state, Integrity posting state, and admin settings.
+ * Pure lifecycle / routing-mode policy.
  * Clock is injectable via ageHours for tests.
  */
 export function evaluateLifecyclePolicy(
   input: LifecyclePolicyInput,
 ): LifecyclePolicyResult {
-  const {
-    ageHours,
-    liveSold,
-    integrityPosting,
-    settings,
-  } = input;
+  const { ageHours, liveSold, integrityPosting, integrityBlocked, settings } =
+    input;
 
   const agedHours = settings.agedDaysThreshold * 24;
 
@@ -53,6 +47,15 @@ export function evaluateLifecyclePolicy(
     };
   }
 
+  // Partner-only routing mode (lifecycle toggle off): never call Integrity.
+  if (!settings.enabled) {
+    return {
+      phase: "partner_only_mode",
+      primaryRoute: "partner",
+      fallbackRoute: null,
+    };
+  }
+
   if (
     integrityPosting === "pending" &&
     ageHours >= settings.realtimeCutoffHours &&
@@ -67,6 +70,15 @@ export function evaluateLifecyclePolicy(
   }
 
   if (ageHours < settings.realtimeCutoffHours) {
+    if (integrityBlocked) {
+      return {
+        phase: "waiting",
+        primaryRoute: null,
+        fallbackRoute: null,
+        reason:
+          "Integrity permanently blocked — waiting for partner-capable window",
+      };
+    }
     return {
       phase: "realtime",
       primaryRoute: "integrity_realtime",
@@ -75,6 +87,14 @@ export function evaluateLifecyclePolicy(
   }
 
   if (ageHours < settings.storefrontCutoffHours) {
+    if (integrityBlocked) {
+      return {
+        phase: "partner_or_storefront",
+        primaryRoute: "partner",
+        fallbackRoute: null,
+        reason: "Integrity blocked — partner only in mid window",
+      };
+    }
     const primaryRoute: RoutingRoute =
       settings.midWindowPrimary === "partner"
         ? "partner"
@@ -91,4 +111,21 @@ export function evaluateLifecyclePolicy(
     primaryRoute: "partner",
     fallbackRoute: null,
   };
+}
+
+/** Whether Partner is the active route for picker / strict allowlist behavior. */
+export function isPartnerActiveRoute(
+  policy: LifecyclePolicyResult,
+): boolean {
+  return (
+    policy.primaryRoute === "partner" ||
+    policy.fallbackRoute === "partner"
+  );
+}
+
+/** Stricter: Partner is the route that will run first (picker phase). */
+export function isPartnerPrimaryRoute(
+  policy: LifecyclePolicyResult,
+): boolean {
+  return policy.primaryRoute === "partner";
 }

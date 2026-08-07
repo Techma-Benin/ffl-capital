@@ -47,7 +47,7 @@ export async function getEligiblePartnersForReprocess(
     );
   }
 
-  holdLeadsForReprocess(leadIds);
+  await holdLeadsForReprocess(leadIds);
 
   const defaultPrice = await getDefaultRealtimePrice();
 

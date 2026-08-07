@@ -37,6 +37,10 @@ export type LeadDetailPanelLead = {
   externalId?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
+  routingPhase?: string | null;
+  lastRoutingAttemptAt?: string | null;
+  nextRoutingAttemptAt?: string | null;
+  integrityBlockedReason?: string | null;
 };
 
 export type LeadDetailEvent = {

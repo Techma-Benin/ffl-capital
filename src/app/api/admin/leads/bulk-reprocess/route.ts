@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       }
     }
   } finally {
-    releaseLeadsFromReprocessHold(leadIds);
+    await releaseLeadsFromReprocessHold(leadIds);
   }
 
   return NextResponse.json({ processed, matched, errors, unmatched });
