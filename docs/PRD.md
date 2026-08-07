@@ -313,7 +313,7 @@ Phase D — Migration Replit (livraison client)
 
 #### Revente Integrity
 - Vue postings (`/admin/integrity`) : statut, mode realtime/storefront ; modal détail avec outcome, payloads request/response et timeline d’événements Integrity (lazy-load détail API)
-- **Reprocess** admin depuis le modal : renvoie le lead via le chemin Integrity réel, en gardant le mode du posting (Realtime ou Storefront) ; interdit si vente live (`liveSoldAt`) ou posting `sold`
+- **Reprocess** admin depuis le modal : ouvre **Review payload** (même modal que Connection test) pour éditer avant envoi ; prefill lead + prior `requestPayload` ; mode verrouillé (Realtime ou Storefront) ; **Send** → chemin Integrity réel avec `manualPayload` optionnel ; interdit si vente live (`liveSoldAt`) ou posting `sold`
 - Raison de rejet dérivée des lead events quand disponibles (postings anciens : empty state)
 - Réconciliation storefront (import log journalier — manuel ou auto selon API)
 
@@ -507,7 +507,7 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 **Déclenchement :** selon fenêtre lifecycle (flag on) ou matching Partner-only (flag off — jamais Integrity auto).
 
-**Admin :** liste postings ; détail payloads + événements ; **Reprocess** posting (`POST /api/admin/integrity/postings/[id]/reprocess`, mode du posting, bloqué si sold / vente live) ; preview routage (`POST /api/admin/lead-routing/preview`) ; preflight Azure (`pnpm run preflight:integrity-azure`).
+**Admin :** liste postings ; détail payloads + événements (lead enrichi pour prefill) ; **Reprocess** via modal Review payload puis `POST /api/admin/integrity/postings/[id]/reprocess` (`{ manualPayload }` optionnel, mode du posting, bloqué si sold / vente live) ; Connection test partage le même modal ; preview routage (`POST /api/admin/lead-routing/preview`) ; preflight Azure (`pnpm run preflight:integrity-azure`).
 
 **Routing mode :** `lifecycle_routing_enabled` (**off** par défaut = Partner-only) ; cutoffs 24 h / 48 h ; mid-window primary `partner` ou `storefront` ; `lifecycle_partner_auto_reprocess_enabled` pour le cron partners 48 h–30 j.
 

@@ -258,7 +258,7 @@ LeadConduit can POST back a result after processing. This closes the loop: submi
 
 Outbound posts (`src/lib/integrity/post.ts`) store `requestPayload` and LeadConduit `response` on `integrity_posted`, `integrity_rejected`, and `integrity_no_campaign` events. Older postings may have legacy `integrity_missing_fields` events from a prior local pre-flight gate.
 
-**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`) and includes `integrityOutcome` per row (e.g. `no_campaign_available`). UI badges show **No Campaign Available** instead of **Rejected** for that outcome. Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, and rejection reason derived from those events (empty for older postings without stored payloads). Modal header **Reprocess** calls `POST /api/admin/integrity/postings/[id]/reprocess` — reuses the posting’s mode via `integrityPostLead` (admin force-retry); blocked for live-sold leads and sold postings.
+**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`) and includes `integrityOutcome` per row (e.g. `no_campaign_available`). UI badges show **No Campaign Available** instead of **Rejected** for that outcome. Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, rejection reason derived from those events (empty for older postings without stored payloads), plus enriched lead fields and categories for Review payload prefill. Modal header **Reprocess** opens the shared **Review payload** edit modal (same as Connection test); **Send** POSTs optional `{ manualPayload }` to `POST /api/admin/integrity/postings/[id]/reprocess` — reuses the posting’s mode via `integrityPostLead` (admin force-retry); blocked for live-sold leads and sold postings.
 
 ---
 
@@ -274,7 +274,7 @@ Authorization: admin session required
 Body: { "flow": "realtime" | "storefront", ... }
 ```
 
-Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. Always includes `is_test=yes` and **always** POSTs real HTTP to LeadConduit (mock and live integrations mode). Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`. `checkRequiredIntegrityFields` warnings in the lead picker are advisory only.
+Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. The Connection test UI opens the shared **Review payload** modal before send (optional `{ manualPayload }`). Always includes `is_test=yes` and **always** POSTs real HTTP to LeadConduit (mock and live integrations mode). Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`. `checkRequiredIntegrityFields` warnings in the lead picker are advisory only.
 
 ### Manual curl — RealTime flow
 

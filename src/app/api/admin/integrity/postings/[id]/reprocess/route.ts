@@ -5,10 +5,12 @@ import { adminReprocessIntegrityPosting } from "@/lib/integrity/post";
 /**
  * POST /api/admin/integrity/postings/[id]/reprocess
  * Admin-only: re-send the lead to Integrity using this posting's mode
- * (realtime or storefront). Blocks live-sold leads / sold postings.
+ * (realtime or storefront). Optional JSON body `{ manualPayload }` overrides
+ * the built payload (reference / is_test still server-controlled).
+ * Blocks live-sold leads / sold postings.
  */
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const adminCheck = await requireAdmin();
@@ -18,8 +20,22 @@ export async function POST(
 
   const { id } = await context.params;
 
+  let manualPayload: Record<string, string> | undefined;
   try {
-    const result = await adminReprocessIntegrityPosting(id);
+    const body = (await request.json().catch(() => null)) as {
+      manualPayload?: Record<string, string>;
+    } | null;
+    if (body?.manualPayload && typeof body.manualPayload === "object") {
+      manualPayload = Object.fromEntries(
+        Object.entries(body.manualPayload).map(([k, v]) => [k, String(v ?? "")]),
+      );
+    }
+  } catch {
+    // empty / non-JSON body is fine — payload built from lead
+  }
+
+  try {
+    const result = await adminReprocessIntegrityPosting(id, { manualPayload });
     if (!result.posted) {
       return NextResponse.json(
         { error: result.reason ?? "Integrity reprocess failed", ...result },

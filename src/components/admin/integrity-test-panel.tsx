@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { formatDateTime } from "@/lib/format-datetime";
 import { formatStateForIntegrity } from "@/lib/constants/us-states";
-import {
-  buildLeadTypeThomOptions,
-  resolveIntegrityLabelForMode,
-} from "@/lib/integrity/build-payload";
+import { resolveIntegrityLabelForMode } from "@/lib/integrity/build-payload";
 import { IntegrityPostingsTable, type PostingRow } from "@/components/admin/integrity-postings-table";
+import {
+  IntegrityPayloadEditModal,
+  type IntegrityPayloadCategory,
+  type IntegrityPayloadFields,
+} from "@/components/admin/integrity-payload-edit-modal";
 
 type Flow = "realtime" | "storefront";
 
@@ -31,12 +33,7 @@ interface LeadOption {
   receivedAt: string;
 }
 
-interface CategoryOption {
-  type: string;
-  label?: string;
-  integrityLabel: string | null;
-  integrityLabelStorefront: string | null;
-}
+type CategoryOption = IntegrityPayloadCategory;
 
 interface VendorStatus {
   key: string;
@@ -60,9 +57,7 @@ interface TestResult {
   error?: string;
 }
 
-type ModalFields = Record<string, string>;
-
-const HARDCODED_DEFAULTS: ModalFields = {
+const HARDCODED_DEFAULTS: IntegrityPayloadFields = {
   first_name: "Mike",
   last_name: "Jones",
   email: "bill.ahognonvi+test@techma.ca",
@@ -114,7 +109,12 @@ export function IntegrityTestPanel({
   const [postings, setPostings] = useState<PostingRow[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string>("");
   const [testCategoryType, setTestCategoryType] = useState<string>("");
-  const [modal, setModal] = useState<{ open: boolean; flow: Flow; fields: ModalFields; category: CategoryOption | null } | null>(null);
+  const [modal, setModal] = useState<{
+    open: boolean;
+    flow: Flow;
+    fields: IntegrityPayloadFields;
+    category: CategoryOption | null;
+  } | null>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
 
@@ -142,7 +142,7 @@ export function IntegrityTestPanel({
 
   function openModal(flow: Flow) {
     setResult(null);
-    let fields: ModalFields;
+    let fields: IntegrityPayloadFields;
     let category: CategoryOption | null = null;
 
     if (selectedLeadId) {
@@ -498,121 +498,17 @@ export function IntegrityTestPanel({
         <IntegrityPostingsTable postings={postings} />
       </div>
 
-      {/* ── Edit payload modal ─────────────────────────────────────────── */}
       {modal?.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">Review payload</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Flow: <span className="font-medium capitalize">{modal.flow}</span> · Edit any
-                  field then send
-                </p>
-              </div>
-              <button
-                onClick={() => setModal(null)}
-                className="text-slate-400 hover:text-slate-600 text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="overflow-y-auto px-6 py-4 space-y-3 flex-1">
-              <div className="grid grid-cols-2 gap-3">
-                {(
-                  [
-                    "first_name",
-                    "last_name",
-                    "email",
-                    "phone_1",
-                    "state",
-                    "address_1",
-                    "city",
-                    "postal_code",
-                    "dob",
-                    "dob_mmddyyyy_thom",
-                    "has_iul_thom",
-                    "primary_goal_thom",
-                    "vendor_lead_id_thom",
-                    "universal_leadid",
-                  ] as const
-                ).map((key) => (
-                  <div key={key} className="space-y-1">
-                    <label className="form-label">{key}</label>
-                    <input
-                      type="text"
-                      className="form-input text-sm"
-                      value={modal.fields[key] ?? ""}
-                      onChange={(e) => setField(key, e.target.value)}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-1">
-                <label className="form-label">lead_type_thom</label>
-                {modal.category && (
-                  <p className="text-xs text-slate-500 mb-1">
-                    From category <span className="font-medium">{modal.category.type}</span>
-                  </p>
-                )}
-                <select
-                  className="form-select text-sm"
-                  value={modal.fields.lead_type_thom ?? ""}
-                  onChange={(e) => setField("lead_type_thom", e.target.value)}
-                >
-                  <option value="">— not configured on category —</option>
-                  {buildLeadTypeThomOptions(
-                    modal.flow,
-                    categories,
-                    modal.category,
-                  ).map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="form-label">
-                  trustedform_cert_url
-                  {!modal.fields.trustedform_cert_url && (
-                    <span className="ml-2 text-amber-600 font-normal">
-                      ⚠ paste a fresh cert URL here
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  className="form-input text-sm font-mono"
-                  placeholder="https://cert.trustedform.com/…"
-                  value={modal.fields.trustedform_cert_url ?? ""}
-                  onChange={(e) => setField("trustedform_cert_url", e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setModal(null)}
-                className="btn-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg px-4 py-1.5 text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={sendTest}
-                disabled={pending}
-                className="btn-primary btn-sm disabled:opacity-40"
-              >
-                {pending ? "Sending…" : `Send to ${modal.flow}`}
-              </button>
-            </div>
-          </div>
-        </div>
+        <IntegrityPayloadEditModal
+          flow={modal.flow}
+          fields={modal.fields}
+          categories={categories}
+          category={modal.category}
+          pending={pending}
+          onFieldChange={setField}
+          onCancel={() => setModal(null)}
+          onSend={() => void sendTest()}
+        />
       )}
     </>
   );

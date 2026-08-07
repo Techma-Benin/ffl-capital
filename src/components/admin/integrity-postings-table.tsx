@@ -17,6 +17,14 @@ import {
   formatResaleStatusLabel,
 } from "@/lib/integrity/event-labels";
 import { notify } from "@/lib/notify";
+import { formatStateForIntegrity } from "@/lib/constants/us-states";
+import { resolveIntegrityLabelForMode } from "@/lib/integrity/build-payload";
+import {
+  IntegrityPayloadEditModal,
+  payloadRecordToFields,
+  type IntegrityPayloadCategory,
+  type IntegrityPayloadFields,
+} from "@/components/admin/integrity-payload-edit-modal";
 
 const POSTINGS_PAGE_SIZE = 25;
 
@@ -54,6 +62,70 @@ type IntegrityDetail = {
   response: unknown;
   events: IntegrityEventRow[];
 };
+
+type DetailLead = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  state: string;
+  leadType: string | null;
+  dob: string | null;
+  address: string | null;
+  city: string | null;
+  zip: string | null;
+  trustedformCertUrl: string | null;
+  leadidToken: string | null;
+  externalId: string | null;
+  haveIul: string | null;
+  primaryGoal: string | null;
+};
+
+function formatDobMmDdYyyy(dob: string | null): string {
+  if (!dob) return "";
+  const m = dob.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[2]}/${m[3]}/${m[1]}`;
+  return dob;
+}
+
+function formatDobMdY(dob: string | null): string {
+  const mmddyyyy = formatDobMmDdYyyy(dob);
+  if (!mmddyyyy) return "";
+  const match = mmddyyyy.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return mmddyyyy;
+  return `${Number(match[1])}/${Number(match[2])}/${match[3]}`;
+}
+
+function fieldsFromLead(
+  lead: DetailLead,
+  mode: ResaleMode,
+  category: IntegrityPayloadCategory | null,
+): IntegrityPayloadFields {
+  const integrityLabel =
+    resolveIntegrityLabelForMode(mode, {
+      realtime: category?.integrityLabel,
+      storefront: category?.integrityLabelStorefront,
+    }) ?? "";
+  return {
+    first_name: lead.firstName,
+    last_name: lead.lastName,
+    email: lead.email ?? "",
+    phone_1: lead.phone ?? "",
+    state: formatStateForIntegrity(lead.state),
+    address_1: lead.address ?? "",
+    city: lead.city ?? "",
+    postal_code: lead.zip ?? "",
+    dob: formatDobMdY(lead.dob),
+    dob_mmddyyyy_thom: formatDobMmDdYyyy(lead.dob),
+    lead_type_thom: integrityLabel,
+    trustedform_cert_url: lead.trustedformCertUrl ?? "",
+    universal_leadid: lead.leadidToken ?? "",
+    has_iul_thom: lead.haveIul ?? "",
+    primary_goal_thom: lead.primaryGoal ?? "",
+    vendor_lead_id_thom: lead.externalId ?? lead.id,
+  };
+}
 
 function statusBadge(status: ResaleStatus, integrityOutcome?: string | null) {
   if (integrityOutcome === "no_campaign_available") {
@@ -100,7 +172,13 @@ function PostingModal({
   );
   const [integrity, setIntegrity] = useState<IntegrityDetail | null>(null);
   const [detailStatus, setDetailStatus] = useState<ResaleStatus>(posting.status);
+  const [detailLead, setDetailLead] = useState<DetailLead | null>(null);
+  const [categories, setCategories] = useState<IntegrityPayloadCategory[]>([]);
   const [reprocessPending, setReprocessPending] = useState(false);
+  const [reprocessModal, setReprocessModal] = useState<{
+    fields: IntegrityPayloadFields;
+    category: IntegrityPayloadCategory | null;
+  } | null>(null);
   const [detailReloadKey, setDetailReloadKey] = useState(0);
 
   const loadDetail = useCallback(() => {
@@ -117,15 +195,22 @@ function PostingModal({
           throw new Error(body?.error ?? `HTTP ${res.status}`);
         }
         return res.json() as Promise<{
-          posting: { rejectionReason: string | null; status?: ResaleStatus };
+          posting: {
+            rejectionReason: string | null;
+            status?: ResaleStatus;
+            lead?: DetailLead;
+          };
           integrity: IntegrityDetail;
+          categories?: IntegrityPayloadCategory[];
         }>;
       })
       .then((data) => {
         if (cancelled) return;
         setRejectionReason(data.posting.rejectionReason);
         if (data.posting.status) setDetailStatus(data.posting.status);
+        if (data.posting.lead) setDetailLead(data.posting.lead);
         setIntegrity(data.integrity);
+        if (data.categories) setCategories(data.categories);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -144,13 +229,51 @@ function PostingModal({
     return loadDetail();
   }, [loadDetail, detailReloadKey]);
 
-  async function handleReprocess() {
-    if (reprocessPending) return;
+  function openReprocessModal() {
+    if (reprocessPending || detailStatus === "sold") return;
+
+    const category =
+      categories.find(
+        (c) => c.type === (detailLead?.leadType ?? posting.lead.leadType ?? ""),
+      ) ?? null;
+
+    const fromLead = detailLead
+      ? fieldsFromLead(detailLead, posting.mode, category)
+      : {
+          first_name: posting.lead.firstName,
+          last_name: posting.lead.lastName,
+          state: formatStateForIntegrity(posting.lead.state),
+          lead_type_thom:
+            resolveIntegrityLabelForMode(posting.mode, {
+              realtime: category?.integrityLabel,
+              storefront: category?.integrityLabelStorefront,
+            }) ?? "",
+        };
+
+    const fromPrior = payloadRecordToFields(integrity?.requestPayload);
+    setReprocessModal({
+      fields: { ...fromLead, ...fromPrior },
+      category,
+    });
+  }
+
+  function setReprocessField(key: string, value: string) {
+    setReprocessModal((prev) =>
+      prev ? { ...prev, fields: { ...prev.fields, [key]: value } } : prev,
+    );
+  }
+
+  async function sendReprocess() {
+    if (!reprocessModal || reprocessPending) return;
     setReprocessPending(true);
     try {
       const res = await fetch(
         `/api/admin/integrity/postings/${posting.id}/reprocess`,
-        { method: "POST" },
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ manualPayload: reprocessModal.fields }),
+        },
       );
       const data = (await res.json().catch(() => null)) as {
         error?: string;
@@ -165,6 +288,7 @@ function PostingModal({
       notify.success(
         `Re-sent to Integrity ${posting.mode === "storefront" ? "Storefront" : "RealTime"}`,
       );
+      setReprocessModal(null);
       setDetailReloadKey((k) => k + 1);
     } catch (err) {
       notify.error(
@@ -203,22 +327,21 @@ function PostingModal({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => void handleReprocess()}
-              disabled={reprocessPending || reprocessBlocked}
+              onClick={openReprocessModal}
+              disabled={reprocessPending || reprocessBlocked || detailLoading}
               title={
                 reprocessBlocked
                   ? "Sold postings cannot be reprocessed (live sale)"
-                  : `Send again via Integrity ${posting.mode === "storefront" ? "Storefront" : "RealTime"}`
+                  : `Review payload, then send via Integrity ${posting.mode === "storefront" ? "Storefront" : "RealTime"}`
               }
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40"
             >
               <ArrowCounterClockwise
                 size={14}
                 weight={ICON_WEIGHT_LINEAR}
-                className={reprocessPending ? "animate-spin" : ""}
                 aria-hidden
               />
-              {reprocessPending ? "Sending…" : "Reprocess"}
+              Reprocess
             </button>
             <button
               onClick={onClose}
@@ -451,6 +574,19 @@ function PostingModal({
           )}
         </div>
       </div>
+
+      {reprocessModal && (
+        <IntegrityPayloadEditModal
+          flow={posting.mode}
+          fields={reprocessModal.fields}
+          categories={categories}
+          category={reprocessModal.category}
+          pending={reprocessPending}
+          onFieldChange={setReprocessField}
+          onCancel={() => setReprocessModal(null)}
+          onSend={() => void sendReprocess()}
+        />
+      )}
     </div>
   );
 }

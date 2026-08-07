@@ -150,6 +150,32 @@ export function applyIntegrityAutoPostTestFlag(
   return { ...payload, is_test: "yes" };
 }
 
+/** Fields that must remain in the encoded body even when blank (Boberdoo parity). */
+const PRESERVE_BLANK_KEYS = new Set(["address_1"]);
+
+/**
+ * Normalize an admin-edited Integrity payload: drop blanks (except preserve-blank
+ * keys), format state, and strip server-owned keys (is_test / reference).
+ */
+export function prepareManualIntegrityFields(
+  manualPayload: Record<string, string>,
+): Record<string, string> {
+  const filtered = Object.fromEntries(
+    Object.entries(manualPayload).filter(([key, value]) => {
+      if (value == null) return false;
+      if (key === "is_test" || key === "reference") return false;
+      if (PRESERVE_BLANK_KEYS.has(key)) return true;
+      return value.trim() !== "";
+    }),
+  ) as Record<string, string>;
+
+  if (filtered.state) {
+    filtered.state = formatStateForIntegrity(filtered.state);
+  }
+
+  return filtered;
+}
+
 export function buildRealtimeIulPingPayload(
   lead: Lead,
   leadTypeThom: string,

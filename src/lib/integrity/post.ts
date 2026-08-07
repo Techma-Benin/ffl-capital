@@ -21,6 +21,7 @@ import {
   buildIntegrityLeadPayload,
   buildIntegrityStorefrontPayload,
   encodeIntegrityFormBody,
+  prepareManualIntegrityFields,
   type IntegrityLabelSources,
   type IntegrityResaleMode,
 } from "./build-payload";
@@ -317,6 +318,8 @@ export type IntegrityPostLeadOptions = {
   forceAdminRetry?: boolean;
   /** When set, reuse this posting row (must belong to lead + mode). */
   postingId?: string;
+  /** Admin-only: override built payload with edited fields (reference still server-set). */
+  manualPayload?: Record<string, string>;
 };
 
 export async function integrityPostLead(
@@ -457,8 +460,12 @@ export async function integrityPostLead(
         },
       });
 
-  const rawPayload =
-    resaleMode === ResaleMode.storefront
+  const rawPayload = options?.manualPayload
+    ? {
+        ...prepareManualIntegrityFields(options.manualPayload),
+        reference: posting.id,
+      }
+    : resaleMode === ResaleMode.storefront
       ? {
           ...buildIntegrityStorefrontPayload(lead, labelSources.realtime, labelSources),
           reference: posting.id,
@@ -562,6 +569,7 @@ export async function integrityPostStorefrontLead(
  */
 export async function adminReprocessIntegrityPosting(
   postingId: string,
+  options?: { manualPayload?: Record<string, string> },
 ): Promise<IntegrityPostResult> {
   const posting = await prisma.resalePosting.findUnique({
     where: { id: postingId },
@@ -589,5 +597,6 @@ export async function adminReprocessIntegrityPosting(
     mode: posting.mode,
     postingId: posting.id,
     forceAdminRetry: true,
+    manualPayload: options?.manualPayload,
   });
 }

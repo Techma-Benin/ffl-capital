@@ -53,10 +53,22 @@ export async function GET(
       createdAt: true,
       lead: {
         select: {
+          id: true,
           firstName: true,
           lastName: true,
+          email: true,
+          phone: true,
           state: true,
           leadType: true,
+          dob: true,
+          address: true,
+          city: true,
+          zip: true,
+          trustedformCertUrl: true,
+          leadidToken: true,
+          externalId: true,
+          haveIul: true,
+          primaryGoal: true,
         },
       },
     },
@@ -66,19 +78,29 @@ export async function GET(
     return NextResponse.json({ error: "Posting not found" }, { status: 404 });
   }
 
-  const rawEvents = await prisma.leadEvent.findMany({
-    where: {
-      leadId: posting.leadId,
-      type: { in: INTEGRITY_EVENT_TYPES },
-    },
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      type: true,
-      payload: true,
-      createdAt: true,
-    },
-  });
+  const [rawEvents, categories] = await Promise.all([
+    prisma.leadEvent.findMany({
+      where: {
+        leadId: posting.leadId,
+        type: { in: INTEGRITY_EVENT_TYPES },
+      },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        type: true,
+        payload: true,
+        createdAt: true,
+      },
+    }),
+    prisma.leadCategory.findMany({
+      select: {
+        type: true,
+        label: true,
+        integrityLabel: true,
+        integrityLabelStorefront: true,
+      },
+    }),
+  ]);
 
   const events = rawEvents
     .map((event) => ({
@@ -150,5 +172,6 @@ export async function GET(
       response,
       events,
     },
+    categories,
   });
 }

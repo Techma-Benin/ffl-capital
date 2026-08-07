@@ -459,11 +459,11 @@ Requires `INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_P
 
 ### Admin Integrity test panel (preferred)
 
-`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and **always** POSTs real HTTP to LeadConduit with `is_test=yes` (mock and live integrations mode). Returns the raw LC response plus `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payload overrides preserve blank `address_1`. `checkRequiredIntegrityFields` warnings are advisory in the lead picker only. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
+`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and **always** POSTs real HTTP to LeadConduit with `is_test=yes` (mock and live integrations mode). The Connection test UI opens the shared **Review payload** modal (`integrity-payload-edit-modal.tsx`) before send; optional `{ manualPayload }` overrides preserve blank `address_1`. Returns the raw LC response plus `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. `checkRequiredIntegrityFields` warnings are advisory in the lead picker only. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
 
 ### Admin Integrity posting reprocess
 
-`POST /api/admin/integrity/postings/[id]/reprocess` (admin session) re-sends the lead through the real Integrity post path (`adminReprocessIntegrityPosting` → `integrityPostLead` with `forceAdminRetry` + `postingId`). Mode always comes from the existing posting (never switches Realtime ↔ Storefront). Blocked when the lead has `liveSoldAt` or the posting is `sold`. Still respects vendor enabled and mock `is_test` behavior.
+Posting detail **Reprocess** opens the same **Review payload** modal (prefill from lead + prior `requestPayload`; flow locked to the posting’s mode). **Send** calls `POST /api/admin/integrity/postings/[id]/reprocess` with optional `{ manualPayload }` (admin session), which re-sends through the real Integrity post path (`adminReprocessIntegrityPosting` → `integrityPostLead` with `forceAdminRetry` + `postingId`). Mode always comes from the existing posting (never switches Realtime ↔ Storefront). Blocked when the lead has `liveSoldAt` or the posting is `sold`. Still respects vendor enabled and mock `is_test` behavior. On success the edit modal closes and the posting detail refreshes.
 
 ### General Approach
 
