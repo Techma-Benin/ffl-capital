@@ -7,6 +7,7 @@ import {
   buildIntegrityStorefrontPayload,
   buildLeadTypeThomOptions,
   encodeIntegrityFormBody,
+  prepareManualTestFields,
   resolveIntegrityLabel,
   resolveIntegrityLabelForMode,
 } from "../../src/lib/integrity/build-payload";
@@ -192,5 +193,31 @@ describe("Integrity Storefront IUL payload parity", () => {
     assert.equal(fields.lead_type_thom, IUL_STOREFRONT);
     assert.equal(fields.is_test, "yes");
     assert.equal(fields.address_1, "");
+  });
+
+  test("prepareManualTestFields keeps blank address_1 and both DOB fields", () => {
+    const prepared = prepareManualTestFields({
+      first_name: "Mike",
+      last_name: "Jones",
+      state: "TX",
+      address_1: "",
+      city: "",
+      dob: "6/2/1980",
+      dob_mmddyyyy_thom: "06/02/1980",
+      lead_type_thom: IUL_STOREFRONT,
+      primary_goal_thom: "",
+    });
+    const encoded = encodeIntegrityFormBody(prepared);
+    const fields = Object.fromEntries(new URLSearchParams(encoded).entries());
+
+    assert.equal(prepared.address_1, "");
+    assert.equal(prepared.is_test, "yes");
+    assert.equal(prepared.state, "Texas");
+    assert.equal("city" in prepared, false);
+    assert.equal("primary_goal_thom" in prepared, false);
+    assert.equal(fields.address_1, "");
+    assert.equal(fields.dob, "6/2/1980");
+    assert.equal(fields.dob_mmddyyyy_thom, "06/02/1980");
+    assert.equal(fields.lead_type_thom, IUL_STOREFRONT);
   });
 });
