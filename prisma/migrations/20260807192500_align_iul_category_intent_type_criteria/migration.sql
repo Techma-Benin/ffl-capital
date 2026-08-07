@@ -8,17 +8,17 @@ WHERE "category_id" IN (
   WHERE "type" IN ('traditional_iul', 'high_intent_iul')
 );
 
-INSERT INTO "lead_category_criteria" ("category_id", "field", "value")
-SELECT "id", 'SRC', 'IUL_LeadConduit'
+INSERT INTO "lead_category_criteria" ("id", "category_id", "field", "value", "created_at", "updated_at")
+SELECT gen_random_uuid(), "id", 'SRC', 'IUL_LeadConduit', NOW(), NOW()
 FROM "lead_categories"
 WHERE "type" IN ('traditional_iul', 'high_intent_iul');
 
-INSERT INTO "lead_category_criteria" ("category_id", "field", "value")
-SELECT "id", 'Intent_Type', 'Standard'
+INSERT INTO "lead_category_criteria" ("id", "category_id", "field", "value", "created_at", "updated_at")
+SELECT gen_random_uuid(), "id", 'Intent_Type', 'Standard', NOW(), NOW()
 FROM "lead_categories"
 WHERE "type" = 'traditional_iul';
 
-INSERT INTO "lead_category_criteria" ("category_id", "field", "value")
-SELECT "id", 'Intent_Type', 'High'
+INSERT INTO "lead_category_criteria" ("id", "category_id", "field", "value", "created_at", "updated_at")
+SELECT gen_random_uuid(), "id", 'Intent_Type', 'High', NOW(), NOW()
 FROM "lead_categories"
 WHERE "type" = 'high_intent_iul';
