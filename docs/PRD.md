@@ -288,8 +288,8 @@ Phase D — Migration Replit (livraison client)
 #### Gestion leads
 - Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live. L’éditeur peut **Apply** un brouillon sans le persister ; la liste l’utilise immédiatement, l’éditeur se ferme, et une action **Save view** reste visible jusqu’à l’enregistrement.
 - Un type sélectionné inclut les leads résolus dans ce type et les leads à matchs multiples où ce type est candidat ; plusieurs types sont combinés en OR
-- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity ; **diagnostics payload** (champs critères catégories) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
-- Actions manuelles : reprocesser (relancer matching), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
+- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity ; Tracking (phase routage, last/next attempt, bloc Integrity) ; **diagnostics payload** (champs critères catégories) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
+- Actions manuelles : reprocesser (allowlist partners si Partner actif ; pas de fallback Storefront), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
 
 #### Remboursements
 - File des `refund_requests` en attente (écran « Approve Refunds », parité Boberdoo)
@@ -303,6 +303,7 @@ Phase D — Migration Replit (livraison client)
 - Prix aged lead (défaut 5 $)
 - **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label` (Realtime) + `integrity_label_storefront` (Storefront, fallback Realtime), prix par défaut ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
 - **Destinataire Contact Us partner** (`/admin/settings` → General → Platform) : `contact_recipient_email` (défaut `support@fflcapital.com`)
+- **Lead routing** (`/admin/settings` → Lead routing) : mode Partner-only vs lifecycle ; fenêtres 24 h / 48 h / mid-window primary ; automation partners 48 h–30 j ; partner picker reprocess ; intake (TrustedForm / doublons)
 - *(Futur)* frais de retraitement
 
 #### Migration historique
@@ -397,16 +398,18 @@ Phase D — Migration Replit (livraison client)
 ### 5.6 File unmatched & retraitement
 
 **Si aucun agent éligible :**
-1. Lead reste `status=unmatched`, `available=true`
-2. Job toutes les X minutes : réessayer selon le **mode lifecycle** (sauf leads `review` ou catégorie non résolue)
-3. **Legacy** (`lifecycle_routing_enabled` off, défaut) : matching partner pendant **24 h**, puis post Integrity Realtime
+1. Lead reste `status=unmatched`, `available=true` ; inscrit dans la **work queue** (`nextRoutingAttemptAt`)
+2. Job périodique (in-process ou cron HTTP) : claim + routage selon le **mode** (sauf leads `review` ou catégorie non résolue)
+3. **Partner-only** (`lifecycle_routing_enabled` off, défaut) : matching partenaires uniquement — **aucune** revente Integrity à aucun âge
 4. **Lifecycle client** (flag on — voir `docs/client_email_lead_routing_2026-08-03.txt`) :
    - **0–24 h** : Integrity Realtime (ILC) uniquement ; pas de match partner automatique
    - **24–48 h** : partner **ou** Storefront en premier (config admin `lifecycle_mid_window_primary`), puis l’autre si échec définitif ; un posting Integrity `pending` bloque le fallback
-   - **48 h–30 j** : partners plateforme uniquement
-   - **30 j+** : éligibilité aged marketplace (inchangé)
-5. **Une vente live** (partner, Realtime ou Storefront) pose `liveSoldAt` / `liveSaleChannel` et arrête tout routage live automatique
-6. Lead reste en base pour aging J+30
+   - **48 h–30 j** : partners plateforme uniquement (cron auto contrôlé par `lifecycle_partner_auto_reprocess_enabled`, défaut on)
+   - **30 j+** : éligibilité aged marketplace ; exclus de la file live auto
+5. **Échecs Integrity** : seul « No Campaign Available » est retryable (15/30/60 min) ; autres rejets métier → bloc permanent Integrity (Realtime + Storefront) puis suite partners en fenêtre partner-capable ; 429/5xx/réseau = opérationnel (backoff technique)
+6. **Une vente live** (partner, Realtime ou Storefront) pose `liveSoldAt` / `liveSaleChannel` et arrête tout routage live automatique
+7. Lead reste en base pour aging J+30
+8. **Reprocess manuel** : partenaires sélectionnés = allowlist stricte ; pas de fallback Storefront ; picker seulement si Partner est la route active
 
 ### 5.7 Marketplace aged leads
 
@@ -501,13 +504,13 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 **Mock :** les posts Integrity automatiques envoient toujours du HTTP vers LeadConduit avec `is_test=yes` ; le ping Azure Realtime IUL est skippé (auto-accept). Les posts live auto ne forcent pas `is_test`. Les boutons admin test incluent toujours `is_test=yes` et, en mock, short-circuitent sans HTTP.
 
-**Déclenchement :** selon fenêtre lifecycle (flag on) ou après délai legacy 24 h (flag off).
+**Déclenchement :** selon fenêtre lifecycle (flag on) ou matching Partner-only (flag off — jamais Integrity auto).
 
 **Admin :** liste postings ; détail payloads + événements ; preview routage (`POST /api/admin/lead-routing/preview`) ; preflight Azure (`pnpm run preflight:integrity-azure`).
 
-**Lifecycle routing :** feature flag admin `lifecycle_routing_enabled` (**off** par défaut) ; cutoffs 24 h / 48 h ; mid-window primary `partner` ou `storefront`.
+**Routing mode :** `lifecycle_routing_enabled` (**off** par défaut = Partner-only) ; cutoffs 24 h / 48 h ; mid-window primary `partner` ou `storefront` ; `lifecycle_partner_auto_reprocess_enabled` pour le cron partners 48 h–30 j.
 
-**Implémentation :** `src/lib/lead-routing/` + `src/lib/integrity/` ; specs Boberdoo : [BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md](BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md).
+**Implémentation :** `src/lib/lead-routing/` (policy, work-queue, coordinator) + `src/lib/integrity/` (dont `classify.ts`) ; specs Boberdoo : [BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md](BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md).
 
 ### 5.13 Migration historique Boberdoo
 
@@ -540,8 +543,8 @@ LeadConduit POST webhook
                  ├─ Agent éligible trouvé (priorité max)
                  │    → Débit wallet, delivery, email, CRM, available=false
                  └─ Aucun agent
-                      → unmatched ; routing coordinator (lifecycle ou legacy 24 h)
-                           ├─ Match / Integrity selon phase
+                      → unmatched ; routing coordinator (Partner-only ou lifecycle)
+                           ├─ Match / Integrity selon mode + phase
                            └─ liveSoldAt posé → plus de routage live auto
   → [Parallèle temps] J+30 → éligible marketplace aged si available
 ```
@@ -665,8 +668,8 @@ Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste 
 
 ### Retraitement unmatched
 
-- **Legacy** (lifecycle off) : fenêtre **24 h** partner match, puis Integrity Realtime
-- **Lifecycle** (flag on) : fenêtres 0–24 h / 24–48 h / 48 h–30 j — voir `docs/client_email_lead_routing_2026-08-03.txt`
+- **Partner-only** (lifecycle off, défaut) : matching partenaires uniquement — pas d’Integrity automatique
+- **Lifecycle** (flag on) : fenêtres 0–24 h / 24–48 h / 48 h–30 j — voir `docs/client_email_lead_routing_2026-08-03.txt` ; file due + backoff ; NCA retryable ; rejets métier Integrity → bloc permanent
 - Preview admin sans effet : `POST /api/admin/lead-routing/preview`
 
 ### Changement des règles de catégorie
@@ -764,6 +767,12 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | received_at | timestamp | **Référence aging** |
 | live_sold_at | timestamp nullable | Première vente live (partner / Realtime / Storefront) |
 | live_sale_channel | string nullable | `partner` \| `integrity_realtime` \| `integrity_storefront` |
+| last_routing_attempt_at | timestamp nullable | Dernière tentative de routage auto |
+| next_routing_attempt_at | timestamp nullable | Prochaine échéance due (work queue) |
+| routing_attempt_count | int | Compteur tentatives (backoff) |
+| integrity_blocked_at | timestamp nullable | Bloc permanent Integrity (rejet métier terminal) |
+| integrity_blocked_reason | string nullable | Raison normalisée du bloc |
+| routing_claimed_at / by / expires_at | timestamp / string nullable | Lease cron ou hold reprocess manuel |
 | available | boolean | Défaut true |
 | refundable | boolean | Défaut true |
 | status | enum | unmatched \| delivered \| integrity_posted \| aged_listed \| review \| dead |
@@ -849,7 +858,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | key | string PK | |
 | value | jsonb | |
 
-**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`, `lifecycle_routing_enabled` (défaut false), `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`), `contact_recipient_email` (destinataire Partner Contact Us ; défaut `support@fflcapital.com`)
+**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`, `lifecycle_routing_enabled` (défaut false = Partner-only), `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`), `lifecycle_partner_auto_reprocess_enabled` (défaut true), `reprocess_partner_picker_enabled`, `contact_recipient_email` (destinataire Partner Contact Us ; défaut `support@fflcapital.com`) ; `integrity_post_delay_hours` conservée pour rollback uniquement (plus active)
 
 ### Table `migration_jobs`
 
@@ -909,7 +918,8 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 
 - [ ] Lead entre → match agent CA priorité 10
 - [ ] Wallet insuffisant → pas de livraison
-- [ ] Unmatched 24 h → Integrity mock
+- [ ] Unmatched — Partner-only (flag off) : match partners, pas d’Integrity auto
+- [ ] Lifecycle on — fenêtres 0–24 / 24–48 / 48–30j ; NCA → retry ; rejet métier → bloc Integrity
 - [ ] J+30 → aged listing **sans** `available=true`
 - [ ] Achat aged checkboxes → débit wallet
 - [ ] Remboursement type A → rematch priorité suivante, prix d’origine

@@ -325,7 +325,7 @@ These are the mappings from our internal lead object properties to the LeadCondu
 
 **Intake requirement:** `/api/leads/intake` rejects payloads missing `Trusted_Form_URL` (or `trustedform_cert_url`) with `{ outcome: "error", reason: "Missing required fields: …" }`. `DOB` is temporarily optional at intake (MP Facebook forms often omit it); `Have_IUL` / `Primary_Goal` are product-specific and not enforced at intake. `src/lib/integrity/required-fields.ts` is **advisory only** (admin Integrity test panel lead-picker warnings) — it does **not** block outbound HTTP.
 
-**Boberdoo parity (outbound posts):** Automatic and admin-test posts always send HTTP to LeadConduit. There is no local pre-flight gate that skips the request for missing fields. LeadConduit accept/reject is recorded from the LC response body (`integrity_posted` / `integrity_rejected` / `integrity_no_campaign` when the reason contains "No Campaign Available").
+**Boberdoo parity (outbound posts):** Automatic and admin-test posts always send HTTP to LeadConduit. There is no local pre-flight gate that skips the request for missing fields. LeadConduit accept/reject is recorded from the LC response body (`integrity_posted` / `integrity_rejected` / `integrity_no_campaign` when the reason contains "No Campaign Available"). Failures are further classified by `src/lib/integrity/classify.ts` for lifecycle routing (see below).
 
 **Outbound payload shape:** `buildIntegrityLeadPayload` and `buildIntegrityStorefrontPayload` omit optional fields when the lead has no value. Exceptions and parity notes:
 
@@ -388,28 +388,44 @@ IF resaleMode = realtime:
   → POST to INTEGRITY_REALTIME_SUBMIT_URL (or vendor postUrl) — always HTTP; no local missing-field gate
   → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
   → LC failure → integrity_rejected (outcome rejected) OR integrity_no_campaign (outcome no_campaign_available) when reason contains "No Campaign Available"; LC response body stored on event
+  → classifyIntegrityFailure: NCA = retryable (lead unmatched + nextRoutingAttemptAt 15/30/60 min); other business failure = permanent Integrity block (both modes); 429/5xx/network = operational backoff
 
 IF resaleMode = storefront:
   → POST directly to INTEGRITY_STOREFRONT_SUBMIT_URL (no LC ping gate) — always HTTP
   → LC Storefront acceptance criteria: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
-  → LC failure → integrity_rejected or integrity_no_campaign (same detection as Realtime); LC response body stored on event
+  → LC failure → integrity_rejected or integrity_no_campaign (same detection as Realtime); same classifyIntegrityFailure rules; LC response body stored on event
 ```
 
-### Unmatched lead lifecycle (admin flag `lifecycle_routing_enabled`, default OFF)
+### Integrity failure taxonomy (`classify.ts`)
 
-When enabled, `src/lib/lead-routing/policy.ts` decides the next route from lead age, `liveSoldAt`, and Integrity posting state. Client-approved windows (see `docs/client_email_lead_routing_2026-08-03.txt`):
+| Class | Trigger | Lifecycle effect |
+|-------|---------|------------------|
+| `retryable_no_campaign` | Normalized reason « No Campaign Available » | Restore `unmatched`; schedule retry (15 / 30 / 60 min) |
+| `terminal_business_rejection` | Other LC business failure | Set `integrityBlockedAt` + reason; **no further Realtime or Storefront posts**; continue via partners in partner-capable windows |
+| `operational_failure` | Network error, HTTP 429 / 5xx (and similar transport) | Technical backoff (5 / 10 / 20 min); no permanent block |
+
+Async webhook rejections use the same classifier.
+
+### Unmatched lead routing (`lifecycle_routing_enabled`, default OFF)
+
+| Flag | Behavior |
+|------|----------|
+| **Off** | **Partner-only** — partner match only; **never** Integrity Realtime or Storefront |
+| **On** | Age windows via `src/lib/lead-routing/policy.ts` |
+
+When enabled, policy uses lead age, `liveSoldAt`, Integrity posting state, and `integrityBlocked`:
 
 | Age | Primary action |
 |-----|----------------|
-| 0 – 24 h | Integrity Realtime only |
-| 24 – 48 h | Partner **or** Storefront first (admin `lifecycle_mid_window_primary`), then fallback |
-| 48 h – 30 d | Platform partners only |
-| 30 d+ | Aged marketplace (passive) |
+| 0 – 24 h | Integrity Realtime only (blocked → wait for partner-capable window) |
+| 24 – 48 h | Partner **or** Storefront first (admin `lifecycle_mid_window_primary`), then fallback; Integrity blocked → partner only |
+| 48 h – 30 d | Platform partners only (`lifecycle_partner_auto_reprocess_enabled`) |
+| 30 d+ | Aged marketplace (passive); excluded from automatic live queue |
 | `liveSoldAt` set | No automatic live routing |
 
-Preview without side effects: `POST /api/admin/lead-routing/preview`.
+Fair work queue (`work-queue.ts`): independent due queries per window, DB claim leases, partner-miss backoff. Preview without side effects: `POST /api/admin/lead-routing/preview`.
 
-When the flag is **off**, legacy behavior applies: partner match during `integrity_post_delay_hours` (24 h), then Integrity Realtime post.
+Legacy key `integrity_post_delay_hours` is retained in settings for rollback only — not used by the active path.
 
 ---
 
@@ -473,7 +489,7 @@ curl -X POST \
 
 ## Current Codebase Status (Aug 2026)
 
-The items below were fixed in Phase 1–2. Remaining work is **live credential rotation**, **preflight**, and **controlled lifecycle flag enablement**.
+The items below were fixed in Phase 1–2 and the reliable routing pass (août 2026). Remaining work is **live credential rotation**, **preflight**, and **controlled lifecycle flag enablement**.
 
 | # | Issue | Status |
 |---|---|---|

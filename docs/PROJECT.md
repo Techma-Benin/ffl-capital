@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 5 août 2026 (v12 — routage lifecycle Phase 2, Azure ping IUL)
+> Dernière mise à jour : 7 août 2026 (v13 — file de routage fiable, mode Partner-only, classification Integrity)
 
 ---
 
@@ -44,7 +44,9 @@
 | **Lead category** | Règle admin (label + critères exacts sur le payload webhook) → clé interne `type` (snake_case, générée à la création) ; détermine `lead.leadType` à l’intake ; labels Integrity séparés Realtime (`integrity_label`) et Storefront (`integrity_label_storefront`, fallback Realtime) pour `lead_type_thom` |
 | **Category resolution** | Résultat de l’évaluation des règles : `matched` (1 catégorie), `no_match` (0), `multiple_matches` (2+) — zéro/plusieurs → `status=review`, pas de matching ni Integrity. Les changements de règles réévaluent aussi les leads non finalisés |
 | **Unclassified / Multiple match** | Libellés UI fixes pour anomalies (`no_match` / `multiple_matches`) ; les catégories et candidats affichés utilisent `lead_categories.label`, pas de constantes IUL hardcodées |
-| **Lifecycle routing** | Routage automatique des leads unmatched selon l’âge (0–24 h Realtime ILC, 24–48 h partner ou Storefront, 48 h–30 j partners seuls, 30 j+ aged) — **désactivé par défaut** (`lifecycle_routing_enabled`) ; spec client : `docs/client_email_lead_routing_2026-08-03.txt` |
+| **Lifecycle routing** | Quand `lifecycle_routing_enabled` est **on** : fenêtres d’âge (0–24 h Realtime ILC, 24–48 h partner ou Storefront, 48 h–30 j partners seuls, 30 j+ aged). Quand **off** (défaut) : mode **Partner-only** — matching partenaires uniquement, **jamais** Integrity. Spec client : `docs/client_email_lead_routing_2026-08-03.txt` |
+| **Routing work queue** | File due par fenêtre d’âge (0–24 / 24–48 / 48 h–30 j), claim lease BDD, backoff (NCA / partner miss / opérationnel) ; 30 j+ exclus du cron auto |
+| **Integrity block** | Rejet métier terminal (hors « No Campaign Available ») → `integrityBlockedAt` / raison ; bloque Realtime et Storefront ; le lead continue via partners dans les fenêtres partner-capable |
 | **Live sale** | Première vente live (partner, Realtime ou Storefront) enregistrée via `liveSoldAt` / `liveSaleChannel` ; bloque tout routage live automatique ultérieur jusqu’à action admin explicite |
 
 ---
@@ -74,7 +76,7 @@ Meta Lead Ads
 - Stocker l’URL/certificat TrustedForm
 - **Évaluer les catégories lead** configurées (critères exacts sur le payload) → `leadType` ou file review si 0/N match
 - Lancer le moteur de matching automatiquement (uniquement si catégorie résolue)
-- Si non matché : file d’attente + retraitement 24 h → puis revente IntegrityCONNECT
+- Si non matché : file de routage (due / claim) selon le **mode** admin (Partner-only ou lifecycle par âge)
 
 ### Référence Loom / call client
 
@@ -96,11 +98,11 @@ Un lead est **non vendu** quand aucun agent actif ne correspond aux critères (s
 **Ce qui se passe :**
 1. Entrée en base avec statut `unmatched`
 2. **Retraitement pendant 24 h** : le système réessaie périodiquement de le matcher (ex. un agent recharge son wallet ou change ses filtres)
-3. **Reprocess admin (bulk)** : sélection de leads → **hold** (bloque cron et reprocess ligne) → modal partenaires actifs éligibles (au moins 1 lead) → matching restreint aux partenaires cochés → libération du hold ; **pas** d’envoi Integrity immédiat si échec
-4. Si toujours non vendu → **routage selon mode lifecycle** :
-   - **Legacy** (`lifecycle_routing_enabled` off, défaut) : retraitement partner pendant 24 h, puis post Integrity Realtime
-   - **Lifecycle client** (flag on) : 0–24 h Realtime ILC seul ; 24–48 h partner ou Storefront (priorité admin) ; 48 h–30 j partners seuls ; pas de retry ILC auto au-delà
-5. Après **30 jours** dans le système → devient **aged lead** (5 $), visible dans la marketplace
+3. **Reprocess admin (bulk)** : sélection → **hold** (lease BDD, bloque cron) → si Partner est la route active, modal partenaires (allowlist stricte, **pas** de fallback Storefront) → matching → libération du hold
+4. Si toujours non vendu → **routage automatique** via la work queue :
+   - **Partner-only** (`lifecycle_routing_enabled` off, défaut) : matching partenaires uniquement — **aucune** revente Integrity
+   - **Lifecycle** (flag on) : 0–24 h Realtime ILC ; 24–48 h partner ou Storefront (priorité admin) ; 48 h–30 j partners seuls (cron auto partners contrôlé par `lifecycle_partner_auto_reprocess_enabled`) ; NCA → retry 15/30/60 min ; autres rejets métier Integrity → bloc permanent + suite partners
+5. Après **30 jours** → **aged lead** (5 $) marketplace ; exclus de la file de routage live auto
 
 Exemple client : lead Wisconsin, personne ne veut cet état → rejeté temps réel, reste unmatched (**17:08 – 17:32** dans le transcript).
 
@@ -253,6 +255,9 @@ leads
   ├── trustedform_cert_url
   ├── received_at
   ├── live_sold_at, live_sale_channel   -- provenance 1ère vente live (Phase 2)
+  ├── last/next_routing_attempt_at, routing_attempt_count  -- file due
+  ├── integrity_blocked_at / reason     -- bloc permanent Integrity
+  ├── routing_claimed_*                 -- lease cron / hold manuel
   ├── available (boolean, default true)
   ├── refundable (boolean, default true — passe false après cycle remboursement+revente)
   └── status: unmatched | delivered | integrity_posted | aged_listed | ...
@@ -326,9 +331,10 @@ lead_categories                   -- classification produit (admin)
 | Partner Contact Us (formulaire → Resend admin + confirmation ; destinataire `contact_recipient_email`) | ✅ |
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
-| Cron reprocess unmatched + Integrity post (routes) | ✅ |
-| Routage lifecycle client + Azure ping Realtime IUL (flag off par défaut) | ✅ août 2026 |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess avec sélection partners**), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (modal détail payloads/outcome/timeline) + panneau test (labels Realtime/Storefront, encoded body), settings (**lead categories** multi-critères + labels Integrity Realtime/Storefront + reclassification automatique ; **lifecycle routing** 24 h/48 h/mid-window ; **Partner contact recipient** sur General → Platform), migration (classification via table catégories), filter list (+ templates) | ✅ |
+| Cron reprocess unmatched + Integrity post (routes ; scheduler in-process `instrumentation.ts`) | ✅ |
+| Routage lifecycle + Azure ping Realtime IUL ; mode Partner-only si flag off | ✅ août 2026 |
+| File de routage fiable (due par fenêtre, claim lease, backoff NCA / partner miss, bloc Integrity terminal) | ✅ août 2026 |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess allowlist partners**, Tracking phase/attempts/bloc Integrity), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (modal détail payloads/outcome/timeline) + panneau test (labels Realtime/Storefront, encoded body), settings (**lead categories** ; **Lead routing** — mode / fenêtres / automation / manual / intake ; **Partner contact recipient**), migration, filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées avec périodes de livraison), wallet, aged, settings, **contact** (API Resend, plus de mailto), refunds | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
@@ -340,7 +346,7 @@ lead_categories                   -- classification produit (admin)
 |---------|--------|
 | IntegrityCONNECT **live** (ping/post prod) | ⏸ specs/credentials client — mock en place |
 | Stripe **prod** | ⏳ après validation test keys |
-| Scheduler cron en prod (Vercel/pg_cron) | ⏳ config déploiement |
+| Scheduler cron externe (optionnel ; aujourd’hui in-process via `instrumentation.ts`) | ⏳ déploiement / ops |
 | Parité UI Boberdoo complète (charts, multi lead types, billing PDF) | ⏳ hors scope V1 |
 | Cutover LeadConduit prod (URL Boberdoo → app) | ⏳ avec cliente |
 
@@ -356,7 +362,7 @@ lead_categories                   -- classification produit (admin)
 
 - [x] Modèle `Lead` + endpoint `POST /api/leads/intake`
 - [x] Moteur de matching (filter sets + priorité + wallet actif)
-- [x] Statuts lead + file unmatched + retraitement 24 h (cron)
+- [x] Statuts lead + file unmatched + work queue / cron routage
 - [x] Débit wallet + ledger
 - [x] Marketplace aged (seuil configurable)
 - [x] Emails (Resend si clé configurée) — livraison lead + Partner Contact Us
@@ -365,7 +371,7 @@ lead_categories                   -- classification produit (admin)
 ### UI fonctionnelle (**terminé — polish partiel**)
 
 - [x] Dashboard admin (Operations) : filtre période en en-tête (`?period=` today \| yesterday \| last_7_days \| last_month \| all_time \| custom + `from`/`to` ; défaut last 7 days, redirect canonique `/admin` → `?period=last_7_days` ; `period=custom` sans dates → même défaut) ; presets courts + custom dans la fenêtre 90 j = filtre client sur payload SSR ; **all_time** / custom avant `windowStart` = refetch `GET /api/admin/dashboard` (SSR étendu si URL d’atterrissage) ; **Custom** → modal calendrier ancré en-tête + Apply (URL custom seulement après validation) ; libellé période dans titres KPI/graphiques ; Lead Intake à granularité adaptative (≤1 j horaire ; 2–60 j journalier ; 61–90 j semaines glissantes 7 j libellées au début de bucket ; >90 j mensuel) ; KPIs leads/livraisons, donut Delivering = taux de livraison parmi les leads entrés sur la période (`receivedAt` ; statut `delivered` en compte leads, pas événements `LeadDelivery` ; centre % Delivered ; vide « No leads yet »), leads récents filtrés ; compteurs agents actifs / unmatched (instantanés, hors période)
-- [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, **Type multi-select unifié** (catégories + Unclassified + Multiple category match ; une catégorie matche aussi l’appartenance aux candidats d’un multiple match), attribution par filter set live, colonnes visibles + ordre persistés sur la vue active (`lead_list_views.columns`, PATCH lead-views), toggle cartes/tableau seul en `localStorage` (`admin-leads-table-layout` ; partner : `partner-leads-table-layout`), détail lead **B3** (hero compact, onglets Contact/IUL/Compliance/Tracking/Events, livraisons partenaires + timeline ; **diagnostics payload** + panneau assignation catégorie pour leads `review`) ; `?view=` (redirection legacy `?status=`)
+- [x] Admin leads : **vues** (ex-onglets statut seedés), switcher + éditeur, filtres date/état/recherche, **Type multi-select unifié** (catégories + Unclassified + Multiple category match ; une catégorie matche aussi l’appartenance aux candidats d’un multiple match), attribution par filter set live, colonnes visibles + ordre persistés sur la vue active (`lead_list_views.columns`, PATCH lead-views), toggle cartes/tableau seul en `localStorage` (`admin-leads-table-layout` ; partner : `partner-leads-table-layout`), détail lead **B3** (hero compact, onglets Contact/IUL/Compliance/Tracking/Events, livraisons partenaires + timeline ; **diagnostics payload** + panneau assignation catégorie pour leads `review` ; Tracking : phase routage, last/next attempt, bloc Integrity) ; `?view=` (redirection legacy `?status=`)
 - [x] Partner leads : vues par partner (défaut « All deliveries »), mêmes primitives UI que l’admin côté liste (colonnes sur la vue, layout en localStorage) ; périodes today/yesterday/7 jours/mois dernier/custom appliquées à `LeadDelivery.deliveredAt`
 - [x] Admin partners : liste, approbation, détail **P5** (profil + conformité CRM : colonne résumé, stats dont « Leads purchased » via `_count.leadDeliveries`, checklist, filter sets en lignes, **Activity** = 10 dernières transactions wallet/ledger uniquement — badges type + signe/couleur comme `/admin/transactions`, pas de fusion avec les livraisons lead ; édition compte (modal « Edit account » depuis l’en-tête ou Account & CRM ; avatar 96px sur la carte profil — photo Clerk si `Partner.clerkUserId` renseigné, sinon initiales du nom ; partenaires seed type « Dashboard Demo » sans compte Clerk lié)), filter sets (création/édition pages `/admin/partners/[id]/filter-sets/new` et `…/[filterSetId]/edit` ; retour filter list via `?returnTo=/admin/filter-list`) ; filtre **Company** (`?company=`, valeurs = `Partner.affiliation` ; `?family=` encore lu) ; toggle cartes/tableau + colonnes masquables (`localStorage` `admin-partners-table-layout`, `admin-partners-visible-columns`)
 - [x] Admin Filter List (`/admin/filter-list`) : sets live + templates SSR ; templates via `/admin/filter-sets/templates/new` et `…/[id]/edit` ; éditeur partagé `FilterSetEditorPage` / `FilterSetForm` (admin live, templates, partner) — plus de modal d’édition ; partner ne voit pas prix/priorité ; Attribution absente du formulaire filter set **et** de l’onboarding (clés stripées à la sauvegarde) ; Intent / Have IUL = multi-select partagé (`AdvancedFiltersFields`) — options = valeurs distinctes leads + **Empty** (`"empty"`), préfetchées SSR via `getLeadFilterCriteriaOptions()` (pas de fetch à l’ouverture du dropdown)
@@ -655,5 +661,5 @@ Lors d’une reprise de contexte :
 | UI parité (essentiel) | Leads, partners, refunds, wallet, aged | ✅ |
 | Client store / load-once | Dashboard 90j (+ refetch API hors fenêtre), partners list, filter-list, refunds, partner aged — filtre client + `src/lib/client-store` ; listes leads unbounded restent paginées serveur | ✅ |
 
-**Prochaines étapes :** cutover LeadConduit prod, Integrity live (preflight Azure + activation lifecycle flag), Stripe prod, scheduler cron prod, polish UI avancé (charts, billing PDF).
+**Prochaines étapes :** cutover LeadConduit prod, Integrity live (preflight Azure + activation lifecycle flag), Stripe prod, scheduler externe optionnel (mêmes routes cron), polish UI avancé (charts, billing PDF).
 

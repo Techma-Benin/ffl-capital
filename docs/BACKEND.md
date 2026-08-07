@@ -73,14 +73,19 @@
 
 | Composant | Statut |
 |-----------|--------|
-| Module `src/lib/lead-routing/` (policy, coordinator, live-sale) | ✅ |
-| Routage lifecycle client (flag `lifecycle_routing_enabled`, défaut **off**) | ✅ |
+| Module `src/lib/lead-routing/` (policy, coordinator, live-sale, work-queue, schedule, partner-picker) | ✅ |
+| Mode routage : flag `lifecycle_routing_enabled` off = **Partner-only** ; on = fenêtres d’âge | ✅ |
+| File due équitable (fenêtres indépendantes, claim lease, pagination, concurrence bornée) | ✅ `work-queue.ts` |
+| Classification échecs Integrity (`classify.ts`) — NCA retryable ; autres métier = bloc permanent | ✅ |
+| État file sur `leads` + index due / claim ; index `resale_postings.lead_id` | ✅ migration `20260807180000` |
 | Provenance vente live : `live_sold_at`, `live_sale_channel` sur `leads` | ✅ migration `20260805180000` |
 | Azure ping Realtime IUL (`IsAcceptingCampaign`) avant post LeadConduit | ✅ `azure-ping.ts` ; secrets env-only |
 | Storefront : post direct LeadConduit (plus de ping gate LC) | ✅ |
 | Preflight opérateur Azure | ✅ `pnpm run preflight:integrity-azure` |
 | Preview routage admin | ✅ `POST /api/admin/lead-routing/preview` |
 | Coordinator unifié intake + cron + reprocess | ✅ |
+| Hold reprocess manuel = lease BDD (cross-instance) | ✅ `reprocess-hold.ts` |
+| Scheduler in-process | ✅ `src/instrumentation.ts` (mêmes routes cron qu’un scheduler externe) |
 
 ### Reporté / hors scope
 
@@ -116,8 +121,8 @@ POST /api/leads/intake
         └── matching/engine.ts (priorité DESC, created_at ASC FIFO)
                 │
                 ├── deliverLead → Resend email + CRM webhook
-                └── unmatched → routing coordinator
-                ├── lifecycle OFF (défaut) : match < délai → Integrity realtime au-delà
+                └── unmatched → routing coordinator + work queue
+                ├── lifecycle OFF (défaut) : Partner-only (jamais Integrity)
                 └── lifecycle ON : policy 0–24h / 24–48h / 48h–30j / aged (voir § Lead routing)
                         │
                         ▼
@@ -147,12 +152,15 @@ POST /api/leads/intake
 - `20260805120000_add_integrity_label_storefront` — `lead_categories.integrity_label_storefront` (label Integrity Storefront ; nullable)
 - `20260805180000_add_live_sale_provenance` — `leads.live_sold_at`, `leads.live_sale_channel`
 - `20260807120000_add_integrity_no_campaign_event` — `LeadEventType.integrity_no_campaign` (rejets LeadConduit « No Campaign Available », distinct de `integrity_rejected`)
+- `20260807180000_add_lead_routing_queue_state` — file due / claim lease / bloc Integrity sur `leads` ; index `resale_postings.lead_id` ; backfill `next_routing_attempt_at` + blocs depuis `integrity_rejected`
 
 **`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`.
 
 **`leads` (catégorisation) :** `lead_type` (string, nullable) ; `category_resolution` (`matched` \| `no_match` \| `multiple_matches`) ; `category_candidate_types` (text[], types des catégories qui ont matché). Zéro ou plusieurs matchs → `status=review`, `available=false`, pas de matching partenaire ni post Integrity.
 
 **`leads` (provenance vente live, Phase 2) :** `live_sold_at` (timestamp nullable) ; `live_sale_channel` (`partner` \| `integrity_realtime` \| `integrity_storefront`). Posés par `claimLiveSale` à la première vente live automatique ; bloquent le routage lifecycle tant que non réinitialisés (redelivery admin explicite).
+
+**`leads` (file de routage, août 2026) :** `last_routing_attempt_at`, `next_routing_attempt_at`, `routing_attempt_count` ; `integrity_blocked_at` / `integrity_blocked_reason` (rejet métier terminal) ; `routing_claimed_at` / `routing_claimed_by` / `routing_claim_expires_at` (lease cron ou hold manuel). Index due : `(status, available, next_routing_attempt_at)` et `(status, available, received_at)` ; index claim : `routing_claim_expires_at`.
 
 ---
 
@@ -351,7 +359,7 @@ UI : `admin-lead-category-assign-panel.tsx` (chips candidats + sélecteur catég
 
 `reprocess-eligibility.ts` — `getReprocessEligibility` : refuse le reprocess si `category_resolution` est `no_match` ou `multiple_matches`, si `leadType` absent, ou si lead non `unmatched`/`available`. Branché dans `reprocess-unmatched.ts`.
 
-**Hold bulk manuel** (`reprocess-hold.ts`) : verrou en mémoire (TTL 10 min, renouvelé à chaque hold) pour éviter qu’un cron ou un reprocess ligne à ligne ne matche un lead pendant que l’admin choisit les partenaires dans le modal bulk. Le cron `reprocessUnmatchedLeads` ignore les leads tenus ; `reprocessSingleLead` sans `includePartnerIds` renvoie une erreur si le lead est tenu. Libération via `POST …/release-hold` (annulation modal) ou automatiquement dans le `finally` de `POST …/bulk-reprocess`. État **par processus Node** (pas partagé entre instances).
+**Hold bulk manuel** (`reprocess-hold.ts`) : lease BDD sur les colonnes `routing_claimed_*` (`routingClaimedBy = manual-reprocess-hold`, TTL 10 min, renouvelé à chaque hold). Remplace l’ancien Map en mémoire — **cross-instance**. Le cron ignore les leads tenus par ce claim ; `reprocessSingleLead` sans `includePartnerIds` refuse si tenu. Libération via `POST …/release-hold` ou `finally` de `POST …/bulk-reprocess`.
 
 ### Import et réparation historique
 
@@ -452,42 +460,65 @@ Routes protégées par `Authorization: Bearer $CRON_SECRET` (en dev, le serveur 
 
 | Route | Fréquence suggérée | Rôle |
 |-------|-------------------|------|
-| `POST /api/cron/reprocess-unmatched` | 5–15 min | Retente match < 24h ; poste Integrity au-delà |
-| `POST /api/cron/integrity-post` | 15–30 min | Poste leads unmatched > 24h vers IntegrityCONNECT |
+| `POST /api/cron/reprocess-unmatched` | 5–15 min | Draine la work queue (fenêtres due) via le coordinator |
+| `POST /api/cron/integrity-post` | 15–30 min | Compat : délègue au même pipeline de routage |
 
-Options : `pg_cron` Supabase, Vercel Cron, cron-job.org.
+**Scheduler actuel :** in-process via `src/instrumentation.ts` (appelle les routes HTTP locales). Un scheduler externe (pg_cron, Vercel Cron, cron-job.org) peut appeler les mêmes endpoints sans coupler la correction de la file au mécanisme de déclenchement.
 
-Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/lead-routing/coordinator.ts`, `src/lib/integrity/*`
+Implémentation : `src/lib/jobs/reprocess-unmatched.ts`, `src/lib/lead-routing/work-queue.ts`, `src/lib/lead-routing/coordinator.ts`, `src/lib/integrity/*`
 
-### Lead routing (lifecycle Phase 2)
+### Lead routing (lifecycle + Partner-only)
 
-Module `src/lib/lead-routing/` — policy pure (`policy.ts`), exécution (`coordinator.ts`), verrou vente live (`live-sale.ts`).
+Module `src/lib/lead-routing/` — policy (`policy.ts`), exécution (`coordinator.ts`), file due (`work-queue.ts`), schedule / backoff (`schedule.ts`), picker (`partner-picker.ts`), verrou vente live (`live-sale.ts`).
 
-**Flag admin** (`app_settings`, défaut **off**) : `lifecycle_routing_enabled`. Settings associés : `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`). UI : Settings → General → Lead lifecycle.
+**Mode routage** (`lifecycle_routing_enabled`, défaut **off**) :
 
-Quand **désactivé** (comportement legacy) : reprocess cron matche pendant `integrity_post_delay_hours`, puis post Integrity **realtime** par défaut.
+| Flag | Comportement |
+|------|----------------|
+| **Off** | **Partner-only** — matching partenaires à tout âge < seuil aged ; **jamais** Integrity Realtime ni Storefront |
+| **On** | Fenêtres lifecycle client (voir ci-dessous) |
 
-Quand **activé** (cycle client approuvé — voir `docs/client_email_lead_routing_2026-08-03.txt`) :
+Settings associés : `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`), `lifecycle_partner_auto_reprocess_enabled` (défaut **true** — cron auto partners en fenêtre 48 h–30 j). Clé legacy `integrity_post_delay_hours` **conservée en BDD pour rollback uniquement** — plus utilisée par le chemin actif. UI : Settings → **Lead routing** (Routing mode / Lifecycle windows / Automation / Manual / Intake).
+
+Quand **lifecycle on** (cycle client — `docs/client_email_lead_routing_2026-08-03.txt`) :
 
 | Âge lead | Phase | Action automatique |
 |----------|-------|-------------------|
-| 0 – cutoff Realtime (24 h) | `realtime` | Post Integrity Realtime uniquement (pas de match partner) |
-| Realtime – cutoff Storefront (48 h) | `partner_or_storefront` | Route primaire + fallback selon `lifecycle_mid_window_primary` ; posting Integrity `pending` bloque le fallback |
-| Storefront – seuil aged (30 j) | `partners_only` | Match partners uniquement |
-| ≥ seuil aged | `aged_marketplace` | Pas de routage live auto (marketplace passive) |
+| 0 – cutoff Realtime (24 h) | `realtime` | Post Integrity Realtime uniquement (pas de match partner) ; si Integrity bloqué → attend fenêtre partner |
+| Realtime – cutoff Storefront (48 h) | `partner_or_storefront` | Route primaire + fallback selon `lifecycle_mid_window_primary` ; posting `pending` bloque le fallback ; si Integrity bloqué → partner seul |
+| Storefront – seuil aged (30 j) | `partners_only` | Match partners (si `lifecycle_partner_auto_reprocess_enabled`) |
+| ≥ seuil aged | `aged_marketplace` | Pas de routage live auto (marketplace passive) ; **exclu** de la work queue |
 | `live_sold_at` renseigné | `live_sold` | Aucun routage live auto |
 
-`executeLeadRouting` est appelé depuis l'intake (après catégorie OK), le cron `reprocess-unmatched` / `integrity-post`, et le reprocess manuel. Preview sans effet de bord : `POST /api/admin/lead-routing/preview` — corps `{ ageHours, liveSold, integrityPosting }`.
+#### Work queue
 
-**Preflight Azure** (secrets env, sortie redacted) : `pnpm run preflight:integrity-azure`
+`work-queue.ts` : requêtes due **indépendantes** par fenêtre (`realtime` / `mid` / `partners_only`) ; claim lease BDD ; pagination au-delà de 50 ; concurrence bornée (`ROUTING_QUEUE_*` env optionnels, défauts dans `config.ts`). Backoff partner miss (5/15/30 min) pour ne pas saturer les fenêtres jeunes. NCA : 15/30/60 min. Échecs opérationnels Integrity : 5/10/20 min.
+
+#### Classification Integrity
+
+`src/lib/integrity/classify.ts` (post + webhook) :
+
+| Classe | Exemple | Effet lifecycle |
+|--------|---------|-----------------|
+| `retryable_no_campaign` | raison normalisée « No Campaign Available » | Lead reste / revient `unmatched` ; `nextRoutingAttemptAt` selon backoff NCA |
+| `terminal_business_rejection` | autre rejet métier LC | `integrityBlockedAt` + raison ; plus de posts Integrity (Realtime **et** Storefront) ; continue via partners en fenêtre partner-capable |
+| `operational_failure` | réseau, 429, 5xx | Backoff technique ; pas de bloc permanent |
+
+`executeLeadRouting` : intake (après catégorie OK), cron queue, reprocess manuel. Preview : `POST /api/admin/lead-routing/preview` — corps `{ ageHours, liveSold, integrityPosting, integrityBlocked? }`.
+
+**Preflight Azure** : `pnpm run preflight:integrity-azure`
+
+Détail lead admin (Tracking) : phase de routage, last/next attempt, raison de bloc Integrity.
 
 ### Reprocess admin (manuel vs cron)
 
-**Flux bulk UI (partner picker ON)** : clic Reprocess → `POST …/bulk-reprocess/hold` → modal → `POST …/eligible-partners` (renouvelle le hold) → confirmation → `POST …/bulk-reprocess` (libère le hold). Fermeture / annulation du modal → `POST …/release-hold`.
+**Partner picker** : affiché seulement si Partner est la route active (mode Partner-only, ou lifecycle mid/partners_only avec partner primary). Setting `reprocess_partner_picker_enabled` (défaut `false`) — Settings → Lead routing → Manual.
 
-**Flux direct (partner picker OFF, défaut)** : clic Reprocess → `POST …/bulk-reprocess` sans `partnerIds` (match tous les partenaires éligibles, pas de modal ni hold).
+**Flux bulk UI (picker ON + Partner actif)** : hold → modal → `eligible-partners` → `bulk-reprocess` avec `partnerIds` = **allowlist stricte** ; **pas** de fallback Storefront si les partenaires sélectionnés échouent. Annulation → `release-hold`.
 
-Setting admin : `reprocess_partner_picker_enabled` (`app_settings`, défaut `false`) — toggle « Partner picker on reprocess » dans Settings → General → Lead lifecycle.
+**Flux direct (picker OFF ou Partner non actif)** : `bulk-reprocess` sans modal ; match tous les partenaires éligibles si route partner ; **pas** d’Integrity immédiat.
+
+Route utilitaire : `POST /api/admin/leads/bulk-reprocess/partner-route` — indique si le picker doit s’afficher pour la sélection.
 
 ### Partner Contact Us
 
@@ -510,10 +541,11 @@ Helper partagé : `src/lib/email/send-resend-email.ts`. Setting PATCH via `/api/
 | `POST /api/admin/leads/bulk-reprocess/hold` | `{ leadIds: string[] }` | `{ held: number }` | Pose un hold reprocess sur les leads (validation `unmatched`+`available`). |
 | `POST /api/admin/leads/bulk-reprocess/release-hold` | `{ leadIds: string[] }` | `{ released: number }` | Libère le hold (ex. modal fermé sans confirmer). |
 | `POST /api/admin/leads/bulk-reprocess/eligible-partners` | `{ leadIds: string[] }` | `{ partners: [{ id, firstName, lastName, priority, matchCount }] }` | Partenaires actifs éligibles pour ≥1 lead (règles complètes filter set + limites). Renouvelle le hold. 400 si lead absent ou non `unmatched`+`available`. |
-| `POST /api/admin/leads/bulk-reprocess` | `{ leadIds: string[], partnerIds?: string[] }` | `{ processed, matched, errors, unmatched }` | Reprocess manuel : `matchLead` restreint à `partnerIds` si fourni ; sinon tous les partenaires éligibles. **Pas** de fallback Integrity. Libère le hold en `finally`. |
+| `POST /api/admin/leads/bulk-reprocess` | `{ leadIds: string[], partnerIds?: string[] }` | `{ processed, matched, errors, unmatched }` | Reprocess manuel : si `partnerIds` fourni = **allowlist stricte** (pas de fallback Storefront). Sinon tous les partenaires éligibles quand la route est partner. **Pas** de post Integrity automatique. Libère le hold en `finally`. |
 | `POST /api/admin/leads/:id/reprocess` | — | résultat `reprocessSingleLead` | Idem mode **manual** (match only). Refusé si lead en hold bulk (sans allowlist). |
+| `POST /api/admin/leads/bulk-reprocess/partner-route` | `{ leadIds: string[] }` | `{ showPartnerPicker: boolean, … }` | Indique si Partner est la route active pour la sélection (UI picker). |
 
-Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads au-delà du délai configuré et **ignore** les leads en hold. `matchLead` accepte `includePartnerIds` (allowlist) via `findEligibleFilterSets`.
+Le cron draine la work queue via le coordinator (Integrity seulement si lifecycle on et phase Integrity) et **ignore** les leads en hold manuel. `matchLead` accepte `includePartnerIds` (allowlist) via `findEligibleFilterSets`.
 
 ### Admin Integrity postings
 
@@ -526,7 +558,7 @@ Le cron `reprocessUnmatchedLeads` conserve le fallback Integrity pour les leads 
 **Persistance événements** (`lead_events.payload`) :
 
 - Post sortant (`src/lib/integrity/post.ts`) : `integrity_posted`, `integrity_rejected`, `integrity_no_campaign` stockent `requestPayload` et `response` (réponse LeadConduit / ping) quand disponibles, plus `postingId` et `outcome`. Anciens événements `integrity_missing_fields` possibles (gate local retiré).
-- Webhook `POST /api/webhooks/integrity` : `integrity_accepted` / `integrity_rejected` / `integrity_no_campaign` / `integrity_error` stockent le body webhook sous `response` ; échec « No Campaign Available » → `integrity_no_campaign` (pas `integrity_rejected`).
+- Webhook `POST /api/webhooks/integrity` : `integrity_accepted` / `integrity_rejected` / `integrity_no_campaign` / `integrity_error` stockent le body webhook sous `response` ; échec « No Campaign Available » → `integrity_no_campaign` (pas `integrity_rejected`) ; classification via `classify.ts` — NCA restaure `unmatched` + `nextRoutingAttemptAt` ; rejet terminal → bloc Integrity + suite partners si fenêtre partner-capable.
 - Postings plus anciens peuvent n’avoir ni payloads ni raison de rejet (empty state UI).
 
 UI : `/admin/integrity` — libellés centralisés (`src/lib/integrity/event-labels.ts`) ; badge **No Campaign Available** quand `integrityOutcome=no_campaign_available` ; modal détail à onglets horizontaux (Posting detail par défaut, Integrity payloads & outcome, Events — un onglet actif à la fois) ; lazy-load du détail `[id]`.
@@ -659,4 +691,5 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-05 | `pnpm run ensure:integrity-env` : defaults Integrity publics (URLs + VendorId) dans `.env` après pull ; clé Azure jamais commitée ; branché sur `scripts/post-merge.sh` |
 | 2026-08-06 | Boberdoo parity Integrity : posts toujours HTTP (pas de gate `required-fields`) ; rejets LC → `integrity_rejected` ; admin test toujours HTTP + `is_test=yes` ; payload DOB/`has_iul_thom` aligné Boberdoo |
 | 2026-08-07 | Rejets LeadConduit « No Campaign Available » : événement `integrity_no_campaign` (outcome `no_campaign_available`), distinct de `integrity_rejected` ; détection `no-campaign.ts` ; webhook + postings API/UI (`integrityOutcome`, badges) |
+| 2026-08-07 | File de routage fiable : état due/claim/bloc sur `leads` ; work queue par fenêtre ; Partner-only si lifecycle off ; NCA retry 15/30/60 ; rejets métier → bloc permanent ; hold manuel = lease BDD ; setting `lifecycle_partner_auto_reprocess_enabled` ; UI Lead routing redesign |
 | 2026-08-05 | Partner Contact Us : `POST /api/partner/contact` via Resend ; setting `contact_recipient_email` (Admin Settings → General → Platform) ; plus de `mailto:` |
