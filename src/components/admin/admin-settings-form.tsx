@@ -764,55 +764,59 @@ export function AdminSettingsForm({
                         marginBottom: 8,
                       }}
                     >
-                      <div>
-                        <label
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 800,
-                            color: "#030229",
-                            display: "block",
-                            marginBottom: 6,
-                          }}
-                        >
-                          Realtime cutoff (hours)
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={form.lifecycleRealtimeCutoffHours}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              lifecycleRealtimeCutoffHours: Number(e.target.value),
-                            })
-                          }
-                          className="form-input"
-                        />
-                      </div>
-                      <div>
-                        <label
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 800,
-                            color: "#030229",
-                            display: "block",
-                            marginBottom: 6,
-                          }}
-                        >
-                          Storefront cutoff (hours)
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={form.lifecycleStorefrontCutoffHours}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              lifecycleStorefrontCutoffHours: Number(e.target.value),
-                            })
-                          }
-                          className="form-input"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 800,
+                              color: "#030229",
+                              display: "block",
+                              marginBottom: 6,
+                            }}
+                          >
+                            Realtime cutoff (hours)
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={form.lifecycleRealtimeCutoffHours}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                lifecycleRealtimeCutoffHours: Number(e.target.value),
+                              })
+                            }
+                            className="form-input"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 800,
+                              color: "#030229",
+                              display: "block",
+                              marginBottom: 6,
+                            }}
+                          >
+                            Storefront cutoff (hours)
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={form.lifecycleStorefrontCutoffHours}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                lifecycleStorefrontCutoffHours: Number(
+                                  e.target.value,
+                                ),
+                              })
+                            }
+                            className="form-input"
+                          />
+                        </div>
                       </div>
                       <div>
                         <label
@@ -925,14 +929,21 @@ export function AdminSettingsForm({
                   last={!form.duplicateCheckEnabled}
                 />
                 {form.duplicateCheckEnabled && (
-                  <div style={{ paddingTop: 12 }}>
+                  <div
+                    style={{
+                      paddingTop: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                    }}
+                  >
                     <label
                       style={{
                         fontSize: 14,
                         fontWeight: 800,
                         color: "#030229",
-                        display: "block",
-                        marginBottom: 6,
+                        margin: 0,
+                        flexShrink: 0,
                       }}
                     >
                       Duplicate check window (days)
