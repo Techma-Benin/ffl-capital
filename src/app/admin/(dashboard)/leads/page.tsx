@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LeadListViewScope, ResaleStatus } from "@prisma/client";
+import { LeadListViewScope } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -130,9 +130,9 @@ export default async function AdminLeadsPage({
           orderBy: { deliveredAt: "desc" },
           take: 1,
         },
+        // Posted = done on our side — use latest Integrity posting mode (any status).
         resalePostings: {
-          where: { status: ResaleStatus.sold },
-          orderBy: { soldAt: "desc" },
+          orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
           take: 1,
           select: { mode: true },
         },

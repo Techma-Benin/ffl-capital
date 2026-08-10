@@ -184,7 +184,12 @@ export default async function AdminLeadDetailPage({
       createdAt: event.createdAt.toISOString(),
     }));
 
-  const soldPosting = lead.resalePostings.find((p) => p.status === ResaleStatus.sold);
+  // Posted = done — prefer liveSaleChannel, else latest Integrity posting mode (any status).
+  const latestPosting = [...lead.resalePostings].sort((a, b) => {
+    const aAt = (a.postedAt ?? a.createdAt).getTime();
+    const bAt = (b.postedAt ?? b.createdAt).getTime();
+    return bAt - aAt;
+  })[0];
 
   return (
     <AdminLeadDetailView
@@ -203,7 +208,7 @@ export default async function AdminLeadDetailPage({
         status: lead.status,
         liveSaleChannel: resolveIntegrityLiveSaleChannel(
           lead.liveSaleChannel,
-          soldPosting?.mode ?? lead.resalePostings[0]?.mode,
+          latestPosting?.mode,
         ),
         available: lead.available,
         refundable: lead.refundable,

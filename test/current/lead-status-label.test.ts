@@ -37,7 +37,7 @@ describe("resolveIntegrityLiveSaleChannel", () => {
     );
   });
 
-  test("falls back to resale posting mode", () => {
+  test("falls back to resale posting mode (any status — Posted = done)", () => {
     assert.equal(
       resolveIntegrityLiveSaleChannel(null, "storefront"),
       "integrity_storefront",

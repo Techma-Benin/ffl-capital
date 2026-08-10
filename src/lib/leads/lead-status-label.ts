@@ -1,4 +1,7 @@
-/** Map live-sale channel or ResalePosting.mode → Integrity channel key for badges. */
+/**
+ * Map live-sale channel or ResalePosting.mode → Integrity channel key for badges.
+ * Posted implies done on our side — callers may pass any posting mode (not only sold).
+ */
 export function resolveIntegrityLiveSaleChannel(
   liveSaleChannel?: string | null,
   resaleMode?: string | null,
