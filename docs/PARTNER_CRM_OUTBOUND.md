@@ -1,6 +1,6 @@
 # Partner CRM outbound — self-service POST delivery
 
-> Dernière mise à jour : 24 juillet 2026
+> Dernière mise à jour : 10 août 2026
 
 Spécification produit et technique pour la livraison CRM optionnelle côté partner, en complément de l’email Resend (toujours envoyé).
 
@@ -18,7 +18,7 @@ Spécification produit et technique pour la livraison CRM optionnelle côté par
 | Payload | **JSON plat uniquement** ; mapping source → clé destination |
 | Wizard UX | Route dédiée `/partner/settings/crm-outbound` ; endpoint + auth + mapping ; « coller un exemple JSON » pour pré-remplir les clés (top-level). Sur Settings : carte **Lead delivery** (email + CRM). **Configuré** (ligne BDD + URL) ≠ **activé** (`enabled`) : sans config → Connect CRM seul ; avec config → host + badge Ready/Off, Power rouge = on (tooltip Disable), gris = off. **Désactiver** : `PATCH { enabled: false }` sans revalidation URL ni test. **Activer** : le serveur envoie d’abord un POST test ; succès → `enabled: true`, échec → reste off + erreur. Test / Delete séparés ; clic ligne → wizard |
 | Succès | Par défaut **HTTP 2xx** ; règle optionnelle : `bodyContains`, `bodyRegex`, `bodyKeyEquals` (clé top-level) |
-| Échec POST | **Pas de retry** ; email partner avec raison (status, réseau, règle) — **sans payload lead** |
+| Échec POST | **Pas de retry** ; email partner avec raison (status, réseau, règle) — **sans payload lead** ; CTA settings via `resolveAppOrigin` (ignore overrides / origines loopback) |
 | SSRF | IP privées/loopback/metadata, DNS + re-check IP, `redirect: manual`, timeout ~15s, taille réponse max |
 | Hors scope | OAuth CRM, ping/post dédié, JSON imbriqué, retry, chiffrement secrets |
 | Legacy Boberdoo | Voir [BOBERDOO_EXPLORATION.md](BOBERDOO_EXPLORATION.md) §31/§38 (Custom Delivery ≈ POST + mapping + regex succès) |

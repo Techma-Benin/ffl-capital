@@ -80,7 +80,7 @@ Les comptes admin ne sont **pas** self-serve. Un super-admin envoie une invitati
 | Clerk | `createInvitation({ redirectUrl: \`${origin}/admin/sign-up\`, publicMetadata: { role: "admin" } })` |
 | Liste | `GET /api/admin/administrators` — users admin + invitations admin (tous statuts) ; **dedupe** : invitation `accepted` masquée si un admin actif existe déjà pour le même email (case-insensitive) ; pending + orphans accepted restent visibles ; révocation UI des stale non-accepted |
 
-`redirectUrl` passe par **`resolveAppOrigin`** (`src/lib/email/email-layout.ts`) : priorité à `NEXT_PUBLIC_APP_URL` public (non-loopback), puis `REPLIT_DOMAINS`, puis l’origine requête si elle n’est pas localhost. Sur Replit, l’Host interne `localhost:5000` est ignoré pour ne pas figer les liens d’invitation sur le port interne.
+`redirectUrl` passe par **`resolveAppOrigin`** (`src/lib/email/email-layout.ts`) : priorité à `NEXT_PUBLIC_APP_URL` non-loopback, puis `REPLIT_DOMAINS`, puis l’origine requête si elle n’est pas loopback (`localhost` / `127.0.0.1` / `*.localhost`), sinon fallback local-dev `http://localhost:3000`. Sur Replit, l’Host interne `localhost:5000` est donc ignoré pour ne pas figer les liens d’invitation sur le port interne.
 
 ### Récupération sur conflit Clerk
 
@@ -156,7 +156,7 @@ Page : `src/app/admin/(auth)/sign-up/[[...sign-up]]/page.tsx` — `<SignUp routi
 | Piège | Conséquence |
 |-------|-------------|
 | `redirectUrl` pointe vers `/admin/sign-in` ou une route sans `<SignUp>` | Invité voit connexion, pas création de compte |
-| `NEXT_PUBLIC_APP_URL` loopback / absent et Host Replit = `localhost:5000` | Liens d’invitation inutilisables hors machine (mitigé par `resolveAppOrigin` + `REPLIT_DOMAINS`) |
+| `NEXT_PUBLIC_APP_URL` loopback / absent et Host Replit = loopback (`localhost:5000`) sans `REPLIT_DOMAINS` | Liens d’invitation inutilisables hors machine (mitigé par `resolveAppOrigin` + `REPLIT_DOMAINS`) |
 | Route sign-up absente des routes publiques middleware | Bounce vers sign-in, ticket perdu |
 | Tester avec un navigateur déjà connecté à l'app | Faux positif — le bug original semble « réparé » |
 | Remettre le proxy sur `tickets/accept` | Page blanche revient en prod Replit |
