@@ -261,6 +261,22 @@ Invalidate typique : actions partner (approve/block/delete), review refund, acha
 | `sort` / `dir` | tri client |
 | `page` | pagination client |
 
+### Admin transactions (`/admin/transactions`)
+
+**SSR** charge la première page + options partenaires/company ; filtres appliqués via `GET /api/admin/transactions` (pagination, agrégats summary, export CSV). Helpers : `src/lib/admin/transactions-filters.ts` (`buildTransactionWhere`).
+
+| Param | Effet |
+|-------|--------|
+| `search` | description, Stripe ref, partenaire, lead, UUID exact |
+| `partnerId` | filtre partenaire |
+| `affiliation` | filtre `Partner.affiliation` (company) |
+| `dateFrom` / `dateTo` | plage `createdAt` |
+| `types` | types comma-séparés |
+| `direction` | `credit` \| `debit` |
+| `paymentMethod` | `stripe` \| `manual` \| `auto` \| `wallet` (dérivé) |
+| `export` | `csv` — export avec les mêmes filtres |
+| `page` / `pageSize` | pagination (défaut 50, max 200) |
+
 ### Admin aged browse (`/admin/aged`)
 
 Pas d’API dédiée — page SSR : `buildAdminAgedLeadsWhere()` (`src/lib/admin/admin-aged-leads-filters.ts` → `buildAgedLeadWhereWithCutoff`, seuil `aged_days_threshold`, exclut `status=dead`), prix affiché via `getDefaultAgedPrice()`.

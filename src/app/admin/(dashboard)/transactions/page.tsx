@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { AdminTransactionsView } from "@/components/admin/admin-transactions-view";
 import type { TransactionRow } from "@/components/admin/admin-transactions-view";
 import { FUNDING_TRANSACTION_TYPES } from "@/lib/wallet/grant-partner-credits";
+import { fetchTransactionAffiliationOptions } from "@/lib/admin/transactions-filters";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function AdminTransactionsPage() {
   const [
     initialTransactions,
     partners,
+    affiliationOptions,
     totalCount,
     fundingAgg,
     leadRevenueAgg,
@@ -53,6 +55,7 @@ export default async function AdminTransactionsPage() {
       select: { id: true, firstName: true, lastName: true, email: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
+    fetchTransactionAffiliationOptions(prisma),
     prisma.transaction.count(),
     prisma.transaction.aggregate({
       where: { type: { in: [...FUNDING_TRANSACTION_TYPES] } },
@@ -123,6 +126,7 @@ export default async function AdminTransactionsPage() {
         initialSummary={initialSummary}
         initialPagination={initialPagination}
         partners={partnerList}
+        affiliationOptions={affiliationOptions}
       />
     </Suspense>
   );

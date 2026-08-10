@@ -1,131 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
-import { Prisma, TransactionType } from "@prisma/client";
 import { FUNDING_TRANSACTION_TYPES } from "@/lib/wallet/grant-partner-credits";
+import {
+  buildTransactionWhere,
+  fetchTransactionAffiliationOptions,
+} from "@/lib/admin/transactions-filters";
 
 const PAGE_SIZE_DEFAULT = 50;
 const PAGE_SIZE_MAX = 200;
-
-/**
- * Translate the derived `paymentMethod` filter into Prisma where predicates so
- * filtering happens entirely in the DB — no post-query application that would
- * break pagination counts.
- */
-function paymentMethodWhere(
-  method: string | null,
-): Prisma.TransactionWhereInput {
-  if (!method || method === "all") return {};
-  if (method === "stripe") {
-    return { stripePaymentIntentId: { not: null } };
-  }
-  if (method === "auto") {
-    return {
-      stripePaymentIntentId: null,
-      type: "top_up",
-      description: { contains: "auto", mode: "insensitive" },
-    };
-  }
-  if (method === "manual") {
-    return {
-      AND: [
-        { stripePaymentIntentId: null },
-        { type: "top_up" },
-        {
-          OR: [
-            { description: null },
-            {
-              NOT: {
-                description: { contains: "auto", mode: "insensitive" },
-              },
-            },
-          ],
-        },
-      ],
-    };
-  }
-  if (method === "wallet") {
-    return {
-      stripePaymentIntentId: null,
-      NOT: { type: "top_up" },
-    };
-  }
-  return {};
-}
-
-function buildWhere(params: URLSearchParams): Prisma.TransactionWhereInput {
-  const clauses: Prisma.TransactionWhereInput[] = [];
-
-  const search = params.get("search")?.trim();
-  if (search) {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const isUuid = uuidRegex.test(search);
-
-    const searchOr: Prisma.TransactionWhereInput[] = [
-      { description: { contains: search, mode: "insensitive" } },
-      { stripePaymentIntentId: { contains: search, mode: "insensitive" } },
-      {
-        partner: {
-          OR: [
-            { firstName: { contains: search, mode: "insensitive" } },
-            { lastName: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
-          ],
-        },
-      },
-      {
-        leadDelivery: {
-          lead: {
-            OR: [
-              { firstName: { contains: search, mode: "insensitive" } },
-              { lastName: { contains: search, mode: "insensitive" } },
-            ],
-          },
-        },
-      },
-    ];
-
-    // UUID columns only support exact-match in Prisma — add when input is a valid UUID
-    if (isUuid) {
-      searchOr.push({ id: { equals: search } });
-      searchOr.push({ leadDeliveryId: { equals: search } });
-    }
-
-    clauses.push({ OR: searchOr });
-  }
-
-  const partnerId = params.get("partnerId");
-  if (partnerId) clauses.push({ partnerId });
-
-  const dateFrom = params.get("dateFrom");
-  const dateTo = params.get("dateTo");
-  if (dateFrom || dateTo) {
-    const createdAt: Prisma.DateTimeFilter = {};
-    if (dateFrom) createdAt.gte = new Date(dateFrom);
-    if (dateTo) {
-      const end = new Date(dateTo);
-      end.setHours(23, 59, 59, 999);
-      createdAt.lte = end;
-    }
-    clauses.push({ createdAt });
-  }
-
-  const types = params.get("types");
-  if (types) {
-    const typeList = types.split(",").filter(Boolean) as TransactionType[];
-    if (typeList.length > 0) clauses.push({ type: { in: typeList } });
-  }
-
-  const direction = params.get("direction");
-  if (direction === "credit") clauses.push({ amount: { gt: 0 } });
-  else if (direction === "debit") clauses.push({ amount: { lt: 0 } });
-
-  const pmWhere = paymentMethodWhere(params.get("paymentMethod"));
-  if (Object.keys(pmWhere).length > 0) clauses.push(pmWhere);
-
-  return clauses.length > 0 ? { AND: clauses } : {};
-}
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAdmin();
@@ -136,7 +19,7 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const isExport = params.get("export") === "csv";
 
-  const where = buildWhere(params);
+  const where = buildTransactionWhere(params);
 
   const page = Math.max(1, parseInt(params.get("page") ?? "1", 10));
   const pageSize = Math.min(
@@ -173,6 +56,7 @@ export async function GET(request: NextRequest) {
     refundsAgg,
     totalCount,
     partners,
+    affiliationOptions,
     rows,
   ] = await Promise.all([
     prisma.transaction.aggregate({
@@ -197,6 +81,7 @@ export async function GET(request: NextRequest) {
       select: { id: true, firstName: true, lastName: true, email: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
+    fetchTransactionAffiliationOptions(prisma),
     prisma.transaction.findMany({
       where,
       include: includeClause,
@@ -292,6 +177,7 @@ export async function GET(request: NextRequest) {
       name: `${p.firstName} ${p.lastName}`,
       email: p.email,
     })),
+    affiliationOptions,
     pagination: {
       page,
       pageSize,

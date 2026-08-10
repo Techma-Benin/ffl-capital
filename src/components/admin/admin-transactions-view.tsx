@@ -143,11 +143,13 @@ export function AdminTransactionsView({
   initialSummary,
   initialPagination,
   partners,
+  affiliationOptions,
 }: {
   initialRows: TransactionRow[];
   initialSummary: TransactionSummary;
   initialPagination: { page: number; pageSize: number; total: number; totalPages: number };
   partners: PartnerOption[];
+  affiliationOptions: string[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -159,6 +161,7 @@ export function AdminTransactionsView({
   // Filter state
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [partnerId, setPartnerId] = useState(searchParams.get("partnerId") ?? "");
+  const [affiliation, setAffiliation] = useState(searchParams.get("affiliation") ?? "");
   const [dateFrom, setDateFrom] = useState(searchParams.get("dateFrom") ?? "");
   const [dateTo, setDateTo] = useState(searchParams.get("dateTo") ?? "");
   const [selectedTypes, setSelectedTypes] = useState<string[]>(
@@ -244,6 +247,7 @@ export function AdminTransactionsView({
         const filters: Record<string, string> = {
           search,
           partnerId,
+          affiliation,
           dateFrom,
           dateTo,
           types: selectedTypes.join(","),
@@ -268,6 +272,7 @@ export function AdminTransactionsView({
     [
       search,
       partnerId,
+      affiliation,
       dateFrom,
       dateTo,
       selectedTypes,
@@ -281,6 +286,7 @@ export function AdminTransactionsView({
       const filters: Record<string, string> = {
         search,
         partnerId,
+        affiliation,
         dateFrom,
         dateTo,
         types: selectedTypes.join(","),
@@ -299,6 +305,7 @@ export function AdminTransactionsView({
     [
       search,
       partnerId,
+      affiliation,
       dateFrom,
       dateTo,
       selectedTypes,
@@ -318,6 +325,11 @@ export function AdminTransactionsView({
   function handlePartner(val: string) {
     setPartnerId(val);
     applyFilters({ partnerId: val });
+  }
+
+  function handleAffiliation(val: string) {
+    setAffiliation(val);
+    applyFilters({ affiliation: val });
   }
 
   function handleDateFrom(val: string) {
@@ -351,6 +363,7 @@ export function AdminTransactionsView({
   function clearAll() {
     setSearch("");
     setPartnerId("");
+    setAffiliation("");
     setDateFrom("");
     setDateTo("");
     setSelectedTypes([]);
@@ -363,6 +376,7 @@ export function AdminTransactionsView({
       {
         search: "",
         partnerId: "",
+        affiliation: "",
         dateFrom: "",
         dateTo: "",
         types: "",
@@ -397,6 +411,11 @@ export function AdminTransactionsView({
       clear: () => handlePartner(""),
     });
   }
+  if (affiliation)
+    activePills.push({
+      label: `Company: ${affiliation}`,
+      clear: () => handleAffiliation(""),
+    });
   if (dateFrom)
     activePills.push({ label: `From: ${dateFrom}`, clear: () => handleDateFrom("") });
   if (dateTo)
@@ -420,6 +439,7 @@ export function AdminTransactionsView({
     const filters: Record<string, string> = {
       search,
       partnerId,
+      affiliation,
       dateFrom,
       dateTo,
       types: selectedTypes.join(","),
@@ -764,6 +784,24 @@ export function AdminTransactionsView({
               {partners.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Company / affiliation */}
+          <div>
+            <label className="form-label text-xs">Company</label>
+            <select
+              value={affiliation}
+              onChange={(e) => handleAffiliation(e.target.value)}
+              className="form-select py-2 text-sm w-full"
+              disabled={affiliationOptions.length === 0}
+            >
+              <option value="">All Companies</option>
+              {affiliationOptions.map((a) => (
+                <option key={a} value={a}>
+                  {a}
                 </option>
               ))}
             </select>
