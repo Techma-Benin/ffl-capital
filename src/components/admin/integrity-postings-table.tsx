@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import {
+  PortalSortableHeaderCell,
+  type SortDirection,
+} from "@/components/ui/portal-sortable-table-header";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
 import { paginateClientList } from "@/lib/client-table-pagination";
 import {
@@ -465,33 +469,98 @@ function PostingModal({
   );
 }
 
+type PostingsSortKey =
+  | "lead"
+  | "state"
+  | "mode"
+  | "status"
+  | "leadType"
+  | "posted";
+
+const POSTINGS_SORT_COLUMNS: { key: PostingsSortKey; label: string }[] = [
+  { key: "lead", label: "Lead" },
+  { key: "state", label: "State" },
+  { key: "mode", label: "Mode" },
+  { key: "status", label: "Status" },
+  { key: "leadType", label: "Lead Type" },
+  { key: "posted", label: "Posted" },
+];
+
+function postingLeadName(p: PostingRow): string {
+  return `${p.lead.firstName} ${p.lead.lastName}`.trim();
+}
+
+function postingSortValue(p: PostingRow, key: PostingsSortKey): string {
+  switch (key) {
+    case "lead":
+      return postingLeadName(p).toLowerCase();
+    case "state":
+      return p.lead.state.toLowerCase();
+    case "mode":
+      return p.mode;
+    case "status":
+      return formatResaleStatusLabel(p.status, p.integrityOutcome).toLowerCase();
+    case "leadType":
+      return (p.lead.leadType ?? "").toLowerCase();
+    case "posted":
+      return p.postedAt ?? p.createdAt;
+  }
+}
+
 export function IntegrityPostingsTable({ postings }: { postings: PostingRow[] }) {
   const [selected, setSelected] = useState<PostingRow | null>(null);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<PostingsSortKey>("posted");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
+
+  const sortedPostings = useMemo(() => {
+    const multiplier = sortDir === "asc" ? 1 : -1;
+    return [...postings].sort((a, b) => {
+      const aVal = postingSortValue(a, sortKey);
+      const bVal = postingSortValue(b, sortKey);
+      return aVal.localeCompare(bVal) * multiplier;
+    });
+  }, [postings, sortKey, sortDir]);
 
   const { pageItems, page: currentPage } = useMemo(
-    () => paginateClientList(postings, page, POSTINGS_PAGE_SIZE),
-    [postings, page],
+    () => paginateClientList(sortedPostings, page, POSTINGS_PAGE_SIZE),
+    [sortedPostings, page],
   );
 
   useEffect(() => {
     setPage((p) => {
-      const totalPages = Math.max(1, Math.ceil(postings.length / POSTINGS_PAGE_SIZE));
+      const totalPages = Math.max(
+        1,
+        Math.ceil(sortedPostings.length / POSTINGS_PAGE_SIZE),
+      );
       return Math.min(p, totalPages);
     });
-  }, [postings.length]);
+  }, [sortedPostings.length]);
+
+  function handleSort(key: PostingsSortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "posted" ? "desc" : "asc");
+    }
+    setPage(1);
+  }
 
   return (
     <>
       <table className="data-table">
         <thead>
           <tr>
-            <th>Lead</th>
-            <th>State</th>
-            <th>Mode</th>
-            <th>Status</th>
-            <th>Lead Type</th>
-            <th>Posted</th>
+            {POSTINGS_SORT_COLUMNS.map(({ key, label }) => (
+              <PortalSortableHeaderCell
+                key={key}
+                label={label}
+                onClick={() => handleSort(key)}
+                active={sortKey === key}
+                dir={sortKey === key ? sortDir : "asc"}
+              />
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -501,9 +570,7 @@ export function IntegrityPostingsTable({ postings }: { postings: PostingRow[] })
               className="cursor-pointer hover:bg-brand-50 transition-colors"
               onClick={() => setSelected(p)}
             >
-              <td className="font-medium">
-                {p.lead.firstName} {p.lead.lastName}
-              </td>
+              <td className="font-medium">{postingLeadName(p)}</td>
               <td>{p.lead.state}</td>
               <td className="capitalize">{p.mode}</td>
               <td>{statusBadge(p.status, p.integrityOutcome)}</td>
@@ -521,7 +588,7 @@ export function IntegrityPostingsTable({ postings }: { postings: PostingRow[] })
       <ClientTablePagination
         page={currentPage}
         pageSize={POSTINGS_PAGE_SIZE}
-        total={postings.length}
+        total={sortedPostings.length}
         onPageChange={setPage}
       />
 
