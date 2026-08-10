@@ -57,7 +57,10 @@ export function TruncatedTextTooltip({
 
   const textEl = (
     <Component
-      ref={ref}
+      // `Component` is dynamically "span" | "p", so its ref prop type only
+      // matches one concrete element at a time — cast since `ref` is typed
+      // to accept either.
+      ref={ref as React.Ref<HTMLSpanElement & HTMLParagraphElement>}
       className={clsx(
         "block min-w-0 max-w-full w-full truncate",
         showTooltip && "cursor-default",
