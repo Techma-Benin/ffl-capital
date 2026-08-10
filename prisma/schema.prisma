@@ -273,6 +273,7 @@ model Lead {
   primaryGoal             String?                @map("primary_goal")
   stateYouCurrentlyLiveIn String?                @map("state_you_currently_live_in")
   beneficiary             String?                @map("beneficiary")
+  beneficiaryType         String?                @map("beneficiary_type")
   historyOfCancer         String?                @map("history_of_cancer")
   mortgageLoanAmount      String?                @map("mortgage_loan_amount")
   trustedformCertUrl      String?                @map("trustedform_cert_url")

@@ -40,6 +40,7 @@ function minimalLead(overrides: Partial<Lead> = {}): Lead {
     source: null,
     subId: null,
     beneficiary: null,
+    beneficiaryType: null,
     historyOfCancer: null,
     mortgageLoanAmount: null,
     status: "unmatched",

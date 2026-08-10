@@ -28,6 +28,7 @@ function minimalLead(overrides: Partial<Lead> = {}): Lead {
     source: null,
     subId: null,
     beneficiary: null,
+    beneficiaryType: null,
     historyOfCancer: null,
     mortgageLoanAmount: null,
     status: "unmatched",
@@ -123,17 +124,32 @@ describe("Integrity state formatting", () => {
   test("buildIntegrityLeadPayload includes MP fields only for mortgage_protection", () => {
     const iulPayload = buildIntegrityLeadPayload(minimalLead({ leadType: "iul" }));
     assert.equal("beneficiary_thom" in iulPayload, false);
+    assert.equal("beneficiary_type_thom" in iulPayload, false);
 
     const mpPayload = buildIntegrityLeadPayload(
       minimalLead({
         leadType: "mortgage_protection",
-        beneficiary: "Spouse",
+        beneficiary: "Jane Doe",
+        beneficiaryType: "Spouse",
         historyOfCancer: "No",
         mortgageLoanAmount: "250000",
       }),
     );
-    assert.equal(mpPayload.beneficiary_thom, "Spouse");
+    assert.equal(mpPayload.beneficiary_thom, "Jane Doe");
+    assert.equal(mpPayload.beneficiary_type_thom, "Spouse");
     assert.equal(mpPayload.history_of_cancer_thom, "No");
     assert.equal(mpPayload["mortgage.loan.amount"], "250000");
+  });
+
+  test("buildIntegrityLeadPayload sends FE beneficiary name without beneficiary type", () => {
+    const fePayload = buildIntegrityLeadPayload(
+      minimalLead({
+        leadType: "final_expense",
+        beneficiary: "Jane Doe",
+        beneficiaryType: "Spouse",
+      }),
+    );
+    assert.equal(fePayload.beneficiary_thom, "Jane Doe");
+    assert.equal("beneficiary_type_thom" in fePayload, false);
   });
 });

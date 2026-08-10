@@ -21,10 +21,10 @@ function resolveTrustedFormUrl(data: Record<string, unknown>): string | undefine
 // against LeadCategory in processLeadIntake), and Have_IUL/Primary_Goal only
 // apply to IUL products — a Mortgage Protection lead legitimately omits them.
 // Only TrustedForm is enforced at intake for every product; full per-product
-// completeness (including DOB and Mortgage Protection's Beneficiary/History
-// Of Cancer/Mortgage Loan Amount) is checked right before the Integrity post
-// in `src/lib/integrity/required-fields.ts`, once the lead's resolved type is
-// known.
+// completeness (including DOB and Mortgage Protection's Beneficiary Type/
+// History Of Cancer/Mortgage Loan Amount) is checked right before the Integrity
+// post in `src/lib/integrity/required-fields.ts`, once the lead's resolved type
+// is known.
 function missingIntegrityIntakeFields(data: Record<string, unknown>): string[] {
   const missing: string[] = [];
   // Temporarily optional: MP Facebook forms don't collect DOB at intake.
@@ -55,6 +55,9 @@ export const intakePayloadSchema = z
     Intent: optionalString,
     // Mortgage Protection business
     Beneficiary: optionalString,
+    Beneficiary_Type: optionalString,
+    "Beneficiary Type": optionalString,
+    beneficiary_type_thom: optionalString,
     History_Of_Cancer: optionalString,
     Mortgage_Loan_Amount: optionalString,
     // Compliance
@@ -89,6 +92,7 @@ export const intakePayloadSchema = z
     stateYouCurrentlyLiveIn: z.string().length(2).optional(),
     intent: optionalString,
     beneficiary: optionalString,
+    beneficiaryType: optionalString,
     historyOfCancer: optionalString,
     mortgageLoanAmount: optionalString,
     trustedformCertUrl: z.string().url().optional(),

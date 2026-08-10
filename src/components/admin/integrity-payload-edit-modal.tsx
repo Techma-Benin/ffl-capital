@@ -26,6 +26,8 @@ const EDITABLE_KEYS = [
   "dob_mmddyyyy_thom",
   "has_iul_thom",
   "primary_goal_thom",
+  "beneficiary_thom",
+  "beneficiary_type_thom",
   "vendor_lead_id_thom",
   "universal_leadid",
 ] as const;

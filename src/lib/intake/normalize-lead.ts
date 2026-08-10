@@ -16,6 +16,7 @@ export interface NormalizedLead {
   primaryGoal: string | null;
   stateYouCurrentlyLiveIn: string | null;
   beneficiary: string | null;
+  beneficiaryType: string | null;
   historyOfCancer: string | null;
   mortgageLoanAmount: string | null;
   trustedformCertUrl: string | null;
@@ -69,6 +70,12 @@ export function normalizeLead(payload: IntakePayload): NormalizedLead {
     haveIul: pickString(payload.Have_IUL, payload.haveIul),
     primaryGoal: pickString(payload.Primary_Goal, payload.primaryGoal),
     beneficiary: pickString(payload.Beneficiary, payload.beneficiary),
+    beneficiaryType: pickString(
+      payload.beneficiary_type_thom,
+      payload.Beneficiary_Type,
+      payload.beneficiaryType,
+      payload["Beneficiary Type"],
+    ),
     historyOfCancer: pickString(
       payload.History_Of_Cancer,
       payload.historyOfCancer,

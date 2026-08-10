@@ -36,6 +36,7 @@ export function buildCrmOutboundTestSourcePayload(partnerId: string, partnerEmai
     haveIul: "No",
     primaryGoal: "Retirement",
     beneficiary: null,
+    beneficiaryType: null,
     historyOfCancer: null,
     mortgageLoanAmount: null,
     stateYouCurrentlyLiveIn: "TX",

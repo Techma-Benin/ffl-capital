@@ -184,6 +184,8 @@ describe("Mode/product required fields", () => {
     });
     const labels = fields.map((f) => f.label);
     assert.ok(!labels.includes("Have_IUL"));
+    assert.ok(!labels.includes("Beneficiary"));
+    assert.ok(labels.includes("Beneficiary Type"));
     assert.ok(labels.includes("Mortgage Loan Amount"));
   });
 
@@ -196,6 +198,7 @@ describe("Mode/product required fields", () => {
         haveIul: null,
         primaryGoal: "Stability",
         beneficiary: null,
+        beneficiaryType: null,
         historyOfCancer: null,
         mortgageLoanAmount: null,
       },

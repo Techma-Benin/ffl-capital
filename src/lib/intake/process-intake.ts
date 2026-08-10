@@ -143,6 +143,7 @@ export async function processLeadIntake(
       haveIul: normalized.haveIul,
       primaryGoal: normalized.primaryGoal,
       beneficiary: normalized.beneficiary,
+      beneficiaryType: normalized.beneficiaryType,
       historyOfCancer: normalized.historyOfCancer,
       mortgageLoanAmount: normalized.mortgageLoanAmount,
       stateYouCurrentlyLiveIn: normalized.stateYouCurrentlyLiveIn,

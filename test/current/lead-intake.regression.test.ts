@@ -90,6 +90,23 @@ describe("current lead normalization and category mapping", () => {
     assert.deepEqual(normalizeLead(payload).rawPayload, payload);
   });
 
+  test("normalizes mortgage protection beneficiary type from common aliases", () => {
+    for (const [key, value] of [
+      ["beneficiary_type_thom", "Spouse"],
+      ["Beneficiary_Type", "Child"],
+      ["beneficiaryType", "Mother"],
+      ["Beneficiary Type", "Father"],
+    ] as const) {
+      const normalized = normalizeLead(
+        intakePayloadSchema.parse({
+          ...requiredBoberdooPayload,
+          [key]: value,
+        }),
+      );
+      assert.equal(normalized.beneficiaryType, value, `key=${key}`);
+    }
+  });
+
   test("resolves an exact SRC criterion to the configured internal type", () => {
     const payload = intakePayloadSchema.parse({
       ...requiredBoberdooPayload,

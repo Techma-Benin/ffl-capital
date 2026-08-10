@@ -226,6 +226,7 @@ export function buildIntegrityLeadPayload(
 
   if (lead.leadType === "mortgage_protection") {
     payload.beneficiary_thom = lead.beneficiary ?? undefined;
+    payload.beneficiary_type_thom = lead.beneficiaryType ?? undefined;
     payload.history_of_cancer_thom = lead.historyOfCancer ?? undefined;
     payload["mortgage.loan.amount"] = lead.mortgageLoanAmount ?? undefined;
     payload.monthly_payment_thom = pickRawString(

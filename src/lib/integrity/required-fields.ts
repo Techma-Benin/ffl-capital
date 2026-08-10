@@ -29,7 +29,7 @@ const PRODUCT_REQUIRED_FIELDS: Record<
   Array<{ field: RequiredLeadField; label: string }>
 > = {
   mortgage_protection: [
-    { field: "beneficiary", label: "Beneficiary" },
+    { field: "beneficiaryType", label: "Beneficiary Type" },
     { field: "historyOfCancer", label: "History Of Cancer" },
     { field: "mortgageLoanAmount", label: "Mortgage Loan Amount" },
   ],
@@ -49,6 +49,7 @@ export type RequiredFieldsLeadInput = Pick<
   | "haveIul"
   | "primaryGoal"
   | "beneficiary"
+  | "beneficiaryType"
   | "historyOfCancer"
   | "mortgageLoanAmount"
 >;

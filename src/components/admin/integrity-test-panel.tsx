@@ -30,6 +30,8 @@ interface LeadOption {
   externalId: string | null;
   haveIul: string | null;
   primaryGoal: string | null;
+  beneficiary: string | null;
+  beneficiaryType: string | null;
   receivedAt: string;
 }
 
@@ -170,6 +172,8 @@ export function IntegrityTestPanel({
         universal_leadid: lead.leadidToken ?? "",
         has_iul_thom: lead.haveIul ?? "",
         primary_goal_thom: lead.primaryGoal ?? "",
+        beneficiary_thom: lead.beneficiary ?? "",
+        beneficiary_type_thom: lead.beneficiaryType ?? "",
         vendor_lead_id_thom: lead.externalId ?? lead.id,
       };
     } else {

@@ -89,7 +89,7 @@ The `lead_type_thom` field **must** contain one of these exact strings or the le
 | `agent_id_thom` | string | Agent NPN (National Producer Number) |
 | `agentemail_thom` | string | Agent email |
 | `beneficiary_thom` | string | Name of beneficiary |
-| `beneficiary_type_thom` | string | Spouse, Child, Mother, Father, Sibling |
+| `beneficiary_type_thom` | string | Spouse, Child, Mother, Father, Sibling, Other (pass-through; not enum-validated) |
 | `current_coverage_amount_thom` | string | Current coverage amount |
 | `campaign_medium` | string | utm_medium equivalent |
 | `campaign_name` | string | utm_campaign equivalent |
@@ -323,7 +323,7 @@ All responses are JSON with an `outcome` field:
 
 These are the mappings from our internal lead object properties to the LeadConduit HTTP parameter names.
 
-**Intake requirement:** `/api/leads/intake` rejects payloads missing `Trusted_Form_URL` (or `trustedform_cert_url`) with `{ outcome: "error", reason: "Missing required fields: …" }`. `DOB` is temporarily optional at intake (MP Facebook forms often omit it); `Have_IUL` / `Primary_Goal` are product-specific and not enforced at intake. `src/lib/integrity/required-fields.ts` is **advisory only** (admin Integrity test panel lead-picker warnings) — it does **not** block outbound HTTP.
+**Intake requirement:** `/api/leads/intake` rejects payloads missing `Trusted_Form_URL` (or `trustedform_cert_url`) with `{ outcome: "error", reason: "Missing required fields: …" }`. `DOB` is temporarily optional at intake (MP Facebook forms often omit it); `Have_IUL` / `Primary_Goal` / Beneficiary Type are product-specific and not enforced at intake. Intake accepts beneficiary type from `beneficiary_type_thom`, `Beneficiary_Type`, `beneficiaryType`, or `Beneficiary Type` and persists it as `lead.beneficiaryType`. `src/lib/integrity/required-fields.ts` is **advisory only** (admin Integrity test panel lead-picker warnings) — it does **not** block outbound HTTP. Advisory product fields: **MP** → Beneficiary Type, History Of Cancer, Mortgage Loan Amount; **FE** → Beneficiary name; Realtime IUL also advisories `Have_IUL` / `Primary_Goal`.
 
 **Boberdoo parity (outbound posts):** Automatic and admin-test posts always send HTTP to LeadConduit. There is no local pre-flight gate that skips the request for missing fields. LeadConduit accept/reject is recorded from the LC response body (`integrity_posted` / `integrity_rejected` / `integrity_no_campaign` when the reason contains "No Campaign Available"). Failures are further classified by `src/lib/integrity/classify.ts` for lifecycle routing (see below).
 
@@ -334,7 +334,8 @@ These are the mappings from our internal lead object properties to the LeadCondu
 - TrustedForm (`trustedform_cert_url`) and Jornaya (`universal_leadid`) are included when present.
 - `has_iul_thom` is sent for **IUL** leads only (empty string when blank); **not** included for Mortgage Protection. `primary_goal_thom` is included for IUL when present.
 - `lead_type_thom` comes from the lead category row only: Realtime uses `integrity_label`; Storefront uses `integrity_label_storefront`, then `integrity_label` on the same category (`resolveIntegrityLabelForMode`). Built-in defaults are seeded at deploy — see `pnpm db:sync-integrity-labels` and `integrity-label-defaults.ts`.
-- Mortgage Protection–specific fields (`beneficiary_thom`, `history_of_cancer_thom`, `mortgage_loan_amount_thom`) are included only for `mortgage_protection` leads, and omitted when missing.
+- Mortgage Protection–specific fields (`beneficiary_type_thom`, `beneficiary_thom`, `history_of_cancer_thom`, `mortgage.loan.amount`, plus `monthly_payment_thom` from raw payload when present) are included only for `mortgage_protection` leads, and omitted when missing. `beneficiary_thom` remains backward-compatible when a name is present.
+- Final Expense sends `beneficiary_thom` (name) only — **not** `beneficiary_type_thom`.
 - Ping payloads (`buildIntegrityPingPayload`) include only `first_name`, `last_name`, `state`, `lead_type_thom`, and `vendor_lead_id_thom`. **Deprecated for Storefront** — app no longer pings LeadConduit before Storefront post.
 
 | Internal Field | LeadConduit Parameter | Notes |
@@ -357,6 +358,10 @@ These are the mappings from our internal lead object properties to the LeadCondu
 | `lead.age` | `age` | |
 | `lead.haveIul` | `has_iul_thom` | IUL leads only; empty string when blank; omitted for MP |
 | `lead.primaryGoal` | `primary_goal_thom` | Send when present |
+| `lead.beneficiaryType` | `beneficiary_type_thom` | MP only; pass-through (Spouse, Child, Mother, Father, Sibling, Other) |
+| `lead.beneficiary` | `beneficiary_thom` | MP when present (compat); FE name field |
+| `lead.historyOfCancer` | `history_of_cancer_thom` | MP only |
+| `lead.mortgageLoanAmount` | `mortgage.loan.amount` | MP only |
 | `lead.source` | `campaign_source` | |
 | `lead.subId` | `campaign_id` | |
 
@@ -461,7 +466,7 @@ Requires `INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_P
 
 ### Admin Integrity test panel (preferred)
 
-`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and **always** POSTs real HTTP to LeadConduit with `is_test=yes` (mock and live integrations mode). The Connection test UI opens the **Review payload** modal (`integrity-payload-edit-modal.tsx`) before send; optional `{ manualPayload }` overrides preserve blank `address_1`. (PostingModal Reprocess does **not** use this modal.) Returns the raw LC response plus `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. `checkRequiredIntegrityFields` warnings are advisory in the lead picker only. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
+`POST /api/admin/integrity/test` (admin session) builds a test payload for `realtime` or `storefront`, resolves the correct category label for that mode, and **always** POSTs real HTTP to LeadConduit with `is_test=yes` (mock and live integrations mode). The Connection test UI opens the **Review payload** modal (`integrity-payload-edit-modal.tsx`) before send; optional `{ manualPayload }` overrides preserve blank `address_1`. Editable keys include `beneficiary_type_thom` and `beneficiary_thom` (prefilled from the lead when present). (PostingModal Reprocess does **not** use this modal.) Returns the raw LC response plus `encodedBody` / `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. `checkRequiredIntegrityFields` warnings are advisory in the lead picker only. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
 
 ### Admin Integrity posting reprocess
 
