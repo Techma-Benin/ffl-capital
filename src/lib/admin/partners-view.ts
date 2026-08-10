@@ -81,8 +81,8 @@ function sortPartnersClient(
     return [...partners].sort((a, b) => {
       const statusCmp = a.status.localeCompare(b.status);
       if (statusCmp !== 0) return statusCmp;
-      return `${a.lastName} ${a.firstName}`.localeCompare(
-        `${b.lastName} ${b.firstName}`,
+      return `${a.firstName} ${a.lastName}`.localeCompare(
+        `${b.firstName} ${b.lastName}`,
       );
     });
   }
@@ -95,8 +95,8 @@ function sortPartnersClient(
       if (aVal !== bVal) {
         return dir === "asc" ? aVal - bVal : bVal - aVal;
       }
-      return `${a.lastName} ${a.firstName}`.localeCompare(
-        `${b.lastName} ${b.firstName}`,
+      return `${a.firstName} ${a.lastName}`.localeCompare(
+        `${b.firstName} ${b.lastName}`,
       );
     });
     return copy;
@@ -107,8 +107,8 @@ function sortPartnersClient(
     switch (sort) {
       case "partner":
         return compareNullableString(
-          `${a.lastName} ${a.firstName}`,
-          `${b.lastName} ${b.firstName}`,
+          `${a.firstName} ${a.lastName}`,
+          `${b.firstName} ${b.lastName}`,
           dir,
         );
       case "affiliation":

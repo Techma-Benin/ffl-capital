@@ -56,7 +56,7 @@ export function buildPartnerOrderBy(
 
   switch (sort) {
     case "partner":
-      return [{ lastName: dir }, { firstName: dir }];
+      return [{ firstName: dir }, { lastName: dir }];
     case "affiliation":
       return [{ affiliation: dir }];
     case "status":
@@ -116,8 +116,8 @@ export function sortPartnersByLeadBuying<T extends PartnerForLeadBuyingSort>(
     if (aVal !== bVal) {
       return dir === "asc" ? aVal - bVal : bVal - aVal;
     }
-    const nameA = `${a.lastName} ${a.firstName}`;
-    const nameB = `${b.lastName} ${b.firstName}`;
+    const nameA = `${a.firstName} ${a.lastName}`;
+    const nameB = `${b.firstName} ${b.lastName}`;
     return nameA.localeCompare(nameB);
   });
   return copy;
