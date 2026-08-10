@@ -368,10 +368,12 @@ export function computeAdminDashboardChartData(
   }
 
   // Delivery rate among leads that entered in the period (lead status, not
-  // delivery events — so delivered/entered stays ≤ 100%).
+  // delivery events — so delivered/entered stays ≤ 100%). Partner-sold
+  // (`delivered`) and Integrity-sold (`integrity_posted`) both count; statuses
+  // are mutually exclusive so there is no double-count.
   const enteredCount = periodLeads.length;
   const deliveredCount = periodLeads.filter(
-    (l) => l.status === "delivered",
+    (l) => l.status === "delivered" || l.status === "integrity_posted",
   ).length;
   const notDeliveredCount = enteredCount - deliveredCount;
 

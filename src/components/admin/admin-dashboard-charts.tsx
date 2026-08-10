@@ -33,7 +33,7 @@ export function AdminDashboardCharts({
   sparkByDay: Array<{ value: number }>;
   intakeVolumeLabel?: string;
   deliveringDonut: Array<{ name: string; value: number }>;
-  /** Share of period-entered leads with status delivered; null when none entered. */
+  /** Share of period-entered leads sold to a partner or Integrity; null when none entered. */
   deliveryRatePercent?: number | null;
   kpis: {
     leadsInPeriod: number;

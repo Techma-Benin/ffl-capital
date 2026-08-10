@@ -195,6 +195,17 @@ describe("admin dashboard delivering donut", () => {
         receivedAt: day(2026, 6, 1).toISOString(),
         partnerName: "P",
       },
+      {
+        id: "5",
+        firstName: "E",
+        lastName: "Integrity",
+        state: "TX",
+        leadType: "iul",
+        leadTypeLabel: "IUL",
+        status: "integrity_posted",
+        receivedAt: day(2026, 7, 3).toISOString(),
+        partnerName: null,
+      },
     ];
 
     // Delivery events exceed delivered leads — must not inflate the rate.
@@ -209,11 +220,46 @@ describe("admin dashboard delivering donut", () => {
       lte,
     });
 
+    // Partner-delivered (1) + Integrity-sold (1); unmatched + aged stay not delivered.
     assert.deepEqual(chart.deliveringDonut, [
-      { name: "Delivered", value: 1 },
+      { name: "Delivered", value: 2 },
       { name: "Not delivered", value: 2 },
     ]);
-    assert.equal(chart.deliveryRatePercent, 33);
+    assert.equal(chart.deliveryRatePercent, 50);
+  });
+
+  test("counts integrity_posted as delivered for the donut rate", () => {
+    const gte = day(2026, 7, 1, 0);
+    const lte = new Date(2026, 7, 1, 23, 59, 59, 999);
+    const leads = [
+      {
+        id: "1",
+        firstName: "A",
+        lastName: "Partner",
+        state: "TX",
+        leadType: "iul",
+        leadTypeLabel: "IUL",
+        status: "delivered",
+        receivedAt: day(2026, 7, 1).toISOString(),
+        partnerName: "P",
+      },
+      {
+        id: "2",
+        firstName: "B",
+        lastName: "Integrity",
+        state: "TX",
+        leadType: "iul",
+        leadTypeLabel: "IUL",
+        status: "integrity_posted",
+        receivedAt: day(2026, 7, 1, 14).toISOString(),
+        partnerName: null,
+      },
+    ];
+    const chart = computeAdminDashboardChartData(leads, [], { gte, lte });
+    assert.deepEqual(chart.deliveringDonut, [
+      { name: "Delivered", value: 2 },
+    ]);
+    assert.equal(chart.deliveryRatePercent, 100);
   });
 
   test("empty period yields empty donut and null rate", () => {
