@@ -390,6 +390,7 @@ model Transaction {
   stripePaymentIntentId String?         @map("stripe_payment_intent_id")
   leadDeliveryId        String?         @map("lead_delivery_id") @db.Uuid
   description           String?
+  acknowledgedAt        DateTime?       @map("acknowledged_at")
   createdAt             DateTime        @default(now()) @map("created_at")
 
   partner      Partner       @relation(fields: [partnerId], references: [id])

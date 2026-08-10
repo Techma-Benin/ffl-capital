@@ -156,8 +156,9 @@ POST /api/leads/intake
 - `20260807180000_add_lead_routing_queue_state` — file due / claim lease / bloc Integrity sur `leads` ; index `resale_postings.lead_id` ; backfill `next_routing_attempt_at` + blocs depuis `integrity_rejected`
 - `20260807192500_align_iul_category_intent_type_criteria` — critères IUL : `SRC=IUL_LeadConduit` + `Intent_Type` (`Standard` / `High`) ; remplace l’ancien SRC high-intent seul
 - `20260810100000_add_admin_grant_transaction_type` — `TransactionType.admin_grant` (crédits wallet accordés par admin)
+- `20260810120000_add_transaction_acknowledged_at` — `transactions.acknowledged_at` (modal in-app partenaire pour crédits admin ; backfill des grants existants)
 
-**`transactions.type` :** `top_up`, `admin_grant`, `lead_purchase`, `aged_purchase`, `refund`, `reprocessing_fee`. Les crédits admin (`admin_grant`) sont append-only comme les top-ups ; audit dans `description` (`{note} - by {Admin Name}` ou `by {Admin Name}` si note vide).
+**`transactions.type` :** `top_up`, `admin_grant`, `lead_purchase`, `aged_purchase`, `refund`, `reprocessing_fee`. Les crédits admin (`admin_grant`) sont append-only comme les top-ups ; audit dans `description` (`{note} - by {Admin Name}` ou `by {Admin Name}` si note vide). `acknowledged_at` null = notification in-app partenaire en attente (modal portail).
 
 **`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`. Defaults IUL : `traditional_iul` / `high_intent_iul` partagent `SRC=IUL_LeadConduit` et se distinguent par `Intent_Type` (`Standard` / `High`).
 
@@ -402,6 +403,15 @@ Transaction atomique à la livraison :
 **CRUD partner (live sets)** : `/api/admin/partners/[id]/filter-sets` (+ `[filterSetId]`), `/api/partners/filter-sets` (+ `[filterSetId]`). Les partners ne peuvent pas poser `isTemplate`.
 
 **Grant wallet credits** : `POST /api/admin/partners/[id]/grant-credits` — admin only ; partenaire `active` uniquement ; body `{ amount, note? }` ; limites : admin régulier $0.01–$1 000, super-admin >0 sans plafond ; `creditWallet(..., admin_grant)` + email partner (best-effort, échec email ne rollback pas) ; service `grantPartnerCredits()` dans `src/lib/wallet/grant-partner-credits.ts`. UI : bouton « Grant credits » sur `/admin/partners/[id]` (partenaires actifs). Total Funded (partner reports/wallet + admin transactions funding) = somme `top_up` + `admin_grant`.
+
+**Partner grant notifications** (portail partenaire uniquement) :
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/api/partner/grant-notifications` | Liste des `admin_grant` non acquittés (`acknowledged_at` null), tri décroissant par date |
+| POST | `/api/partner/grant-notifications/[transactionId]/acknowledge` | Marque la transaction comme vue ; idempotent côté UI (409 si déjà acquittée) |
+
+Helpers : `src/lib/wallet/grant-notification.ts` (`parseGrantDescription`, fetch/ack). Modal `CreditGrantNotificationModal` montée dans `src/app/partner/layout.tsx` via `CreditGrantNotificationProvider` — même animation que l’onboarding success ; file la plus récente en premier ; masquée en impersonation admin.
 
 **Templates** (chemins inchangés ; stockage = `partner_filter_sets` où `isTemplate=true`) :
 

@@ -335,7 +335,7 @@ lead_categories                   -- classification produit (admin)
 | Routage lifecycle + Azure ping Realtime IUL ; mode Partner-only si flag off | ✅ août 2026 |
 | File de routage fiable (due par fenêtre, claim lease, backoff NCA / partner miss, bloc Integrity terminal) | ✅ août 2026 |
 | Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **bulk reprocess allowlist partners**, Tracking phase/attempts/bloc Integrity), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (modal détail payloads/outcome/timeline + **Reprocess** immédiat, badge **Sold** / **No Campaign Available** ; Review payload = Connection test seul) + panneau test, settings (**lead categories** ; **Lead routing** — mode / fenêtres / automation / manual / intake ; **Partner contact recipient**), migration, filter list (+ templates) | ✅ |
-| Partner : dashboard, leads (vues sauvegardées avec périodes de livraison), wallet, aged, settings, **contact** (API Resend, plus de mailto), refunds | ✅ |
+| Partner : dashboard, leads (vues sauvegardées avec périodes de livraison), wallet, aged, settings, **contact** (API Resend, plus de mailto), refunds, **modal crédit admin** (grant in-app) | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
 | Tables `lead_events`, `partner_filter_sets` (live + `isTemplate`), champs Boberdoo étendus | ✅ |
