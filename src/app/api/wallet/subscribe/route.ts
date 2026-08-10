@@ -56,7 +56,10 @@ export async function POST(request: NextRequest) {
     where: { id: authResult.partner.id },
   });
   const stripe = getStripe();
-  const origin = request.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const origin =
+    request.headers.get("origin") ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "http://localhost:3000";
 
   let customerId = partner.stripeCustomerId;
   if (!customerId) {
@@ -70,6 +73,47 @@ export async function POST(request: NextRequest) {
       where: { id: partner.id },
       data: { stripeCustomerId: customerId },
     });
+  }
+
+  const activeRecurrence = await prisma.billingRecurrence.findFirst({
+    where: {
+      partnerId: partner.id,
+      active: true,
+      stripeSubscriptionId: { not: null },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (activeRecurrence?.stripeSubscriptionId) {
+    await stripe.subscriptions.cancel(activeRecurrence.stripeSubscriptionId);
+    await prisma.billingRecurrence.update({
+      where: { id: activeRecurrence.id },
+      data: { active: false, nextChargeAt: null, stripeSubscriptionId: null },
+    });
+  }
+
+  const existing = await prisma.billingRecurrence.findFirst({
+    where: { partnerId: partner.id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  let billingRecurrenceId: string;
+  if (existing) {
+    await prisma.billingRecurrence.update({
+      where: { id: existing.id },
+      data: { amount: parsed.data.amount, active: false, nextChargeAt: null },
+    });
+    billingRecurrenceId = existing.id;
+  } else {
+    const created = await prisma.billingRecurrence.create({
+      data: {
+        partnerId: partner.id,
+        amount: parsed.data.amount,
+        interval: BillingInterval.weekly,
+        active: false,
+      },
+    });
+    billingRecurrenceId = created.id;
   }
 
   const amountCents = Math.round(parsed.data.amount * 100);
@@ -90,35 +134,17 @@ export async function POST(request: NextRequest) {
         quantity: 1,
       },
     ],
+    subscription_data: {
+      metadata: { partnerId: partner.id },
+    },
     metadata: {
       partnerId: partner.id,
       type: "subscription",
-      amount: String(parsed.data.amount),
+      billingRecurrenceId,
     },
     success_url: `${origin}/partner/wallet?subscribe=success`,
     cancel_url: `${origin}/partner/wallet?subscribe=cancelled`,
   });
-
-  const existing = await prisma.billingRecurrence.findFirst({
-    where: { partnerId: partner.id },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (existing) {
-    await prisma.billingRecurrence.update({
-      where: { id: existing.id },
-      data: { amount: parsed.data.amount },
-    });
-  } else {
-    await prisma.billingRecurrence.create({
-      data: {
-        partnerId: partner.id,
-        amount: parsed.data.amount,
-        interval: BillingInterval.weekly,
-        active: false,
-      },
-    });
-  }
 
   return NextResponse.json({ url: session.url });
 }

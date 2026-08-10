@@ -387,7 +387,7 @@ model Transaction {
   type                  TransactionType
   amount                Decimal         @db.Decimal(10, 2)
   balanceAfter          Decimal         @map("balance_after") @db.Decimal(10, 2)
-  stripePaymentIntentId String?         @map("stripe_payment_intent_id")
+  stripePaymentIntentId String?         @unique @map("stripe_payment_intent_id")
   leadDeliveryId        String?         @map("lead_delivery_id") @db.Uuid
   description           String?
   acknowledgedAt        DateTime?       @map("acknowledged_at")
@@ -398,6 +398,14 @@ model Transaction {
 
   @@index([partnerId])
   @@map("transactions")
+}
+
+model ProcessedStripeEvent {
+  id        String   @id
+  eventType String   @map("event_type")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("processed_stripe_events")
 }
 
 model BillingRecurrence {

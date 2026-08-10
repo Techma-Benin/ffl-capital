@@ -17,34 +17,36 @@ export interface LedgerEntryInput {
  * Append-only wallet ledger. Never update past transactions.
  */
 export async function recordLedgerEntry(input: LedgerEntryInput) {
-  const client = input.tx ?? prisma;
+  const run = async (client: TxClient) => {
+    const updated = await client.partner.update({
+      where: { id: input.partnerId },
+      data: { walletBalance: { increment: input.amount } },
+      select: { walletBalance: true },
+    });
 
-  const partner = await client.partner.findUniqueOrThrow({
-    where: { id: input.partnerId },
-  });
+    const newBalance = Number(updated.walletBalance);
+    if (newBalance < 0) {
+      throw new Error("Insufficient wallet balance");
+    }
 
-  const newBalance = Number(partner.walletBalance) + input.amount;
+    return client.transaction.create({
+      data: {
+        partnerId: input.partnerId,
+        type: input.type,
+        amount: input.amount,
+        balanceAfter: newBalance,
+        description: input.description,
+        stripePaymentIntentId: input.stripePaymentIntentId,
+        leadDeliveryId: input.leadDeliveryId,
+      },
+    });
+  };
 
-  if (newBalance < 0) {
-    throw new Error("Insufficient wallet balance");
+  if (input.tx) {
+    return run(input.tx);
   }
 
-  await client.partner.update({
-    where: { id: input.partnerId },
-    data: { walletBalance: newBalance },
-  });
-
-  return client.transaction.create({
-    data: {
-      partnerId: input.partnerId,
-      type: input.type,
-      amount: input.amount,
-      balanceAfter: newBalance,
-      description: input.description,
-      stripePaymentIntentId: input.stripePaymentIntentId,
-      leadDeliveryId: input.leadDeliveryId,
-    },
-  });
+  return prisma.$transaction(run);
 }
 
 export async function creditWallet(
