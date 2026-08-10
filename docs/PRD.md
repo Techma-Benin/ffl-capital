@@ -278,7 +278,7 @@ Phase D — Migration Replit (livraison client)
 ### 5.2 Portail admin
 
 #### Dashboard
-- Vue synthèse (Operations Dashboard) : KPIs leads/livraisons sur la période choisie (aujourd’hui, hier, 7 derniers jours, mois dernier, all time, plage custom via sélecteur calendrier ou URL `period=…&from&to`), titres KPI/graphiques selon la période ; graphique Lead Intake à granularité adaptative (horaire / journalier / semaines glissantes / mensuel selon la durée de plage) et donut Delivering (taux de livraison parmi les leads entrés sur la période : Delivered vs Not delivered, centre %), leads récents ; compteurs agents actifs et file unmatched (état courant) ; données hors fenêtre 90 j rechargées serveur
+- Vue synthèse (Operations Dashboard) : KPIs leads/livraisons sur la période choisie (aujourd’hui, hier, 7 derniers jours, mois dernier, all time, plage custom via sélecteur calendrier ou URL `period=…&from&to`), titres KPI/graphiques selon la période ; graphique Lead Intake à granularité adaptative (horaire / journalier / semaines glissantes / mensuel selon la durée de plage) et donut Delivering (taux de livraison parmi les leads entrés sur la période : Delivered = `delivered` ou `integrity_posted` vs Not delivered, centre %), leads récents ; compteurs agents actifs et file unmatched (état courant) ; données hors fenêtre 90 j rechargées serveur
 - Alertes optionnelles (pics unmatched)
 
 #### Gestion agents
