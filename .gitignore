@@ -48,6 +48,9 @@ prisma/*.db-journal
 *.swp
 *.swo
 
+# Local Pencil email layout mockups (not tracked)
+design/partner-email-layouts.pen
+
 # OS
 .DS_Store
 Thumbs.db
