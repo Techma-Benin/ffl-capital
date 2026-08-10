@@ -334,7 +334,7 @@ function PostingModal({
                 </div>
               </div>
 
-              {rejectionReason && (
+              {detailStatus !== "sold" && rejectionReason && (
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
                     Rejection reason
