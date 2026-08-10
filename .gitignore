@@ -3,8 +3,20 @@ node_modules/
 .pnp
 .pnp.js
 
+# package manager lockfiles & local config (install locally; do not track)
+package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+yarn.lock
+bun.lock
+bun.lockb
+.npmrc
+.yarn/
+.pnpm-store/
+
 # testing
 coverage/
+test/uncommitted/
 
 # next.js
 .next/
