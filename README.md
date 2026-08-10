@@ -27,8 +27,9 @@ npm install
 
 # 2. Configurer la base de données
 cp .env.example .env
-# Remplir DATABASE_URL (Replit Postgres le fournit), CLERK_*, STRIPE_*, RESEND_* selon besoin
+# Remplir DATABASE_URL (Replit Postgres le fournit), CLERK_*, STRIPE_*, RESEND_*, NEXT_PUBLIC_APP_URL selon besoin
 # (RESEND_API_KEY + FROM_EMAIL : emails livraison + Partner Contact Us ; destinataire Contact Us dans Admin Settings)
+# (NEXT_PUBLIC_APP_URL : domaine public pour liens email / invite Clerk / retours Stripe — pas localhost en prod Replit)
 pnpm run ensure:integrity-env   # defaults Integrity manquants (idempotent)
 
 # 3. Migrations et seed
@@ -60,13 +61,17 @@ npm run seed:lead
 | GET | `/api/health` | Statut serveur + connexion DB |
 | POST | `/api/leads/intake` | Webhook LeadConduit (format Boberdoo, public, CORS) |
 | POST | `/api/wallet/checkout` | Stripe top-up (partner auth) |
+| GET/POST/DELETE | `/api/wallet/subscribe` | Auto-recharge hebdo Stripe (partner auth) |
+| POST | `/api/webhooks/stripe` | Webhook Stripe (signé) — top-up + abo |
 | POST | `/api/refunds` | Demande remboursement partner |
 | POST | `/api/partner/contact` | Contact Us partner (Resend → admin + confirmation) |
 | POST | `/api/cron/reprocess-unmatched` | Retraitement leads (Bearer CRON_SECRET) |
 | POST | `/api/cron/integrity-post` | Post Integrity unmatched (Bearer CRON_SECRET) |
 | POST | `/api/admin/lead-routing/preview` | Preview lifecycle routing policy (admin auth) |
 
-Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, **lead-routing preview**, partners, filter sets, refunds, **integrity postings** (list + detail payloads) — voir [BACKEND.md](docs/BACKEND.md).
+Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, **lead-routing preview**, partners, filter sets, refunds, **integrity postings** (list + detail payloads + reprocess) — voir [BACKEND.md](docs/BACKEND.md).
+
+**Stripe webhook (prod) :** après deploy, `prisma migrate deploy` (ou `bash scripts/post-merge.sh`). Dashboard → endpoint `https://ffl-capital.replit.app/api/webhooks/stripe` avec `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted`. `STRIPE_WEBHOOK_SECRET` doit matcher ce endpoint (pas une ancienne URL Replit).
 
 ## Dev tools
 

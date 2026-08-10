@@ -1,0 +1,72 @@
+modules = ["nodejs-24", "python-base-3.13", "postgresql-16"]
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev -- -p 5000"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5050
+externalPort = 3002
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8099
+externalPort = 8099
+
+[[ports]]
+localPort = 18966
+externalPort = 3001
+
+[[ports]]
+localPort = 23636
+externalPort = 3000
+
+[agent]
+expertMode = true
+
+[userenv]
+
+[userenv.shared]
+ADMIN_EMAILS = "bill.ahognonvi+admin@techma.ca"
+INTEGRITY_REALTIME_SUBMIT_URL = "https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit"
+INTEGRITY_STOREFRONT_SUBMIT_URL = "https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit"
+INTEGRATIONS_MODE = "live"
+CRON_INTERVAL_MS = "900000"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 240000
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["pnpm", "run", "start"]
+build = ["bash", "-c", "npx prisma generate && npx prisma migrate deploy && pnpm run build"]

@@ -1,0 +1,359 @@
+# LeadConduit / ActiveProspect — Setup & Integration Guide
+
+> How to receive real leads from LeadConduit, secure the intake endpoint, post leads to Integrity Connect, and verify the integration end-to-end.
+
+---
+
+## Table of Contents
+
+1. [Intake endpoint](#intake-endpoint)
+2. [Securing the endpoint](#securing-the-endpoint)
+3. [Field mapping tables](#field-mapping-tables)
+4. [Posting to Integrity Connect](#posting-to-integrity-connect)
+5. [Integrity response webhook](#integrity-response-webhook)
+6. [Testing with is_test=yes](#testing-with-is_testyes)
+7. [Local development](#local-development)
+8. [Production cutover](#production-cutover)
+9. [Troubleshooting](#troubleshooting)
+
+---
+
+## Intake endpoint
+
+| Item | Value |
+|------|--------|
+| Method | `POST` |
+| Path | `/api/leads/intake` |
+| Auth | `X-Api-Key` header (see [Securing the endpoint](#securing-the-endpoint)) |
+| Content-Type | `application/json` |
+
+### Success response (LeadConduit contract)
+
+```json
+{
+  "outcome": "success",
+  "reason": ""
+}
+```
+
+On validation or business errors: `{ "outcome": "error", "reason": "…" }` with an appropriate HTTP status.
+
+---
+
+## Securing the endpoint
+
+The intake endpoint validates an `X-Api-Key` header against the `LEADCONDUIT_WEBHOOK_SECRET` environment variable.
+
+### Server setup
+
+1. Generate a strong random secret:
+   ```bash
+   openssl rand -hex 32
+   ```
+2. Set `LEADCONDUIT_WEBHOOK_SECRET` in your environment (Replit Secrets / production env).
+3. When the env var is **not set**, the check is skipped — safe for local dev.
+
+### LeadConduit configuration
+
+In the LeadConduit flow's **delivery settings**:
+
+1. Open the recipient/delivery step for your flow.
+2. Under **Headers**, add a custom header:
+   - **Name:** `X-Api-Key`
+   - **Value:** the secret you generated above
+3. Save and test the flow.
+
+### Response on unauthorized
+
+```json
+{ "outcome": "error", "reason": "Unauthorized" }
+```
+HTTP status: `401`
+
+---
+
+## Field mapping tables
+
+### IUL Flow (Boberdoo type 37) — all three active flows share these base fields
+
+| LeadConduit field | Internal field | Notes |
+|-------------------|---------------|-------|
+| `First_Name` | `firstName` | Required |
+| `Last_Name` | `lastName` | Required |
+| `Email` | `email` | Required |
+| `Primary_Phone` | `phone` | Required |
+| `State` or `State_You_Currently_Live_In` | `state` | Required |
+| `Intent` | `intent` | Stored on lead; does not set `leadType` |
+| `Intent_Type` | *(category criterion only)* | Exact match in default IUL category rules (`Standard` / `High`); not mapped to a lead column |
+| `SRC` | `source` | Also used in category criteria (`field=SRC`, exact match) |
+| `DOB` | `dob` | Optional at intake (temporarily — MP Facebook forms often omit); always sent on outbound post (`""` when blank); LC RealTime may reject if missing |
+| `Age` | `age` | |
+| `Trusted_Form_URL` (or `trustedform_cert_url`) | `trustedformCertUrl` | **Required** — TrustedForm certificate |
+| `LeadiD_Token` | `leadidToken` | Jornaya token |
+| `Unique_Identifier` | `externalId` | Idempotency / duplicate detection |
+| `Lead_Type` | `boberdooLeadType` | Boberdoo numeric type (37, 35, 41) |
+| `Landing_Page` | `landingPage` | |
+| `Sub_ID` | `subId` | |
+| `Pub_ID` | `pubId` | |
+| `IP_Address` | `ipAddress` | |
+| `User_Agent` | `userAgent` | |
+| `TCPA_Consent` | `tcpaConsent` | |
+| `TCPA_Language` | `tcpaLanguage` | |
+| `Have_IUL` | `haveIul` | **Required** |
+| `Primary_Goal` | `primaryGoal` | **Required** |
+
+### Lead category rules (intake)
+
+`leadType` is **not** inferred in `normalize-lead.ts`. At intake, `process-intake.ts` evaluates all **enabled** `lead_categories` against the **raw webhook payload** (top-level keys only; each criterion is an exact, case-sensitive string match; all criteria on a category must match).
+
+| Outcome | `categoryResolution` | `leadType` | `status` | Partner matching | Integrity post |
+|---------|---------------------|------------|----------|------------------|----------------|
+| Exactly 1 category | `matched` | category `type` | `unmatched` (or `review` if TrustedForm fails) | yes | yes |
+| 0 categories | `no_match` | `null` | `review` | skipped | skipped |
+| 2+ categories | `multiple_matches` | `null` | `review` | skipped | skipped |
+
+Default seeded criteria (both IUL types share `SRC`; they differ by `Intent_Type` — exact case-sensitive match):
+
+| Category `type` | Criteria (AND) |
+|-----------------|----------------|
+| `traditional_iul` | `SRC` = `IUL_LeadConduit` **and** `Intent_Type` = `Standard` |
+| `high_intent_iul` | `SRC` = `IUL_LeadConduit` **and** `Intent_Type` = `High` |
+| `mortgage_protection` | `SRC` = `Mortgage_LeadConduit` |
+| `final_expense` | `SRC` = `Veteran_LeadConduit` |
+
+Admin UI: `/admin/settings` → **Lead categories** — multi-criteria editor; internal `type` is server-generated from label (not supplied on create). Each category has an **Integrity Realtime label** (`integrityLabel`) and optional **Integrity Storefront label** (`integrityLabelStorefront`); blank Storefront falls back to Realtime, then the default IUL Realtime string.
+
+There is **no** implicit fallback from `Intent`, `Intent_Type`, or partial `SRC` matching outside configured criteria; unmatched payloads require admin review or new category rules.
+
+Creating or deleting an enabled category, changing criteria, or toggling `enabled` re-evaluates all non-finalized leads from their stored raw webhook payload with this same evaluator. Final statuses (`delivered`, `integrity_posted`, `aged_listed`, `dead`) are excluded. A newly unique match becomes `unmatched` and available for the normal reprocess flow; the category API itself does not immediately match or deliver it.
+
+### Outbound field mapping (Internal → Integrity Connect / LeadConduit)
+
+Shared builders always include `address_1`, `dob`, and `dob_mmddyyyy_thom` (empty strings when missing). When DOB is set, both `dob` (`m/d/Y`) and `dob_mmddyyyy_thom` (`MM/dd/yyyy`) are formatted accordingly. Form encoding preserves blank `address_1`.
+
+| Internal field | LeadConduit parameter | Notes |
+|----------------|----------------------|-------|
+| `lead.firstName` | `first_name` | |
+| `lead.lastName` | `last_name` | |
+| `lead.email` | `email` | |
+| `lead.phone` | `phone_1` | |
+| `lead.state` | `state` | |
+| `lead.dob` | `dob` | Format `m/d/Y` when present |
+| `lead.dob` | `dob_mmddyyyy_thom` | Format `MM/dd/yyyy` when set; empty string when blank (LC RealTime acceptance criteria) |
+| category Realtime / Storefront labels | `lead_type_thom` | Realtime label; Storefront label → Realtime → default IUL |
+| `lead.externalId ?? lead.id` | `vendor_lead_id_thom` | **Required for Storefront** |
+| `lead.address` | `address_1` | Always sent; `""` when missing |
+| `lead.city` | `city` | |
+| `lead.zip` | `postal_code` | |
+| `lead.trustedformCertUrl` | `trustedform_cert_url` | |
+| `lead.leadidToken` | `universal_leadid` | Jornaya token |
+| `lead.ipAddress` | `ip_address` | |
+| `lead.age` | `age` | |
+| `lead.haveIul` | `has_iul_thom` | IUL leads only; empty string when blank; omitted for MP |
+| `lead.primaryGoal` | `primary_goal_thom` | When present |
+| `lead.source` | `campaign_source` | |
+| `lead.subId` | `campaign_id` | |
+
+### Lead type mapping → Integrity exact strings
+
+Prefer per-category Integrity labels in admin Settings. Canonical Realtime defaults when a label is blank:
+
+| Internal `leadType` | `lead_type_thom` value sent to Integrity |
+|---------------------|------------------------------------------|
+| `mortgage_protection` | `Mortgage Protection Facebook (Realtime Lead)` |
+| `final_expense` | `Final Expense Facebook (Realtime Lead)` |
+| `traditional_iul` | `Indexed Universal Life [IUL] Facebook (Realtime Lead)` |
+| `high_intent_iul` | `Indexed Universal Life [IUL] Facebook (Realtime Lead)` |
+
+---
+
+## Posting to Integrity Connect
+
+### Environment variables
+
+```env
+# RealTime flow — Azure ping (IUL only) then direct submit to LeadConduit
+INTEGRITY_REALTIME_SUBMIT_URL=https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit
+INTEGRITY_REALTIME_PING_URL=https://ilc-functions-prod.azurewebsites.net/api/IsAcceptingCampaign
+INTEGRITY_PING_VENDOR_ID=
+INTEGRITY_PING_FUNCTIONS_KEY=
+
+# Storefront flow — direct post only (no LeadConduit ping gate)
+INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
+```
+
+After pull (local or Replit): `pnpm run ensure:integrity-env` fills blank **public** Integrity defaults into `.env` (URLs + VendorId; idempotent; never overwrites non-empty; never prints secrets). It does **not** write `INTEGRITY_PING_FUNCTIONS_KEY` — set that in Replit Secrets or `.env`. Hooked from `scripts/post-merge.sh`.
+
+Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override submit URLs when `postUrl` is set. Azure ping credentials are **env-only** — not stored in the database. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. Outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately, including prod); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset; default is `mock` in dev and `live` in prod. **Mock mode** (dev or prod): automatic Integrity posts (intake / cron / lifecycle / `integrityPostLead`) still send real HTTP to LeadConduit with `is_test=yes` via `applyIntegrityAutoPostTestFlag`; live auto posts do not force `is_test`. Realtime IUL Azure `IsAcceptingCampaign` is skipped in mock (auto-accept) so test leads do not gate or skew production campaign decisions. **Admin Integrity test buttons** always POST real HTTP to LeadConduit with `is_test=yes` (mock and live); `integrations_mode` does not short-circuit the test route.
+
+**Boberdoo parity:** Outbound posts (`src/lib/integrity/post.ts`) always send HTTP — no local pre-flight gate on `required-fields.ts`. LeadConduit accept/reject is recorded from the LC response (`integrity_posted` / `integrity_rejected` / `integrity_no_campaign` when the reason contains "No Campaign Available"). `required-fields.ts` is advisory for admin UI warnings only (MP: Beneficiary Type, History Of Cancer, Mortgage Loan Amount; FE: Beneficiary name).
+
+**Ensure env** (after pull / Replit): `pnpm run ensure:integrity-env`
+
+**Preflight Azure** (before enabling live Integrity): `pnpm run preflight:integrity-azure`
+
+### Routing logic (Integrity post)
+
+```
+IF vendor (integrity_realtime | integrity_storefront) disabled:
+  → Skip HTTP; emit integrity_skipped; lead stays unmatched
+
+IF resaleMode = realtime:
+  → IF Realtime IUL lead type → Azure IsAcceptingCampaign ping (env secrets)
+     (mock: skip live Azure call, treat as accepted; LC post still goes with is_test=yes)
+  → POST to resolved integrity_realtime postUrl (DB or INTEGRITY_REALTIME_SUBMIT_URL)
+     (mock auto post: same HTTP + is_test=yes; always HTTP — no local missing-field gate)
+  → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
+  → LC success (outcome success) → ResalePosting sold immediately (soldAt, claimLiveSale, integrity_posted); not left pending for webhook
+  → LC failure → integrity_rejected (outcome rejected) OR integrity_no_campaign (outcome no_campaign_available) when reason contains "No Campaign Available"; LC response body stored on event
+
+IF resaleMode = storefront:
+  → POST directly to resolved integrity_storefront postUrl (no LC ping)
+     (mock auto post: same HTTP + is_test=yes; always HTTP)
+  → LC Storefront acceptance criteria: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
+  → LC success → same immediate sold path as Realtime
+  → LC failure → integrity_rejected or integrity_no_campaign (same detection); LC response body stored on event
+```
+
+### Unmatched lead lifecycle (optional)
+
+Admin flag `lifecycle_routing_enabled` (default **off**) in Settings → Lead lifecycle. When on, `src/lib/lead-routing/` applies client-approved age windows (0–24 h Realtime, 24–48 h partner/Storefront, 48 h–30 d partners, 30 d+ aged). Spec: `docs/client_email_lead_routing_2026-08-03.txt`. Preview: `POST /api/admin/lead-routing/preview`.
+
+When off, legacy flow: partner match during `integrity_post_delay_hours` (24 h), then Integrity Realtime post.
+
+### Protocol details
+
+- **Content-Type:** `application/x-www-form-urlencoded` (NOT `application/json`)
+- **Response format:** `{ "outcome": "success"|"failure"|"error", "lead": { "id": "..." }, "reason": "..." }`
+
+---
+
+## Integrity response webhook
+
+LeadConduit can POST back a result after processing. This closes the loop: submit → receive result → update lead record.
+
+### Endpoint
+
+| Item | Value |
+|------|--------|
+| Method | `POST` |
+| Path | `/api/webhooks/integrity` |
+| Query param | `?postingId=<uuid>` — the `ResalePosting` record ID |
+| Auth | `X-Api-Key` header matching `INTEGRITY_WEBHOOK_SECRET` |
+
+### Setup in LeadConduit
+
+1. In the delivery step's **response handling** or **outcome webhook** settings, configure a callback URL:
+   ```
+   https://YOUR-DOMAIN/api/webhooks/integrity?postingId={{posting_id}}
+   ```
+2. Add header `X-Api-Key: <INTEGRITY_WEBHOOK_SECRET value>`.
+3. The platform always returns HTTP 200 (required for LeadConduit to mark delivery as successful).
+
+### Behavior by outcome
+
+| `outcome` | Action |
+|-----------|--------|
+| `success` | `ResalePosting` → `sold` (idempotent if already sold by sync submit); emits `integrity_posted` when newly sold (payload includes webhook `response` body; lead status `integrity_posted`); records LeadConduit `lead.id`. Posted already means accepted — no separate `integrity_accepted` event |
+| `failure` | `ResalePosting` → `rejected`; emits `integrity_rejected` (generic) or `integrity_no_campaign` (reason contains "No Campaign Available") with reason + webhook `response` body |
+| `error` | Logs error; leaves `ResalePosting` as `pending` for retry; emits `integrity_error` event with webhook `response` body |
+
+**Sync submit note:** On the outbound POST response, LeadConduit `outcome: success` already marks the posting **sold** (`soldAt`, `claimLiveSale`, `integrity_posted`). The webhook is optional confirmation and must stay idempotent when the posting is already sold. Legacy `integrity_accepted` rows may still exist in `lead_events`; UI labels them **Posted** and does not emit new ones.
+
+Outbound posts (`src/lib/integrity/post.ts`) refresh `postedAt` when a real Integrity post/reprocess starts; they store `requestPayload` and LeadConduit `response` on `integrity_posted`, `integrity_rejected`, and `integrity_no_campaign` events. Older postings may have legacy `integrity_missing_fields` events from a prior local pre-flight gate.
+
+**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`) and includes `integrityOutcome` per row (e.g. `no_campaign_available`). UI badges: **Sold** (green) for success/sold; **No Campaign Available** (yellow) for `no_campaign_available` — not generic Rejected. Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, rejection reason derived from those events (empty for older postings without stored payloads), plus enriched lead fields. Modal header **Reprocess** POSTs immediately to `POST /api/admin/integrity/postings/[id]/reprocess` (loading on button; success closes PostingModal; error keeps open + toast) — reuses the posting’s mode via `integrityPostLead` (admin force-retry); blocked for live-sold leads and sold postings. Shared **Review payload** edit modal (`IntegrityPayloadEditModal`) is for Connection test only.
+
+---
+
+## Testing with is_test=yes
+
+### Admin test route (preferred)
+
+The platform provides a protected admin route for firing test submissions without storing any database records:
+
+```
+POST /api/admin/integrity/test
+Authorization: admin session required
+Body: { "flow": "realtime" | "storefront", ... }
+```
+
+Resolves the correct Realtime vs Storefront `lead_type_thom` from the lead category. The Connection test UI opens the **Review payload** modal before send (optional `{ manualPayload }`) — this modal is for Connection test only, not PostingModal Reprocess. Always includes `is_test=yes` and **always** POSTs real HTTP to LeadConduit (mock and live integrations mode). Response includes the raw LeadConduit result plus `encodedBody` and `encodedFields` so operators can confirm `address_1` (including blank) and both DOB fields. Manual payloads keep blank `address_1`. `checkRequiredIntegrityFields` warnings in the lead picker are advisory only (MP includes Beneficiary Type). Editable keys include `beneficiary_type_thom` / `beneficiary_thom` when present on the lead.
+
+### Manual curl — RealTime flow
+
+```bash
+curl -X POST \
+  "https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "lead_type_thom=Final+Expense+Facebook+(Realtime+Lead)&first_name=Mike&last_name=Jones&phone_1=5127891111&email=test@example.com&state=TX&dob_mmddyyyy_thom=06/02/1980&is_test=yes"
+```
+
+Expected response: `{"outcome":"success","lead":{"id":"..."}}`
+
+### Manual curl — Storefront flow
+
+```bash
+curl -X POST \
+  "https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "lead_type_thom=Final+Expense&first_name=Mike&last_name=Jones&phone_1=5127891111&email=test@example.com&state=TX&vendor_lead_id_thom=TEST-001&is_test=yes"
+```
+
+Expected response: `{"outcome":"success","lead":{"id":"..."}}`
+
+---
+
+## Local development
+
+### Without LeadConduit
+
+| Tool | URL | Use |
+|------|-----|-----|
+| Lead simulator | `/dev/lead-simulator` | Form → POST `/api/leads/intake` (dev only) |
+| Feeding platform | `/feeding-platform` | Static test UI for batch/manual submissions |
+| CLI | `pnpm run seed:lead` | POST fixture JSON to intake |
+| curl | — | POST `fixtures/boberdoo_iul_submit_lead.example.json` |
+
+### With LeadConduit (ngrok)
+
+1. Start the app: `pnpm dev`
+2. Expose localhost: `ngrok http 3000`
+3. Set the delivery URL in LeadConduit to: `https://YOUR-NGROK-HOST/api/leads/intake`
+4. Add header `X-Api-Key: <your secret>` in the delivery step
+5. Set Method to `POST`, Content-Type to `application/json`
+
+---
+
+## Production cutover
+
+1. Deploy with stable HTTPS URL.
+2. Set all required env vars: `LEADCONDUIT_WEBHOOK_SECRET`, `INTEGRITY_REALTIME_SUBMIT_URL`, `INTEGRITY_STOREFRONT_SUBMIT_URL`, `INTEGRITY_WEBHOOK_SECRET`, and Azure ping vars (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY`). On Replit after pull, `pnpm run ensure:integrity-env` (via `post-merge.sh`) fills public Integrity URL/VendorId defaults; add `INTEGRITY_PING_FUNCTIONS_KEY` (and prefer VendorId) in Replit Secrets for production.
+3. Run `pnpm run preflight:integrity-azure` with rotated production secrets.
+4. In LeadConduit, update the recipient URL to `https://YOUR-DOMAIN/api/leads/intake`.
+5. Add the `X-Api-Key` header in LeadConduit delivery settings.
+6. Run test leads with `is_test=yes`; confirm `{ "outcome": "success" }`.
+7. Enable `lifecycle_routing_enabled` in admin only after controlled testing (defaults off).
+8. Monitor the unmatched queue and partner wallets before disabling Boberdoo.
+
+---
+
+## Troubleshooting
+
+| Issue | Check |
+|-------|--------|
+| `401 Unauthorized` on intake | `X-Api-Key` header missing or doesn't match `LEADCONDUIT_WEBHOOK_SECRET` |
+| LeadConduit shows delivery failure | Response must be `{"outcome":"success"}`; check app logs for validation errors |
+| Integrity returns `"outcome":"failure"` | Check `reason` field; most common: missing `dob_mmddyyyy_thom` or wrong `lead_type_thom` value |
+| CORS errors from browser | Intake is server-to-server; CORS headers are present but only matter for browser-based tools |
+| Duplicate rejected | Same `Unique_Identifier` submitted twice — expected idempotency |
+| Lead unmatched | No active partner with matching state, type, balance, or ≥15 states |
+
+---
+
+## Related docs
+
+- [integrity-connect-integration.md](integrity-connect-integration.md) — full Integrity Connect spec and field reference
+- [BACKEND.md](BACKEND.md) — intake mapping and pipeline
+- [PROJECT.md](PROJECT.md) — business flow Meta → LeadConduit → platform
+- `fixtures/boberdoo_iul_submit_lead.example.json` — sample payload

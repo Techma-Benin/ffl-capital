@@ -1,204 +1,279 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
-import { ArrowLeft } from "lucide-react";
+import { getLeadEvents } from "@/lib/leads/lead-events";
+import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
+import { getClerkPartnerImageUrlMap } from "@/lib/auth/clerk-profile";
+import { formatUsd } from "@/lib/format-money";
+import {
+  loadEnabledCategoriesWithCriteria,
+  resolveLeadTypeDisplay,
+} from "@/lib/lead-categories/category-labels";
+import { buildCategoryPayloadDiagnostics } from "@/lib/lead-categories/payload-diagnostics";
+import { getReprocessEligibility } from "@/lib/jobs/reprocess-eligibility";
+import {
+  getLifecycleSettings,
+  isReprocessPartnerPickerEnabled,
+} from "@/lib/settings/app-settings";
+import { integrityTimelineLabel } from "@/lib/integrity/event-labels";
+import { evaluateLifecyclePolicy } from "@/lib/lead-routing/policy";
+import { LeadEventType, ResaleStatus } from "@prisma/client";
+import { resolveIntegrityLiveSaleChannel } from "@/lib/leads/lead-status-label";
 
-function DetailRow({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: string | null | undefined;
-  href?: string;
-}) {
-  if (!value) return null;
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="shrink-0 text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-900">
-        {href ? (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
-            {value}
-          </a>
-        ) : (
-          value
-        )}
-      </dd>
-    </div>
-  );
-}
-
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="card p-6">
-      <h2 className="mb-4 text-sm font-semibold text-slate-900">{title}</h2>
-      <dl className="space-y-2 text-sm">{children}</dl>
-    </div>
-  );
-}
+const PARTNER_SHEET_AVATAR_PX = 48;
+import {
+  AdminLeadDetailView,
+  type AdminLeadDetailDelivery,
+  type AdminLeadDetailEvent,
+  type AdminLeadDetailTimelineItem,
+} from "@/components/admin/admin-lead-detail-view";
 
 export default async function AdminLeadDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const lead = await prisma.lead.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       leadDeliveries: {
-        include: { partner: true, refundRequests: true },
+        include: {
+          partner: {
+            include: { _count: { select: { leadDeliveries: true } } },
+          },
+          refundRequests: true,
+        },
         orderBy: { deliveredAt: "desc" },
       },
-      resalePostings: { orderBy: { createdAt: "desc" },
-      },
+      resalePostings: { orderBy: { createdAt: "desc" } },
     },
   });
 
   if (!lead) notFound();
 
-  const timeline = [
+  const categories = await loadEnabledCategoriesWithCriteria();
+  const presentation = resolveLeadTypeDisplay({
+    leadType: lead.leadType,
+    categoryResolution: lead.categoryResolution,
+    categoryCandidateTypes: lead.categoryCandidateTypes,
+    categories,
+  });
+  const rawPayload =
+    lead.rawPayload &&
+    typeof lead.rawPayload === "object" &&
+    !Array.isArray(lead.rawPayload)
+      ? (lead.rawPayload as Record<string, unknown>)
+      : {};
+  const payloadDiagnostics = buildCategoryPayloadDiagnostics(
+    rawPayload,
+    categories,
+  );
+  const showCategoryAssign =
+    lead.status === "review" &&
+    (lead.categoryResolution === "no_match" ||
+      lead.categoryResolution === "multiple_matches");
+  const reprocessEligibility = getReprocessEligibility({
+    available: lead.available,
+    status: lead.status,
+    categoryResolution: lead.categoryResolution,
+    leadType: lead.leadType,
+  });
+  const reprocessPartnerPickerEnabled = await isReprocessPartnerPickerEnabled();
+
+  const lifecycleSettings = await getLifecycleSettings();
+  const now = new Date();
+  const ageHours =
+    (now.getTime() - lead.receivedAt.getTime()) / (1000 * 60 * 60);
+  let integrityPosting: "none" | "pending" | "rejected" | "sold" = "none";
+  if (lead.resalePostings.some((p) => p.status === ResaleStatus.sold)) {
+    integrityPosting = "sold";
+  } else if (lead.resalePostings.some((p) => p.status === ResaleStatus.pending)) {
+    integrityPosting = "pending";
+  } else if (lead.resalePostings.some((p) => p.status === ResaleStatus.rejected)) {
+    integrityPosting = "rejected";
+  }
+  const routingPolicy = evaluateLifecyclePolicy({
+    ageHours,
+    liveSold: lead.liveSoldAt != null,
+    integrityPosting,
+    integrityBlocked: lead.integrityBlockedAt != null,
+    settings: lifecycleSettings,
+  });
+
+  const leadEvents = await getLeadEvents(id);
+
+  const integrityEventByPostingId = new Map<string, string>();
+  for (const event of leadEvents) {
+    // Legacy Accepted events are redundant with Posted (same success).
+    if (event.type === LeadEventType.integrity_accepted) continue;
+    if (!event.type.startsWith("integrity_")) continue;
+    const payload =
+      event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)
+        ? (event.payload as Record<string, unknown>)
+        : null;
+    const postingId = payload?.postingId;
+    if (typeof postingId === "string") {
+      integrityEventByPostingId.set(postingId, event.type);
+    }
+  }
+
+  const timeline: AdminLeadDetailTimelineItem[] = [
     {
-      at: lead.receivedAt,
+      at: lead.receivedAt.toISOString(),
       label: "Lead received",
       detail: `Source: ${lead.source}`,
     },
     ...lead.leadDeliveries.map((d) => ({
-      at: d.deliveredAt,
+      at: d.deliveredAt.toISOString(),
       label: `Delivered (${d.channel})`,
-      detail: `${d.partner.firstName} ${d.partner.lastName} — $${Number(d.price).toFixed(2)}`,
+      detail: `${d.partner.firstName} ${d.partner.lastName} — ${formatUsd(d.price)}`,
     })),
     ...lead.leadDeliveries.flatMap((d) =>
       d.refundRequests.map((r) => ({
-        at: r.createdAt,
+        at: r.createdAt.toISOString(),
         label: `Refund ${r.status}`,
         detail: `${r.refundType}${r.reason ? ` — ${r.reason}` : ""}`,
       })),
     ),
     ...lead.resalePostings.map((p) => ({
-      at: p.postedAt ?? p.createdAt,
-      label: `Integrity ${p.status}`,
+      at: (p.postedAt ?? p.createdAt).toISOString(),
+      label: integrityTimelineLabel(p.status, integrityEventByPostingId.get(p.id)),
       detail: p.externalRef ?? p.mode,
     })),
   ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
-  const leadTypeLabel =
-    lead.leadType === "traditional_iul" ? "Traditional IUL" : "High Intent IUL";
+  const leadTypeLabel = presentation.label;
+
+  const latestDelivery = lead.leadDeliveries[0];
+  const canRedeliver = lead.leadDeliveries.length > 0;
+  const refundableDelivery = lead.leadDeliveries.find((d) => !d.refundedAt);
+
+  const avatarByClerkId = await getClerkPartnerImageUrlMap(
+    lead.leadDeliveries.map((d) => d.partner.clerkUserId),
+    PARTNER_SHEET_AVATAR_PX,
+  );
+
+  const deliveries: AdminLeadDetailDelivery[] = lead.leadDeliveries.map((d) => {
+    const avatarUrl = d.partner.clerkUserId
+      ? (avatarByClerkId.get(d.partner.clerkUserId) ?? null)
+      : null;
+    const partner = refundPartnerSnapshotFromRow(d.partner, { avatarUrl });
+    return {
+      id: d.id,
+      channel: d.channel,
+      price: Number(d.price),
+      deliveredAt: d.deliveredAt.toISOString(),
+      refundedAt: d.refundedAt?.toISOString() ?? null,
+      partnerId: d.partnerId,
+      partnerName: partner.name,
+      partner,
+    };
+  });
+
+  const grossSold = deliveries.reduce((sum, d) => sum + d.price, 0);
+
+  const events: AdminLeadDetailEvent[] = leadEvents
+    .filter((event) => event.type !== LeadEventType.integrity_accepted)
+    .map((event) => ({
+      id: event.id,
+      type: event.type,
+      payload:
+        event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)
+          ? (event.payload as Record<string, unknown>)
+          : null,
+      createdAt: event.createdAt.toISOString(),
+    }));
+
+  // Posted = done — prefer liveSaleChannel, else latest Integrity posting mode (any status).
+  const latestPosting = [...lead.resalePostings].sort((a, b) => {
+    const aAt = (a.postedAt ?? a.createdAt).getTime();
+    const bAt = (b.postedAt ?? b.createdAt).getTime();
+    return bAt - aAt;
+  })[0];
 
   return (
-    <div>
-      <PageHeader
-        title={`${lead.firstName} ${lead.lastName}`}
-        subtitle={`${lead.state} · ${lead.email}`}
-        action={
-          <div className="flex items-center gap-2">
-            {lead.status === "unmatched" && lead.available && (
-              <LeadReprocessButton leadId={lead.id} />
-            )}
-            <Link href="/admin/leads" className="btn-secondary btn-sm inline-flex items-center gap-1">
-              <ArrowLeft size={14} />
-              Back
-            </Link>
-          </div>
-        }
-      />
-
-      <div className="mb-6 grid gap-3 sm:grid-cols-4">
-        <div className="card p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500">Status</p>
-          <p className="mt-1 font-bold capitalize">{lead.status.replace("_", " ")}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500">Phone</p>
-          <p className="mt-1 font-bold">{lead.phone}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500">Available</p>
-          <p className="mt-1 font-bold">{lead.available ? "Yes" : "No"}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500">Refundable</p>
-          <p className="mt-1 font-bold">{lead.refundable ? "Yes" : "No"}</p>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DetailSection title="Contact">
-          <DetailRow label="Email" value={lead.email} />
-          <DetailRow label="Phone" value={lead.phone} />
-          <DetailRow label="Address" value={lead.address} />
-          <DetailRow label="City" value={lead.city} />
-          <DetailRow label="State" value={lead.state} />
-          <DetailRow label="Zip" value={lead.zip} />
-          <DetailRow label="DOB" value={lead.dob} />
-          <DetailRow label="Age" value={lead.age} />
-        </DetailSection>
-
-        <DetailSection title="IUL & Classification">
-          <div className="flex justify-between">
-            <dt className="text-slate-500">Lead Type</dt>
-            <dd><Badge variant="blue">{leadTypeLabel}</Badge></dd>
-          </div>
-          <DetailRow label="Intent" value={lead.intent} />
-          <DetailRow label="Have IUL" value={lead.haveIul} />
-          <DetailRow label="Primary Goal" value={lead.primaryGoal} />
-          <DetailRow label="State (live in)" value={lead.stateYouCurrentlyLiveIn} />
-          <DetailRow label="Boberdoo Lead Type" value={lead.boberdooLeadType} />
-          <DetailRow label="Received" value={new Date(lead.receivedAt).toLocaleString()} />
-        </DetailSection>
-
-        <DetailSection title="Compliance">
-          <DetailRow label="TrustedForm" value={lead.trustedformCertUrl ? "View certificate" : null} href={lead.trustedformCertUrl ?? undefined} />
-          <DetailRow label="TCPA Consent" value={lead.tcpaConsent} />
-          <DetailRow label="TCPA Language" value={lead.tcpaLanguage} />
-          <DetailRow label="LeadiD Token" value={lead.leadidToken} />
-        </DetailSection>
-
-        <DetailSection title="Tracking & Attribution">
-          <DetailRow label="Source" value={lead.source} />
-          <DetailRow label="Landing Page" value={lead.landingPage} href={lead.landingPage ?? undefined} />
-          <DetailRow label="Sub ID" value={lead.subId} />
-          <DetailRow label="Pub ID" value={lead.pubId} />
-          <DetailRow label="External ID" value={lead.externalId} />
-          <DetailRow label="IP Address" value={lead.ipAddress} />
-          <DetailRow label="User Agent" value={lead.userAgent} />
-        </DetailSection>
-
-        <div className="card p-6 lg:col-span-2">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Timeline</h2>
-          <ol className="space-y-3">
-            {timeline.map((event, i) => (
-              <li key={i} className="border-l-2 border-brand-200 pl-3">
-                <p className="text-sm font-medium text-slate-900">{event.label}</p>
-                <p className="text-xs text-slate-500">{event.detail}</p>
-                <p className="text-[10px] text-slate-400">
-                  {new Date(event.at).toLocaleString()}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-
-      {lead.rawPayload && (
-        <details className="mt-6 card p-6">
-          <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-            Raw Payload (audit trail)
-          </summary>
-          <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-50 p-4 text-xs text-slate-700">
-            {JSON.stringify(lead.rawPayload, null, 2)}
-          </pre>
-        </details>
-      )}
-    </div>
+    <AdminLeadDetailView
+      lead={{
+        id: lead.id,
+        firstName: lead.firstName,
+        lastName: lead.lastName,
+        email: lead.email,
+        phone: lead.phone,
+        address: lead.address,
+        city: lead.city,
+        state: lead.state,
+        zip: lead.zip,
+        dob: lead.dob,
+        age: lead.age,
+        status: lead.status,
+        liveSaleChannel: resolveIntegrityLiveSaleChannel(
+          lead.liveSaleChannel,
+          latestPosting?.mode,
+        ),
+        available: lead.available,
+        refundable: lead.refundable,
+        leadType: lead.leadType ?? "",
+        leadTypeLabel,
+        categoryResolution: lead.categoryResolution,
+        candidateLabels: presentation.candidateLabels,
+        categoryCandidateTypes: lead.categoryCandidateTypes,
+        payloadDiagnostics,
+        categoryAssignOptions: showCategoryAssign
+          ? categories.map((category) => ({
+              type: category.type,
+              label: category.label,
+              criteria: category.criteria,
+            }))
+          : [],
+        showCategoryAssign,
+        intent: lead.intent,
+        haveIul: lead.haveIul,
+        primaryGoal: lead.primaryGoal,
+        stateYouCurrentlyLiveIn: lead.stateYouCurrentlyLiveIn,
+        boberdooLeadType: lead.boberdooLeadType,
+        receivedAt: lead.receivedAt.toISOString(),
+        trustedformCertUrl: lead.trustedformCertUrl,
+        tcpaConsent: lead.tcpaConsent,
+        tcpaLanguage: lead.tcpaLanguage,
+        leadidToken: lead.leadidToken,
+        source: lead.source,
+        landingPage: lead.landingPage,
+        subId: lead.subId,
+        pubId: lead.pubId,
+        externalId: lead.externalId,
+        ipAddress: lead.ipAddress,
+        userAgent: lead.userAgent,
+        rawPayload: lead.rawPayload,
+        routingPhase: routingPolicy.phase,
+        lastRoutingAttemptAt: lead.lastRoutingAttemptAt?.toISOString() ?? null,
+        nextRoutingAttemptAt: lead.nextRoutingAttemptAt?.toISOString() ?? null,
+        integrityBlockedReason: lead.integrityBlockedReason,
+      }}
+      deliveries={deliveries}
+      timeline={timeline}
+      events={events}
+      grossSold={grossSold}
+      actions={{
+        showReprocess: reprocessEligibility.eligible,
+        showRedeliver: canRedeliver,
+        excludePartnerId: latestDelivery?.partnerId,
+        refundableDeliveryId: refundableDelivery?.id,
+        showDead: lead.status !== "dead",
+        editInitial: {
+          firstName: lead.firstName,
+          lastName: lead.lastName,
+          email: lead.email,
+          phone: lead.phone,
+          address: lead.address,
+          city: lead.city,
+          state: lead.state,
+          zip: lead.zip,
+          intent: lead.intent,
+          haveIul: lead.haveIul,
+          primaryGoal: lead.primaryGoal,
+        },
+      }}
+      reprocessPartnerPickerEnabled={reprocessPartnerPickerEnabled}
+    />
   );
 }

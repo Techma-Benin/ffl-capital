@@ -10,6 +10,7 @@ import {
   CONTACT_TOPICS,
   type ContactTopicValue,
 } from "@/lib/partner/contact-topics";
+import { DEFAULT_CONTACT_RECIPIENT_EMAIL } from "@/lib/settings/contact-recipient";
 import { EnvelopeSimple, ICON_WEIGHT, PaperPlaneTilt } from "@/lib/icons/client";
 
 export function PartnerContactView() {
@@ -98,11 +99,13 @@ export function PartnerContactView() {
             <Mail size={16} />
           </div>
           <div className="min-w-0 text-sm">
-            <p className="text-slate-500">Support</p>
-            <p className="font-medium text-slate-900">
-              Messages are emailed to the FFL Capital administrator. You will
-              get a confirmation when your message is received.
-            </p>
+            <p className="text-slate-500">Email</p>
+            <a
+              href={`mailto:${DEFAULT_CONTACT_RECIPIENT_EMAIL}`}
+              className="font-medium text-slate-900 hover:text-brand-600"
+            >
+              {DEFAULT_CONTACT_RECIPIENT_EMAIL}
+            </a>
           </div>
         </div>
 

@@ -36,6 +36,13 @@ prisma/*.db-journal
 *.swp
 *.swo
 
+# Local Pencil email layout mockups (not tracked)
+design/partner-email-layouts.pen
+
+# Local Resend partner email preview sender (not tracked)
+scripts/send-partner-email-previews.ts
+scripts/send-partner-email-previews.mjs
+
 # OS
 .DS_Store
 Thumbs.db

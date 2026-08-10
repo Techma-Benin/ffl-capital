@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requirePartner } from "@/lib/auth/session";
+import { resolveAppOrigin } from "@/lib/email/email-layout";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 
 const checkoutSchema = z.object({
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
     where: { id: authResult.partner.id },
   });
   const stripe = getStripe();
-  const origin = request.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const origin = resolveAppOrigin(request.headers.get("origin"));
 
   let customerId = partner.stripeCustomerId;
   if (!customerId) {
