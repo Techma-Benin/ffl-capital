@@ -121,6 +121,7 @@ export default async function PartnerLeadDetailPage({
         tcpaConsent: lead.tcpaConsent,
         tcpaLanguage: lead.tcpaLanguage,
       }}
+      rawPayload={lead.rawPayload}
       timeline={timeline}
       purchase={purchase}
       deliveredAt={delivery.deliveredAt.toISOString()}

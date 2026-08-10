@@ -9,6 +9,7 @@ import {
   LeadDetailCompliancePanel,
   LeadDetailContactPanel,
   LeadDetailIulPanel,
+  LeadDetailOtherFieldsPanel,
   LeadDetailPurchasePanel,
   type LeadDetailPurchaseInfo,
 } from "@/components/leads/lead-detail-panels";
@@ -38,6 +39,7 @@ type PartnerTabId = (typeof PARTNER_TABS)[number]["id"];
 
 export type PartnerLeadDetailViewProps = {
   lead: LeadDetailPanelLead;
+  rawPayload: unknown;
   timeline: LeadDetailTimelineItem[];
   purchase: LeadDetailPurchaseInfo;
   deliveredAt: string;
@@ -52,6 +54,7 @@ export type PartnerLeadDetailViewProps = {
 
 export function PartnerLeadDetailView({
   lead,
+  rawPayload,
   timeline,
   purchase,
   deliveredAt,
@@ -143,12 +146,20 @@ export function PartnerLeadDetailView({
 
       <LeadDetailTwoColumnLayout
         main={
-          <LeadDetailSectionCard title={partnerTabTitle(tab)}>
-            {tab === "contact" && <LeadDetailContactPanel lead={lead} />}
-            {tab === "iul" && <LeadDetailIulPanel lead={lead} />}
-            {tab === "compliance" && <LeadDetailCompliancePanel lead={lead} />}
-            {tab === "purchase" && <LeadDetailPurchasePanel purchase={purchase} />}
-          </LeadDetailSectionCard>
+          <>
+            <LeadDetailSectionCard title={partnerTabTitle(tab)}>
+              {tab === "contact" && <LeadDetailContactPanel lead={lead} />}
+              {tab === "iul" && <LeadDetailIulPanel lead={lead} />}
+              {tab === "compliance" && <LeadDetailCompliancePanel lead={lead} />}
+              {tab === "purchase" && <LeadDetailPurchasePanel purchase={purchase} />}
+            </LeadDetailSectionCard>
+
+            {rawPayload != null && (
+              <LeadDetailSectionCard title="Other fields">
+                <LeadDetailOtherFieldsPanel rawPayload={rawPayload} />
+              </LeadDetailSectionCard>
+            )}
+          </>
         }
         sidebar={
           <LeadDetailTimelineCard items={timeline} className="lg:self-start" />

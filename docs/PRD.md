@@ -289,7 +289,7 @@ Phase D — Migration Replit (livraison client)
 - Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live. L’éditeur peut **Apply** un brouillon sans le persister ; la liste l’utilise immédiatement, l’éditeur se ferme, et une action **Save view** reste visible jusqu’à l’enregistrement.
 - Un type sélectionné inclut les leads résolus dans ce type et les leads à matchs multiples où ce type est candidat ; plusieurs types sont combinés en OR
 - Badge statut `integrity_posted` = **Integrity** seul ; destination RealTime/Storefront via `resolveIntegrityLiveSaleChannel` (`liveSaleChannel`, sinon `mode` du dernier posting Integrity — tout statut pending/sold/rejected, ordonné `postedAt` puis `createdAt`) affichée en colonne Partner (`formatIntegrityEndpointPartnerLabel` → **RealTime** / **Storefront**, sinon nom partenaire) ; le filtre de vue « Integrity » (`integrity_posted`) reste unique
-- Détail lead : contact, TrustedForm cert, historique deliveries, **même badge statut Integrity** (plain, sans Realtime/Storefront) ; Tracking (phase routage, last/next attempt, bloc Integrity) ; **diagnostics payload** (champs critères catégories) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
+- Détail lead : contact, TrustedForm cert, historique deliveries, **même badge statut Integrity** (plain, sans Realtime/Storefront) ; Tracking (phase routage, last/next attempt, bloc Integrity) ; **diagnostics payload** (champs critères catégories) ; section **Other fields** (libellés/valeurs lisibles depuis `rawPayload`, hors champs déjà affichés dans Contact/IUL/Compliance/Tracking) + collapsible **Raw Payload** (audit JSON) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
 - Actions manuelles : reprocesser (allowlist partners si Partner actif ; pas de fallback Storefront), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
 
 #### Remboursements
@@ -329,7 +329,7 @@ Phase D — Migration Replit (livraison client)
 #### Mes leads
 - Liste des leads livrés (temps réel + aged achetés)
 - Vues sauvegardées avec périodes today / yesterday / 7 derniers jours / mois dernier / custom, appliquées à la date de livraison ; un brouillon appliqué reste disponible à la réouverture de l’éditeur et ne devient persistant qu’avec **Save view**
-- Détail : contact, état, date, prix payé, certificat TrustedForm
+- Détail : contact, état, date, prix payé, certificat TrustedForm ; section **Other fields** (mêmes lignes lisibles depuis `rawPayload` que l’admin — pas de dump JSON brut)
 - Bouton **demander remboursement** (si delivery `refundable`)
 
 #### Wallet

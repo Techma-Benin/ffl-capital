@@ -20,6 +20,7 @@ import {
   LeadDetailCompliancePanel,
   LeadDetailContactPanel,
   LeadDetailIulPanel,
+  LeadDetailOtherFieldsPanel,
   LeadDetailTrackingPanel,
 } from "@/components/leads/lead-detail-panels";
 import { LeadDetailTimelineCard } from "@/components/leads/lead-detail-timeline";
@@ -239,6 +240,12 @@ export function AdminLeadDetailView({
               {tab === "tracking" && <LeadDetailTrackingPanel lead={lead} />}
               {tab === "events" && <LeadDetailEventsPanel events={events} />}
             </LeadDetailSectionCard>
+
+            {lead.rawPayload != null && (
+              <LeadDetailSectionCard title="Other fields">
+                <LeadDetailOtherFieldsPanel rawPayload={lead.rawPayload} />
+              </LeadDetailSectionCard>
+            )}
 
             <div className="card">
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">

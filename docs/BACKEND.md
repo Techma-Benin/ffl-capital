@@ -376,6 +376,10 @@ Libellés de statut lead (admin) : `formatLeadStatusLabel` (`lead-status-label.t
 
 `payload-diagnostics.ts` — `buildCategoryPayloadDiagnostics` : union des champs critères des catégories actives, avec présence/valeur sur le `raw_payload` top-level. Affiché dans le détail lead admin (onglet IUL / panneau assignation).
 
+### Other fields (détail lead admin + partner)
+
+`other-payload-fields.ts` — aplatit `rawPayload` (chemins pointés pour le nested), ignore null/vides, omet les clés déjà couvertes par les panneaux Contact / IUL / Compliance / Tracking (alias LeadConduit + camelCase), humanise les libellés. UI partagée `LeadDetailOtherFieldsPanel` ; admin conserve aussi le JSON **Raw Payload** (audit) ; partner n’affiche que la liste lisible (pas de dump JSON). Aucune colonne BDD ajoutée.
+
 ### Assignation manuelle (review uniquement)
 
 | Méthode | Route | Description |

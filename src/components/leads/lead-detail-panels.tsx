@@ -6,6 +6,7 @@ import {
   LeadDetailFieldRow,
 } from "@/components/leads/lead-detail-ui";
 import type { LeadDetailPanelLead } from "@/components/leads/lead-detail-types";
+import { extractOtherPayloadFields } from "@/lib/leads/other-payload-fields";
 
 export function LeadDetailContactPanel({ lead }: { lead: LeadDetailPanelLead }) {
   return (
@@ -162,6 +163,32 @@ export function LeadDetailPurchasePanel({
           value={purchase.refundRequestedLabel}
         />
       )}
+    </LeadDetailFieldList>
+  );
+}
+
+/** Readable rows for intake payload keys not already shown in curated panels. */
+export function LeadDetailOtherFieldsPanel({
+  rawPayload,
+}: {
+  rawPayload: unknown;
+}) {
+  const fields = extractOtherPayloadFields(rawPayload);
+  if (fields.length === 0) {
+    return (
+      <p className="text-sm text-slate-400">No additional payload fields</p>
+    );
+  }
+
+  return (
+    <LeadDetailFieldList>
+      {fields.map((field) => (
+        <LeadDetailFieldRow
+          key={field.key}
+          label={field.label}
+          value={field.value}
+        />
+      ))}
     </LeadDetailFieldList>
   );
 }
