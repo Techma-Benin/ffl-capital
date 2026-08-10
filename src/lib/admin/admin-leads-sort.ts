@@ -70,7 +70,7 @@ export function buildAdminLeadOrderBy(
 
   switch (field) {
     case "name":
-      return [{ lastName: direction }, { firstName: direction }];
+      return [{ firstName: direction }, { lastName: direction }];
     case "id":
       return { id: direction };
     case "phone":

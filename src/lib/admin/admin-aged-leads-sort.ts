@@ -63,7 +63,7 @@ export function buildAdminAgedLeadOrderBy(
 ): Prisma.LeadOrderByWithRelationInput | Prisma.LeadOrderByWithRelationInput[] {
   switch (sort) {
     case "name":
-      return [{ lastName: dir }, { firstName: dir }];
+      return [{ firstName: dir }, { lastName: dir }];
     case "state":
       return { state: dir };
     case "type":
