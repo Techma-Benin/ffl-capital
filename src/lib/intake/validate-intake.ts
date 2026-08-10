@@ -55,6 +55,7 @@ export const intakePayloadSchema = z
     Intent: optionalString,
     // Mortgage Protection business
     Beneficiary: optionalString,
+    Relationship_Of_Beneficiary: optionalString,
     Beneficiary_Type: optionalString,
     "Beneficiary Type": optionalString,
     beneficiary_type_thom: optionalString,

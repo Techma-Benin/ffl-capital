@@ -71,6 +71,7 @@ export function normalizeLead(payload: IntakePayload): NormalizedLead {
     primaryGoal: pickString(payload.Primary_Goal, payload.primaryGoal),
     beneficiary: pickString(payload.Beneficiary, payload.beneficiary),
     beneficiaryType: pickString(
+      payload.Relationship_Of_Beneficiary,
       payload.beneficiary_type_thom,
       payload.Beneficiary_Type,
       payload.beneficiaryType,
