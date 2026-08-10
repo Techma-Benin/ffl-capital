@@ -1,6 +1,13 @@
 import type { Lead, LeadDelivery, Partner } from "@prisma/client";
 import { formatUsd } from "@/lib/format-money";
 import {
+  escapeHtml,
+  partnerEmailCtaButton,
+  partnerEmailFieldRows,
+  resolvePartnerAbsoluteUrl,
+  wrapPartnerEmailHtml,
+} from "@/lib/email/email-layout";
+import {
   resolveLeadTypeDisplay,
   type CategoryLabelSource,
 } from "@/lib/lead-categories/category-labels";
@@ -68,56 +75,71 @@ export function buildLeadDeliveryPayload(
   };
 }
 
-function fieldRow(label: string, value: string | null | undefined): string {
-  if (!value) return "";
-  return `<tr><td style="padding:4px 12px 4px 0;color:#64748b;vertical-align:top">${label}</td><td style="padding:4px 0">${value}</td></tr>`;
-}
-
 export function buildLeadDeliveryEmailHtml(
   delivery: LeadDelivery,
   lead: Lead,
   partner: Partner,
   categories: CategoryLabelSource[] = [],
+  options: {
+    appOrigin?: string;
+    leadUrl?: string;
+  } = {},
 ): string {
   const payload = buildLeadDeliveryPayload(delivery, lead, partner, categories);
-  const certLink = lead.trustedformCertUrl
-    ? `<p><a href="${lead.trustedformCertUrl}">TrustedForm certificate</a></p>`
-    : "";
+  const firstName = partner.firstName.trim() || "there";
+  const leadUrl =
+    options.leadUrl?.trim() ||
+    resolvePartnerAbsoluteUrl(
+      `/partner/leads/${delivery.id}`,
+      options.appOrigin,
+    );
 
-  const rows = [
-    fieldRow("Name", `${lead.firstName} ${lead.lastName}`),
-    fieldRow("Email", lead.email),
-    fieldRow("Phone", lead.phone),
-    fieldRow("Address", lead.address),
-    fieldRow("City", lead.city),
-    fieldRow("State", lead.state),
-    fieldRow("Zip", lead.zip),
-    fieldRow("DOB", lead.dob),
-    fieldRow("Age", lead.age),
-    fieldRow("Type", payload.leadTypeLabel),
-    fieldRow("Intent", lead.intent),
-    fieldRow("Have IUL", lead.haveIul),
-    fieldRow("Primary Goal", lead.primaryGoal),
-    fieldRow("State (live in)", lead.stateYouCurrentlyLiveIn),
-    fieldRow("TCPA Consent", lead.tcpaConsent),
-    fieldRow("TCPA Language", lead.tcpaLanguage),
-    fieldRow("LeadiD Token", lead.leadidToken),
-    fieldRow("Source", lead.source),
-    fieldRow("Landing Page", lead.landingPage),
-    fieldRow("Sub ID", lead.subId),
-    fieldRow("Pub ID", lead.pubId),
-    fieldRow("External ID", lead.externalId),
-    fieldRow("Boberdoo Lead Type", lead.boberdooLeadType),
-    fieldRow("IP Address", lead.ipAddress),
-    fieldRow("User Agent", lead.userAgent),
-    fieldRow("Channel", delivery.channel),
-    fieldRow("Price", formatUsd(delivery.price)),
-    fieldRow("Received", new Date(lead.receivedAt).toLocaleString()),
-  ].join("");
+  const fullName = `${lead.firstName} ${lead.lastName}`.trim();
 
-  return `
-    <h2>New lead delivered</h2>
-    <table style="border-collapse:collapse;font-size:14px;line-height:1.5">${rows}</table>
-    ${certLink}
-  `;
+  const rowsHtml = partnerEmailFieldRows([
+    { label: "Name", value: fullName || null },
+    { label: "Phone", value: lead.phone },
+    { label: "Email", value: lead.email },
+    { label: "Address", value: lead.address },
+    { label: "City", value: lead.city },
+    { label: "State", value: lead.state },
+    { label: "Zip", value: lead.zip },
+    { label: "DOB", value: lead.dob },
+    { label: "Age", value: lead.age },
+    { label: "Type", value: payload.leadTypeLabel },
+    { label: "Intent", value: lead.intent },
+    { label: "Have IUL", value: lead.haveIul },
+    { label: "Primary Goal", value: lead.primaryGoal },
+    { label: "State (live in)", value: lead.stateYouCurrentlyLiveIn },
+    { label: "TCPA Consent", value: lead.tcpaConsent },
+    { label: "TCPA Language", value: lead.tcpaLanguage },
+    { label: "LeadiD Token", value: lead.leadidToken },
+    { label: "TrustedForm", value: lead.trustedformCertUrl },
+    { label: "Source", value: lead.source },
+    { label: "Landing Page", value: lead.landingPage },
+    { label: "Sub ID", value: lead.subId },
+    { label: "Pub ID", value: lead.pubId },
+    { label: "External ID", value: lead.externalId },
+    { label: "Boberdoo Lead Type", value: lead.boberdooLeadType },
+    { label: "IP Address", value: lead.ipAddress },
+    { label: "User Agent", value: lead.userAgent },
+    { label: "Channel", value: delivery.channel },
+    { label: "Price", value: formatUsd(delivery.price) },
+    { label: "Received", value: new Date(lead.receivedAt).toLocaleString() },
+  ]);
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px">Hello ${escapeHtml(firstName)},</p>
+    <p style="margin:0 0 20px">We have delivered a new lead to your account. Details are below.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+      ${rowsHtml}
+    </table>
+    ${partnerEmailCtaButton(leadUrl, "Open in portal")}
+  `.trim();
+
+  return wrapPartnerEmailHtml({
+    title: "New lead delivered",
+    bodyHtml,
+    footerNote: `Delivered to ${partner.email}.`,
+  });
 }

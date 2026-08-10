@@ -1,3 +1,9 @@
+import {
+  escapeHtml,
+  escapeHtmlMultiline,
+  partnerEmailFieldRows,
+  wrapPartnerEmailHtml,
+} from "@/lib/email/email-layout";
 import { sendResendEmail } from "@/lib/email/send-resend-email";
 import { getContactRecipientEmail } from "@/lib/settings/app-settings";
 import {
@@ -33,18 +39,6 @@ export type DeliverPartnerContactDeps = {
   sendEmail?: typeof sendResendEmail;
 };
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function formatMessageHtml(message: string): string {
-  return escapeHtml(message.trim()).replace(/\n/g, "<br/>");
-}
-
 export function buildAdminContactEmail(params: {
   topic: ContactTopicValue;
   message: string;
@@ -53,22 +47,31 @@ export function buildAdminContactEmail(params: {
 }): { subject: string; html: string } {
   const topicLabel = resolveContactTopicLabel(params.topic, params.customTopic);
   const subject = `[Partner Portal] ${topicLabel}`;
-  const safeMessage = formatMessageHtml(params.message);
+  const safeMessage = escapeHtmlMultiline(params.message.trim());
+  const metaRows = partnerEmailFieldRows([
+    {
+      label: "Partner",
+      value: `${params.partner.firstName} ${params.partner.lastName}`.trim(),
+    },
+    { label: "Email", value: params.partner.email },
+    { label: "Partner ID", value: params.partner.id },
+    { label: "Status", value: params.partner.status },
+  ]);
 
-  const html = `
-    <div style="font-family:system-ui,sans-serif;color:#0f172a">
-      <p><strong>Topic:</strong> ${escapeHtml(topicLabel)}</p>
-      <p><strong>Message:</strong></p>
-      <p>${safeMessage}</p>
-      <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0" />
-      <p style="color:#64748b;font-size:13px">
-        <strong>Partner:</strong> ${escapeHtml(params.partner.firstName)} ${escapeHtml(params.partner.lastName)}<br/>
-        <strong>Email:</strong> ${escapeHtml(params.partner.email)}<br/>
-        <strong>Partner ID:</strong> ${escapeHtml(params.partner.id)}<br/>
-        <strong>Status:</strong> ${escapeHtml(params.partner.status)}
-      </p>
-    </div>
+  const bodyHtml = `
+    <p style="margin:0 0 8px"><strong>Topic</strong></p>
+    <p style="margin:0 0 16px">${escapeHtml(topicLabel)}</p>
+    <p style="margin:0 0 8px"><strong>Message</strong></p>
+    <p style="margin:0 0 24px">${safeMessage}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+      ${metaRows}
+    </table>
   `.trim();
+
+  const html = wrapPartnerEmailHtml({
+    title: "Partner contact request",
+    bodyHtml,
+  });
 
   return { subject, html };
 }
@@ -83,21 +86,26 @@ export function buildPartnerConfirmationEmail(params: {
   const topicLabel = resolveContactTopicLabel(params.topic, params.customTopic);
   const subject = "We received your message";
   const firstName = params.partnerFirstName.trim() || "there";
-  const safeMessage = formatMessageHtml(params.message);
+  const safeMessage = escapeHtmlMultiline(params.message.trim());
+  const rowsHtml = partnerEmailFieldRows([
+    { label: "Topic", value: topicLabel },
+  ]);
 
-  const html = `
-    <div style="font-family:system-ui,sans-serif;color:#0f172a">
-      <p>Hi ${escapeHtml(firstName)},</p>
-      <p>We received your message and will reply soon.</p>
-      <p><strong>Topic:</strong> ${escapeHtml(topicLabel)}</p>
-      <p><strong>Message:</strong></p>
-      <p>${safeMessage}</p>
-      <p style="color:#64748b;font-size:13px">
-        This is an automated confirmation. Please do not reply to this email —
-        the administrator will contact you at ${escapeHtml(params.partnerEmail)}.
-      </p>
-    </div>
+  const bodyHtml = `
+    <p style="margin:0 0 16px">Hello ${escapeHtml(firstName)},</p>
+    <p style="margin:0 0 20px">We received your message and will reply soon.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+      ${rowsHtml}
+    </table>
+    <p style="margin:20px 0 8px"><strong>Message</strong></p>
+    <p style="margin:0">${safeMessage}</p>
   `.trim();
+
+  const html = wrapPartnerEmailHtml({
+    title: "Message received",
+    bodyHtml,
+    footerNote: `This is an automated confirmation. Please do not reply to this email — the administrator will contact you at ${params.partnerEmail}.`,
+  });
 
   return { subject, html };
 }

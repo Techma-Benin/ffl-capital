@@ -88,6 +88,9 @@ export type GrantPartnerCreditsInput = {
   note: string;
   adminUser: User;
   isSuperAdmin: boolean;
+  /** Absolute wallet URL, or app origin used to build `/partner/wallet`. */
+  walletUrl?: string;
+  appOrigin?: string;
 };
 
 export type GrantPartnerCreditsResult = {
@@ -153,8 +156,9 @@ export async function grantPartnerCredits(
   const emailContent = buildPartnerCreditGrantEmail({
     partner: partnerForEmail,
     amount: input.amount,
-    newBalance,
     note: trimmedNote,
+    walletUrl: input.walletUrl,
+    appOrigin: input.appOrigin,
   });
 
   const emailResult = await sendEmail({

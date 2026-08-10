@@ -86,11 +86,12 @@ describe("partner contact email builders", () => {
     });
 
     assert.equal(email.subject, "We received your message");
-    assert.match(email.html, /Hi Ada/);
+    assert.match(email.html, /Hello Ada/);
     assert.match(email.html, /Refund request/);
     assert.match(email.html, /Please refund lead #42/);
     assert.match(email.html, /do not reply to this email/);
     assert.match(email.html, /partner@example.com/);
+    assert.match(email.html, /FFL Capital/);
   });
 
   test("admin email uses custom topic when topic is other", () => {

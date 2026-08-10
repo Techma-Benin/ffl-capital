@@ -1,41 +1,75 @@
+import {
+  escapeHtml,
+  partnerEmailCtaButton,
+  partnerEmailFieldRows,
+  resolvePartnerAbsoluteUrl,
+  wrapPartnerEmailHtml,
+} from "@/lib/email/email-layout";
 import { endpointHostForDisplay } from "./outbound-url-display";
 
 export function buildCrmOutboundFailureEmail(params: {
+  partnerFirstName?: string;
   leadId: string;
   deliveryId: string;
   endpointUrl: string;
   statusCode?: number;
   errorMessage: string;
+  crmSettingsUrl?: string;
+  appOrigin?: string;
 }): { subject: string; html: string } {
+  const firstName = params.partnerFirstName?.trim() || "there";
   const host = endpointHostForDisplay(params.endpointUrl);
   const subject = "CRM delivery failed";
-  const statusLine =
-    params.statusCode !== undefined
-      ? `<p><strong>HTTP status:</strong> ${params.statusCode}</p>`
-      : "";
+  const crmSettingsUrl =
+    params.crmSettingsUrl?.trim() ||
+    resolvePartnerAbsoluteUrl(
+      "/partner/settings/crm-outbound",
+      params.appOrigin,
+    );
 
-  const html = `
-    <div style="font-family:system-ui,sans-serif;color:#0f172a">
-      <p>Your CRM endpoint did not accept the lead delivery.</p>
-      <p><strong>Lead ID:</strong> ${params.leadId}</p>
-      <p><strong>Delivery ID:</strong> ${params.deliveryId}</p>
-      <p><strong>Endpoint:</strong> ${host}</p>
-      ${statusLine}
-      <p><strong>Reason:</strong> ${params.errorMessage}</p>
-      <p style="color:#64748b;font-size:13px">Lead payload was not included in this notice for security.</p>
-    </div>
+  const rowsHtml = partnerEmailFieldRows([
+    { label: "Lead ID", value: params.leadId },
+    { label: "Delivery ID", value: params.deliveryId },
+    { label: "Endpoint", value: host },
+    {
+      label: "HTTP status",
+      value:
+        params.statusCode !== undefined ? String(params.statusCode) : null,
+    },
+    { label: "Reason", value: params.errorMessage },
+  ]);
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px">Hello ${escapeHtml(firstName)},</p>
+    <p style="margin:0 0 20px">
+      We were unable to deliver a lead to your CRM endpoint. Please review the details below and update your CRM settings if needed.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+      ${rowsHtml}
+    </table>
+    ${partnerEmailCtaButton(crmSettingsUrl, "Open CRM settings")}
   `.trim();
+
+  const html = wrapPartnerEmailHtml({
+    title: "CRM delivery failed",
+    bodyHtml,
+    footerNote:
+      "Lead payload was not included in this notice for security.",
+  });
 
   return { subject, html };
 }
 
 export async function sendCrmOutboundFailureEmail(params: {
   toEmail: string;
+  partnerFirstName?: string;
   leadId: string;
   deliveryId: string;
   endpointUrl: string;
   statusCode?: number;
   errorMessage: string;
+  crmSettingsUrl?: string;
+  appOrigin?: string;
 }): Promise<{ sent: boolean; error?: string }> {
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {

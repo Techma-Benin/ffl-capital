@@ -212,6 +212,7 @@ export async function deliverLead(leadDeliveryId: string): Promise<DeliverLeadRe
 
       const failureEmail = await sendCrmOutboundFailureEmail({
         toEmail: partnerEmail,
+        partnerFirstName: partner.firstName,
         leadId: lead.id,
         deliveryId: leadDeliveryId,
         endpointUrl: crmConfig.endpointUrl,

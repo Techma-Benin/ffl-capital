@@ -40,6 +40,7 @@ export async function POST(
       note: parsed.data.note,
       adminUser: authResult.user!,
       isSuperAdmin,
+      appOrigin: request.nextUrl.origin,
     });
 
     return NextResponse.json({
