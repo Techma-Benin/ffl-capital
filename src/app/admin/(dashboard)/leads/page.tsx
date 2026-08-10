@@ -217,6 +217,7 @@ export default async function AdminLeadsPage({
               categories,
             }).label,
             status: lead.status,
+            liveSaleChannel: lead.liveSaleChannel,
             available: lead.available,
             receivedAt: lead.receivedAt,
             trustedformCertUrl: lead.trustedformCertUrl,

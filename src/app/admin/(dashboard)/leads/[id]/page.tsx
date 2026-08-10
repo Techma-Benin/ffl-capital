@@ -194,6 +194,7 @@ export default async function AdminLeadDetailPage({
         dob: lead.dob,
         age: lead.age,
         status: lead.status,
+        liveSaleChannel: lead.liveSaleChannel,
         available: lead.available,
         refundable: lead.refundable,
         leadType: lead.leadType ?? "",

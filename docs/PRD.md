@@ -288,7 +288,8 @@ Phase D — Migration Replit (livraison client)
 #### Gestion leads
 - Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live. L’éditeur peut **Apply** un brouillon sans le persister ; la liste l’utilise immédiatement, l’éditeur se ferme, et une action **Save view** reste visible jusqu’à l’enregistrement.
 - Un type sélectionné inclut les leads résolus dans ce type et les leads à matchs multiples où ce type est candidat ; plusieurs types sont combinés en OR
-- Détail lead : contact, TrustedForm cert, historique deliveries, statut Integrity ; Tracking (phase routage, last/next attempt, bloc Integrity) ; **diagnostics payload** (champs critères catégories) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
+- Badge statut `integrity_posted` : destination Integrity via `liveSaleChannel` — **Integrity · RealTime** / **Integrity · Storefront** (fallback **Integrity** si canal inconnu) ; le filtre de vue « Integrity » (`integrity_posted`) reste unique
+- Détail lead : contact, TrustedForm cert, historique deliveries, **même badge statut Integrity** (Realtime/Storefront) ; Tracking (phase routage, last/next attempt, bloc Integrity) ; **diagnostics payload** (champs critères catégories) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
 - Actions manuelles : reprocesser (allowlist partners si Partner actif ; pas de fallback Storefront), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
 
 #### Remboursements

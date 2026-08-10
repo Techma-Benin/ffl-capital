@@ -4,8 +4,8 @@ import { useCallback, useState } from "react";
 import { PortalAnchoredMenuContent } from "@/components/ui/portal-anchored-menu-content";
 import { usePortalAnchoredMenu } from "@/hooks/use-portal-anchored-menu";
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
-import { Badge } from "@/components/ui/badge";
 import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
+import { LeadStatusBadge } from "@/components/leads/lead-status-badge";
 import {
   PortalDataTable,
   portalTableCell,
@@ -38,6 +38,7 @@ type LeadRow = {
   leadType: string;
   leadTypeLabel: string;
   status: string;
+  liveSaleChannel: string | null;
   available: boolean;
   receivedAt: Date;
   trustedformCertUrl: string | null;
@@ -309,7 +310,10 @@ export function AdminLeadsTable({
       case "status":
         return (
           <td key={key} className={cellClass({ first, last })}>
-            <LeadStatusBadge status={lead.status} />
+            <LeadStatusBadge
+              status={lead.status}
+              liveSaleChannel={lead.liveSaleChannel}
+            />
           </td>
         );
       case "partner":
@@ -414,19 +418,4 @@ export function AdminLeadsTable({
       </PortalDataTable>
     </div>
   );
-}
-
-function LeadStatusBadge({ status }: { status: string }) {
-  const config: Record<
-    string,
-    { variant: "green" | "yellow" | "red" | "blue" | "slate"; label: string }
-  > = {
-    delivered: { variant: "green", label: "Delivered" },
-    unmatched: { variant: "yellow", label: "Unmatched" },
-    integrity_posted: { variant: "blue", label: "Integrity" },
-    aged_listed: { variant: "slate", label: "Aged" },
-    dead: { variant: "red", label: "Dead" },
-  };
-  const c = config[status] ?? { variant: "slate" as const, label: status };
-  return <Badge variant={c.variant}>{c.label}</Badge>;
 }

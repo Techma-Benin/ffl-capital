@@ -167,7 +167,7 @@ POST /api/leads/intake
 
 **`leads` (catégorisation) :** `lead_type` (string, nullable) ; `category_resolution` (`matched` \| `no_match` \| `multiple_matches`) ; `category_candidate_types` (text[], types des catégories qui ont matché). Zéro ou plusieurs matchs → `status=review`, `available=false`, pas de matching partenaire ni post Integrity.
 
-**`leads` (provenance vente live, Phase 2) :** `live_sold_at` (timestamp nullable) ; `live_sale_channel` (`partner` \| `integrity_realtime` \| `integrity_storefront`). Posés par `claimLiveSale` à la première vente live automatique ; bloquent le routage lifecycle tant que non réinitialisés (redelivery admin explicite).
+**`leads` (provenance vente live, Phase 2) :** `live_sold_at` (timestamp nullable) ; `live_sale_channel` (`partner` \| `integrity_realtime` \| `integrity_storefront`). Posés par `claimLiveSale` à la première vente live automatique ; bloquent le routage lifecycle tant que non réinitialisés (redelivery admin explicite). Sur liste/détail admin, le badge statut pour `integrity_posted` utilise `formatLeadStatusLabel` (`src/lib/leads/lead-status-label.ts`) : `integrity_realtime` → **Integrity · RealTime**, `integrity_storefront` → **Integrity · Storefront**, sinon **Integrity**. Le filtre `statusSlice` `integrity_posted` reste libellé « Integrity » (pas de slice par canal).
 
 **`leads` (file de routage, août 2026) :** `last_routing_attempt_at`, `next_routing_attempt_at`, `routing_attempt_count` ; `integrity_blocked_at` / `integrity_blocked_reason` (rejet métier terminal) ; `routing_claimed_at` / `routing_claimed_by` / `routing_claim_expires_at` (lease cron ou hold manuel). Index due : `(status, available, next_routing_attempt_at)` et `(status, available, received_at)` ; index claim : `routing_claim_expires_at`.
 
@@ -366,6 +366,8 @@ Quand la classification change, une transaction met à jour ensemble `leadType`,
 ### Présentation et libellés UI
 
 Modules : `category-presentation.ts`, `category-labels.ts`. Les libellés des catégories affichées (admin, partner, emails, filtres) viennent de la table `lead_categories`, pas de constantes IUL hardcodées. Les libellés d’anomalie sont fixes : **Unclassified** (`no_match` / `leadType` vide) et **Multiple match** (avec chips candidats libellés depuis la table) ; le filtre Type affiche **Multiple category match**. Helpers : `resolveLeadCategoryPresentation`, `loadEnabledCategoryLabels`, `buildCategoryFilterOptions`.
+
+Libellés de statut lead (admin) : `formatLeadStatusLabel` (`lead-status-label.ts`) — pour `integrity_posted`, affine l’affichage avec `liveSaleChannel` (**Integrity · RealTime** / **Integrity · Storefront** / **Integrity**). Badge partagé : `lead-status-badge.tsx` (prop optionnelle `liveSaleChannel`).
 
 ### Diagnostics payload (détail lead admin)
 
@@ -764,3 +766,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-07 | Integrity sync success → sold immédiat (`soldAt`, `claimLiveSale`, `integrity_accepted`) ; badge **Sold** ; webhook success idempotent ; Reprocess posting = POST immédiat (plus de Review payload) ; Review payload = Connection test seul ; `postedAt` rafraîchi au post/reprocess |
 | 2026-08-05 | Partner Contact Us : `POST /api/partner/contact` via Resend ; setting `contact_recipient_email` (Admin Settings → General → Platform) ; plus de `mailto:` |
 | 2026-08-10 | Stripe audit : idempotence webhook (`processed_stripe_events` + unique PI) ; ledger atomique `increment` ; subscribe annule sub active avant nouveau Checkout ; events `invoice.payment_failed` / `customer.subscription.deleted` ; crédit abo via `invoice.paid` seulement |
+| 2026-08-10 | Admin lead status badge : `integrity_posted` + `liveSaleChannel` → **Integrity · RealTime** / **Integrity · Storefront** (fallback **Integrity**) ; helper `formatLeadStatusLabel` ; filtre slice inchangé |

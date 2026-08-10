@@ -1,18 +1,30 @@
 import { Badge } from "@/components/ui/badge";
+import { formatLeadStatusLabel } from "@/lib/leads/lead-status-label";
 
-export function LeadStatusBadge({ status }: { status: string }) {
-  const config: Record<
+export function LeadStatusBadge({
+  status,
+  liveSaleChannel,
+}: {
+  status: string;
+  liveSaleChannel?: string | null;
+}) {
+  const variantByStatus: Record<
     string,
-    { variant: "green" | "yellow" | "red" | "blue" | "slate"; label: string }
+    "green" | "yellow" | "red" | "blue" | "slate"
   > = {
-    delivered: { variant: "green", label: "Delivered" },
-    unmatched: { variant: "yellow", label: "Unmatched" },
-    integrity_posted: { variant: "blue", label: "Integrity" },
-    aged_listed: { variant: "slate", label: "Aged" },
-    dead: { variant: "red", label: "Dead" },
+    delivered: "green",
+    unmatched: "yellow",
+    integrity_posted: "blue",
+    aged_listed: "slate",
+    dead: "red",
+    review: "yellow",
   };
-  const c = config[status] ?? { variant: "slate" as const, label: status };
-  return <Badge variant={c.variant}>{c.label}</Badge>;
+  const variant = variantByStatus[status] ?? "slate";
+  return (
+    <Badge variant={variant}>
+      {formatLeadStatusLabel(status, liveSaleChannel)}
+    </Badge>
+  );
 }
 
 export function PartnerDeliveryStatusBadge({

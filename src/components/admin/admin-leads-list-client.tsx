@@ -34,6 +34,7 @@ type LeadRow = {
   leadType: string;
   leadTypeLabel: string;
   status: string;
+  liveSaleChannel: string | null;
   available: boolean;
   receivedAt: Date;
   trustedformCertUrl: string | null;
