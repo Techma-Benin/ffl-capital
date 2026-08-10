@@ -21,6 +21,7 @@ import {
   PortalSortableHeaderCell,
   type SortDirection,
 } from "@/components/ui/portal-sortable-table-header";
+import { TruncatedTextTooltip } from "@/components/ui/truncated-text-tooltip";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -652,9 +653,11 @@ export function AdminTransactionsView({
 
                       {/* Description */}
                       <td className="px-4 py-3.5 max-w-[220px]">
-                        <p className="text-sm text-slate-600 truncate">
-                          {row.description ?? "—"}
-                        </p>
+                        <TruncatedTextTooltip
+                          text={row.description}
+                          as="p"
+                          className="text-sm text-slate-600"
+                        />
                       </td>
 
                       {/* Lead */}

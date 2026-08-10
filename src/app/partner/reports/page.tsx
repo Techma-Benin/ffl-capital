@@ -9,6 +9,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { formatDateTime } from "@/lib/format-datetime";
 import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyStatValueClassName } from "@/lib/format-money";
 import { FUNDING_TRANSACTION_TYPES } from "@/lib/wallet/grant-partner-credits";
+import { TruncatedTextTooltip } from "@/components/ui/truncated-text-tooltip";
 
 export default async function PartnerReportsPage() {
   const partnerId = await getPartnerId();
@@ -108,8 +109,8 @@ export default async function PartnerReportsPage() {
                   return (
                     <tr key={t.id}>
                       <td><Badge variant={typeConfig.variant}>{typeConfig.label}</Badge></td>
-                      <td className="truncate text-slate-500" title={t.description ?? undefined}>
-                        {t.description ?? "—"}
+                      <td className="truncate text-slate-500">
+                        <TruncatedTextTooltip text={t.description} className="text-slate-500" />
                       </td>
                       <td className={moneyCellClass()}>
                         <span className={`font-semibold ${isCredit ? "text-emerald-600" : "text-red-600"}`}>

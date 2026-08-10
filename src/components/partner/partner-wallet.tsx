@@ -9,6 +9,7 @@ import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { Wallet, ArrowUpRight, ArrowsClockwise, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { formatDateTime, formatDateTimeLong } from "@/lib/format-datetime";
 import { formatUsd, moneyValueClassName } from "@/lib/format-money";
+import { TruncatedTextTooltip } from "@/components/ui/truncated-text-tooltip";
 
 const PRESET_AMOUNTS = [100, 250, 500, 1000] as const;
 
@@ -350,7 +351,11 @@ export function PartnerWalletView({
                       <div className="min-w-0 flex-1">
                         <TransactionTypeBadge type={t.type} />
                         {t.description && (
-                          <p className="mt-1.5 truncate text-xs font-medium text-slate-700">{t.description}</p>
+                          <TruncatedTextTooltip
+                            text={t.description}
+                            as="p"
+                            className="mt-1.5 text-xs font-medium text-slate-700"
+                          />
                         )}
                       </div>
                       <p className={clsx("shrink-0 text-base font-bold", moneyValueClassName, isCredit ? "text-emerald-600" : "text-red-600")}>
