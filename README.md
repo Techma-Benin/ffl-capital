@@ -107,6 +107,8 @@ pnpm run make-super-admin -- --email admin@example.com
 | GET | `/api/health` | Statut serveur + connexion DB |
 | POST | `/api/leads/intake` | Webhook LeadConduit (format Boberdoo, public, CORS) |
 | POST | `/api/wallet/checkout` | Stripe top-up (partner auth) |
+| GET/POST/DELETE | `/api/wallet/subscribe` | Auto-recharge hebdo Stripe (partner auth) |
+| POST | `/api/webhooks/stripe` | Webhook Stripe (signé) — top-up + abo |
 | POST | `/api/refunds` | Demande remboursement partner |
 | POST | `/api/partner/contact` | Contact Us partner (Resend → admin + confirmation) |
 | POST | `/api/cron/reprocess-unmatched` | Retraitement leads (Bearer CRON_SECRET) |
@@ -114,6 +116,8 @@ pnpm run make-super-admin -- --email admin@example.com
 | POST | `/api/admin/lead-routing/preview` | Preview lifecycle routing policy (admin auth) |
 
 Admin APIs : leads search/export/reprocess, **assign-category** (review), **lead-categories** CRUD, **lead-views** CRUD, **lead-routing preview**, partners, filter sets, refunds, **integrity postings** (list + detail payloads + reprocess) — voir [BACKEND.md](docs/BACKEND.md).
+
+**Stripe webhook (prod) :** après deploy, `prisma migrate deploy` (ou `bash scripts/post-merge.sh`). Dashboard → endpoint `https://ffl-capital.replit.app/api/webhooks/stripe` avec `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted`. `STRIPE_WEBHOOK_SECRET` doit matcher ce endpoint (pas une ancienne URL Replit).
 
 ## Dev tools
 

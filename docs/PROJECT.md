@@ -326,7 +326,7 @@ lead_categories                   -- classification produit (admin)
 | `POST /api/leads/intake` (format Boberdoo, CORS, public) | ✅ |
 | Pipeline intake : validate, normalize, doublons, TrustedForm, **catégories flexibles**, match, deliver | ✅ |
 | Moteur matching v2 (filter sets, limites H/J, FIFO ; exclut templates) | ✅ |
-| Wallet Stripe (top-up + abonnement hebdo) + ledger | ✅ |
+| Wallet Stripe (top-up + abonnement hebdo) + ledger (idempotence webhook / PI unique) | ✅ |
 | Emails livraison (Resend), CRM outbound POST (wizard) | ✅ |
 | Partner Contact Us (formulaire → Resend admin + confirmation ; destinataire `contact_recipient_email`) | ✅ |
 | Remboursements Type A/B (partner + admin) | ✅ |
@@ -386,7 +386,8 @@ lead_categories                   -- classification produit (admin)
 
 - [x] Top-up wallet Checkout + webhook
 - [x] Abonnement hebdomadaire auto-recharge
-- [ ] Clés prod client (après validation E2E)
+- [x] Idempotence webhook (`processed_stripe_events` + unique PaymentIntent) ; ledger atomique ; anti-stacking subscribe ; `invoice.payment_failed` / `customer.subscription.deleted`
+- [ ] Clés prod client (après validation E2E) — webhook Dashboard : 4 events ci-dessus + `STRIPE_WEBHOOK_SECRET` = endpoint prod `https://ffl-capital.replit.app/api/webhooks/stripe`
 
 ### Tests sans accès client (**disponible**)
 
@@ -438,6 +439,8 @@ Agent paie via Stripe Checkout / Payment Element (mode test)
 ```
 
 Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé cliente).
+
+**Comportement technique (août 2026) :** crédit abonnement uniquement sur `invoice.paid` (pas de double crédit sur `checkout.session.completed`) ; claim d’événement + unique PI pour éviter les doubles crédits ; nouveau subscribe annule toute sub Stripe active avant Checkout ; échec paiement / suppression sub → désactive `billing_recurrence`. Après deploy : `prisma migrate deploy` (ou `bash scripts/post-merge.sh` sur Replit).
 
 ---
 

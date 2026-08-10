@@ -136,7 +136,7 @@ POST /api/leads/intake
 
 ## Schéma base de données
 
-**Tables actuelles :** `partners`, `partner_filter_sets`, `lead_list_views`, `lead_categories`, `lead_category_criteria`, `leads`, `lead_events`, `lead_deliveries`, `refund_requests`, `transactions`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
+**Tables actuelles :** `partners`, `partner_filter_sets`, `lead_list_views`, `lead_categories`, `lead_category_criteria`, `leads`, `lead_events`, `lead_deliveries`, `refund_requests`, `transactions`, `processed_stripe_events`, `billing_recurrence`, `resale_postings`, `app_settings`, `migration_jobs`.
 
 **`partner_filter_sets` :** sets live (`partnerId` requis, `isTemplate=false`) et templates admin (`partnerId` null, `isTemplate=true`). Ancienne table `filter_set_templates` migrée puis droppée (`20260724200000_unify_filter_set_templates`). Colonne `description` retirée (`20260724210000_drop_partner_filter_set_description`).
 
@@ -157,8 +157,11 @@ POST /api/leads/intake
 - `20260807192500_align_iul_category_intent_type_criteria` — critères IUL : `SRC=IUL_LeadConduit` + `Intent_Type` (`Standard` / `High`) ; remplace l’ancien SRC high-intent seul
 - `20260810100000_add_admin_grant_transaction_type` — `TransactionType.admin_grant` (crédits wallet accordés par admin)
 - `20260810120000_add_transaction_acknowledged_at` — `transactions.acknowledged_at` (modal in-app partenaire pour crédits admin ; backfill des grants existants)
+- `20260810140000_stripe_webhook_idempotency` — table `processed_stripe_events` ; unique sur `transactions.stripe_payment_intent_id` (doublons PI : garde la plus ancienne, nullifie les suivantes — ne recalcule pas les soldes historiques)
 
-**`transactions.type` :** `top_up`, `admin_grant`, `lead_purchase`, `aged_purchase`, `refund`, `reprocessing_fee`. Les crédits admin (`admin_grant`) sont append-only comme les top-ups ; audit dans `description` (`{note} - by {Admin Name}` ou `by {Admin Name}` si note vide). `acknowledged_at` null = notification in-app partenaire en attente (modal portail).
+**`transactions.type` :** `top_up`, `admin_grant`, `lead_purchase`, `aged_purchase`, `refund`, `reprocessing_fee`. Les crédits admin (`admin_grant`) sont append-only comme les top-ups ; audit dans `description` (`{note} - by {Admin Name}` ou `by {Admin Name}` si note vide). `acknowledged_at` null = notification in-app partenaire en attente (modal portail). `stripe_payment_intent_id` unique (nullable) — empêche un double crédit pour le même PaymentIntent Stripe.
+
+**`processed_stripe_events` :** idempotence webhook Stripe — `id` = `event.id` Stripe ; claim avant crédit / maj récurrence (`src/lib/stripe/webhook-idempotency.ts`).
 
 **`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`. Defaults IUL : `traditional_iul` / `high_intent_iul` partagent `SRC=IUL_LeadConduit` et se distinguent par `Intent_Type` (`Standard` / `High`).
 
@@ -420,6 +423,35 @@ Transaction atomique à la livraison :
 
 **Grant wallet credits** : `POST /api/admin/partners/[id]/grant-credits` — admin only ; partenaire `active` uniquement ; body `{ amount, note? }` ; limites : admin régulier $0.01–$1 000, super-admin >0 sans plafond ; `creditWallet(..., admin_grant)` + email partner (best-effort, échec email ne rollback pas) ; service `grantPartnerCredits()` dans `src/lib/wallet/grant-partner-credits.ts`. UI : bouton « Grant credits » sur `/admin/partners/[id]` (partenaires actifs). Total Funded (partner reports/wallet + admin transactions funding) = somme `top_up` + `admin_grant`.
 
+### Wallet / Stripe
+
+**Ledger** (`src/lib/wallet/ledger.ts`) : `recordLedgerEntry` dans un `$transaction` (ou `tx` imbriqué) avec `walletBalance: { increment }` + INSERT `transactions` append-only. Solde négatif → erreur.
+
+**APIs partner :**
+
+| Méthode | Route | Rôle |
+|---------|-------|------|
+| POST | `/api/wallet/checkout` | Checkout one-shot (`mode=payment`, metadata `type=top_up`) |
+| GET/POST/DELETE | `/api/wallet/subscribe` | Abonnement hebdo ; POST annule d’abord toute sub Stripe active, puis Checkout `mode=subscription` avec `billingRecurrenceId` + `subscription_data.metadata.partnerId` |
+| POST | `/api/webhooks/stripe` | Webhook signé (`STRIPE_WEBHOOK_SECRET`) |
+
+**Webhook** (`src/app/api/webhooks/stripe/route.ts`) :
+
+| Event | Effet |
+|-------|--------|
+| `checkout.session.completed` | Top-up : crédit wallet si `type=top_up` ; subscription : active `billing_recurrence` + `stripeSubscriptionId` (pas de crédit ici) |
+| `invoice.paid` | Crédit auto-recharge (premier paiement + renouvellements) ; maj `nextChargeAt` |
+| `invoice.payment_failed` | Désactive la récurrence active du partner |
+| `customer.subscription.deleted` | Désactive la récurrence liée au `stripeSubscriptionId` |
+
+Idempotence : claim `processed_stripe_events` avant traitement ; crédit dupliqué (même `stripePaymentIntentId`) → skip (P2002) sans faire échouer le webhook.
+
+**Déploy / ops Stripe :**
+
+1. Après deploy : `prisma migrate deploy` (ou `bash scripts/post-merge.sh` sur Replit).
+2. Dashboard Stripe (prod) — endpoint `https://ffl-capital.replit.app/api/webhooks/stripe` doit écouter : `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted`.
+3. `STRIPE_WEBHOOK_SECRET` = secret de **cet** endpoint prod (pas une ancienne URL Replit éphémère).
+
 **Partner grant notifications** (portail partenaire uniquement) :
 
 | Méthode | Route | Description |
@@ -480,7 +512,7 @@ Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/
 
 | Intégration | Mode | Variables / notes |
 |-------------|------|-------------------|
-| Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — valider en test avant prod |
+| Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — webhook prod : events `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted` ; secret = endpoint `https://ffl-capital.replit.app/api/webhooks/stripe` (pas une URL Replit éphémère) ; migrate `20260810140000_stripe_webhook_idempotency` requis |
 | Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` — livraison lead **et** Partner Contact Us ; destinataire Contact Us = `app_settings.contact_recipient_email` (défaut `sami@ffl-capital.com`, UI Admin → Settings → General → Platform) |
 | CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | IntegrityCONNECT | mock/live (admin + env) | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; **Realtime IUL** : ping Azure `IsAcceptingCampaign` avant post LC (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY` — env-only, jamais en BDD) ; Storefront : post direct sans ping LC ; mode sorties via `getIntegrationsMode()` : `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` si pas de valeur DB, défaut `mock` (dev) / `live` (prod). Dropdown Mode (Settings → Integrations / Integrity Connect) visible et persistable en prod ; **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire. **Mock auto posts** : HTTP réel vers LeadConduit avec `is_test=yes` (`applyIntegrityAutoPostTestFlag`) ; ping Azure Realtime IUL skippé (auto-accept). Live auto posts ne forcent pas `is_test`. **Boberdoo parity** : posts auto toujours HTTP — pas de gate local `required-fields.ts` ; rejets LC → `integrity_rejected` (outcome `rejected`) ou `integrity_no_campaign` (outcome `no_campaign_available`) quand la raison contient « No Campaign Available » (`src/lib/integrity/no-campaign.ts`) ; body LC stocké sur l’événement. `required-fields.ts` = avertissements admin seulement. Boutons admin test : toujours HTTP réel + `is_test=yes` (mock et live) |
@@ -731,3 +763,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-07 | Admin Integrity Reprocess : modal partagé Review payload (prefill lead + `requestPayload`) ; `POST …/postings/[id]/reprocess` accepte `{ manualPayload }` ; GET détail enrichit lead + catégories ; Connection test réutilise le même modal |
 | 2026-08-07 | Integrity sync success → sold immédiat (`soldAt`, `claimLiveSale`, `integrity_accepted`) ; badge **Sold** ; webhook success idempotent ; Reprocess posting = POST immédiat (plus de Review payload) ; Review payload = Connection test seul ; `postedAt` rafraîchi au post/reprocess |
 | 2026-08-05 | Partner Contact Us : `POST /api/partner/contact` via Resend ; setting `contact_recipient_email` (Admin Settings → General → Platform) ; plus de `mailto:` |
+| 2026-08-10 | Stripe audit : idempotence webhook (`processed_stripe_events` + unique PI) ; ledger atomique `increment` ; subscribe annule sub active avant nouveau Checkout ; events `invoice.payment_failed` / `customer.subscription.deleted` ; crédit abo via `invoice.paid` seulement |
