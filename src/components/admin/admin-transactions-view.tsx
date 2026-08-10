@@ -652,7 +652,7 @@ export function AdminTransactionsView({
                       </td>
 
                       {/* Description */}
-                      <td className="px-4 py-3.5 max-w-[220px]">
+                      <td className="px-4 py-3.5 min-w-0 w-[220px] max-w-[220px]">
                         <TruncatedTextTooltip
                           text={row.description}
                           as="p"

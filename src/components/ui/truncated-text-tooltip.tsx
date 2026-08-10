@@ -9,11 +9,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+const DEFAULT_TOOLTIP_LENGTH_THRESHOLD = 40;
+
 type TruncatedTextTooltipProps = {
   text: string | null | undefined;
   className?: string;
   fallback?: string;
   as?: "span" | "p";
+  /** Show tooltip when text exceeds this length even if overflow can't be measured */
+  tooltipLengthThreshold?: number;
 };
 
 export function TruncatedTextTooltip({
@@ -21,6 +25,7 @@ export function TruncatedTextTooltip({
   className,
   fallback = "—",
   as: Component = "span",
+  tooltipLengthThreshold = DEFAULT_TOOLTIP_LENGTH_THRESHOLD,
 }: TruncatedTextTooltipProps) {
   const ref = useRef<HTMLSpanElement | HTMLParagraphElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -34,7 +39,11 @@ export function TruncatedTextTooltip({
       return;
     }
 
-    const check = () => setIsTruncated(el.scrollWidth > el.clientWidth);
+    const check = () => {
+      const overflow =
+        el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight;
+      setIsTruncated(overflow);
+    };
     check();
 
     const observer = new ResizeObserver(check);
@@ -42,12 +51,16 @@ export function TruncatedTextTooltip({
     return () => observer.disconnect();
   }, [displayText]);
 
+  const showTooltip =
+    !!displayText &&
+    (isTruncated || displayText.length > tooltipLengthThreshold);
+
   const textEl = (
     <Component
       ref={ref}
       className={clsx(
-        "truncate",
-        isTruncated && displayText && "cursor-default",
+        "block min-w-0 max-w-full w-full truncate",
+        showTooltip && "cursor-default",
         className,
       )}
     >
@@ -55,7 +68,7 @@ export function TruncatedTextTooltip({
     </Component>
   );
 
-  if (!displayText || !isTruncated) {
+  if (!showTooltip) {
     return textEl;
   }
 

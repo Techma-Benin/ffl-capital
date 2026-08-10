@@ -109,7 +109,7 @@ export default async function PartnerReportsPage() {
                   return (
                     <tr key={t.id}>
                       <td><Badge variant={typeConfig.variant}>{typeConfig.label}</Badge></td>
-                      <td className="truncate text-slate-500">
+                      <td className="min-w-0 text-slate-500">
                         <TruncatedTextTooltip text={t.description} className="text-slate-500" />
                       </td>
                       <td className={moneyCellClass()}>
