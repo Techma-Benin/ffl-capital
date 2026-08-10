@@ -291,10 +291,16 @@ function PostingModal({
                     <span className="text-slate-500">State</span>
                     <p className="font-medium text-slate-900">{lead.state}</p>
                   </div>
-                  <div className="col-span-2">
+                  <div>
                     <span className="text-slate-500">Type</span>
                     <p className="font-medium text-slate-900 capitalize">
                       {lead.leadType?.replace(/_/g, " ") ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">External ref</span>
+                    <p className="font-mono text-xs text-slate-700 mt-0.5 break-all">
+                      {posting.externalRef ?? "—"}
                     </p>
                   </div>
                 </div>
@@ -325,14 +331,6 @@ function PostingModal({
                     <span className="text-slate-500">Created at</span>
                     <p className="font-medium text-slate-900">{createdAt}</p>
                   </div>
-                  {posting.externalRef && (
-                    <div className="col-span-2">
-                      <span className="text-slate-500">External ref</span>
-                      <p className="font-mono text-xs text-slate-700 mt-0.5 break-all">
-                        {posting.externalRef}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -492,7 +490,7 @@ export function IntegrityPostingsTable({ postings }: { postings: PostingRow[] })
             <th>State</th>
             <th>Mode</th>
             <th>Status</th>
-            <th>External Ref</th>
+            <th>Lead Type</th>
             <th>Posted</th>
           </tr>
         </thead>
@@ -509,7 +507,9 @@ export function IntegrityPostingsTable({ postings }: { postings: PostingRow[] })
               <td>{p.lead.state}</td>
               <td className="capitalize">{p.mode}</td>
               <td>{statusBadge(p.status, p.integrityOutcome)}</td>
-              <td className="text-xs text-slate-500">{p.externalRef ?? "—"}</td>
+              <td className="capitalize text-xs text-slate-500">
+                {p.lead.leadType?.replace(/_/g, " ") ?? "—"}
+              </td>
               <td className="text-xs text-slate-400" suppressHydrationWarning>
                 {formatDateTime(p.postedAt)}
               </td>
