@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/portal-data-table";
 import { formatDateTime } from "@/lib/format-datetime";
 import { moneyCellClass } from "@/lib/format-money";
+import { formatIntegrityEndpointPartnerLabel } from "@/lib/leads/lead-status-label";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import {
   ArrowsClockwise,
@@ -310,21 +311,23 @@ export function AdminLeadsTable({
       case "status":
         return (
           <td key={key} className={cellClass({ first, last })}>
-            <LeadStatusBadge
-              status={lead.status}
-              liveSaleChannel={lead.liveSaleChannel}
-            />
+            <LeadStatusBadge status={lead.status} />
           </td>
         );
-      case "partner":
+      case "partner": {
+        const integrityEndpoint = formatIntegrityEndpointPartnerLabel(
+          lead.liveSaleChannel,
+        );
         return (
           <td
             key={key}
             className={cellClass({ first, last, className: "text-slate-600" })}
           >
-            {lead.partnerName ?? <span className="text-slate-300">—</span>}
+            {integrityEndpoint ??
+              lead.partnerName ?? <span className="text-slate-300">—</span>}
           </td>
         );
+      }
       case "price":
         return (
           <td

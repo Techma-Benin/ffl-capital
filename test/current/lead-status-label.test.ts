@@ -1,31 +1,37 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
+  formatIntegrityEndpointPartnerLabel,
   formatLeadStatusLabel,
   resolveIntegrityLiveSaleChannel,
 } from "@/lib/leads/lead-status-label";
 
 describe("formatLeadStatusLabel", () => {
-  test("distinguishes Integrity RealTime vs Storefront", () => {
-    assert.equal(
-      formatLeadStatusLabel("integrity_posted", "integrity_realtime"),
-      "Integrity · RealTime",
-    );
-    assert.equal(
-      formatLeadStatusLabel("integrity_posted", "integrity_storefront"),
-      "Integrity · Storefront",
-    );
-  });
-
-  test("falls back to Integrity when destination unknown", () => {
+  test("Integrity status is a plain tag (endpoint lives under Partner)", () => {
     assert.equal(formatLeadStatusLabel("integrity_posted"), "Integrity");
-    assert.equal(formatLeadStatusLabel("integrity_posted", null), "Integrity");
-    assert.equal(formatLeadStatusLabel("integrity_posted", "partner"), "Integrity");
   });
 
   test("leaves other statuses unchanged", () => {
     assert.equal(formatLeadStatusLabel("delivered"), "Delivered");
     assert.equal(formatLeadStatusLabel("unmatched"), "Unmatched");
+  });
+});
+
+describe("formatIntegrityEndpointPartnerLabel", () => {
+  test("maps Integrity channels to Partner-column endpoint labels", () => {
+    assert.equal(
+      formatIntegrityEndpointPartnerLabel("integrity_realtime"),
+      "RealTime",
+    );
+    assert.equal(
+      formatIntegrityEndpointPartnerLabel("integrity_storefront"),
+      "Storefront",
+    );
+  });
+
+  test("returns null when not an Integrity channel", () => {
+    assert.equal(formatIntegrityEndpointPartnerLabel(null), null);
+    assert.equal(formatIntegrityEndpointPartnerLabel("partner"), null);
   });
 });
 

@@ -17,11 +17,20 @@ export function resolveIntegrityLiveSaleChannel(
   return null;
 }
 
-/** Human-readable admin lead status, including Integrity destination when known. */
-export function formatLeadStatusLabel(
-  status: string,
+/**
+ * Partner-column label for Integrity endpoint when a lead was posted to Integrity.
+ * Status column keeps a plain "Integrity" badge; endpoint lives under Partner.
+ */
+export function formatIntegrityEndpointPartnerLabel(
   liveSaleChannel?: string | null,
-): string {
+): string | null {
+  if (liveSaleChannel === "integrity_storefront") return "Storefront";
+  if (liveSaleChannel === "integrity_realtime") return "RealTime";
+  return null;
+}
+
+/** Human-readable admin lead status. Integrity destination is shown under Partner. */
+export function formatLeadStatusLabel(status: string): string {
   const base: Record<string, string> = {
     delivered: "Delivered",
     unmatched: "Unmatched",
@@ -30,16 +39,6 @@ export function formatLeadStatusLabel(
     dead: "Dead",
     review: "Review",
   };
-
-  if (status === "integrity_posted") {
-    if (liveSaleChannel === "integrity_storefront") {
-      return "Integrity · Storefront";
-    }
-    if (liveSaleChannel === "integrity_realtime") {
-      return "Integrity · RealTime";
-    }
-    return "Integrity";
-  }
 
   return base[status] ?? status;
 }

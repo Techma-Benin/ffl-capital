@@ -155,10 +155,7 @@ export function AdminLeadDetailView({
         }
         badges={
           <>
-            <LeadStatusBadge
-              status={lead.status}
-              liveSaleChannel={lead.liveSaleChannel}
-            />
+            <LeadStatusBadge status={lead.status} />
             <LeadCategoryBadge
               leadType={lead.leadType || null}
               categoryResolution={lead.categoryResolution}
