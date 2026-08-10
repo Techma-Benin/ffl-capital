@@ -1,3 +1,19 @@
+/** Map live-sale channel or ResalePosting.mode → Integrity channel key for badges. */
+export function resolveIntegrityLiveSaleChannel(
+  liveSaleChannel?: string | null,
+  resaleMode?: string | null,
+): string | null {
+  if (
+    liveSaleChannel === "integrity_storefront" ||
+    liveSaleChannel === "integrity_realtime"
+  ) {
+    return liveSaleChannel;
+  }
+  if (resaleMode === "storefront") return "integrity_storefront";
+  if (resaleMode === "realtime") return "integrity_realtime";
+  return null;
+}
+
 /** Human-readable admin lead status, including Integrity destination when known. */
 export function formatLeadStatusLabel(
   status: string,

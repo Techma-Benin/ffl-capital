@@ -72,11 +72,18 @@ export async function GET() {
     const postingId = payload?.postingId;
     if (typeof postingId !== "string" || !postingIds.has(postingId)) continue;
     if (typeof payload?.outcome === "string") {
-      outcomeByPostingId.set(postingId, payload.outcome);
+      // Legacy "accepted" is the same success as posted; Sold badge uses posting status.
+      outcomeByPostingId.set(
+        postingId,
+        payload.outcome === "accepted" ? "posted" : payload.outcome,
+      );
     } else if (event.type === LeadEventType.integrity_no_campaign) {
       outcomeByPostingId.set(postingId, "no_campaign_available");
-    } else if (event.type === LeadEventType.integrity_accepted) {
-      outcomeByPostingId.set(postingId, "accepted");
+    } else if (
+      event.type === LeadEventType.integrity_accepted ||
+      event.type === LeadEventType.integrity_posted
+    ) {
+      outcomeByPostingId.set(postingId, "posted");
     }
   }
 

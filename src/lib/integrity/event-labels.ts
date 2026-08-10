@@ -1,6 +1,7 @@
 const INTEGRITY_EVENT_LABELS: Record<string, string> = {
   integrity_posted: "Posted",
-  integrity_accepted: "Accepted",
+  // Legacy: sync/webhook used to emit Accepted separately; Posted already means sold.
+  integrity_accepted: "Posted",
   integrity_rejected: "Rejected",
   integrity_skipped: "Skipped",
   integrity_error: "Error",
@@ -11,7 +12,7 @@ const INTEGRITY_EVENT_LABELS: Record<string, string> = {
 const INTEGRITY_OUTCOME_LABELS: Record<string, string> = {
   posted: "Posted",
   posted_test: "Posted (Test)",
-  accepted: "Accepted",
+  accepted: "Posted",
   rejected: "Rejected",
   skipped: "Skipped",
   error: "Error",

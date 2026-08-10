@@ -34,6 +34,7 @@ describe("No Campaign Available detection", () => {
 describe("Integrity event labels", () => {
   test("uses Title Case integrity tags", () => {
     assert.equal(formatIntegrityEventType("integrity_posted"), "Posted");
+    assert.equal(formatIntegrityEventType("integrity_accepted"), "Posted");
     assert.equal(formatIntegrityEventType("integrity_rejected"), "Rejected");
     assert.equal(formatIntegrityEventType("integrity_skipped"), "Skipped");
     assert.equal(formatIntegrityEventType("integrity_no_campaign"), "No Campaign Available");
@@ -41,6 +42,7 @@ describe("Integrity event labels", () => {
 
   test("formats integrity outcomes in Title Case", () => {
     assert.equal(formatIntegrityOutcome("posted"), "Posted");
+    assert.equal(formatIntegrityOutcome("accepted"), "Posted");
     assert.equal(formatIntegrityOutcome("rejected"), "Rejected");
     assert.equal(formatIntegrityOutcome("no_campaign_available"), "No Campaign Available");
   });

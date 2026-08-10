@@ -16,7 +16,8 @@ import {
 } from "@/lib/settings/app-settings";
 import { integrityTimelineLabel } from "@/lib/integrity/event-labels";
 import { evaluateLifecyclePolicy } from "@/lib/lead-routing/policy";
-import { ResaleStatus } from "@prisma/client";
+import { LeadEventType, ResaleStatus } from "@prisma/client";
+import { resolveIntegrityLiveSaleChannel } from "@/lib/leads/lead-status-label";
 
 const PARTNER_SHEET_AVATAR_PX = 48;
 import {
@@ -103,6 +104,8 @@ export default async function AdminLeadDetailPage({
 
   const integrityEventByPostingId = new Map<string, string>();
   for (const event of leadEvents) {
+    // Legacy Accepted events are redundant with Posted (same success).
+    if (event.type === LeadEventType.integrity_accepted) continue;
     if (!event.type.startsWith("integrity_")) continue;
     const payload =
       event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)
@@ -169,15 +172,19 @@ export default async function AdminLeadDetailPage({
 
   const grossSold = deliveries.reduce((sum, d) => sum + d.price, 0);
 
-  const events: AdminLeadDetailEvent[] = leadEvents.map((event) => ({
-    id: event.id,
-    type: event.type,
-    payload:
-      event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)
-        ? (event.payload as Record<string, unknown>)
-        : null,
-    createdAt: event.createdAt.toISOString(),
-  }));
+  const events: AdminLeadDetailEvent[] = leadEvents
+    .filter((event) => event.type !== LeadEventType.integrity_accepted)
+    .map((event) => ({
+      id: event.id,
+      type: event.type,
+      payload:
+        event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)
+          ? (event.payload as Record<string, unknown>)
+          : null,
+      createdAt: event.createdAt.toISOString(),
+    }));
+
+  const soldPosting = lead.resalePostings.find((p) => p.status === ResaleStatus.sold);
 
   return (
     <AdminLeadDetailView
@@ -194,7 +201,10 @@ export default async function AdminLeadDetailPage({
         dob: lead.dob,
         age: lead.age,
         status: lead.status,
-        liveSaleChannel: lead.liveSaleChannel,
+        liveSaleChannel: resolveIntegrityLiveSaleChannel(
+          lead.liveSaleChannel,
+          soldPosting?.mode ?? lead.resalePostings[0]?.mode,
+        ),
         available: lead.available,
         refundable: lead.refundable,
         leadType: lead.leadType ?? "",

@@ -392,7 +392,7 @@ IF resaleMode = realtime:
   → IF lead type is Realtime IUL → Azure IsAcceptingCampaign ping (env secrets)
   → POST to INTEGRITY_REALTIME_SUBMIT_URL (or vendor postUrl) — always HTTP; no local missing-field gate
   → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
-  → LC success (outcome success) → ResalePosting **sold** immediately (`soldAt`, `claimLiveSale`, `integrity_accepted`); not left `pending` for webhook
+  → LC success (outcome success) → ResalePosting **sold** immediately (`soldAt`, `claimLiveSale`, `integrity_posted`); not left `pending` for webhook. Posted implies accepted — no separate `integrity_accepted` event.
   → LC failure → integrity_rejected (outcome rejected) OR integrity_no_campaign (outcome no_campaign_available) when reason contains "No Campaign Available"; LC response body stored on event
   → classifyIntegrityFailure: NCA = retryable (lead unmatched + nextRoutingAttemptAt 15/30/60 min); other business failure = permanent Integrity block (both modes); 429/5xx/network = operational backoff
 
@@ -411,7 +411,7 @@ IF resaleMode = storefront:
 | `terminal_business_rejection` | Other LC business failure | Set `integrityBlockedAt` + reason; **no further auto Realtime or Storefront posts** (cron does not retry Integrity); continue via partners in partner-capable windows; manual Reprocess on posting modal still available |
 | `operational_failure` | Network error, HTTP 429 / 5xx (and similar transport) | Technical backoff (5 / 10 / 20 min); no permanent block |
 
-Async webhook rejections use the same classifier. Webhook `success` is idempotent if the posting was already marked sold on sync submit.
+Async webhook rejections use the same classifier. Webhook `success` marks sold + emits `integrity_posted` if not already sold on sync submit; otherwise idempotent (no second event). Legacy `integrity_accepted` enum values remain for historical rows only (UI: **Posted**).
 
 ### Unmatched lead routing (`lifecycle_routing_enabled`, default OFF)
 

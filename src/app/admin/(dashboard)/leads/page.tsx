@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LeadListViewScope } from "@prisma/client";
+import { LeadListViewScope, ResaleStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -40,6 +40,7 @@ import {
   leadViewDraftsEqual,
   parseLeadViewDraft,
 } from "@/lib/leads/lead-view-draft";
+import { resolveIntegrityLiveSaleChannel } from "@/lib/leads/lead-status-label";
 
 const BASE_PATH = "/admin/leads";
 
@@ -129,6 +130,12 @@ export default async function AdminLeadsPage({
           orderBy: { deliveredAt: "desc" },
           take: 1,
         },
+        resalePostings: {
+          where: { status: ResaleStatus.sold },
+          orderBy: { soldAt: "desc" },
+          take: 1,
+          select: { mode: true },
+        },
       },
     }),
     prisma.lead.count({ where: whereClause }),
@@ -217,7 +224,10 @@ export default async function AdminLeadsPage({
               categories,
             }).label,
             status: lead.status,
-            liveSaleChannel: lead.liveSaleChannel,
+            liveSaleChannel: resolveIntegrityLiveSaleChannel(
+              lead.liveSaleChannel,
+              lead.resalePostings[0]?.mode,
+            ),
             available: lead.available,
             receivedAt: lead.receivedAt,
             trustedformCertUrl: lead.trustedformCertUrl,

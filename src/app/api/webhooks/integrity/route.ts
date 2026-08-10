@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
 
   if (outcome === "success") {
     // Sync post path may already have marked sold; keep webhook idempotent.
+    // Posted implies accepted — do not emit a separate integrity_accepted event.
     if (posting.status !== ResaleStatus.sold) {
       await prisma.resalePosting.update({
         where: { id: resolvedPostingId },
@@ -110,10 +111,16 @@ export async function POST(request: NextRequest) {
           : "integrity_realtime";
       await claimLiveSale(posting.leadId, liveChannel);
 
-      await emitLeadEvent(posting.leadId, LeadEventType.integrity_accepted, {
+      await prisma.lead.update({
+        where: { id: posting.leadId },
+        data: { status: LeadStatus.integrity_posted },
+      });
+
+      await emitLeadEvent(posting.leadId, LeadEventType.integrity_posted, {
         postingId: resolvedPostingId,
+        mode: posting.mode,
         externalLeadId,
-        outcome: "accepted",
+        outcome: "posted",
         response: body,
       });
     }

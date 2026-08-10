@@ -129,10 +129,12 @@ export async function GET(
     }
 
     if (typeof payload.outcome === "string") {
-      outcome = payload.outcome;
-    } else if (event.type === LeadEventType.integrity_accepted) {
-      outcome = "accepted";
-    } else if (event.type === LeadEventType.integrity_posted) {
+      // Legacy "accepted" is the same success as posted.
+      outcome = payload.outcome === "accepted" ? "posted" : payload.outcome;
+    } else if (
+      event.type === LeadEventType.integrity_accepted ||
+      event.type === LeadEventType.integrity_posted
+    ) {
       outcome = "posted";
     } else if (event.type === LeadEventType.integrity_no_campaign) {
       outcome = "no_campaign_available";
@@ -154,6 +156,10 @@ export async function GET(
     }
   }
 
+  const visibleEvents = events.filter(
+    (event) => event.type !== LeadEventType.integrity_accepted,
+  );
+
   return NextResponse.json({
     posting: {
       id: posting.id,
@@ -170,7 +176,7 @@ export async function GET(
       outcome,
       requestPayload,
       response,
-      events,
+      events: visibleEvents,
     },
     categories,
   });

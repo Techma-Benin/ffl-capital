@@ -288,7 +288,7 @@ Phase D — Migration Replit (livraison client)
 #### Gestion leads
 - Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live. L’éditeur peut **Apply** un brouillon sans le persister ; la liste l’utilise immédiatement, l’éditeur se ferme, et une action **Save view** reste visible jusqu’à l’enregistrement.
 - Un type sélectionné inclut les leads résolus dans ce type et les leads à matchs multiples où ce type est candidat ; plusieurs types sont combinés en OR
-- Badge statut `integrity_posted` : destination Integrity via `liveSaleChannel` — **Integrity · RealTime** / **Integrity · Storefront** (fallback **Integrity** si canal inconnu) ; le filtre de vue « Integrity » (`integrity_posted`) reste unique
+- Badge statut `integrity_posted` : destination Integrity via `resolveIntegrityLiveSaleChannel` (`liveSaleChannel`, sinon `mode` du dernier `ResalePosting` sold) — **Integrity · RealTime** / **Integrity · Storefront** (fallback **Integrity** si canal inconnu) ; le filtre de vue « Integrity » (`integrity_posted`) reste unique
 - Détail lead : contact, TrustedForm cert, historique deliveries, **même badge statut Integrity** (Realtime/Storefront) ; Tracking (phase routage, last/next attempt, bloc Integrity) ; **diagnostics payload** (champs critères catégories) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
 - Actions manuelles : reprocesser (allowlist partners si Partner actif ; pas de fallback Storefront), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
 
@@ -502,8 +502,8 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 ### 5.12 Revente IntegrityCONNECT
 
 **Modes :**
-- **Real-time post** : vente immédiate via LeadConduit ; pour les leads **IUL Realtime**, ping Azure `IsAcceptingCampaign` avant le post (parité Boberdoo delivery 281) ; `outcome: success` sur le submit → posting **sold** immédiatement (pas d’attente webhook)
-- **Storefront post** : envoi direct LeadConduit (pas de ping gate LC) ; même sold immédiat sur success sync ; webhook callback optionnel / idempotent
+- **Real-time post** : vente immédiate via LeadConduit ; pour les leads **IUL Realtime**, ping Azure `IsAcceptingCampaign` avant le post (parité Boberdoo delivery 281) ; `outcome: success` sur le submit → posting **sold** immédiatement + événement `integrity_posted` (Posted = accepté ; pas d’événement `integrity_accepted` séparé ; pas d’attente webhook)
+- **Storefront post** : envoi direct LeadConduit (pas de ping gate LC) ; même sold immédiat + `integrity_posted` sur success sync ; webhook callback optionnel / idempotent (émet `integrity_posted` seulement si pas déjà sold)
 
 **Mock :** les posts Integrity automatiques envoient toujours du HTTP vers LeadConduit avec `is_test=yes` ; le ping Azure Realtime IUL est skippé (auto-accept). Les posts live auto ne forcent pas `is_test`. Les boutons admin test incluent toujours `is_test=yes` et, en mock, short-circuitent sans HTTP.
 

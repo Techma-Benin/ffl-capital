@@ -547,25 +547,16 @@ export async function integrityPostLead(
   });
   await claimLiveSale(leadId, liveChannel);
 
+  // Posted implies LeadConduit accepted (outcome success) — no separate Accepted event.
   await emitLeadEvent(leadId, LeadEventType.integrity_posted, {
     postingId: posting.id,
     mode: resaleMode,
     vendor: vendorKey,
     outcome: "posted",
+    externalLeadId: resolvedExternalRef,
     isTest: isTestPost,
     integrationsMode,
     requestPayload: builtPayload,
-    response: result.response ?? { externalLeadId: resolvedExternalRef },
-  });
-
-  await emitLeadEvent(leadId, LeadEventType.integrity_accepted, {
-    postingId: posting.id,
-    mode: resaleMode,
-    vendor: vendorKey,
-    externalLeadId: resolvedExternalRef,
-    outcome: "accepted",
-    isTest: isTestPost,
-    integrationsMode,
     response: result.response ?? { externalLeadId: resolvedExternalRef },
   });
 

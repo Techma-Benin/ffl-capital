@@ -204,7 +204,7 @@ IF resaleMode = realtime:
   → POST to resolved integrity_realtime postUrl (DB or INTEGRITY_REALTIME_SUBMIT_URL)
      (mock auto post: same HTTP + is_test=yes; always HTTP — no local missing-field gate)
   → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
-  → LC success (outcome success) → ResalePosting sold immediately (soldAt, claimLiveSale, integrity_accepted); not left pending for webhook
+  → LC success (outcome success) → ResalePosting sold immediately (soldAt, claimLiveSale, integrity_posted); not left pending for webhook
   → LC failure → integrity_rejected (outcome rejected) OR integrity_no_campaign (outcome no_campaign_available) when reason contains "No Campaign Available"; LC response body stored on event
 
 IF resaleMode = storefront:
@@ -254,11 +254,11 @@ LeadConduit can POST back a result after processing. This closes the loop: submi
 
 | `outcome` | Action |
 |-----------|--------|
-| `success` | `ResalePosting` → `sold` (idempotent if already sold by sync submit); emits `integrity_accepted` event (payload includes webhook `response` body); records LeadConduit `lead.id` |
+| `success` | `ResalePosting` → `sold` (idempotent if already sold by sync submit); emits `integrity_posted` when newly sold (payload includes webhook `response` body; lead status `integrity_posted`); records LeadConduit `lead.id`. Posted already means accepted — no separate `integrity_accepted` event |
 | `failure` | `ResalePosting` → `rejected`; emits `integrity_rejected` (generic) or `integrity_no_campaign` (reason contains "No Campaign Available") with reason + webhook `response` body |
 | `error` | Logs error; leaves `ResalePosting` as `pending` for retry; emits `integrity_error` event with webhook `response` body |
 
-**Sync submit note:** On the outbound POST response, LeadConduit `outcome: success` already marks the posting **sold** (`soldAt`, `claimLiveSale`, `integrity_accepted`). The webhook is optional confirmation and must stay idempotent when the posting is already sold.
+**Sync submit note:** On the outbound POST response, LeadConduit `outcome: success` already marks the posting **sold** (`soldAt`, `claimLiveSale`, `integrity_posted`). The webhook is optional confirmation and must stay idempotent when the posting is already sold. Legacy `integrity_accepted` rows may still exist in `lead_events`; UI labels them **Posted** and does not emit new ones.
 
 Outbound posts (`src/lib/integrity/post.ts`) refresh `postedAt` when a real Integrity post/reprocess starts; they store `requestPayload` and LeadConduit `response` on `integrity_posted`, `integrity_rejected`, and `integrity_no_campaign` events. Older postings may have legacy `integrity_missing_fields` events from a prior local pre-flight gate.
 
