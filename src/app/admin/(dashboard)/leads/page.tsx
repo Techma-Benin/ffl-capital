@@ -24,6 +24,7 @@ import {
   ADMIN_LEAD_SORT_KEYS,
   buildAdminLeadOrderBy,
   buildAdminLeadSortHref,
+  pageAdminLeadIdsByPartnerSort,
   parseAdminLeadSort,
 } from "@/lib/admin/admin-leads-sort";
 import {
@@ -114,43 +115,88 @@ export default async function AdminLeadsPage({
   const sortState = parseAdminLeadSort(sortJson, resolvedSearchParams);
   const orderBy = buildAdminLeadOrderBy(sortJson, resolvedSearchParams);
   const whereClause = await buildAdminLeadsWhere(filters);
+  const partnerSort = sortState.field === "partner";
+
+  const leadListInclude = {
+    leadDeliveries: {
+      include: { partner: true },
+      orderBy: { deliveredAt: "desc" as const },
+      take: 1,
+    },
+    // Posted = done on our side — use latest Integrity posting mode (any status).
+    resalePostings: {
+      orderBy: [
+        { postedAt: "desc" as const },
+        { createdAt: "desc" as const },
+      ],
+      take: 1,
+      select: { mode: true },
+    },
+  } as const;
 
   const searchQuery = filters.q?.trim();
 
-  const [leads, total, categories, rawFilterSets, reprocessPartnerPickerEnabled] =
+  const [total, categories, rawFilterSets, reprocessPartnerPickerEnabled] =
     await Promise.all([
-    prisma.lead.findMany({
+      prisma.lead.count({ where: whereClause }),
+      loadEnabledCategoryLabels(),
+      prisma.partnerFilterSet.findMany({
+        where: { isTemplate: false },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          partner: { select: { firstName: true, lastName: true } },
+        },
+      }),
+      isReprocessPartnerPickerEnabled(),
+    ]);
+
+  let leads;
+  if (partnerSort) {
+    const sortRows = await prisma.lead.findMany({
       where: whereClause,
-      orderBy,
-      skip,
-      take: pageSize,
-      include: {
+      select: {
+        id: true,
+        status: true,
+        liveSaleChannel: true,
         leadDeliveries: {
-          include: { partner: true },
           orderBy: { deliveredAt: "desc" },
           take: 1,
+          select: {
+            partner: { select: { firstName: true, lastName: true } },
+          },
         },
-        // Posted = done on our side — use latest Integrity posting mode (any status).
         resalePostings: {
           orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
           take: 1,
           select: { mode: true },
         },
       },
-    }),
-    prisma.lead.count({ where: whereClause }),
-    loadEnabledCategoryLabels(),
-    prisma.partnerFilterSet.findMany({
-      where: { isTemplate: false },
-      orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-        partner: { select: { firstName: true, lastName: true } },
-      },
-    }),
-    isReprocessPartnerPickerEnabled(),
-  ]);
+    });
+    const pageIds = pageAdminLeadIdsByPartnerSort(
+      sortRows,
+      sortState.direction,
+      skip,
+      pageSize,
+    );
+    const pageLeads = await prisma.lead.findMany({
+      where: { id: { in: pageIds } },
+      include: leadListInclude,
+    });
+    const byId = new Map(pageLeads.map((lead) => [lead.id, lead]));
+    leads = pageIds
+      .map((id) => byId.get(id))
+      .filter((lead): lead is (typeof pageLeads)[number] => Boolean(lead));
+  } else {
+    leads = await prisma.lead.findMany({
+      where: whereClause,
+      orderBy,
+      skip,
+      take: pageSize,
+      include: leadListInclude,
+    });
+  }
   const filterSets = rawFilterSets.map((filterSet) => ({
     id: filterSet.id,
     name: filterSet.partner

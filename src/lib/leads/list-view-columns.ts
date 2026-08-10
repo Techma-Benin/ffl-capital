@@ -17,7 +17,7 @@ export const ADMIN_LEAD_COLUMNS: LeadColumnDef[] = [
   { key: "state", label: "State", sortable: true, sortKey: "state" },
   { key: "type", label: "Type", sortable: true, sortKey: "leadType" },
   { key: "status", label: "Status", sortable: true, sortKey: "status" },
-  { key: "partner", label: "Partner" },
+  { key: "partner", label: "Partner", sortable: true, sortKey: "partner" },
   { key: "price", label: "Price", headerClassName: moneyHeaderClassName },
   { key: "received", label: "Received", sortable: true, sortKey: "receivedAt" },
   { key: "trustedform", label: "TrustedForm" },
