@@ -2,6 +2,7 @@ import type { Lead, LeadDelivery, Partner } from "@prisma/client";
 import { formatUsd } from "@/lib/format-money";
 import {
   escapeHtml,
+  isLoopbackOrigin,
   partnerEmailCtaButton,
   partnerEmailFieldRows,
   resolvePartnerAbsoluteUrl,
@@ -87,8 +88,9 @@ export function buildLeadDeliveryEmailHtml(
 ): string {
   const payload = buildLeadDeliveryPayload(delivery, lead, partner, categories);
   const firstName = partner.firstName.trim() || "there";
+  const rawLeadUrl = options.leadUrl?.trim();
   const leadUrl =
-    options.leadUrl?.trim() ||
+    (rawLeadUrl && !isLoopbackOrigin(rawLeadUrl) ? rawLeadUrl : null) ||
     resolvePartnerAbsoluteUrl(
       `/partner/leads/${delivery.id}`,
       options.appOrigin,

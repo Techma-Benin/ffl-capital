@@ -19,14 +19,20 @@ export function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-/** True for localhost / loopback hosts (unsafe in outbound email CTAs). */
-export function isLoopbackOrigin(url: string): boolean {
+/**
+ * True when the host is loopback / local-only (unsafe for outbound email links).
+ * Covers localhost, 127.0.0.1, and *.localhost (with or without port).
+ */
+export function isLoopbackOrigin(origin: string): boolean {
   try {
-    const parsed = new URL(url.includes("://") ? url : `http://${url}`);
+    const parsed = new URL(
+      origin.includes("://") ? origin : `http://${origin}`,
+    );
     const host = parsed.hostname.toLowerCase();
     return (
       host === "localhost" ||
       host === "127.0.0.1" ||
+      host === "[::1]" ||
       host === "::1" ||
       host.endsWith(".localhost")
     );
@@ -35,42 +41,38 @@ export function isLoopbackOrigin(url: string): boolean {
   }
 }
 
-function publicOriginFromEnv(): string | null {
-  const fromAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (fromAppUrl) {
-    const stripped = stripTrailingSlash(fromAppUrl);
-    if (!isLoopbackOrigin(stripped)) return stripped;
-  }
-
-  const firstDomain = (process.env.REPLIT_DOMAINS ?? "")
+function originFromReplitDomains(): string | null {
+  const replitDomains = process.env.REPLIT_DOMAINS ?? "";
+  const firstDomain = replitDomains
     .split(",")
     .map((d) => d.trim())
     .find(Boolean);
-  if (firstDomain) {
-    const host = firstDomain.replace(/^https?:\/\//i, "");
-    return `https://${host}`;
-  }
-
-  return null;
+  if (!firstDomain) return null;
+  const host = firstDomain.replace(/^https?:\/\//i, "");
+  return `https://${host}`;
 }
 
 /**
- * Resolve the public app origin for absolute email / invite links.
- * Prefer NEXT_PUBLIC_APP_URL (or REPLIT_DOMAINS), never bake Replit's
- * internal `localhost:5000` request origin into outbound CTAs.
+ * Resolve the public app origin for absolute email / redirect links.
+ * Prefer NEXT_PUBLIC_APP_URL when set and non-loopback; then REPLIT_DOMAINS;
+ * then an explicit origin only if it is not loopback; finally local-dev fallback.
  */
 export function resolveAppOrigin(explicitOrigin?: string | null): string {
-  const fromEnv = publicOriginFromEnv();
-  if (fromEnv) return fromEnv;
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (fromEnv) {
+    const normalized = stripTrailingSlash(fromEnv);
+    if (!isLoopbackOrigin(normalized)) return normalized;
+  }
+
+  const fromReplit = originFromReplitDomains();
+  if (fromReplit) return stripTrailingSlash(fromReplit);
 
   const fromExplicit = explicitOrigin?.trim();
   if (fromExplicit) {
-    const stripped = stripTrailingSlash(fromExplicit);
-    if (!isLoopbackOrigin(stripped)) return stripped;
+    const normalized = stripTrailingSlash(fromExplicit);
+    if (!isLoopbackOrigin(normalized)) return normalized;
   }
 
-  // Local/dev only: allow loopback when no public env URL is configured.
-  if (fromExplicit) return stripTrailingSlash(fromExplicit);
   return "http://localhost:3000";
 }
 

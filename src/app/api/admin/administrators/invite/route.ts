@@ -26,8 +26,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { email } = parsed.data;
-  // Prefer NEXT_PUBLIC_APP_URL / REPLIT_DOMAINS; ignore Replit loopback Host
-  // (localhost:5000) so invite links are not stuck on the internal port.
+  // Prefer public app URL over request origin (Replit webview is localhost:5000).
   const redirectUrl = `${resolveAppOrigin(request.nextUrl.origin)}/admin/sign-up`;
 
   const client = await clerkClient();

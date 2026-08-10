@@ -2,6 +2,7 @@ import { formatUsd } from "@/lib/format-money";
 import {
   escapeHtml,
   escapeHtmlMultiline,
+  isLoopbackOrigin,
   partnerEmailCtaButton,
   resolvePartnerAbsoluteUrl,
   wrapPartnerEmailHtml,
@@ -17,15 +18,16 @@ export function buildPartnerCreditGrantEmail(params: {
   partner: PartnerCreditGrantPartner;
   amount: number;
   note: string;
-  /** Absolute wallet URL; preferred when caller has request origin. */
+  /** Absolute wallet URL; loopback hosts are ignored in favor of public origin. */
   walletUrl?: string;
-  /** Fallback origin when walletUrl is omitted (resolved via resolveAppOrigin). */
+  /** Optional request origin; loopback (e.g. Replit localhost:5000) is ignored. */
   appOrigin?: string;
 }): { subject: string; html: string } {
   const amountFormatted = formatUsd(params.amount);
   const firstName = params.partner.firstName.trim() || "there";
+  const rawWalletUrl = params.walletUrl?.trim();
   const walletUrl =
-    params.walletUrl?.trim() ||
+    (rawWalletUrl && !isLoopbackOrigin(rawWalletUrl) ? rawWalletUrl : null) ||
     resolvePartnerAbsoluteUrl("/partner/wallet", params.appOrigin);
   const noteTrimmed = params.note.trim();
   const noteBlock = noteTrimmed

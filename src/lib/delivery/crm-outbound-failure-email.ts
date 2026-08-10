@@ -1,5 +1,6 @@
 import {
   escapeHtml,
+  isLoopbackOrigin,
   partnerEmailCtaButton,
   partnerEmailFieldRows,
   resolvePartnerAbsoluteUrl,
@@ -20,8 +21,11 @@ export function buildCrmOutboundFailureEmail(params: {
   const firstName = params.partnerFirstName?.trim() || "there";
   const host = endpointHostForDisplay(params.endpointUrl);
   const subject = "CRM delivery failed";
+  const rawCrmSettingsUrl = params.crmSettingsUrl?.trim();
   const crmSettingsUrl =
-    params.crmSettingsUrl?.trim() ||
+    (rawCrmSettingsUrl && !isLoopbackOrigin(rawCrmSettingsUrl)
+      ? rawCrmSettingsUrl
+      : null) ||
     resolvePartnerAbsoluteUrl(
       "/partner/settings/crm-outbound",
       params.appOrigin,

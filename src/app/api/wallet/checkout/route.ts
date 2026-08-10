@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requirePartner } from "@/lib/auth/session";
-import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 import { resolveAppOrigin } from "@/lib/email/email-layout";
+import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 
 const checkoutSchema = z.object({
   amount: z.number().min(25).max(10000),
@@ -32,9 +32,7 @@ export async function POST(request: NextRequest) {
     where: { id: authResult.partner.id },
   });
   const stripe = getStripe();
-  const origin = resolveAppOrigin(
-    request.headers.get("origin") ?? request.nextUrl.origin,
-  );
+  const origin = resolveAppOrigin(request.headers.get("origin"));
 
   let customerId = partner.stripeCustomerId;
   if (!customerId) {

@@ -115,4 +115,27 @@ describe("buildCrmOutboundFailureEmail", () => {
     );
     assert.match(email.html, /not included in this notice for security/i);
   });
+
+  test("ignores loopback crmSettingsUrl override when public URL is set", () => {
+    const previous = process.env.NEXT_PUBLIC_APP_URL;
+    process.env.NEXT_PUBLIC_APP_URL = "https://app.example.com";
+    try {
+      const email = buildCrmOutboundFailureEmail({
+        partnerFirstName: "Ada",
+        leadId: "lead_1",
+        deliveryId: "delivery_1",
+        endpointUrl: "https://crm.example.com/hooks/leads",
+        errorMessage: "timeout",
+        crmSettingsUrl: "https://localhost:5000/partner/settings/crm-outbound",
+      });
+      assert.match(
+        email.html,
+        /https:\/\/app\.example\.com\/partner\/settings\/crm-outbound/,
+      );
+      assert.doesNotMatch(email.html, /localhost:5000/);
+    } finally {
+      if (previous === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+      else process.env.NEXT_PUBLIC_APP_URL = previous;
+    }
+  });
 });
