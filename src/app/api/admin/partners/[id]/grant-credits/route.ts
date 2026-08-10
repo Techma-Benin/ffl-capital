@@ -9,7 +9,7 @@ import {
 
 const bodySchema = z.object({
   amount: z.number().positive(),
-  note: z.string().min(1),
+  note: z.string().optional().default(""),
 });
 
 export async function POST(

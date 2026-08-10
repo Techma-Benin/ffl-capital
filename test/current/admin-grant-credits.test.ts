@@ -64,25 +64,11 @@ describe("grant amount validation", () => {
 });
 
 describe("grant note validation", () => {
-  test("rejects blank note", () => {
-    assert.throws(
-      () => validateGrantNote("   "),
-      (err: unknown) =>
-        err instanceof GrantPartnerCreditsError &&
-        err.code === "invalid_note",
-    );
+  test("accepts blank note", () => {
+    assert.equal(validateGrantNote("   "), "");
   });
 
-  test("rejects too-short note", () => {
-    assert.throws(
-      () => validateGrantNote("ab"),
-      (err: unknown) =>
-        err instanceof GrantPartnerCreditsError &&
-        err.code === "invalid_note",
-    );
-  });
-
-  test("returns trimmed note when valid", () => {
+  test("returns trimmed note when provided", () => {
     assert.equal(validateGrantNote("  Good reason  "), "Good reason");
   });
 });
@@ -98,6 +84,15 @@ describe("buildGrantDescription", () => {
       description,
       "Granted by Jane Admin (admin@fflcapital.com): Promotional credit",
     );
+  });
+
+  test("omits note suffix when note is blank", () => {
+    const description = buildGrantDescription(
+      "Jane Admin",
+      "admin@fflcapital.com",
+      "   ",
+    );
+    assert.equal(description, "Granted by Jane Admin (admin@fflcapital.com)");
   });
 });
 

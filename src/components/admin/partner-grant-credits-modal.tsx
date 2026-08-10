@@ -44,11 +44,9 @@ export function PartnerGrantCreditsModal({
   const parsedAmount = parseFloat(amount);
   const amountValid = Number.isFinite(parsedAmount) && parsedAmount > 0;
   const noteTrimmed = note.trim();
-  const noteValid = noteTrimmed.length >= 3;
 
   function validateForm(): string | null {
     if (!amountValid) return "Enter a valid amount greater than zero.";
-    if (!noteValid) return "Note must be at least 3 characters.";
     if (!isSuperAdmin) {
       if (parsedAmount < 0.01) return "Minimum grant amount is $0.01.";
       if (parsedAmount > 1000) return "Maximum grant amount is $1,000.00.";
@@ -180,7 +178,7 @@ export function PartnerGrantCreditsModal({
                   htmlFor="grant-note"
                   className="mb-1.5 block text-xs font-semibold text-slate-700"
                 >
-                  Note (required)
+                  Note
                 </label>
                 <textarea
                   id="grant-note"
@@ -191,9 +189,6 @@ export function PartnerGrantCreditsModal({
                   placeholder="Reason for this credit grant…"
                   className="input w-full resize-y"
                 />
-                <p className="mt-1 text-xs text-slate-500">
-                  Visible in transaction history and emailed to the partner.
-                </p>
               </div>
 
               {error && (
@@ -214,10 +209,12 @@ export function PartnerGrantCreditsModal({
                     {formatUsd(parsedAmount)}
                   </dd>
                 </div>
-                <div>
-                  <dt className="text-slate-500">Note</dt>
-                  <dd className="mt-1 text-slate-900">{noteTrimmed}</dd>
-                </div>
+                {noteTrimmed ? (
+                  <div>
+                    <dt className="text-slate-500">Note</dt>
+                    <dd className="mt-1 text-slate-900">{noteTrimmed}</dd>
+                  </div>
+                ) : null}
               </dl>
 
               {error && (

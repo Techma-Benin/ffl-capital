@@ -11,7 +11,6 @@ export const FUNDING_TRANSACTION_TYPES = ["top_up", "admin_grant"] as const;
 
 const ADMIN_GRANT_MIN = 0.01;
 const ADMIN_GRANT_MAX = 1000;
-const NOTE_MIN_LENGTH = 3;
 
 export class GrantPartnerCreditsError extends Error {
   constructor(
@@ -52,14 +51,7 @@ export function validateGrantAmount(amount: number, isSuperAdmin: boolean): void
 }
 
 export function validateGrantNote(note: string): string {
-  const trimmed = note.trim();
-  if (trimmed.length < NOTE_MIN_LENGTH) {
-    throw new GrantPartnerCreditsError(
-      `Note must be at least ${NOTE_MIN_LENGTH} characters`,
-      "invalid_note",
-    );
-  }
-  return trimmed;
+  return note.trim();
 }
 
 export function buildGrantDescription(
@@ -67,7 +59,9 @@ export function buildGrantDescription(
   adminEmail: string,
   note: string,
 ): string {
-  return `Granted by ${adminName} (${adminEmail}): ${note.trim()}`;
+  const base = `Granted by ${adminName} (${adminEmail})`;
+  const trimmed = note.trim();
+  return trimmed ? `${base}: ${trimmed}` : base;
 }
 
 export function getAdminIdentityFromUser(user: User): {
