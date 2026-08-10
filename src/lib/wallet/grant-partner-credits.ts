@@ -56,12 +56,14 @@ export function validateGrantNote(note: string): string {
 
 export function buildGrantDescription(
   adminName: string,
-  adminEmail: string,
+  _adminEmail: string,
   note: string,
 ): string {
-  const base = `Granted by ${adminName} (${adminEmail})`;
   const trimmed = note.trim();
-  return trimmed ? `${base}: ${trimmed}` : base;
+  if (trimmed) {
+    return `${trimmed} - by ${adminName}`;
+  }
+  return `by ${adminName}`;
 }
 
 export function getAdminIdentityFromUser(user: User): {

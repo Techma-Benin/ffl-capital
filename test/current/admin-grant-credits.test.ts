@@ -80,10 +80,7 @@ describe("buildGrantDescription", () => {
       "admin@fflcapital.com",
       "Promotional credit",
     );
-    assert.equal(
-      description,
-      "Granted by Jane Admin (admin@fflcapital.com): Promotional credit",
-    );
+    assert.equal(description, "Promotional credit - by Jane Admin");
   });
 
   test("omits note suffix when note is blank", () => {
@@ -92,7 +89,7 @@ describe("buildGrantDescription", () => {
       "admin@fflcapital.com",
       "   ",
     );
-    assert.equal(description, "Granted by Jane Admin (admin@fflcapital.com)");
+    assert.equal(description, "by Jane Admin");
   });
 });
 
@@ -145,7 +142,7 @@ describe("grantPartnerCredits service", () => {
             assert.equal(type, "admin_grant");
             assert.equal(
               options?.description,
-              "Granted by Jane Admin (admin@fflcapital.com): Onboarding assistance",
+              "Onboarding assistance - by Jane Admin",
             );
             return {
               id: "tx_1",
