@@ -6,6 +6,7 @@ import {
   GrantPartnerCreditsError,
   grantPartnerCredits,
 } from "@/lib/wallet/grant-partner-credits";
+import { resolveAppOrigin } from "@/lib/email/email-layout";
 
 const bodySchema = z.object({
   amount: z.number().positive(),
@@ -40,7 +41,7 @@ export async function POST(
       note: parsed.data.note,
       adminUser: authResult.user!,
       isSuperAdmin,
-      appOrigin: request.nextUrl.origin,
+      appOrigin: resolveAppOrigin(request.nextUrl.origin),
     });
 
     return NextResponse.json({

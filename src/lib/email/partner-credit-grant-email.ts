@@ -19,7 +19,7 @@ export function buildPartnerCreditGrantEmail(params: {
   note: string;
   /** Absolute wallet URL; preferred when caller has request origin. */
   walletUrl?: string;
-  /** Fallback origin when walletUrl is omitted (e.g. request.nextUrl.origin). */
+  /** Fallback origin when walletUrl is omitted (resolved via resolveAppOrigin). */
   appOrigin?: string;
 }): { subject: string; html: string } {
   const amountFormatted = formatUsd(params.amount);

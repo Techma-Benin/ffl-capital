@@ -3,6 +3,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { isClerkAPIResponseError } from "@clerk/shared/error";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
+import { resolveAppOrigin } from "@/lib/email/email-layout";
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -25,9 +26,9 @@ export async function POST(request: NextRequest) {
   }
 
   const { email } = parsed.data;
-  // Derive from the actual incoming request rather than the NEXT_PUBLIC_APP_URL
-  // secret, which can drift from the real published domain (see next.config.mjs).
-  const redirectUrl = `${request.nextUrl.origin}/admin/sign-up`;
+  // Prefer NEXT_PUBLIC_APP_URL / REPLIT_DOMAINS; ignore Replit loopback Host
+  // (localhost:5000) so invite links are not stuck on the internal port.
+  const redirectUrl = `${resolveAppOrigin(request.nextUrl.origin)}/admin/sign-up`;
 
   const client = await clerkClient();
 

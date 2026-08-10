@@ -46,8 +46,9 @@ pnpm install
 
 # 2. Configurer la base de données
 cp .env.example .env
-# Remplir DATABASE_URL (Replit Postgres le fournit), CLERK_*, STRIPE_*, RESEND_* selon besoin
+# Remplir DATABASE_URL (Replit Postgres le fournit), CLERK_*, STRIPE_*, RESEND_*, NEXT_PUBLIC_APP_URL selon besoin
 # (RESEND_API_KEY + FROM_EMAIL : emails livraison + Partner Contact Us ; destinataire Contact Us dans Admin Settings)
+# (NEXT_PUBLIC_APP_URL : domaine public pour liens email / invite Clerk / retours Stripe — pas localhost en prod Replit)
 pnpm run ensure:integrity-env   # defaults Integrity manquants (idempotent)
 
 # 3. Migrations et seed

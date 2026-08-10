@@ -19,17 +19,58 @@ export function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
+/** True for localhost / loopback hosts (unsafe in outbound email CTAs). */
+export function isLoopbackOrigin(url: string): boolean {
+  try {
+    const parsed = new URL(url.includes("://") ? url : `http://${url}`);
+    const host = parsed.hostname.toLowerCase();
+    return (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host.endsWith(".localhost")
+    );
+  } catch {
+    return true;
+  }
+}
+
+function publicOriginFromEnv(): string | null {
+  const fromAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (fromAppUrl) {
+    const stripped = stripTrailingSlash(fromAppUrl);
+    if (!isLoopbackOrigin(stripped)) return stripped;
+  }
+
+  const firstDomain = (process.env.REPLIT_DOMAINS ?? "")
+    .split(",")
+    .map((d) => d.trim())
+    .find(Boolean);
+  if (firstDomain) {
+    const host = firstDomain.replace(/^https?:\/\//i, "");
+    return `https://${host}`;
+  }
+
+  return null;
+}
+
 /**
- * Resolve the public app origin for absolute email links.
- * Prefer an explicit origin (e.g. request.nextUrl.origin); else NEXT_PUBLIC_APP_URL.
+ * Resolve the public app origin for absolute email / invite links.
+ * Prefer NEXT_PUBLIC_APP_URL (or REPLIT_DOMAINS), never bake Replit's
+ * internal `localhost:5000` request origin into outbound CTAs.
  */
 export function resolveAppOrigin(explicitOrigin?: string | null): string {
+  const fromEnv = publicOriginFromEnv();
+  if (fromEnv) return fromEnv;
+
   const fromExplicit = explicitOrigin?.trim();
+  if (fromExplicit) {
+    const stripped = stripTrailingSlash(fromExplicit);
+    if (!isLoopbackOrigin(stripped)) return stripped;
+  }
+
+  // Local/dev only: allow loopback when no public env URL is configured.
   if (fromExplicit) return stripTrailingSlash(fromExplicit);
-
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (fromEnv) return stripTrailingSlash(fromEnv);
-
   return "http://localhost:3000";
 }
 
