@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/portal-data-table";
 import { formatDateTime } from "@/lib/format-datetime";
 import { moneyCellClass } from "@/lib/format-money";
-import { formatIntegrityEndpointPartnerLabel } from "@/lib/leads/lead-status-label";
+import { formatAdminLeadPartnerLabel } from "@/lib/leads/lead-status-label";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import {
   ArrowsClockwise,
@@ -315,16 +315,17 @@ export function AdminLeadsTable({
           </td>
         );
       case "partner": {
-        const integrityEndpoint = formatIntegrityEndpointPartnerLabel(
+        const partnerLabel = formatAdminLeadPartnerLabel(
+          lead.status,
           lead.liveSaleChannel,
+          lead.partnerName,
         );
         return (
           <td
             key={key}
             className={cellClass({ first, last, className: "text-slate-600" })}
           >
-            {integrityEndpoint ??
-              lead.partnerName ?? <span className="text-slate-300">—</span>}
+            {partnerLabel ?? <span className="text-slate-300">—</span>}
           </td>
         );
       }

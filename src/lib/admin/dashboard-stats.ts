@@ -8,6 +8,7 @@ import {
   loadEnabledCategoryLabels,
   resolveLeadTypeDisplay,
 } from "@/lib/lead-categories/category-labels";
+import { resolveIntegrityLiveSaleChannel } from "@/lib/leads/lead-status-label";
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -200,6 +201,8 @@ export type AdminDashboardRawLead = {
   leadType: string;
   leadTypeLabel: string;
   status: string;
+  /** Present for Partner-column Integrity endpoint display on Recent Leads. */
+  liveSaleChannel?: string | null;
   receivedAt: string;
   partnerName: string | null;
 };
@@ -256,6 +259,11 @@ export async function fetchAdminDashboardRawData(
             orderBy: { deliveredAt: "desc" },
             take: 1,
           },
+          resalePostings: {
+            orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
+            take: 1,
+            select: { mode: true },
+          },
         },
       }),
       prisma.leadDelivery.findMany({
@@ -304,6 +312,10 @@ export async function fetchAdminDashboardRawData(
           categories,
         }).label,
         status: lead.status,
+        liveSaleChannel: resolveIntegrityLiveSaleChannel(
+          lead.liveSaleChannel,
+          lead.resalePostings[0]?.mode,
+        ),
         receivedAt: lead.receivedAt.toISOString(),
         partnerName: delivery
           ? `${delivery.partner.firstName} ${delivery.partner.lastName}`

@@ -29,6 +29,22 @@ export function formatIntegrityEndpointPartnerLabel(
   return null;
 }
 
+/**
+ * Admin Partner-column display: RealTime/Storefront only for Integrity-sold
+ * leads (`integrity_posted`); otherwise the partner name (or null).
+ */
+export function formatAdminLeadPartnerLabel(
+  status: string,
+  liveSaleChannel?: string | null,
+  partnerName?: string | null,
+): string | null {
+  if (status === "integrity_posted") {
+    const endpoint = formatIntegrityEndpointPartnerLabel(liveSaleChannel);
+    if (endpoint) return endpoint;
+  }
+  return partnerName ?? null;
+}
+
 /** Human-readable admin lead status. Integrity destination is shown under Partner. */
 export function formatLeadStatusLabel(status: string): string {
   const base: Record<string, string> = {

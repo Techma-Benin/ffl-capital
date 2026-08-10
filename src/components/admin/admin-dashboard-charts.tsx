@@ -7,6 +7,7 @@ import { PortalLink } from "@/components/ui/portal-link";
 import { Badge } from "@/components/ui/badge";
 import { FileText, CalendarCheck, UsersThree, Warning } from "@/lib/icons/client";
 import { formatDateTime } from "@/lib/format-datetime";
+import { formatAdminLeadPartnerLabel } from "@/lib/leads/lead-status-label";
 
 type RecentLead = {
   id: string;
@@ -16,6 +17,7 @@ type RecentLead = {
   leadType: string;
   leadTypeLabel: string;
   status: string;
+  liveSaleChannel?: string | null;
   receivedAt: string;
   partnerName: string | null;
 };
@@ -147,7 +149,13 @@ export function AdminDashboardCharts({
                     <td>
                       <LeadStatusBadge status={lead.status} />
                     </td>
-                    <td className="text-slate-500">{lead.partnerName ?? "—"}</td>
+                    <td className="text-slate-500">
+                      {formatAdminLeadPartnerLabel(
+                        lead.status,
+                        lead.liveSaleChannel,
+                        lead.partnerName,
+                      ) ?? "—"}
+                    </td>
                     <td className="text-xs text-slate-400" suppressHydrationWarning>
                       {formatDateTime(lead.receivedAt)}
                     </td>
