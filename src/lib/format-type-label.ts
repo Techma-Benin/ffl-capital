@@ -1,5 +1,6 @@
 const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   top_up: "Top-up",
+  admin_grant: "Admin Credit",
   lead_purchase: "Lead Purchase",
   aged_purchase: "Aged Purchase",
   refund: "Refund",

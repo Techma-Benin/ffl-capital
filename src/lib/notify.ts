@@ -6,7 +6,7 @@ type NotifyOptions = {
 };
 
 function show(
-  type: "success" | "error",
+  type: "success" | "error" | "warning",
   message: string,
   options?: NotifyOptions,
 ) {
@@ -19,6 +19,8 @@ function show(
 
   if (type === "success") {
     toast.success(content, props);
+  } else if (type === "warning") {
+    toast.warning(content, props);
   } else {
     toast.error(content, props);
   }
@@ -29,4 +31,6 @@ export const notify = {
     show("success", message, options),
   error: (message: string, options?: NotifyOptions) =>
     show("error", message, options),
+  warning: (message: string, options?: NotifyOptions) =>
+    show("warning", message, options),
 };

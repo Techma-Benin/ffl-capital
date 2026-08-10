@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { currentUser } from "@clerk/nextjs/server";
 import { getClerkPartnerImageUrl } from "@/lib/auth/clerk-profile";
+import { isSuperAdminFromMetadata } from "@/lib/auth/roles";
 import { prisma } from "@/lib/db";
 import { StatCard } from "@/components/ui/stat-card";
 import { PartnerDetailEditProvider } from "@/components/admin/partner-detail-edit-provider";
@@ -18,6 +20,11 @@ export default async function AdminPartnerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const adminUser = await currentUser();
+  const isSuperAdmin = isSuperAdminFromMetadata(
+    adminUser?.publicMetadata as Record<string, unknown>,
+  );
+
   const partner = await prisma.partner.findUnique({
     where: { id },
     include: {
@@ -86,6 +93,8 @@ export default async function AdminPartnerDetailPage({
           title="Partner profile"
           partnerId={partner.id}
           partnerStatus={partner.status}
+          displayName={displayName}
+          isSuperAdmin={isSuperAdmin}
         />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">

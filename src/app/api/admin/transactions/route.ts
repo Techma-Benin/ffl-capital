@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import { Prisma, TransactionType } from "@prisma/client";
+import { FUNDING_TRANSACTION_TYPES } from "@/lib/wallet/grant-partner-credits";
 
 const PAGE_SIZE_DEFAULT = 50;
 const PAGE_SIZE_MAX = 200;
@@ -175,7 +176,12 @@ export async function GET(request: NextRequest) {
     rows,
   ] = await Promise.all([
     prisma.transaction.aggregate({
-      where: { AND: [where, { type: "top_up" }] },
+      where: {
+        AND: [
+          where,
+          { type: { in: [...FUNDING_TRANSACTION_TYPES] } },
+        ],
+      },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PartnerWalletView } from "@/components/partner/partner-wallet";
+import { FUNDING_TRANSACTION_TYPES } from "@/lib/wallet/grant-partner-credits";
 
 export default async function PartnerWalletPage() {
   const partnerId = await getPartnerId();
@@ -20,7 +21,7 @@ export default async function PartnerWalletPage() {
   ]);
 
   const totalTopUp = transactions
-    .filter((t) => t.type === "top_up")
+    .filter((t) => FUNDING_TRANSACTION_TYPES.includes(t.type as typeof FUNDING_TRANSACTION_TYPES[number]))
     .reduce((s, t) => s + Number(t.amount), 0);
 
   const totalSpent = transactions

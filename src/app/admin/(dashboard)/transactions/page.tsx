@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { AdminTransactionsView } from "@/components/admin/admin-transactions-view";
 import type { TransactionRow } from "@/components/admin/admin-transactions-view";
+import { FUNDING_TRANSACTION_TYPES } from "@/lib/wallet/grant-partner-credits";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,10 @@ export default async function AdminTransactionsPage() {
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.transaction.count(),
-    prisma.transaction.aggregate({ where: { type: "top_up" }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({
+      where: { type: { in: [...FUNDING_TRANSACTION_TYPES] } },
+      _sum: { amount: true },
+    }),
     prisma.transaction.aggregate({
       where: { type: { in: ["lead_purchase", "aged_purchase"] } },
       _sum: { amount: true },

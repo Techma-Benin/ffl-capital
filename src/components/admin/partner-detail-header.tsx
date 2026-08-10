@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ViewAsPartnerButton } from "@/components/admin/view-as-partner-button";
 import { BlockPartnerButton } from "@/components/admin/block-partner-button";
+import { PartnerGrantCreditsButton } from "@/components/admin/partner-grant-credits-button";
 import { usePartnerDetailEdit } from "@/components/admin/partner-detail-edit-provider";
 import {
   ArrowLeft,
@@ -15,12 +16,16 @@ type PartnerDetailHeaderProps = {
   title: string;
   partnerId: string;
   partnerStatus: string;
+  displayName: string;
+  isSuperAdmin: boolean;
 };
 
 export function PartnerDetailHeader({
   title,
   partnerId,
   partnerStatus,
+  displayName,
+  isSuperAdmin,
 }: PartnerDetailHeaderProps) {
   const { openPartnerEdit } = usePartnerDetailEdit();
 
@@ -37,6 +42,12 @@ export function PartnerDetailHeader({
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <PartnerGrantCreditsButton
+          partnerId={partnerId}
+          displayName={displayName}
+          partnerStatus={partnerStatus}
+          isSuperAdmin={isSuperAdmin}
+        />
         <button
           type="button"
           onClick={openPartnerEdit}

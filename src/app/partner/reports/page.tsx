@@ -8,6 +8,7 @@ import { ChartBar, FileText, TrendUp, TrendDown, ArrowCounterClockwise } from "@
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDateTime } from "@/lib/format-datetime";
 import { formatUsd, moneyCellClass, moneyHeaderClassName, moneyStatValueClassName } from "@/lib/format-money";
+import { FUNDING_TRANSACTION_TYPES } from "@/lib/wallet/grant-partner-credits";
 
 export default async function PartnerReportsPage() {
   const partnerId = await getPartnerId();
@@ -27,7 +28,9 @@ export default async function PartnerReportsPage() {
     }),
   ]);
 
-  const totalTopUp = transactions.filter(t => t.type === "top_up").reduce((s, t) => s + Number(t.amount), 0);
+  const totalTopUp = transactions
+    .filter((t) => FUNDING_TRANSACTION_TYPES.includes(t.type as typeof FUNDING_TRANSACTION_TYPES[number]))
+    .reduce((s, t) => s + Number(t.amount), 0);
   const totalLeads = transactions.filter(t => ["lead_purchase","aged_purchase"].includes(t.type)).reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
   const totalRefunds = transactions.filter(t => t.type === "refund").reduce((s, t) => s + Number(t.amount), 0);
   const refundedCount = deliveries.filter((d) => d.refundedAt).length;
@@ -94,6 +97,7 @@ export default async function PartnerReportsPage() {
                   const isCredit = amount > 0;
                   const typeMap: Record<string, { variant: "green" | "blue" | "yellow" | "slate"; label: string }> = {
                     top_up:        { variant: "green",  label: "Top-up" },
+                    admin_grant:   { variant: "green",  label: "Admin Credit" },
                     lead_purchase: { variant: "blue",   label: "Lead Purchase" },
                     aged_purchase: { variant: "blue",   label: "Aged Purchase" },
                     refund:        { variant: "yellow", label: "Refund" },

@@ -821,7 +821,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 |---------|------|-------------|
 | id | UUID PK | |
 | agent_id | FK | |
-| type | enum | top_up \| lead_purchase \| aged_purchase \| refund \| reprocessing_fee |
+| type | enum | top_up \| admin_grant \| lead_purchase \| aged_purchase \| refund \| reprocessing_fee |
 | amount | decimal | Positif = crédit, négatif = débit |
 | balance_after | decimal | Snapshot solde |
 | stripe_payment_intent_id | string nullable | |
@@ -928,6 +928,7 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 - [ ] Achat aged checkboxes → débit wallet
 - [ ] Remboursement type A → rematch priorité suivante, prix d’origine
 - [ ] Remboursement type B → crédit wallet, lead mort (pas de redistribution)
+- [ ] Admin grant credits → partenaire `active`, ledger `admin_grant`, email partner, Total Funded inclut le grant
 - [ ] Signup → portail non actif → onboarding → admin approve → ≥ 15 états → active
 - [ ] Migration import dry-run
 
