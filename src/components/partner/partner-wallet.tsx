@@ -4,6 +4,7 @@ import { useState } from "react";
 import { clsx } from "clsx";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { usePartner } from "@/components/partner/partner-provider";
 import { EmptyStateBlobIcon } from "@/components/ui/empty-state-blob-icon";
 import { Wallet, ArrowUpRight, ArrowsClockwise, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
@@ -238,11 +239,12 @@ export function PartnerWalletView({
                 <h3 className="text-sm font-semibold text-slate-900">Weekly Auto-Recharge</h3>
                 <p className="text-xs text-slate-500">Automatic weekly wallet top-up</p>
               </div>
-              {subscription?.active && !cancelConfirm && (
+              {subscription?.active && (
                 <button
                   type="button"
                   onClick={() => setCancelConfirm(true)}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  disabled={cancelPending}
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
                 >
                   <X size={12} weight={ICON_WEIGHT_LINEAR} />
                   Cancel
@@ -266,33 +268,6 @@ export function PartnerWalletView({
               <p className="mb-4 text-xs leading-relaxed text-slate-500">
                 Set a weekly amount and never miss a lead because your balance ran low.
               </p>
-            )}
-
-            {/* Cancel confirmation */}
-            {cancelConfirm && (
-              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
-                <p className="mb-3 text-xs font-medium text-red-700">
-                  Cancel your weekly auto-recharge? No further charges will be made.
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={cancelSubscription}
-                    disabled={cancelPending}
-                    className="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {cancelPending ? "Cancelling…" : "Yes, cancel"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCancelConfirm(false)}
-                    disabled={cancelPending}
-                    className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    Keep active
-                  </button>
-                </div>
-              </div>
             )}
 
             {/* Amount input + change button inline */}
@@ -388,6 +363,22 @@ export function PartnerWalletView({
         </div>
 
       </div>
+
+      <ConfirmDialog
+        open={cancelConfirm}
+        onOpenChange={(open) => {
+          if (!open && !cancelPending) setCancelConfirm(false);
+        }}
+        title="Cancel weekly auto-recharge?"
+        description="No further charges will be made."
+        confirmLabel="Yes, cancel"
+        cancelLabel="Keep active"
+        variant="danger"
+        loading={cancelPending}
+        onConfirm={() => {
+          void cancelSubscription();
+        }}
+      />
     </div>
   );
 }
