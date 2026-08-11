@@ -1,10 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { clsx } from "clsx";
 import { Badge } from "@/components/ui/badge";
 import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { Clock } from "@/lib/icons/client";
+import { formatDateTimeLong } from "@/lib/format-datetime";
 import { formatUsd, moneyValueClassName } from "@/lib/format-money";
 import { partnerAgedLeadAgeDays } from "@/lib/admin/admin-aged-leads-filters";
 import { getPartnerAgedLeadAgeChipClassNames } from "@/lib/partner/aged-lead-age-chip";
@@ -13,14 +15,21 @@ export type PartnerAgedLeadPreview = {
   id: string;
   firstName: string;
   lastName: string;
-  state: string;
+  email: string | null;
+  phone: string | null;
   address: string | null;
+  city: string | null;
+  state: string;
+  zip: string | null;
+  dob: string | null;
+  age: string | null;
   leadType: string;
   leadTypeLabel: string;
   receivedAt: string;
   intent: string;
   haveIul: string | null;
   primaryGoal: string | null;
+  stateYouCurrentlyLiveIn: string | null;
   price: number;
 };
 
@@ -36,6 +45,59 @@ function displayValue(value: string | null | undefined): string {
   return value;
 }
 
+function PreviewSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        {title}
+      </h3>
+      <dl className="divide-y divide-slate-100 border-t border-slate-100">{children}</dl>
+    </section>
+  );
+}
+
+function PreviewFieldRow({
+  label,
+  value,
+  href,
+  valueClassName,
+}: {
+  label: string;
+  value: string | null | undefined;
+  href?: string;
+  valueClassName?: string;
+}) {
+  const text = displayValue(value);
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-2.5">
+      <dt className="shrink-0 text-sm text-slate-500">{label}</dt>
+      <dd
+        className={clsx(
+          "min-w-0 text-right text-sm font-semibold text-slate-900",
+          valueClassName,
+        )}
+      >
+        {href && text !== "—" ? (
+          <a
+            href={href}
+            className="font-semibold text-slate-900 underline-offset-2 hover:underline"
+          >
+            {text}
+          </a>
+        ) : (
+          text
+        )}
+      </dd>
+    </div>
+  );
+}
+
 export function AgedLeadPreviewSheet({
   lead,
   agedDays,
@@ -47,6 +109,7 @@ export function AgedLeadPreviewSheet({
   const name = `${lead.firstName} ${lead.lastName}`.trim();
   const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
   const ageChip = getPartnerAgedLeadAgeChipClassNames(ageDays, agedDays);
+  const receivedLabel = formatDateTimeLong(lead.receivedAt) ?? "—";
 
   return (
     <Sheet
@@ -79,39 +142,45 @@ export function AgedLeadPreviewSheet({
           </div>
         </div>
 
-        <dl className="grid gap-3 sm:grid-cols-2">
-          {[
-            { label: "Price", value: formatUsd(lead.price), valueClassName: moneyValueClassName },
-            { label: "Have IUL", value: displayValue(lead.haveIul) },
-            { label: "Primary goal", value: displayValue(lead.primaryGoal) },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-xl border border-slate-100 bg-slate-50/80 p-3"
-            >
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                {item.label}
-              </dt>
-              <dd
-                className={clsx(
-                  "mt-1 text-base font-bold text-slate-900",
-                  item.valueClassName,
-                )}
-              >
-                {item.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <PreviewSection title="Pricing">
+          <PreviewFieldRow
+            label="Price"
+            value={formatUsd(lead.price)}
+            valueClassName={moneyValueClassName}
+          />
+        </PreviewSection>
 
-        {lead.address ? (
-          <div className="rounded-xl border border-slate-100 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Address
-            </p>
-            <p className="mt-1 text-sm font-medium text-slate-900">{lead.address}</p>
-          </div>
-        ) : null}
+        <PreviewSection title="Contact">
+          <PreviewFieldRow
+            label="Email"
+            value={lead.email}
+            href={lead.email ? `mailto:${lead.email}` : undefined}
+          />
+          <PreviewFieldRow
+            label="Phone"
+            value={lead.phone}
+            href={lead.phone ? `tel:${lead.phone}` : undefined}
+          />
+        </PreviewSection>
+
+        <PreviewSection title="Location">
+          <PreviewFieldRow label="Address" value={lead.address} />
+          <PreviewFieldRow label="City" value={lead.city} />
+          <PreviewFieldRow label="State" value={lead.state} />
+          <PreviewFieldRow label="Zip" value={lead.zip} />
+        </PreviewSection>
+
+        <PreviewSection title="Qualification">
+          <PreviewFieldRow label="Age" value={lead.age} />
+          <PreviewFieldRow label="DOB" value={lead.dob} />
+          <PreviewFieldRow label="Have IUL" value={lead.haveIul} />
+          <PreviewFieldRow label="Primary goal" value={lead.primaryGoal} />
+          <PreviewFieldRow
+            label="State (live in)"
+            value={lead.stateYouCurrentlyLiveIn}
+          />
+          <PreviewFieldRow label="Received" value={receivedLabel} />
+        </PreviewSection>
       </SheetBody>
     </Sheet>
   );

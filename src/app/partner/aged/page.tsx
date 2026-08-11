@@ -72,8 +72,14 @@ export default async function PartnerAgedPage({
           id: lead.id,
           firstName: lead.firstName,
           lastName: lead.lastName,
-          state: lead.state,
+          email: lead.email,
+          phone: lead.phone,
           address: lead.address,
+          city: lead.city,
+          state: lead.state,
+          zip: lead.zip,
+          dob: lead.dob,
+          age: lead.age,
           leadType: lead.leadType ?? "",
           leadTypeLabel: resolveLeadTypeDisplay({
             leadType: lead.leadType,
@@ -85,6 +91,7 @@ export default async function PartnerAgedPage({
           intent: lead.intent ?? "",
           haveIul: lead.haveIul,
           primaryGoal: lead.primaryGoal,
+          stateYouCurrentlyLiveIn: lead.stateYouCurrentlyLiveIn,
           price: resolveAgedPriceForReceivedAt(
             lead.receivedAt,
             tiers,
