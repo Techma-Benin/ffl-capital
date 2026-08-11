@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePartner } from "@/components/partner/partner-provider";
-import { ShoppingBag, Funnel, Clock } from "@/lib/icons/client";
+import { ShoppingBag, Funnel, Clock, X, ICON_WEIGHT_LINEAR } from "@/lib/icons/client";
 import { ClientTablePagination } from "@/components/ui/table-pagination";
 import { formatUsd } from "@/lib/format-money";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
@@ -177,6 +177,18 @@ export function PartnerAgedView({
     setPage(1);
   }
 
+  const hasActiveFilters =
+    filters.states.length > 0 ||
+    filters.types.length > 0 ||
+    filters.ages.length > 0;
+
+  function clearFilters() {
+    const next: AgedFilters = { states: [], types: [], ages: [] };
+    setFilters(next);
+    syncAgedFiltersToUrl(next);
+    setPage(1);
+  }
+
   function toggleLead(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -326,6 +338,16 @@ export function PartnerAgedView({
             onChange={(ages) => updateFilter("ages", ages)}
             searchable={false}
           />
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="ml-auto inline-flex items-center gap-1 rounded-sm text-xs text-slate-400 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            >
+              <X size={12} weight={ICON_WEIGHT_LINEAR} aria-hidden />
+              Clear filters
+            </button>
+          )}
         </div>
       </div>
 
