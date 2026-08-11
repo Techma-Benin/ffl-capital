@@ -8,6 +8,7 @@ import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { Clock } from "@/lib/icons/client";
 import { formatDateTimeLong } from "@/lib/format-datetime";
 import { formatUsd } from "@/lib/format-money";
+import { formatStateForIntegrity } from "@/lib/constants/us-states";
 import { partnerAgedLeadAgeDays } from "@/lib/admin/admin-aged-leads-filters";
 import { getPartnerAgedLeadAgeChipClassNames } from "@/lib/partner/aged-lead-age-chip";
 
@@ -164,7 +165,10 @@ export function AgedLeadPreviewSheet({
         <PreviewSection title="Location">
           <PreviewFieldRow label="Address" value={lead.address} />
           <PreviewFieldRow label="City" value={lead.city} />
-          <PreviewFieldRow label="State" value={lead.state} />
+          <PreviewFieldRow
+            label="State"
+            value={formatStateForIntegrity(lead.state)}
+          />
           <PreviewFieldRow label="Zip" value={lead.zip} />
         </PreviewSection>
 
