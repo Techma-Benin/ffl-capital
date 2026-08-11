@@ -23,6 +23,22 @@ import {
   loadEnabledCategoryLabels,
   resolveLeadTypeDisplay,
 } from "@/lib/lead-categories/category-labels";
+import { extractOtherPayloadFields } from "@/lib/leads/other-payload-fields";
+
+/** Payload aliases already shown via Lead columns in aged preview Qualification. */
+const AGED_PREVIEW_COLUMN_PAYLOAD_KEYS = [
+  "Beneficiary",
+  "beneficiary",
+  "Relationship_Of_Beneficiary",
+  "beneficiary_type_thom",
+  "Beneficiary_Type",
+  "beneficiaryType",
+  "Beneficiary Type",
+  "History_Of_Cancer",
+  "historyOfCancer",
+  "Mortgage_Loan_Amount",
+  "mortgageLoanAmount",
+];
 
 export default async function PartnerAgedPage({
   searchParams,
@@ -78,7 +94,6 @@ export default async function PartnerAgedPage({
           city: lead.city,
           state: lead.state,
           zip: lead.zip,
-          dob: lead.dob,
           age: lead.age,
           leadType: lead.leadType ?? "",
           leadTypeLabel: resolveLeadTypeDisplay({
@@ -91,7 +106,13 @@ export default async function PartnerAgedPage({
           intent: lead.intent ?? "",
           haveIul: lead.haveIul,
           primaryGoal: lead.primaryGoal,
-          stateYouCurrentlyLiveIn: lead.stateYouCurrentlyLiveIn,
+          beneficiary: lead.beneficiary,
+          beneficiaryType: lead.beneficiaryType,
+          historyOfCancer: lead.historyOfCancer,
+          mortgageLoanAmount: lead.mortgageLoanAmount,
+          otherAnswers: extractOtherPayloadFields(lead.rawPayload, {
+            omitKeys: AGED_PREVIEW_COLUMN_PAYLOAD_KEYS,
+          }).map(({ label, value }) => ({ label, value })),
           price: resolveAgedPriceForReceivedAt(
             lead.receivedAt,
             tiers,

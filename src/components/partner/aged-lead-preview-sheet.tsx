@@ -6,11 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { Clock } from "@/lib/icons/client";
-import { formatDateTimeLong } from "@/lib/format-datetime";
 import { formatUsd } from "@/lib/format-money";
 import { formatStateForIntegrity } from "@/lib/constants/us-states";
 import { partnerAgedLeadAgeDays } from "@/lib/admin/admin-aged-leads-filters";
 import { getPartnerAgedLeadAgeChipClassNames } from "@/lib/partner/aged-lead-age-chip";
+
+export type PartnerAgedLeadPreviewAnswer = {
+  label: string;
+  value: string;
+};
 
 export type PartnerAgedLeadPreview = {
   id: string;
@@ -22,7 +26,6 @@ export type PartnerAgedLeadPreview = {
   city: string | null;
   state: string;
   zip: string | null;
-  dob: string | null;
   age: string | null;
   leadType: string;
   leadTypeLabel: string;
@@ -30,7 +33,12 @@ export type PartnerAgedLeadPreview = {
   intent: string;
   haveIul: string | null;
   primaryGoal: string | null;
-  stateYouCurrentlyLiveIn: string | null;
+  beneficiary: string | null;
+  beneficiaryType: string | null;
+  historyOfCancer: string | null;
+  mortgageLoanAmount: string | null;
+  /** Extra intake Q&A not already covered by named columns above. */
+  otherAnswers: PartnerAgedLeadPreviewAnswer[];
   price: number;
 };
 
@@ -44,6 +52,10 @@ type Props = {
 function displayValue(value: string | null | undefined): string {
   if (value == null || value === "") return "—";
   return value;
+}
+
+function hasAnswer(value: string | null | undefined): value is string {
+  return value != null && value.trim() !== "";
 }
 
 function PreviewSection({
@@ -99,6 +111,10 @@ function PreviewFieldRow({
   );
 }
 
+function PreviewAnswerRow({ label, value }: PartnerAgedLeadPreviewAnswer) {
+  return <PreviewFieldRow label={label} value={value} />;
+}
+
 export function AgedLeadPreviewSheet({
   lead,
   agedDays,
@@ -110,7 +126,27 @@ export function AgedLeadPreviewSheet({
   const name = `${lead.firstName} ${lead.lastName}`.trim();
   const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
   const ageChip = getPartnerAgedLeadAgeChipClassNames(ageDays, agedDays);
-  const receivedLabel = formatDateTimeLong(lead.receivedAt) ?? "—";
+
+  const qualificationRows: PartnerAgedLeadPreviewAnswer[] = [
+    ...(hasAnswer(lead.age) ? [{ label: "Age", value: lead.age }] : []),
+    ...(hasAnswer(lead.haveIul) ? [{ label: "Have IUL", value: lead.haveIul }] : []),
+    ...(hasAnswer(lead.primaryGoal)
+      ? [{ label: "Primary goal", value: lead.primaryGoal }]
+      : []),
+    ...(hasAnswer(lead.beneficiary)
+      ? [{ label: "Beneficiary", value: lead.beneficiary }]
+      : []),
+    ...(hasAnswer(lead.beneficiaryType)
+      ? [{ label: "Beneficiary type", value: lead.beneficiaryType }]
+      : []),
+    ...(hasAnswer(lead.historyOfCancer)
+      ? [{ label: "History of cancer", value: lead.historyOfCancer }]
+      : []),
+    ...(hasAnswer(lead.mortgageLoanAmount)
+      ? [{ label: "Mortgage loan amount", value: lead.mortgageLoanAmount }]
+      : []),
+    ...(lead.otherAnswers ?? []).filter((row) => hasAnswer(row.value)),
+  ];
 
   return (
     <Sheet
@@ -160,9 +196,6 @@ export function AgedLeadPreviewSheet({
             value={lead.phone}
             href={lead.phone ? `tel:${lead.phone}` : undefined}
           />
-        </PreviewSection>
-
-        <PreviewSection title="Location">
           <PreviewFieldRow label="Address" value={lead.address} />
           <PreviewFieldRow label="City" value={lead.city} />
           <PreviewFieldRow
@@ -172,17 +205,13 @@ export function AgedLeadPreviewSheet({
           <PreviewFieldRow label="Zip" value={lead.zip} />
         </PreviewSection>
 
-        <PreviewSection title="Qualification">
-          <PreviewFieldRow label="Age" value={lead.age} />
-          <PreviewFieldRow label="DOB" value={lead.dob} />
-          <PreviewFieldRow label="Have IUL" value={lead.haveIul} />
-          <PreviewFieldRow label="Primary goal" value={lead.primaryGoal} />
-          <PreviewFieldRow
-            label="State (live in)"
-            value={lead.stateYouCurrentlyLiveIn}
-          />
-          <PreviewFieldRow label="Received" value={receivedLabel} />
-        </PreviewSection>
+        {qualificationRows.length > 0 ? (
+          <PreviewSection title="Qualification">
+            {qualificationRows.map((row) => (
+              <PreviewAnswerRow key={`${row.label}:${row.value}`} {...row} />
+            ))}
+          </PreviewSection>
+        ) : null}
       </SheetBody>
     </Sheet>
   );
