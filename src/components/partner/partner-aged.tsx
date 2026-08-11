@@ -430,9 +430,6 @@ export function PartnerAgedView({
                         {lead.address && (
                           <p className="mt-0.5 text-xs text-slate-400">{lead.address}</p>
                         )}
-                        {lead.primaryGoal && (
-                          <p className="text-xs text-slate-400">{lead.primaryGoal}</p>
-                        )}
                       </div>
 
                       <div className="flex shrink-0 flex-wrap items-center gap-1.5">
