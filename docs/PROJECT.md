@@ -133,7 +133,7 @@ Références Loom :
 
 **Règle métier retenue :**
 
-> **`available` = matching temps réel uniquement.** La marketplace aged utilise l’**âge du lead (J+30)** et **n’applique pas** les filter sets partenaire — filtres browse = UI (`state`, `type`, `age`) uniquement.
+> **`available` = matching temps réel uniquement.** La marketplace aged utilise l’**âge du lead** (seuil = 1ᵉʳ `aged_price_tiers`, défaut J+30) et **n’applique pas** les filter sets partenaire — filtres browse = UI (`state`, `type`, `age` = `String(minDays)`) uniquement.
 
 | Événement | `available` (temps réel) | Marketplace aged |
 |-----------|--------------------------|------------------|
@@ -536,7 +536,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | Domaine | **Mono-domaine** pour tous |
 | Email identifiants signup | **Non** — Clerk gère l’auth |
 | Aged UX V1 | **Achat unitaire + checkboxes** ; panier plus tard |
-| Tranches d’âge aged | **Oui** — `aged_price_tiers` (période + prix) éditables admin ; cooldown revente = début du tier suivant |
+| Tranches d’âge aged | **Oui** — `aged_price_tiers` (période + prix) éditables admin ; défauts 30–60@$5, 61–90@$4, 91–180@$3, 181–365@$2, 366+@$1 ; cooldown revente = début du tier suivant ; `default_aged_price` = fallback seulement |
 | Factures PDF | **Pas obligatoire** V1 |
 | Recharge wallet | **Manuelle + récurrente** toutes les deux |
 

@@ -317,7 +317,7 @@ Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil d
 
 **Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet au **prix du tier** (fallback `default_aged_price` si hors bande) ; 1ʳᵉ vente → `agedAvailableAfter` = début du tier suivant ; 2ᵉ vente → retrait permanent. Pas de garde filter set / min 15 états.
 
-**Settings** : `aged_price_tiers` (JSON `[{ minDays, maxDays|null, price }]`) éditable en admin ; à la sauvegarde, `aged_days_threshold` est synchronisé sur le `minDays` du premier tier. Helpers : `src/lib/aged/price-tiers.ts`.
+**Settings** : `aged_price_tiers` (JSON `[{ minDays, maxDays|null, price }]`, défauts 30–60@$5, 61–90@$4, 91–180@$3, 181–365@$2, 366+@$1) éditable en admin ; à la sauvegarde, `aged_days_threshold` est synchronisé sur le `minDays` du premier tier ; `default_aged_price` = fallback hors bande. Helpers : `src/lib/aged/price-tiers.ts`.
 
 ---
 

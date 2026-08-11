@@ -301,7 +301,7 @@ Phase D — Migration Replit (livraison client)
 
 #### Configuration globale
 - Prix lead temps réel par type (défaut IUL = 25 $)
-- Prix aged lead (défaut 5 $)
+- **Aged price tiers** (`/admin/settings` → table éditable `aged_price_tiers`) : bandes `{ minDays, maxDays|null, price }` — pricing marketplace + cooldown revente ; défauts 30–60@$5, 61–90@$4, 91–180@$3, 181–365@$2, 366+@$1 ; seuil marketplace = `minDays` du 1ᵉʳ tier (sync `aged_days_threshold`) ; `default_aged_price` = fallback hors bande seulement
 - **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label` (Realtime) + `integrity_label_storefront` (Storefront, fallback Realtime), prix par défaut ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
 - **Destinataire Contact Us partner** (`/admin/settings` → General → Platform) : `contact_recipient_email` (défaut `sami@ffl-capital.com`)
 - **Lead routing** (`/admin/settings` → Lead routing) : mode Partner-only vs lifecycle ; fenêtres 24 h / 48 h / mid-window primary ; automation partners 48 h–30 j ; partner picker reprocess ; intake (TrustedForm / doublons)
@@ -339,8 +339,8 @@ Phase D — Migration Replit (livraison client)
 - Historique transactions (pas de PDF facture obligatoire V1)
 
 #### Marketplace aged leads
-- Filtres **UI** (optionnels) : état, type IUL, tranche d’âge — **pas** de restriction par filter set ni par `lead_type` compte
-- Liste : même éligibilité que admin (âge ≥ seuil, `status != dead`) ; **pas** de condition `available = true`
+- Filtres **UI** (optionnels) : état, type IUL, tranche d’âge (clés `String(tier.minDays)` depuis `aged_price_tiers`) — **pas** de restriction par filter set ni par `lead_type` compte
+- Liste : même éligibilité que admin (âge ≥ seuil 1ᵉʳ tier, `status != dead`) ; **pas** de condition `available = true` ; **prix affiché par lead** selon la tranche
 - **Achat unitaire** : bouton acheter sur une ligne
 - **Sélection multiple** : checkboxes + « Acheter la sélection »
 - Débit wallet, livraison email + CRM
@@ -417,17 +417,18 @@ Phase D — Migration Replit (livraison client)
 ### 5.7 Marketplace aged leads
 
 **Éligibilité listing (séparée de `available` et des filter sets temps réel) :**
-- `now - received_at ≥ 30 jours` (seuil admin configurable)
+- `now - received_at ≥` seuil marketplace (= `minDays` du premier `aged_price_tiers`, défaut 30 ; sync `aged_days_threshold`)
 - `status != dead`
 - **Pas de condition `available = true`** — un lead déjà vendu en temps réel (`available=false`) peut être listé
 - **Pas d’application des `partner_filter_sets`** sur le browse : le partenaire voit l’inventaire aged global et filtre via l’UI (état, type, âge)
 
 **Achat partner :**
-- Manuel (unitaire ou checkboxes) ; débit wallet (prix aged config admin, défaut 5 $)
+- Manuel (unitaire ou checkboxes) ; débit wallet au **prix du tier** d’âge (`aged_price_tiers` ; fallback `default_aged_price` si hors bande)
 - Compte `active` + solde wallet suffisant
 - Lead toujours éligible aged au moment de l’achat (même règles d’âge / hors `dead`)
 - **Pas** de contrôle état ∈ filter set ni égalité `lead_type` compte (distinct du matching temps réel)
 - Créer `lead_delivery` channel=`aged`
+- 1ʳᵉ vente aged → cooldown jusqu’au début du tier suivant (`agedAvailableAfter`) ; 2ᵉ vente → retrait permanent
 - `available` **reste `false`** (déjà vendu ou non — inchangé)
 - Email + CRM
 
@@ -634,13 +635,13 @@ Connexion → Dashboard (lecture seule si tout va bien)
 ### Aged leads — critères (séparés de `available`)
 
 Un lead peut apparaître en marketplace aged quand :
-- `now - received_at ≥ 30 jours`
+- `now - received_at ≥` seuil (= premier `aged_price_tiers.minDays`, défaut 30)
 - `status != dead`
-- **sans** exiger `available = true` (un lead déjà vendu en temps réel reste `available=false` mais peut être proposé en aged à 5 $)
+- **sans** exiger `available = true` (un lead déjà vendu en temps réel reste `available=false` mais peut être proposé en aged au prix de sa tranche)
 
 Requête indicative : âge + état + type IUL + filtres partner — **pas** le booléen `available`.
 
-Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste `false`.
+Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste `false` ; cooldown revente = début du tier suivant.
 
 ### Filtres agent
 
@@ -653,9 +654,8 @@ Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste 
 
 - Âge = `now - received_at`
 - Lead **vendu** en temps réel : `available` reste **`false`**
-- À **J+30** : le lead devient listable en **marketplace aged** (5 $) via critère d’âge — **sans** repasser `available` à `true`
-- Listing aged : ≥ **30 jours**
-- Tranches d’âge affichées (15–30 j, etc.) : **V2**
+- Au seuil marketplace (défaut **J+30**, dérivé du 1ᵉʳ tier) : listable en **marketplace aged** au **prix de la tranche** — **sans** repasser `available` à `true`
+- Tranches / prix (éditables admin) : défauts 30–60@$5, 61–90@$4, 91–180@$3, 181–365@$2, 366+@$1 ; filtres âge = `String(minDays)`
 
 ### Remboursement type A et âge du lead
 
@@ -863,7 +863,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | key | string PK | |
 | value | jsonb | |
 
-**Clés initiales :** `default_realtime_price`, `default_aged_price`, `aged_price_tiers` (JSON bandes `{ minDays, maxDays|null, price }` — pricing marketplace + cooldown revente ; seuil marketplace = min `minDays`), `admin_approval_required`, `integrations_mode`, `lifecycle_routing_enabled` (défaut false = Partner-only), `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`), `lifecycle_partner_auto_reprocess_enabled` (défaut true), `reprocess_partner_picker_enabled`, `contact_recipient_email` (destinataire Partner Contact Us ; défaut `sami@ffl-capital.com`) ; `integrity_post_delay_hours` conservée pour rollback uniquement (plus active)
+**Clés initiales :** `default_realtime_price`, `default_aged_price` (fallback hors bande seulement), `aged_price_tiers` (JSON bandes `{ minDays, maxDays|null, price }` — pricing marketplace + cooldown revente ; défauts 30–60@$5 … 366+@$1 ; seuil marketplace = `minDays` du 1ᵉʳ tier, sync `aged_days_threshold`), `admin_approval_required`, `integrations_mode`, `lifecycle_routing_enabled` (défaut false = Partner-only), `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`), `lifecycle_partner_auto_reprocess_enabled` (défaut true), `reprocess_partner_picker_enabled`, `contact_recipient_email` (destinataire Partner Contact Us ; défaut `sami@ffl-capital.com`) ; `integrity_post_delay_hours` conservée pour rollback uniquement (plus active)
 
 ### Table `migration_jobs`
 
@@ -925,8 +925,8 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 - [ ] Wallet insuffisant → pas de livraison
 - [ ] Unmatched — Partner-only (flag off) : match partners, pas d’Integrity auto
 - [ ] Lifecycle on — fenêtres 0–24 / 24–48 / 48–30j ; NCA → retry ; rejet métier → bloc Integrity
-- [ ] J+30 → aged listing **sans** `available=true`
-- [ ] Achat aged checkboxes → débit wallet
+- [ ] Seuil aged (1ᵉʳ tier) → aged listing **sans** `available=true` ; prix = tier
+- [ ] Achat aged checkboxes → débit wallet (prix par lead selon tier)
 - [ ] Remboursement type A → rematch priorité suivante, prix d’origine
 - [ ] Remboursement type B → crédit wallet, lead mort (pas de redistribution)
 - [ ] Admin grant credits → partenaire `active`, ledger `admin_grant`, email partner, Total Funded inclut le grant
@@ -987,8 +987,8 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 
 ### Phase 4 — Aged & remboursements (semaine 4) ✅
 
-- Seuil aged configurable (défaut J+30)
-- Marketplace aged (unitaire + checkboxes)
+- Seuil aged dérivé du 1ᵉʳ `aged_price_tiers` (défaut J+30 ; sync `aged_days_threshold`)
+- Marketplace aged (unitaire + checkboxes ; prix par tier ; filtres âge = `String(minDays)`)
 - Workflow remboursement in-app (Type A/B)
 - Routage post-remboursement
 
@@ -1014,7 +1014,6 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 - Frais de retraitement (montant à définir plus tard)
 - Factures PDF
 - Panier aged leads persistant
-- Tranches d'âge aged affinées dans les filtres
 - Filtres matching au-delà état + type IUL
 - Plafond ventes aged
 - Accès Meta Ads Manager
@@ -1032,11 +1031,11 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 | D3 | **Approbation admin après signup** — défaut oui, désactivable |
 | D4 | **Migration historique** — feature livrée V1 |
 | D5 | Matching V1 : état + type IUL + wallet + **≥ 15 états** + priorité |
-| D6 | `available` booléen pilote le matching **temps réel** ; aged utilise critère **âge J+30** séparé |
+| D6 | `available` booléen pilote le matching **temps réel** ; aged utilise critère **âge** séparé (seuil = 1ᵉʳ `aged_price_tiers.minDays`, défaut J+30) |
 | D7 | Un remboursement max par cycle ; `refundable=false` après revente (type A) |
 | D8 | Remboursement in-app obligatoire ; admin vérifie (appel si numéro invalide) |
 | D9 | **Deux types remboursement** : A = rematch prix origine ; B = lead mort, pas redistribution |
-| D10 | Aged : achat unitaire + checkboxes V1 |
+| D10 | Aged : achat unitaire + checkboxes V1 ; prix / filtres via `aged_price_tiers` |
 | D11 | Pas de plafond ventes aged |
 | D12 | Recharge wallet manuelle + récurrente |
 | D13 | Payload/champs/API : sourcer via Boberdoo — pas demander à cliente |
@@ -1071,7 +1070,7 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 | Q7 | Format exact export migration Boberdoo | **Résolu** — `BOBERDOO_EXPLORATION.md` §35 |
 | Q8 | Égalité de priorité — tie-breaker ? | **Résolu : FIFO** |
 | Q9 | Buffer 15 % — implémentation ? | **Résolu** : règle métier manuelle uniquement — pas d’automatisation V1 (parité Boberdoo) |
-| Q10 | `available` pour aged leads ? | **Résolu** : `available` = temps réel seulement ; aged = critère âge J+30 |
+| Q10 | `available` pour aged leads ? | **Résolu** : `available` = temps réel seulement ; aged = critère âge (seuil 1ᵉʳ tier, défaut J+30) |
 | Q11 | Vocabulaire UI Partner vs Agent ? | **Résolu : Partner** (vocabulaire Boberdoo) |
 | Q12 | Prisma vs Drizzle ? | **Résolu : Prisma** |
 | Q13 | Supabase vs Docker local ? | **Résolu : Supabase** |
