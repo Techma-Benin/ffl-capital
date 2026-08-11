@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import { clsx } from "clsx";
-import { Badge } from "@/components/ui/badge";
 import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { Clock } from "@/lib/icons/client";
@@ -175,11 +174,6 @@ export function AgedLeadPreviewSheet({
             <LeadCategoryBadge leadType={lead.leadType || null}>
               {lead.leadTypeLabel}
             </LeadCategoryBadge>
-            {lead.intent ? (
-              <Badge variant={lead.leadType === "high_intent_iul" ? "green" : "yellow"}>
-                {lead.intent}
-              </Badge>
-            ) : null}
             <span className={ageChip.chip}>
               <Clock size={12} className={ageChip.icon} aria-hidden />
               {ageDays} days old
