@@ -44,10 +44,13 @@ type PartnerAgedStorePayload = {
   loadCapped: boolean;
 };
 
-const partnerAgedStateOptions = US_STATE_CODES.map((code) => ({
-  value: code,
-  label: code,
-}));
+const partnerAgedStateOptions = [
+  { value: "all", label: "All" },
+  ...US_STATE_CODES.map((code) => ({
+    value: code,
+    label: code,
+  })),
+];
 
 function syncAgedFiltersToUrl(filters: AgedFilters) {
   const params = new URLSearchParams();
@@ -91,15 +94,6 @@ export function PartnerAgedView({
   const { partner } = usePartner();
   const { router, push } = useNavigateWithPending();
   const isActive = partner.status === "active";
-
-  const typeMultiOptions = useMemo(
-    () => typeFilterOptions.filter((option) => option.value !== "all"),
-    [typeFilterOptions],
-  );
-  const ageMultiOptions = useMemo(
-    () => ageFilterOptions.filter((option) => option.value !== "all"),
-    [ageFilterOptions],
-  );
 
   const initialPayload: PartnerAgedStorePayload = useMemo(
     () => ({
@@ -323,7 +317,7 @@ export function PartnerAgedView({
             selectionMode="multi"
             value={filters.types}
             allValue="all"
-            options={typeMultiOptions}
+            options={typeFilterOptions}
             onChange={(types) => updateFilter("types", types)}
             searchable={false}
           />
@@ -334,7 +328,7 @@ export function PartnerAgedView({
             selectionMode="multi"
             value={filters.ages}
             allValue="all"
-            options={ageMultiOptions}
+            options={ageFilterOptions}
             onChange={(ages) => updateFilter("ages", ages)}
             searchable={false}
           />
