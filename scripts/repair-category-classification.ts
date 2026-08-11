@@ -7,7 +7,6 @@ const apply = process.argv.includes("--apply");
 const FINALIZED_STATUSES = new Set<LeadStatus>([
   LeadStatus.delivered,
   LeadStatus.integrity_posted,
-  LeadStatus.aged_listed,
   LeadStatus.dead,
 ]);
 

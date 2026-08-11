@@ -9,7 +9,6 @@ export function LeadStatusBadge({ status }: { status: string }) {
     delivered: "green",
     unmatched: "yellow",
     integrity_posted: "blue",
-    aged_listed: "slate",
     dead: "red",
     review: "yellow",
   };

@@ -14,7 +14,6 @@ import {
 export const CATEGORY_RECLASSIFICATION_FINAL_STATUSES = [
   LeadStatus.delivered,
   LeadStatus.integrity_posted,
-  LeadStatus.aged_listed,
   LeadStatus.dead,
 ] as const;
 

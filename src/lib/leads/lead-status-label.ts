@@ -51,7 +51,6 @@ export function formatLeadStatusLabel(status: string): string {
     delivered: "Delivered",
     unmatched: "Unmatched",
     integrity_posted: "Integrity",
-    aged_listed: "Aged",
     dead: "Dead",
     review: "Review",
   };

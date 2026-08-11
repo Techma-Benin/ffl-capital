@@ -680,7 +680,7 @@ Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste 
 ### Changement des règles de catégorie
 
 - Réévaluer par lots les leads non finalisés à partir du payload brut avec le même évaluateur exact que l’intake
-- Exclure les statuts `delivered`, `integrity_posted`, `aged_listed` et `dead`
+- Exclure les statuts `delivered`, `integrity_posted` et `dead`
 - Si une seule catégorie matche, synchroniser la classification et remettre le lead `unmatched` / disponible, sans matching ni livraison immédiate
 - Si zéro ou plusieurs catégories matchent, synchroniser la classification et placer le lead en `review` / indisponible
 - Ne jamais écraser un lead devenu final pendant la réévaluation
@@ -780,7 +780,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | routing_claimed_at / by / expires_at | timestamp / string nullable | Lease cron ou hold reprocess manuel |
 | available | boolean | Défaut true |
 | refundable | boolean | Défaut true |
-| status | enum | unmatched \| delivered \| integrity_posted \| aged_listed \| review \| dead |
+| status | enum | unmatched \| delivered \| integrity_posted \| review \| dead |
 | external_id | string nullable | ID LeadConduit / Boberdoo migration |
 | raw_payload | jsonb nullable | Payload webhook brut (debug) |
 | created_at, updated_at | timestamp | |

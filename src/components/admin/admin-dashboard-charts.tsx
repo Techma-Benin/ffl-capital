@@ -175,8 +175,8 @@ function LeadStatusBadge({ status }: { status: string }) {
     delivered: { variant: "green", label: "Delivered" },
     unmatched: { variant: "yellow", label: "Unmatched" },
     integrity_posted: { variant: "blue", label: "Integrity" },
-    aged_listed: { variant: "slate", label: "Aged" },
     dead: { variant: "slate", label: "Dead" },
+    review: { variant: "yellow", label: "Review" },
   };
   const c = config[status] ?? { variant: "slate" as const, label: status };
   return <Badge variant={c.variant}>{c.label}</Badge>;

@@ -1,5 +1,4 @@
 import { LeadCategoryResolution, LeadStatus, Prisma } from "@prisma/client";
-import { buildAgedLeadWhere } from "@/lib/aged/eligibility";
 import { resolveAdminReceivedAtRange } from "@/lib/admin/admin-date-period";
 import {
   MULTIPLE_CATEGORY_MATCH_TYPE_FILTER,
@@ -48,8 +47,6 @@ export async function buildAdminLeadsWhere(
     where.status = LeadStatus.unmatched;
   } else if (slice === "integrity_posted") {
     where.status = LeadStatus.integrity_posted;
-  } else if (slice === "aged_listed") {
-    where = await buildAgedLeadWhere();
   } else if (slice === "review") {
     where.status = LeadStatus.review;
   }
@@ -118,7 +115,6 @@ export function legacyStatusToSlice(
     "matched",
     "unmatched",
     "integrity_posted",
-    "aged_listed",
     "review",
   ] as const;
   return allowed.includes(status as (typeof allowed)[number])

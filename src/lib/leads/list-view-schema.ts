@@ -15,7 +15,6 @@ export const adminStatusSliceSchema = z.enum([
   "matched",
   "unmatched",
   "integrity_posted",
-  "aged_listed",
   "review",
 ]);
 

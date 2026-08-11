@@ -260,7 +260,7 @@ leads
   ├── routing_claimed_*                 -- lease cron / hold manuel
   ├── available (boolean, default true)
   ├── refundable (boolean, default true — passe false après cycle remboursement+revente)
-  └── status: unmatched | delivered | integrity_posted | aged_listed | ...
+  └── status: unmatched | delivered | integrity_posted | review | dead | ...
 
 lead_deliveries                   -- historique (qui a reçu quoi)
   ├── lead_id, agent_id, channel, price, delivered_at, refunded_at

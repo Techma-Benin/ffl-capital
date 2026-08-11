@@ -24,7 +24,6 @@ export const refundLeadStatusBadge: Record<
   delivered: "green",
   unmatched: "yellow",
   integrity_posted: "blue",
-  aged_listed: "slate",
   dead: "red",
   review: "yellow",
 };
@@ -33,7 +32,6 @@ export const refundLeadStatusLabel: Record<string, string> = {
   delivered: "Delivered",
   unmatched: "Unmatched",
   integrity_posted: "Integrity",
-  aged_listed: "Aged",
   dead: "Dead",
   review: "Review",
 };

@@ -38,7 +38,6 @@ export const ADMIN_AGED_STATUS_FILTER_VALUES = [
   "unmatched",
   "delivered",
   "integrity_posted",
-  "aged_listed",
   "review",
 ] as const;
 
@@ -54,7 +53,6 @@ export const ADMIN_AGED_STATUS_FILTER_OPTIONS: {
   { value: "unmatched", label: "Unmatched" },
   { value: "delivered", label: "Delivered" },
   { value: "integrity_posted", label: "Integrity posted" },
-  { value: "aged_listed", label: "Aged listed" },
   { value: "review", label: "Review" },
 ];
 

@@ -21,7 +21,6 @@ enum LeadStatus {
   unmatched
   delivered
   integrity_posted
-  aged_listed
   dead
   review
 }

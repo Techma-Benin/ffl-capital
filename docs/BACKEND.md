@@ -204,7 +204,7 @@ Auth : session **admin** ou **partner** (routes miroir sous `/api/admin/lead-vie
 
 **Corps PATCH** — sous-ensemble optionnel de `name`, `filters`, `sort`, `columns`, `isDefault`. Le sélecteur de colonnes (admin + partner) persiste `{ "columns": [...] }` sur la vue active via `PATCH .../lead-views/[id]` (debounce côté client, flush à la fermeture du panneau). Le layout cartes/tableau reste en `localStorage` (`admin-leads-table-layout` / `partner-leads-table-layout`), pas les colonnes.
 
-**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `aged_listed`), optionnel `types[]`, `filterSetId`, `states[]` (codes US 2 lettres), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `all_time` \| `custom`), bornes custom `from` / `to` (`YYYY-MM-DD`, sur `Lead.receivedAt`), et `q`. `all_time` = pas de `gte`, `lte` = fin du jour courant (`resolveLeadViewDateRange`). L’UI listes leads expose les presets sans `all_time` (réservé au dashboard). `types` contient les types internes des catégories et deux sentinelles : `__unclassified__` (`no_match`) et `__multiple_category_match__` (`multiple_matches`). Un type normal matche soit un lead résolu avec ce `leadType`, soit un lead `multiple_matches` dont `categoryCandidateTypes` contient ce type ; toutes les sélections Type sont combinées en OR. `filterSetId` exige qu’au moins une `LeadDelivery` du lead soit attribuée à ce filter set ; l’UI ne propose que les sets live, avec libellé `nom — Partner` pour les sets possédés et le nom seul sinon.
+**Filtres admin** (`filters`) : `statusSlice` (`all` \| `matched` \| `unmatched` \| `integrity_posted` \| `review`), optionnel `types[]`, `filterSetId`, `states[]` (codes US 2 lettres), `datePeriod` (`today` \| `yesterday` \| `last_7_days` \| `last_month` \| `all_time` \| `custom`), bornes custom `from` / `to` (`YYYY-MM-DD`, sur `Lead.receivedAt`), et `q`. `all_time` = pas de `gte`, `lte` = fin du jour courant (`resolveLeadViewDateRange`). L’UI listes leads expose les presets sans `all_time` (réservé au dashboard). `types` contient les types internes des catégories et deux sentinelles : `__unclassified__` (`no_match`) et `__multiple_category_match__` (`multiple_matches`). Un type normal matche soit un lead résolu avec ce `leadType`, soit un lead `multiple_matches` dont `categoryCandidateTypes` contient ce type ; toutes les sélections Type sont combinées en OR. `filterSetId` exige qu’au moins une `LeadDelivery` du lead soit attribuée à ce filter set ; l’UI ne propose que les sets live, avec libellé `nom — Partner` pour les sets possédés et le nom seul sinon.
 
 Compatibilité admin : l’ancien `state` unique est migré vers `states[]`; les anciens `categoryResolution` / `categoryCandidateTypes` sont prétraités vers `types[]`, retirés du JSON normalisé à la prochaine sauvegarde. Des bornes `from`/`to` sans `datePeriod` impliquent `custom`.
 
@@ -292,7 +292,7 @@ Pas d’API dédiée — page SSR : `buildAdminAgedLeadsWhere()` (`src/lib/admin
 |-------|---------|--------|
 | `state` | codes US comma-séparés (ex. `TX,CA`) | Filtre `state IN (...)` |
 | `type` | `traditional_iul` \| `high_intent_iul` | Filtre `leadType` |
-| `status` | `unmatched` \| `delivered` \| `integrity_posted` \| `aged_listed` \| `review` | Filtre `status` (hors `dead` déjà exclu) |
+| `status` | `unmatched` \| `delivered` \| `integrity_posted` \| `review` | Filtre `status` (hors `dead` déjà exclu) |
 | `age` | `String(tier.minDays)` (ex. `30`, `61`, `91`…) | Bucket inclusif sur `receivedAt` depuis `aged_price_tiers` (même logique que `/partner/aged`) |
 | `page` | entier | Pagination (`parsePageParams`, 25/page) |
 | `sort` | `name` \| `state` \| `type` \| `status` \| `ageDays` \| `price` | Colonne de tri Prisma |
@@ -365,7 +365,7 @@ Schémas Zod : `categoryCreateSchema`, `categoryUpdateSchema`. Critères : au mo
 
 ### Reclassification après changement des règles
 
-`reclassify-leads.ts` expose `reclassifyNonFinalizedLeads()` et réutilise exactement `evaluateLeadCategories`, comme l’intake. Le service parcourt les leads par lots de 100 à partir de `rawPayload` — y compris les leads assignés manuellement, dont les critères ont été inscrits dans ce payload — et exclut `delivered`, `integrity_posted`, `aged_listed` et `dead`.
+`reclassify-leads.ts` expose `reclassifyNonFinalizedLeads()` et réutilise exactement `evaluateLeadCategories`, comme l’intake. Le service parcourt les leads par lots de 100 à partir de `rawPayload` — y compris les leads assignés manuellement, dont les critères ont été inscrits dans ce payload — et exclut `delivered`, `integrity_posted` et `dead`.
 
 Quand la classification change, une transaction met à jour ensemble `leadType`, `categoryResolution`, `categoryCandidateTypes`, `status` et `available`. Une résolution unique repasse le lead en `unmatched` / `available=true`, sans lancer matching ni livraison dans cette requête ; zéro ou plusieurs matchs donnent `review` / `available=false`. Chaque écriture revalide que le statut n’est pas devenu final entre la lecture et l’update, puis émet l’événement existant `reprocessed` avec `reason=category_rules_changed`. Il n’existe ni FK Lead → catégorie ni migration dédiée à ce service.
 
@@ -402,7 +402,7 @@ UI : `admin-lead-category-assign-panel.tsx` (chips candidats + sélecteur catég
 ### Import et réparation historique
 
 - **Import CSV** : `import-category-classification.ts` + `map-csv-row-to-lead.ts` — même `evaluateLeadCategories` qu’à l’intake ; plus de fallback Traditional/High Intent depuis `SRC` seul.
-- **Script réparation** : `pnpm run repair:category-classification` (dry-run par défaut) ; `--apply` pour persister. Réévalue tous les leads non finalisés (`delivered`, `integrity_posted`, `aged_listed`, `dead` exclus).
+- **Script réparation** : `pnpm run repair:category-classification` (dry-run par défaut) ; `--apply` pour persister. Réévalue tous les leads non finalisés (`delivered`, `integrity_posted`, `dead` exclus).
 
 ---
 

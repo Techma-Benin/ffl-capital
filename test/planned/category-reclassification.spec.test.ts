@@ -71,7 +71,6 @@ describe("category reclassification outcomes", () => {
     for (const status of [
       LeadStatus.delivered,
       LeadStatus.integrity_posted,
-      LeadStatus.aged_listed,
       LeadStatus.dead,
     ]) {
       assert.equal(isFinalizedCategoryStatus(status), true);
