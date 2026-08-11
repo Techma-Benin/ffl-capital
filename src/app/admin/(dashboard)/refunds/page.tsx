@@ -3,6 +3,10 @@ import { refundLeadSnapshotFromDelivery } from "@/lib/admin/refund-lead-snapshot
 import { refundPartnerSnapshotFromRow } from "@/lib/admin/refund-partner-snapshot";
 import { getClerkPartnerImageUrlMap } from "@/lib/auth/clerk-profile";
 import {
+  loadEnabledCategoryLabels,
+  resolveLeadTypeDisplay,
+} from "@/lib/lead-categories/category-labels";
+import {
   AdminRefundsView,
   type AdminRefundsStorePayload,
 } from "@/components/admin/admin-refunds-view";
@@ -16,7 +20,7 @@ const refundPartnerInclude = {
 } as const;
 
 export default async function AdminRefundsPage() {
-  const [pending, history] = await Promise.all([
+  const [pending, history, categories] = await Promise.all([
     prisma.refundRequest.findMany({
       where: { status: "pending" },
       include: {
@@ -34,6 +38,7 @@ export default async function AdminRefundsPage() {
       orderBy: { reviewedAt: "desc" },
       take: 30,
     }),
+    loadEnabledCategoryLabels(),
   ]);
 
   const avatarByClerkId = await getClerkPartnerImageUrlMap(
@@ -50,11 +55,26 @@ export default async function AdminRefundsPage() {
     return refundPartnerSnapshotFromRow(partner, { avatarUrl });
   }
 
+  function leadSnapshot(
+    delivery: (typeof pending)[number]["leadDelivery"],
+    partner: (typeof pending)[number]["partner"],
+  ) {
+    const lead = delivery.lead;
+    return refundLeadSnapshotFromDelivery(delivery, partner, {
+      leadTypeLabel: resolveLeadTypeDisplay({
+        leadType: lead.leadType,
+        categoryResolution: lead.categoryResolution,
+        categoryCandidateTypes: lead.categoryCandidateTypes,
+        categories,
+      }).label,
+    });
+  }
+
   const initial: AdminRefundsStorePayload = {
     pending: pending.map((r) => ({
       id: r.id,
       partner: partnerSnapshot(r.partner),
-      lead: refundLeadSnapshotFromDelivery(r.leadDelivery, r.partner),
+      lead: leadSnapshot(r.leadDelivery, r.partner),
       refundType: r.refundType,
       reason: r.reason,
       amount: Number(r.leadDelivery.price),
@@ -63,7 +83,7 @@ export default async function AdminRefundsPage() {
     history: history.map((r) => ({
       id: r.id,
       partner: partnerSnapshot(r.partner),
-      lead: refundLeadSnapshotFromDelivery(r.leadDelivery, r.partner),
+      lead: leadSnapshot(r.leadDelivery, r.partner),
       refundType: r.refundType,
       amount: Number(r.leadDelivery.price),
       status: r.status,

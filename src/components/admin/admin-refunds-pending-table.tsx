@@ -22,9 +22,11 @@ import {
 import { formatDateTime } from "@/lib/format-datetime";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import type { RefundLeadSnapshot } from "@/lib/admin/refund-lead-snapshot";
+import { leadPreviewFromRefundSnapshot } from "@/lib/admin/refund-lead-snapshot";
 import type { RefundPartnerSnapshot } from "@/lib/admin/refund-partner-snapshot";
 import { RefundLeadCell } from "@/components/admin/refund-lead-cell";
-import { RefundLeadDetailSheet } from "@/components/admin/refund-lead-detail-sheet";
+import { LeadPreviewSheet } from "@/components/leads/lead-preview-sheet";
+import type { LeadPreviewModel } from "@/lib/leads/lead-preview";
 import { RefundPartnerCell } from "@/components/admin/refund-partner-cell";
 import { RefundPartnerDetailSheet } from "@/components/admin/refund-partner-detail-sheet";
 import {
@@ -85,7 +87,7 @@ export function AdminRefundsPendingTable({
     null,
   );
   const [partnerSheetOpen, setPartnerSheetOpen] = useState(false);
-  const [leadSheet, setLeadSheet] = useState<RefundLeadSnapshot | null>(null);
+  const [leadSheet, setLeadSheet] = useState<LeadPreviewModel | null>(null);
   const [leadSheetOpen, setLeadSheetOpen] = useState(false);
 
   function openPartnerSheet(partner: RefundPartnerSnapshot) {
@@ -94,7 +96,7 @@ export function AdminRefundsPendingTable({
   }
 
   function openLeadSheet(lead: RefundLeadSnapshot) {
-    setLeadSheet(lead);
+    setLeadSheet(leadPreviewFromRefundSnapshot(lead));
     setLeadSheetOpen(true);
   }
 
@@ -367,10 +369,12 @@ export function AdminRefundsPendingTable({
         open={partnerSheetOpen}
         onOpenChange={setPartnerSheetOpen}
       />
-      <RefundLeadDetailSheet
+      <LeadPreviewSheet
         lead={leadSheet}
         open={leadSheetOpen}
         onOpenChange={setLeadSheetOpen}
+        title="Lead"
+        showViewFullLead
       />
       </>
     </TooltipProvider>

@@ -24,21 +24,7 @@ import {
   resolveLeadTypeDisplay,
 } from "@/lib/lead-categories/category-labels";
 import { extractOtherPayloadFields } from "@/lib/leads/other-payload-fields";
-
-/** Payload aliases already shown via Lead columns in aged preview Qualification. */
-const AGED_PREVIEW_COLUMN_PAYLOAD_KEYS = [
-  "Beneficiary",
-  "beneficiary",
-  "Relationship_Of_Beneficiary",
-  "beneficiary_type_thom",
-  "Beneficiary_Type",
-  "beneficiaryType",
-  "Beneficiary Type",
-  "History_Of_Cancer",
-  "historyOfCancer",
-  "Mortgage_Loan_Amount",
-  "mortgageLoanAmount",
-];
+import { LEAD_PREVIEW_COLUMN_PAYLOAD_KEYS } from "@/lib/leads/lead-preview";
 
 export default async function PartnerAgedPage({
   searchParams,
@@ -110,7 +96,7 @@ export default async function PartnerAgedPage({
           historyOfCancer: lead.historyOfCancer,
           mortgageLoanAmount: lead.mortgageLoanAmount,
           otherAnswers: extractOtherPayloadFields(lead.rawPayload, {
-            omitKeys: AGED_PREVIEW_COLUMN_PAYLOAD_KEYS,
+            omitKeys: LEAD_PREVIEW_COLUMN_PAYLOAD_KEYS,
           }).map(({ label, value }) => ({ label, value })),
           price: resolveAgedPriceForReceivedAt(
             lead.receivedAt,

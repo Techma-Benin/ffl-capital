@@ -10,17 +10,21 @@ import {
 } from "@/components/ui/portal-sortable-table-header";
 import { formatUsd, moneyCellClass, moneyHeaderClassName } from "@/lib/format-money";
 import type { AdminAgedLeadSortKey } from "@/lib/admin/admin-aged-leads-sort";
-import type { RefundLeadSnapshot } from "@/lib/admin/refund-lead-snapshot";
+import {
+  leadPreviewFromRefundSnapshot,
+  type RefundLeadSnapshot,
+} from "@/lib/admin/refund-lead-snapshot";
 import { AdminAgedLeadRowActions } from "@/components/admin/admin-aged-lead-row-actions";
-import { RefundLeadDetailSheet } from "@/components/admin/refund-lead-detail-sheet";
+import { LeadPreviewSheet } from "@/components/leads/lead-preview-sheet";
+import type { LeadPreviewModel } from "@/lib/leads/lead-preview";
 
 export type AdminAgedLeadRow = {
   id: string;
   firstName: string;
   lastName: string;
   state: string;
-    leadType: string;
-    leadTypeLabel: string;
+  leadType: string;
+  leadTypeLabel: string;
   status: string;
   ageDays: number;
   price: number;
@@ -47,17 +51,19 @@ export function AdminAgedLeadsTable({
   sort,
   dir,
   hrefBySortKey,
+  agedDaysMin = 30,
 }: {
   leads: AdminAgedLeadRow[];
   sort: AdminAgedLeadSortKey;
   dir: SortDirection;
   hrefBySortKey: Record<AdminAgedLeadSortKey, string>;
+  agedDaysMin?: number;
 }) {
-  const [leadSheet, setLeadSheet] = useState<RefundLeadSnapshot | null>(null);
+  const [leadSheet, setLeadSheet] = useState<LeadPreviewModel | null>(null);
   const [leadSheetOpen, setLeadSheetOpen] = useState(false);
 
   function openLeadSheet(lead: RefundLeadSnapshot) {
-    setLeadSheet(lead);
+    setLeadSheet(leadPreviewFromRefundSnapshot(lead));
     setLeadSheetOpen(true);
   }
 
@@ -118,10 +124,13 @@ export function AdminAgedLeadsTable({
         </tbody>
       </table>
 
-      <RefundLeadDetailSheet
+      <LeadPreviewSheet
         lead={leadSheet}
         open={leadSheetOpen}
         onOpenChange={setLeadSheetOpen}
+        title="Lead"
+        agedDaysMin={agedDaysMin}
+        showViewFullLead
       />
     </>
   );

@@ -120,6 +120,12 @@ export default async function AdminAgedPage({
       price,
       sheetLead: refundLeadSnapshotFromAgedListing(lead, {
         agedPrice: price,
+        leadTypeLabel: resolveLeadTypeDisplay({
+          leadType: lead.leadType,
+          categoryResolution: lead.categoryResolution,
+          categoryCandidateTypes: lead.categoryCandidateTypes,
+          categories,
+        }).label,
         latestDelivery: lead.leadDeliveries[0] ?? null,
       }),
     };
@@ -167,6 +173,7 @@ export default async function AdminAgedPage({
               sort={sort}
               dir={dir}
               hrefBySortKey={hrefBySortKey}
+              agedDaysMin={agedDays}
             />
           )}
         </div>
