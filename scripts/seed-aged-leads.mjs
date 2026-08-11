@@ -4,13 +4,24 @@
  * full aged pool (no filter-set targeting). Does not delete unrelated data.
  * Re-run replaces rows whose external_id starts with aged-demo-.
  *
+ * Covers built-in categories: high_intent_iul, traditional_iul,
+ * mortgage_protection, final_expense (across several age tiers).
+ *
  * Usage: pnpm run seed:aged-leads
  */
-import { PrismaClient, LeadStatus } from "@prisma/client";
+import { PrismaClient, LeadStatus, LeadCategoryResolution } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 const DEMO_PREFIX = "aged-demo";
+
+/** Category types this seed expects to exist and be enabled. */
+const REQUIRED_CATEGORY_TYPES = [
+  "high_intent_iul",
+  "traditional_iul",
+  "mortgage_protection",
+  "final_expense",
+];
 
 const FIRST_NAMES = [
   "Maria",
@@ -104,6 +115,22 @@ const LEADS_PLAN = [
   { daysAgo: 450, state: "ID", leadType: "traditional_iul", status: LeadStatus.unmatched, available: true },
   { daysAgo: 500, state: "MT", leadType: "high_intent_iul", status: LeadStatus.unmatched, available: true },
   { daysAgo: 600, state: "WY", leadType: "traditional_iul", status: LeadStatus.integrity_posted, available: false },
+
+  // Mortgage Protection — ~30–90d, ~180–300d, 366+
+  { daysAgo: 33, state: "TX", leadType: "mortgage_protection", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 45, state: "FL", leadType: "mortgage_protection", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 70, state: "GA", leadType: "mortgage_protection", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 90, state: "NC", leadType: "mortgage_protection", status: LeadStatus.delivered, available: false },
+  { daysAgo: 190, state: "AZ", leadType: "mortgage_protection", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 250, state: "CO", leadType: "mortgage_protection", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 320, state: "TN", leadType: "mortgage_protection", status: LeadStatus.integrity_posted, available: false },
+  { daysAgo: 380, state: "OK", leadType: "mortgage_protection", status: LeadStatus.unmatched, available: true },
+
+  // Final Expense / Veteran — a few across tiers
+  { daysAgo: 35, state: "SC", leadType: "final_expense", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 80, state: "AL", leadType: "final_expense", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 210, state: "LA", leadType: "final_expense", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 410, state: "MS", leadType: "final_expense", status: LeadStatus.unmatched, available: true },
 ];
 
 function daysAgoDate(days, hour = 10) {
@@ -111,6 +138,53 @@ function daysAgoDate(days, hour = 10) {
   d.setDate(d.getDate() - days);
   d.setHours(hour, 30, 0, 0);
   return d;
+}
+
+function intentForLeadType(leadType) {
+  if (leadType === "high_intent_iul") return "High Intent";
+  if (leadType === "traditional_iul") return "Traditional";
+  if (leadType === "mortgage_protection") return "Mortgage Protection";
+  if (leadType === "final_expense") return "Final Expense";
+  return null;
+}
+
+function primaryGoalForLeadType(leadType, n) {
+  if (leadType === "mortgage_protection") {
+    return n % 2 === 0 ? "Mortgage protection" : "Pay off mortgage";
+  }
+  if (leadType === "final_expense") {
+    return n % 2 === 0 ? "Burial / final expense" : "Leave money for family";
+  }
+  return n % 2 === 0 ? "Retirement income" : "Legacy planning";
+}
+
+function ageTierBucket(daysAgo) {
+  if (daysAgo >= 366) return "366+";
+  if (daysAgo >= 181) return "181–365";
+  return "30–180";
+}
+
+async function ensureRequiredCategories() {
+  const rows = await prisma.leadCategory.findMany({
+    where: { type: { in: REQUIRED_CATEGORY_TYPES } },
+    select: { type: true, enabled: true, label: true },
+  });
+  const byType = new Map(rows.map((r) => [r.type, r]));
+  const missing = REQUIRED_CATEGORY_TYPES.filter((t) => !byType.has(t));
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing lead_categories (run migrations / seed categories first): ${missing.join(", ")}`,
+    );
+  }
+
+  const disabled = rows.filter((r) => !r.enabled);
+  for (const row of disabled) {
+    await prisma.leadCategory.update({
+      where: { type: row.type },
+      data: { enabled: true },
+    });
+    console.log(`Enabled category ${row.type} (${row.label}).`);
+  }
 }
 
 async function removeExistingDemoLeads() {
@@ -129,6 +203,8 @@ async function removeExistingDemoLeads() {
 }
 
 async function main() {
+  await ensureRequiredCategories();
+
   const removed = await removeExistingDemoLeads();
   if (removed > 0) {
     console.log(`Removed ${removed} previous aged-demo lead(s).`);
@@ -143,6 +219,8 @@ async function main() {
     const firstName = FIRST_NAMES[(n - 1) % FIRST_NAMES.length];
     const lastName = LAST_NAMES[(n - 1) % LAST_NAMES.length];
     const externalId = `${DEMO_PREFIX}-${n}`;
+    const isMortgage = row.leadType === "mortgage_protection";
+    const isFinalExpense = row.leadType === "final_expense";
 
     const lead = await prisma.lead.create({
       data: {
@@ -156,9 +234,16 @@ async function main() {
         zip: String(75000 + n).slice(0, 5),
         age: String(35 + (n % 25)),
         leadType: row.leadType,
-        intent: row.leadType === "high_intent_iul" ? "High Intent" : "Traditional",
-        haveIul: n % 3 === 0 ? "Yes" : "No",
-        primaryGoal: n % 2 === 0 ? "Retirement income" : "Legacy planning",
+        categoryResolution: LeadCategoryResolution.matched,
+        categoryCandidateTypes: [row.leadType],
+        intent: intentForLeadType(row.leadType),
+        haveIul: isMortgage || isFinalExpense ? null : n % 3 === 0 ? "Yes" : "No",
+        primaryGoal: primaryGoalForLeadType(row.leadType, n),
+        mortgageLoanAmount: isMortgage
+          ? String(150000 + (n % 10) * 25000)
+          : null,
+        beneficiary: isFinalExpense || isMortgage ? "Spouse" : null,
+        beneficiaryType: isFinalExpense || isMortgage ? "Individual" : null,
         source: "aged_demo_seed",
         status: row.status,
         available: row.available,
@@ -175,22 +260,31 @@ async function main() {
       state: row.state,
       leadType: row.leadType,
       status: row.status,
+      tier: ageTierBucket(row.daysAgo),
     });
   }
 
   const minDays = Math.min(...LEADS_PLAN.map((r) => r.daysAgo));
   const maxDays = Math.max(...LEADS_PLAN.map((r) => r.daysAgo));
   const byStatus = {};
+  const byType = {};
+  const byTier = {};
+  const byTypeTier = {};
   for (const c of created) {
     byStatus[c.status] = (byStatus[c.status] ?? 0) + 1;
+    byType[c.leadType] = (byType[c.leadType] ?? 0) + 1;
+    byTier[c.tier] = (byTier[c.tier] ?? 0) + 1;
+    const key = `${c.leadType} / ${c.tier}`;
+    byTypeTier[key] = (byTypeTier[key] ?? 0) + 1;
   }
 
   console.log("Aged leads seed complete:", {
     count: created.length,
     ageRangeDays: `${minDays}–${maxDays}`,
+    byType,
+    byTier,
+    byTypeTier,
     byStatus,
-    highIntent: created.filter((c) => c.leadType === "high_intent_iul").length,
-    traditional: created.filter((c) => c.leadType === "traditional_iul").length,
   });
 }
 
