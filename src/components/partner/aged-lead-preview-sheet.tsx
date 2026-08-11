@@ -7,7 +7,7 @@ import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { Sheet, SheetBody } from "@/components/ui/sheet";
 import { Clock } from "@/lib/icons/client";
 import { formatDateTimeLong } from "@/lib/format-datetime";
-import { formatUsd, moneyValueClassName } from "@/lib/format-money";
+import { formatUsd } from "@/lib/format-money";
 import { partnerAgedLeadAgeDays } from "@/lib/admin/admin-aged-leads-filters";
 import { getPartnerAgedLeadAgeChipClassNames } from "@/lib/partner/aged-lead-age-chip";
 
@@ -126,6 +126,14 @@ export function AgedLeadPreviewSheet({
               {lead.state}
             </span>
           </div>
+          {lead.email ? (
+            <a
+              href={`mailto:${lead.email}`}
+              className="mt-0.5 block text-sm text-slate-500 underline-offset-2 hover:underline"
+            >
+              {lead.email}
+            </a>
+          ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <LeadCategoryBadge leadType={lead.leadType || null}>
               {lead.leadTypeLabel}
@@ -139,23 +147,13 @@ export function AgedLeadPreviewSheet({
               <Clock size={12} className={ageChip.icon} aria-hidden />
               {ageDays} days old
             </span>
+            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums bg-slate-100 text-slate-700">
+              {formatUsd(lead.price)}
+            </span>
           </div>
         </div>
 
-        <PreviewSection title="Pricing">
-          <PreviewFieldRow
-            label="Price"
-            value={formatUsd(lead.price)}
-            valueClassName={moneyValueClassName}
-          />
-        </PreviewSection>
-
         <PreviewSection title="Contact">
-          <PreviewFieldRow
-            label="Email"
-            value={lead.email}
-            href={lead.email ? `mailto:${lead.email}` : undefined}
-          />
           <PreviewFieldRow
             label="Phone"
             value={lead.phone}
