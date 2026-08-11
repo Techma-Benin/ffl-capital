@@ -2,6 +2,16 @@
 
 export const PARTNER_EMAIL_BRAND = "#0B3D91";
 
+/** Matches app `Plus_Jakarta_Sans` / `--font-sans` with email-safe fallbacks. */
+export const PARTNER_EMAIL_FONT_STACK =
+  "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
+
+const PARTNER_EMAIL_FONT_LINK = `
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet">
+`.trim();
+
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -91,7 +101,7 @@ export function partnerEmailCtaButton(href: string, label: string): string {
       <tr>
         <td style="background:${PARTNER_EMAIL_BRAND};border-radius:4px">
           <a href="${escapeHtml(href)}"
-             style="display:inline-block;padding:12px 22px;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.2;color:#ffffff;text-decoration:none;font-weight:600">
+             style="display:inline-block;padding:12px 22px;font-family:${PARTNER_EMAIL_FONT_STACK};font-size:15px;line-height:1.2;color:#ffffff;text-decoration:none;font-weight:600">
             ${escapeHtml(label)}
           </a>
         </td>
@@ -111,10 +121,10 @@ export function partnerEmailFieldRows(
     .map(
       (row) => `
       <tr>
-        <td style="padding:10px 16px 10px 0;border-bottom:1px solid #e8e8e8;color:#64748b;font-size:13px;vertical-align:top;width:140px;font-family:system-ui,-apple-system,sans-serif">
+        <td style="padding:10px 16px 10px 0;border-bottom:1px solid #e8e8e8;color:#64748b;font-size:13px;vertical-align:top;width:140px;font-family:${PARTNER_EMAIL_FONT_STACK}">
           ${escapeHtml(row.label)}
         </td>
-        <td style="padding:10px 0;border-bottom:1px solid #e8e8e8;color:#0f172a;font-size:14px;vertical-align:top;font-family:system-ui,-apple-system,sans-serif;word-break:break-word">
+        <td style="padding:10px 0;border-bottom:1px solid #e8e8e8;color:#0f172a;font-size:14px;vertical-align:top;font-family:${PARTNER_EMAIL_FONT_STACK};word-break:break-word">
           ${escapeHtml(String(row.value))}
         </td>
       </tr>`,
@@ -128,17 +138,21 @@ export function wrapPartnerEmailHtml(params: {
   footerNote?: string;
 }): string {
   const titleBlock = params.title
-    ? `<h1 style="margin:0 0 20px;font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.3;font-weight:600;color:#0f172a">${escapeHtml(params.title)}</h1>`
+    ? `<h1 style="margin:0 0 20px;font-family:${PARTNER_EMAIL_FONT_STACK};font-size:22px;line-height:1.3;font-weight:600;color:#0f172a">${escapeHtml(params.title)}</h1>`
     : "";
 
   const footer = params.footerNote
-    ? `<p style="margin:32px 0 0;font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:1.5;color:#94a3b8">${escapeHtml(params.footerNote)}</p>`
+    ? `<p style="margin:32px 0 0;font-family:${PARTNER_EMAIL_FONT_STACK};font-size:12px;line-height:1.5;color:#94a3b8">${escapeHtml(params.footerNote)}</p>`
     : "";
   return `
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#ffffff">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+${PARTNER_EMAIL_FONT_LINK}
+</head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:${PARTNER_EMAIL_FONT_STACK}">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff">
     <tr>
       <td style="padding:0">
@@ -148,11 +162,11 @@ export function wrapPartnerEmailHtml(params: {
           </tr>
           <tr>
             <td style="padding:28px 28px 36px">
-              <p style="margin:0 0 24px;font-family:system-ui,-apple-system,sans-serif;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#64748b">
+              <p style="margin:0 0 24px;font-family:${PARTNER_EMAIL_FONT_STACK};font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#64748b">
                 FFL Capital · Partner Portal
               </p>
               ${titleBlock}
-              <div style="font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55;color:#0f172a">
+              <div style="font-family:${PARTNER_EMAIL_FONT_STACK};font-size:15px;line-height:1.55;color:#0f172a">
                 ${params.bodyHtml}
               </div>
               ${footer}
