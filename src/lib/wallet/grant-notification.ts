@@ -5,8 +5,14 @@ const GRANT_BY_SUFFIX = / - by (.+)$/;
 export type GrantNotification = {
   id: string;
   amount: number;
-  balanceAfter: number;
-  note: string | null;
+  adminName: string | null;
+  createdAt: string;
+};
+
+/** Partner-facing summary of one or more unacknowledged grants. */
+export type AggregatedGrantNotification = {
+  ids: string[];
+  amount: number;
   adminName: string | null;
   createdAt: string;
 };
@@ -38,18 +44,45 @@ export function parseGrantDescription(description: string | null | undefined): {
 function serializeGrantNotification(row: {
   id: string;
   amount: { toString(): string } | number;
-  balanceAfter: { toString(): string } | number;
   description: string | null;
   createdAt: Date;
 }): GrantNotification {
-  const { note, adminName } = parseGrantDescription(row.description);
+  const { adminName } = parseGrantDescription(row.description);
   return {
     id: row.id,
     amount: Number(row.amount),
-    balanceAfter: Number(row.balanceAfter),
-    note,
     adminName,
     createdAt: row.createdAt.toISOString(),
+  };
+}
+
+/**
+ * Collapse pending grants into one partner modal: sum amounts; keep admin name
+ * only when every grant shares the same non-empty admin.
+ */
+export function aggregateGrantNotifications(
+  notifications: GrantNotification[],
+): AggregatedGrantNotification | null {
+  if (notifications.length === 0) return null;
+
+  const amount = notifications.reduce((sum, item) => sum + item.amount, 0);
+  const adminNames = [
+    ...new Set(
+      notifications
+        .map((item) => item.adminName?.trim() || null)
+        .filter((name): name is string => Boolean(name)),
+    ),
+  ];
+
+  const newest = notifications.reduce((latest, item) =>
+    item.createdAt > latest.createdAt ? item : latest,
+  );
+
+  return {
+    ids: notifications.map((item) => item.id),
+    amount,
+    adminName: adminNames.length === 1 ? adminNames[0]! : null,
+    createdAt: newest.createdAt,
   };
 }
 
@@ -66,7 +99,6 @@ export async function getUnacknowledgedGrantNotifications(
     select: {
       id: true,
       amount: true,
-      balanceAfter: true,
       description: true,
       createdAt: true,
     },
@@ -99,9 +131,32 @@ export async function acknowledgeGrantNotification(
   }
 
   await prisma.transaction.update({
-    where: { id: transactionId },
+    where: { id: transaction.id },
     data: { acknowledgedAt: new Date() },
   });
 
   return { ok: true };
+}
+
+/** Acknowledge every listed unacknowledged admin_grant for the partner. */
+export async function acknowledgeGrantNotifications(
+  partnerId: string,
+  transactionIds: string[],
+): Promise<{ acknowledged: number }> {
+  const uniqueIds = [...new Set(transactionIds.map((id) => id.trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return { acknowledged: 0 };
+  }
+
+  const result = await prisma.transaction.updateMany({
+    where: {
+      partnerId,
+      type: "admin_grant",
+      acknowledgedAt: null,
+      id: { in: uniqueIds },
+    },
+    data: { acknowledgedAt: new Date() },
+  });
+
+  return { acknowledged: result.count };
 }

@@ -94,7 +94,7 @@ describe("buildGrantDescription", () => {
 });
 
 describe("buildPartnerCreditGrantEmail", () => {
-  test("subject and body include amount, note, and wallet link without new balance", () => {
+  test("subject and body include amount and wallet link without note or new balance", () => {
     const email = buildPartnerCreditGrantEmail({
       partner: {
         firstName: "Ada",
@@ -102,17 +102,17 @@ describe("buildPartnerCreditGrantEmail", () => {
         email: "partner@example.com",
       },
       amount: 50,
-      note: "Welcome bonus",
       walletUrl: "https://app.example.com/partner/wallet",
     });
 
-    assert.match(email.subject, /\$50\.00 credit added to your account/);
+    assert.equal(email.subject, "$50.00 credit added to your account");
+    assert.doesNotMatch(email.subject, /\[/);
     assert.match(email.html, /Hello Ada/);
     assert.match(email.html, /We're happy to let you know/);
     assert.match(email.html, /\$50\.00/);
     assert.doesNotMatch(email.html, /New balance/i);
-    assert.doesNotMatch(email.html, /\$75\.00/);
-    assert.match(email.html, /Welcome bonus/);
+    assert.doesNotMatch(email.html, /Welcome bonus/);
+    assert.doesNotMatch(email.html, /<strong>Note<\/strong>/);
     assert.match(email.html, /partner\/wallet/);
     assert.match(email.html, /View your wallet/);
     assert.match(email.html, /partner@example.com/);
@@ -127,7 +127,6 @@ describe("buildPartnerCreditGrantEmail", () => {
         email: "partner@example.com",
       },
       amount: 10,
-      note: "",
       appOrigin: "https://portal.example.com/",
     });
 

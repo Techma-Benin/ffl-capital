@@ -46,7 +46,7 @@ export function buildAdminContactEmail(params: {
   partner: PartnerContactIdentity;
 }): { subject: string; html: string } {
   const topicLabel = resolveContactTopicLabel(params.topic, params.customTopic);
-  const subject = `[Partner Portal] ${topicLabel}`;
+  const subject = `Partner contact: ${topicLabel}`;
   const safeMessage = escapeHtmlMultiline(params.message.trim());
   const metaRows = partnerEmailFieldRows([
     {

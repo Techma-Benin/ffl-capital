@@ -69,7 +69,7 @@ describe("partner contact email builders", () => {
       partner,
     });
 
-    assert.match(email.subject, /Account activation request/);
+    assert.equal(email.subject, "Partner contact: Account activation request");
     assert.match(email.html, /Please activate my account/);
     assert.match(email.html, /Ada Lovelace/);
     assert.match(email.html, /partner@example.com/);
@@ -102,10 +102,10 @@ describe("partner contact email builders", () => {
       partner,
     });
 
-    assert.match(email.subject, /Partnership inquiry/);
+    assert.match(email.subject, /^Partner contact: Partnership inquiry$/);
     assert.match(email.html, /Partnership inquiry/);
     assert.match(email.html, /Interested in co-marketing/);
-    assert.doesNotMatch(email.subject, /\[Partner Portal\] Other$/);
+    assert.doesNotMatch(email.subject, /\[Partner Portal\]/);
   });
 
   test("confirmation email uses custom topic when topic is other", () => {

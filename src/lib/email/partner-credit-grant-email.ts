@@ -1,7 +1,6 @@
 import { formatUsd } from "@/lib/format-money";
 import {
   escapeHtml,
-  escapeHtmlMultiline,
   isLoopbackOrigin,
   partnerEmailCtaButton,
   resolvePartnerAbsoluteUrl,
@@ -17,7 +16,6 @@ export type PartnerCreditGrantPartner = {
 export function buildPartnerCreditGrantEmail(params: {
   partner: PartnerCreditGrantPartner;
   amount: number;
-  note: string;
   /** Absolute wallet URL; loopback hosts are ignored in favor of public origin. */
   walletUrl?: string;
   /** Optional request origin; loopback (e.g. Replit localhost:5000) is ignored. */
@@ -29,13 +27,8 @@ export function buildPartnerCreditGrantEmail(params: {
   const walletUrl =
     (rawWalletUrl && !isLoopbackOrigin(rawWalletUrl) ? rawWalletUrl : null) ||
     resolvePartnerAbsoluteUrl("/partner/wallet", params.appOrigin);
-  const noteTrimmed = params.note.trim();
-  const noteBlock = noteTrimmed
-    ? `<p style="margin:20px 0 0"><strong>Note</strong></p>
-       <p style="margin:8px 0 0">${escapeHtmlMultiline(noteTrimmed)}</p>`
-    : "";
 
-  const subject = `[Partner Portal] ${amountFormatted} credit added to your account`;
+  const subject = `${amountFormatted} credit added to your account`;
 
   const bodyHtml = `
     <p style="margin:0 0 16px">Hello ${escapeHtml(firstName)},</p>
@@ -44,10 +37,8 @@ export function buildPartnerCreditGrantEmail(params: {
       <strong>${escapeHtml(amountFormatted)}</strong>
       has been added to your partner wallet.
     </p>
-    ${noteBlock}
     ${partnerEmailCtaButton(walletUrl, "View your wallet")}
   `.trim();
-
   const html = wrapPartnerEmailHtml({
     title: "Credit added",
     bodyHtml,

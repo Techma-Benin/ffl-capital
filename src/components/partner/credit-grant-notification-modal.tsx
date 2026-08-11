@@ -12,11 +12,11 @@ import {
 } from "@/lib/icons/client";
 import { ActionButton } from "@/components/ui/action-button";
 import { formatUsd } from "@/lib/format-money";
-import type { GrantNotification } from "@/lib/wallet/grant-notification";
+import type { AggregatedGrantNotification } from "@/lib/wallet/grant-notification";
 
 type Props = {
   open: boolean;
-  notification: GrantNotification | null;
+  notification: AggregatedGrantNotification | null;
   onDismiss: () => void;
   acknowledging?: boolean;
 };
@@ -57,7 +57,6 @@ export function CreditGrantNotificationModal({
   if (!open || !notification || typeof document === "undefined") return null;
 
   const amountLabel = formatUsd(notification.amount);
-  const balanceLabel = formatUsd(notification.balanceAfter);
 
   function handleViewWallet() {
     onDismiss();
@@ -134,19 +133,13 @@ export function CreditGrantNotificationModal({
             {notification.adminName ? (
               <>
                 {" "}
-                by <span className="font-medium text-slate-700">{notification.adminName}</span>
-              </>
-            ) : null}
-            . Your new balance is{" "}
-            <span className="font-semibold text-slate-800">{balanceLabel}</span>.
-            {notification.note ? (
-              <>
-                <br />
-                <span className="mt-2 block text-slate-500">
-                  &ldquo;{notification.note}&rdquo;
+                by{" "}
+                <span className="font-medium text-slate-700">
+                  {notification.adminName}
                 </span>
               </>
             ) : null}
+            .
           </p>
           <div className="mt-8 flex flex-col gap-2">
             <ActionButton
@@ -155,16 +148,10 @@ export function CreditGrantNotificationModal({
               className="w-full justify-center"
               onClick={handleViewWallet}
               disabled={acknowledging}
-              icon={
-                acknowledging ? (
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                ) : (
-                  <ArrowRight size={15} weight={ICON_WEIGHT_LINEAR} />
-                )
-              }
+              icon={<ArrowRight size={15} weight={ICON_WEIGHT_LINEAR} />}
               slideIconOnHover={!acknowledging}
             >
-              {acknowledging ? "Saving…" : "View wallet"}
+              View wallet
             </ActionButton>
             <button
               type="button"

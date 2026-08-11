@@ -156,7 +156,6 @@ export async function grantPartnerCredits(
   const emailContent = buildPartnerCreditGrantEmail({
     partner: partnerForEmail,
     amount: input.amount,
-    note: trimmedNote,
     walletUrl: input.walletUrl,
     appOrigin: input.appOrigin,
   });

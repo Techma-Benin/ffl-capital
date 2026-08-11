@@ -85,7 +85,6 @@ describe("email CTA absolute URLs", () => {
         email: "ada@example.com",
       },
       amount: 100,
-      note: "",
       appOrigin: "https://localhost:5000",
     });
 
