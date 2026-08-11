@@ -92,6 +92,18 @@ const LEADS_PLAN = [
   { daysAgo: 95, state: "KS", leadType: "traditional_iul", status: LeadStatus.delivered, available: false },
   { daysAgo: 100, state: "NE", leadType: "traditional_iul", status: LeadStatus.unmatched, available: true },
   { daysAgo: 110, state: "TX", leadType: "high_intent_iul", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 140, state: "AR", leadType: "high_intent_iul", status: LeadStatus.aged_listed, available: true },
+  { daysAgo: 165, state: "MS", leadType: "traditional_iul", status: LeadStatus.unmatched, available: true },
+  // 181–365 → $2
+  { daysAgo: 200, state: "KY", leadType: "high_intent_iul", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 240, state: "IA", leadType: "traditional_iul", status: LeadStatus.aged_listed, available: true },
+  { daysAgo: 300, state: "NV", leadType: "high_intent_iul", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 340, state: "UT", leadType: "traditional_iul", status: LeadStatus.delivered, available: false },
+  // 366+ → $1
+  { daysAgo: 400, state: "NM", leadType: "high_intent_iul", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 450, state: "ID", leadType: "traditional_iul", status: LeadStatus.aged_listed, available: true },
+  { daysAgo: 500, state: "MT", leadType: "high_intent_iul", status: LeadStatus.unmatched, available: true },
+  { daysAgo: 600, state: "WY", leadType: "traditional_iul", status: LeadStatus.integrity_posted, available: false },
 ];
 
 function daysAgoDate(days, hour = 10) {
