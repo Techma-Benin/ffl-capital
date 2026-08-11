@@ -47,7 +47,6 @@ export default async function PartnerAgedPage({
     state?: string;
     type?: string;
     age?: string;
-    haveIul?: string;
     page?: string;
   }>;
 }) {

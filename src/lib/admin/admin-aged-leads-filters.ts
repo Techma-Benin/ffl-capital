@@ -210,42 +210,27 @@ export function partnerAgedLeadMatchesAgeBucket(
   return partnerAgedLeadMatchesTier(receivedAt, tier);
 }
 
-export const PARTNER_AGED_HAVE_IUL_PARAM = "haveIul";
-
-/** URL / filter value for leads with no Have IUL answer. */
-export const PARTNER_AGED_HAVE_IUL_EMPTY = "empty";
-
-export type PartnerAgedHaveIulFilterValue =
-  | "all"
-  | "Yes"
-  | "No"
-  | typeof PARTNER_AGED_HAVE_IUL_EMPTY;
-
-export const PARTNER_AGED_HAVE_IUL_FILTER_OPTIONS: {
-  value: PartnerAgedHaveIulFilterValue;
-  label: string;
-}[] = [
-  { value: "all", label: "All" },
-  { value: "Yes", label: "Yes" },
-  { value: "No", label: "No" },
-  { value: PARTNER_AGED_HAVE_IUL_EMPTY, label: "Empty" },
-];
-
 export type PartnerAgedClientFilters = {
   states: string[];
-  type: string;
-  age: string;
-  haveIul: string;
+  types: string[];
+  ages: string[];
 };
 
-function parsePartnerAgedHaveIulFilter(raw: string | undefined): string {
-  const trimmed = raw?.trim();
-  if (!trimmed) return "";
-  if (trimmed === PARTNER_AGED_HAVE_IUL_EMPTY) return PARTNER_AGED_HAVE_IUL_EMPTY;
-  const normalized =
-    trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
-  if (normalized === "Yes" || normalized === "No") return normalized;
-  return "";
+/** Comma-separated URL values validated against a known allow-list (OR within dimension). */
+export function parsePartnerAgedMultiParam(
+  raw: string | undefined,
+  knownValues: string[],
+): string[] {
+  if (!raw?.trim() || knownValues.length === 0) return [];
+  const known = new Set(knownValues);
+  return Array.from(
+    new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && known.has(s)),
+    ),
+  );
 }
 
 export function parsePartnerAgedClientFilters(
@@ -253,35 +238,15 @@ export function parsePartnerAgedClientFilters(
     state?: string;
     type?: string;
     age?: string;
-    haveIul?: string;
   },
   knownTypes: string[] = [],
   knownAgeBuckets: string[] = ADMIN_AGED_AGE_BUCKETS,
 ): PartnerAgedClientFilters {
-  const typeRaw = searchParams.type?.trim();
-  const type =
-    typeRaw && knownTypes.includes(typeRaw) ? typeRaw : "";
-
-  const ageRaw = searchParams.age?.trim();
-  const age =
-    ageRaw && knownAgeBuckets.includes(ageRaw) ? ageRaw : "";
-
   return {
     states: parseAdminAgedLeadStates(searchParams.state),
-    type,
-    age,
-    haveIul: parsePartnerAgedHaveIulFilter(searchParams.haveIul),
+    types: parsePartnerAgedMultiParam(searchParams.type, knownTypes),
+    ages: parsePartnerAgedMultiParam(searchParams.age, knownAgeBuckets),
   };
-}
-
-function partnerAgedLeadHaveIulMatches(
-  haveIul: string | null | undefined,
-  filter: string,
-): boolean {
-  if (filter === PARTNER_AGED_HAVE_IUL_EMPTY) {
-    return haveIul == null || haveIul.trim() === "";
-  }
-  return (haveIul ?? "").toLowerCase() === filter.toLowerCase();
 }
 
 export function filterPartnerAgedLeadsInMemory<
@@ -289,7 +254,6 @@ export function filterPartnerAgedLeadsInMemory<
     state: string;
     leadType: string;
     receivedAt: string | Date;
-    haveIul?: string | null;
   },
 >(
   leads: T[],
@@ -301,19 +265,16 @@ export function filterPartnerAgedLeadsInMemory<
     if (filters.states.length > 0 && !filters.states.includes(lead.state)) {
       return false;
     }
-    if (filters.type && lead.leadType !== filters.type) return false;
-    if (
-      filters.age &&
-      knownBuckets.has(filters.age) &&
-      !partnerAgedLeadMatchesAgeBucket(lead.receivedAt, filters.age, tiers)
-    ) {
+    if (filters.types.length > 0 && !filters.types.includes(lead.leadType)) {
       return false;
     }
-    if (
-      filters.haveIul &&
-      !partnerAgedLeadHaveIulMatches(lead.haveIul, filters.haveIul)
-    ) {
-      return false;
+    if (filters.ages.length > 0) {
+      const matchesAge = filters.ages.some(
+        (age) =>
+          knownBuckets.has(age) &&
+          partnerAgedLeadMatchesAgeBucket(lead.receivedAt, age, tiers),
+      );
+      if (!matchesAge) return false;
     }
     return true;
   });

@@ -133,7 +133,7 @@ Références Loom :
 
 **Règle métier retenue :**
 
-> **`available` = matching temps réel uniquement.** La marketplace aged utilise l’**âge du lead** (seuil = 1ᵉʳ `aged_price_tiers`, défaut J+30) et **n’applique pas** les filter sets partenaire — filtres browse = UI (`state`, `type`, `age` = `String(minDays)`) uniquement.
+> **`available` = matching temps réel uniquement.** La marketplace aged utilise l’**âge du lead** (seuil = 1ᵉʳ `aged_price_tiers`, défaut J+30) et **n’applique pas** les filter sets partenaire — filtres browse partner = UI multi-select (`state`, `type`, `age` = `String(minDays)`, comma-séparés ; OR dans une dimension) ; pas de filtre `haveIul`.
 
 | Événement | `available` (temps réel) | Marketplace aged |
 |-----------|--------------------------|------------------|

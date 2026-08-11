@@ -14,13 +14,9 @@ import { FilterSelectDropdown } from "@/components/admin/filter-select-dropdown"
 import {
   ADMIN_AGED_AGE_FILTER_OPTIONS,
   ADMIN_AGED_TYPE_FILTER_OPTIONS,
-  PARTNER_AGED_HAVE_IUL_FILTER_OPTIONS,
   filterPartnerAgedLeadsInMemory,
   partnerAgedLeadAgeDays,
-  type AdminAgedLeadAgeFilterValue,
-  type AdminAgedLeadTypeFilter,
   type PartnerAgedClientFilters,
-  type PartnerAgedHaveIulFilterValue,
 } from "@/lib/admin/admin-aged-leads-filters";
 import { DEFAULT_AGED_PRICE_TIERS, type AgedPriceTier } from "@/lib/aged/price-tiers";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
@@ -58,9 +54,12 @@ function syncAgedFiltersToUrl(filters: AgedFilters) {
   if (filters.states.length > 0) {
     params.set("state", filters.states.join(","));
   }
-  if (filters.type) params.set("type", filters.type);
-  if (filters.age) params.set("age", filters.age);
-  if (filters.haveIul) params.set("haveIul", filters.haveIul);
+  if (filters.types.length > 0) {
+    params.set("type", filters.types.join(","));
+  }
+  if (filters.ages.length > 0) {
+    params.set("age", filters.ages.join(","));
+  }
   const qs = params.toString();
   const next = qs ? `/partner/aged?${qs}` : "/partner/aged";
   window.history.replaceState(null, "", next);
@@ -85,13 +84,22 @@ export function PartnerAgedView({
   totalEligible: number;
   loadCapped: boolean;
   initialFilters: AgedFilters;
-  typeFilterOptions?: { value: AdminAgedLeadTypeFilter; label: string }[];
-  ageFilterOptions?: { value: AdminAgedLeadAgeFilterValue; label: string }[];
+  typeFilterOptions?: { value: string; label: string }[];
+  ageFilterOptions?: { value: string; label: string }[];
   priceTiers?: AgedPriceTier[];
 }) {
   const { partner } = usePartner();
   const { router, push } = useNavigateWithPending();
   const isActive = partner.status === "active";
+
+  const typeMultiOptions = useMemo(
+    () => typeFilterOptions.filter((option) => option.value !== "all"),
+    [typeFilterOptions],
+  );
+  const ageMultiOptions = useMemo(
+    () => ageFilterOptions.filter((option) => option.value !== "all"),
+    [ageFilterOptions],
+  );
 
   const initialPayload: PartnerAgedStorePayload = useMemo(
     () => ({
@@ -300,34 +308,22 @@ export function PartnerAgedView({
             id="partner-aged-filter-type"
             dimensionLabel="Type"
             accent="teal"
-            value={(filters.type || "all") as AdminAgedLeadTypeFilter}
+            selectionMode="multi"
+            value={filters.types}
             allValue="all"
-            options={typeFilterOptions}
-            onChange={(type) =>
-              updateFilter("type", type === "all" ? "" : type)
-            }
+            options={typeMultiOptions}
+            onChange={(types) => updateFilter("types", types)}
             searchable={false}
           />
           <FilterSelectDropdown
             id="partner-aged-filter-age"
             dimensionLabel="Age"
             accent="teal"
-            value={(filters.age || "all") as AdminAgedLeadAgeFilterValue}
+            selectionMode="multi"
+            value={filters.ages}
             allValue="all"
-            options={ageFilterOptions}
-            onChange={(age) => updateFilter("age", age === "all" ? "" : age)}
-            searchable={false}
-          />
-          <FilterSelectDropdown
-            id="partner-aged-filter-have-iul"
-            dimensionLabel="Have IUL"
-            accent="teal"
-            value={(filters.haveIul || "all") as PartnerAgedHaveIulFilterValue}
-            allValue="all"
-            options={PARTNER_AGED_HAVE_IUL_FILTER_OPTIONS}
-            onChange={(haveIul) =>
-              updateFilter("haveIul", haveIul === "all" ? "" : haveIul)
-            }
+            options={ageMultiOptions}
+            onChange={(ages) => updateFilter("ages", ages)}
             searchable={false}
           />
         </div>

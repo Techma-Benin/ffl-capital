@@ -306,14 +306,13 @@ Tri : `src/lib/admin/admin-aged-leads-sort.ts` (`buildAdminAgedLeadOrderBy` — 
 
 Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil depuis `aged_price_tiers`, hors `dead`). **Les filter sets partner ne restreignent pas** le listing ni l’achat aged — seuls le matching temps réel et les remboursements « wrong filter » s’appuient sur les filter sets (`partner_filter_sets.lead_type`).
 
-**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age/haveIul ; filtres et pagination appliqués **côté client** (pas de re-fetch SSR par changement de filtre). Paramètres URL (`state`, `type`, `age`, `haveIul`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc. Cache : clé `partner-aged` (`client-store`) ; invalidate / patch à l’achat. Chaque lead affiche le **prix de son tier** ; le panier somme des prix mixtes.
+**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age ; filtres et pagination appliqués **côté client** (`PartnerAgedClientFilters` = `{ states, types, ages }` ; `filterPartnerAgedLeadsInMemory` — OR dans une dimension, AND entre dimensions ; sélection vide = tous). Pas de filtre UI `haveIul` (le champ lead reste affiché en preview). Paramètres URL (`state`, `type`, `age`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc. Cache : clé `partner-aged` (`client-store`) ; invalidate / patch à l’achat. Chaque lead affiche le **prix de son tier** ; le panier somme des prix mixtes. Admin aged (`/admin/aged`) reste en single-select pour `type` / `age`.
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|
-| `state` | code US 2 lettres (ex. `TX`) | Filtre client `state` (optionnel ; URL seulement) |
-| `type` | `traditional_iul` \| `high_intent_iul` | Filtre client `leadType` (optionnel) |
-| `age` | `String(tier.minDays)` | Bucket inclusif (`filterPartnerAgedLeadsInMemory` + tiers settings) |
-| `haveIul` | `Yes` \| `No` \| `empty` | Filtre client sur `haveIul` (`empty` = null/vide) |
+| `state` | codes US comma-séparés (ex. `TX,CA`) | Filtre client `state IN (...)` (optionnel) |
+| `type` | types catégorie comma-séparés (ex. `traditional_iul,high_intent_iul`) | Filtre client `leadType IN (...)` (optionnel) |
+| `age` | `String(tier.minDays)` comma-séparés (ex. `30,61`) | Buckets inclusifs OR (`filterPartnerAgedLeadsInMemory` + tiers settings) |
 
 **Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet au **prix du tier** (fallback `default_aged_price` si hors bande) ; 1ʳᵉ vente → `agedAvailableAfter` = début du tier suivant ; 2ᵉ vente → retrait permanent. Pas de garde filter set / min 15 états.
 
@@ -485,7 +484,7 @@ Helpers : `src/lib/wallet/grant-notification.ts` (`parseGrantDescription`, `aggr
 
 À l’écriture (filter sets + onboarding), `stripAttributionCriteria` retire les clés Attribution de `filterCriteria`. Le schéma `POST /api/partners/onboarding` n’accepte plus ces clés. Helpers : `src/lib/filter-sets/templates.ts`, `sanitize-criteria.ts`.
 
-**Critères Intent / Have IUL (UI)** : multi-select ; options = valeurs distinctes sur tous les `leads` + **Empty** (`"empty"`, même token que le filtre aged Have IUL), préfetchées SSR via `getLeadFilterCriteriaOptions()` — pas de route API publique ni fetch à l’ouverture du dropdown. Composant partagé : `advanced-filters-fields.tsx`.
+**Critères Intent / Have IUL (UI)** : multi-select ; options = valeurs distinctes sur tous les `leads` + **Empty** (`"empty"` = lead null/blank), préfetchées SSR via `getLeadFilterCriteriaOptions()` — pas de route API publique ni fetch à l’ouverture du dropdown. Composant partagé : `advanced-filters-fields.tsx`.
 
 **Filter List** : `GET`/`PATCH` `/api/admin/filter-list` ; usage batch via `getFilterSetUsageBatch`.
 

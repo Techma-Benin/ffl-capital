@@ -339,7 +339,7 @@ Phase D — Migration Replit (livraison client)
 - Historique transactions (pas de PDF facture obligatoire V1)
 
 #### Marketplace aged leads
-- Filtres **UI** (optionnels) : état, type IUL, tranche d’âge (clés `String(tier.minDays)` depuis `aged_price_tiers`) — **pas** de restriction par filter set ni par `lead_type` compte
+- Filtres **UI** (optionnels, multi-select) : états, types IUL, tranches d’âge (clés `String(tier.minDays)` depuis `aged_price_tiers` ; URL comma-séparées ; OR dans une dimension, AND entre dimensions ; vide = tous) — **pas** de filtre Have IUL, **pas** de restriction par filter set ni par `lead_type` compte
 - Liste : même éligibilité que admin (âge ≥ seuil 1ᵉʳ tier, `status != dead`) ; **pas** de condition `available = true` ; **prix affiché par lead** selon la tranche
 - **Achat unitaire** : bouton acheter sur une ligne
 - **Sélection multiple** : checkboxes + « Acheter la sélection »
@@ -420,7 +420,7 @@ Phase D — Migration Replit (livraison client)
 - `now - received_at ≥` seuil marketplace (= `minDays` du premier `aged_price_tiers`, défaut 30 ; sync `aged_days_threshold`)
 - `status != dead`
 - **Pas de condition `available = true`** — un lead déjà vendu en temps réel (`available=false`) peut être listé
-- **Pas d’application des `partner_filter_sets`** sur le browse : le partenaire voit l’inventaire aged global et filtre via l’UI (état, type, âge)
+- **Pas d’application des `partner_filter_sets`** sur le browse : le partenaire voit l’inventaire aged global et filtre via l’UI multi-select (états, types, âges ; pas Have IUL)
 
 **Achat partner :**
 - Manuel (unitaire ou checkboxes) ; débit wallet au **prix du tier** d’âge (`aged_price_tiers` ; fallback `default_aged_price` si hors bande)

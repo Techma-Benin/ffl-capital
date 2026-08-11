@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 
-/** Sentinel for null/blank lead field values — same token as aged Have IUL filter. */
+/** Sentinel for null/blank lead field values in filter-set criteria. */
 export const FILTER_CRITERIA_EMPTY_VALUE = "empty";
 
 export type CriteriaSelectOption = { value: string; label: string };
