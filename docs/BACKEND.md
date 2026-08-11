@@ -430,7 +430,7 @@ Transaction atomique à la livraison :
 
 **CRUD partner (live sets)** : `/api/admin/partners/[id]/filter-sets` (+ `[filterSetId]`), `/api/partners/filter-sets` (+ `[filterSetId]`). Les partners ne peuvent pas poser `isTemplate`.
 
-**Grant wallet credits** : `POST /api/admin/partners/[id]/grant-credits` — admin only ; partenaire `active` uniquement ; body `{ amount, note? }` ; limites : admin régulier $0.01–$1 000, super-admin >0 sans plafond ; `creditWallet(..., admin_grant)` + email partner (best-effort, échec email ne rollback pas ; CTA wallet via `resolveAppOrigin`) ; service `grantPartnerCredits()` dans `src/lib/wallet/grant-partner-credits.ts`. UI : bouton « Grant credits » sur `/admin/partners/[id]` (partenaires actifs). Total Funded (partner reports/wallet + admin transactions funding) = somme `top_up` + `admin_grant`.
+**Grant wallet credits** : `POST /api/admin/partners/[id]/grant-credits` — admin only ; partenaire `active` uniquement ; body `{ amount, note? }` ; limites : admin régulier $0.01–$1 000, super-admin >0 sans plafond ; `creditWallet(..., admin_grant)` + email partner (best-effort, échec email ne rollback pas ; CTA wallet via `resolveAppOrigin`) ; service `grantPartnerCredits()` dans `src/lib/wallet/grant-partner-credits.ts` ; template `buildPartnerCreditGrantEmail` — sujet `$X.XX credit added to your account` (pas de préfixe `[Partner Portal]`), corps sans note admin. UI : bouton « Grant credits » sur `/admin/partners/[id]` (partenaires actifs). Total Funded (partner reports/wallet + admin transactions funding) = somme `top_up` + `admin_grant`.
 
 ### Wallet / Stripe
 
@@ -466,9 +466,10 @@ Idempotence : claim `processed_stripe_events` avant traitement ; crédit dupliqu
 | Méthode | Route | Description |
 |---------|-------|-------------|
 | GET | `/api/partner/grant-notifications` | Liste des `admin_grant` non acquittés (`acknowledged_at` null), tri décroissant par date |
-| POST | `/api/partner/grant-notifications/[transactionId]/acknowledge` | Marque la transaction comme vue ; idempotent côté UI (409 si déjà acquittée) |
+| POST | `/api/partner/grant-notifications/acknowledge` | Bulk ack : body `{ ids: string[] }` → marque les grants listés comme vus ; réponse `{ ok, acknowledged }` |
+| POST | `/api/partner/grant-notifications/[transactionId]/acknowledge` | Ack unitaire (encore supporté) ; 404 / 409 si absent ou déjà acquitté |
 
-Helpers : `src/lib/wallet/grant-notification.ts` (`parseGrantDescription`, fetch/ack). Modal `CreditGrantNotificationModal` montée dans `src/app/partner/layout.tsx` via `CreditGrantNotificationProvider` — même animation que l’onboarding success ; file la plus récente en premier ; masquée en impersonation admin.
+Helpers : `src/lib/wallet/grant-notification.ts` (`parseGrantDescription`, `aggregateGrantNotifications`, fetch/ack). Modal `CreditGrantNotificationModal` montée dans `src/app/partner/layout.tsx` via `CreditGrantNotificationProvider` — même animation que l’onboarding success ; **un seul modal** pour tous les grants non acquittés (montant sommé ; `adminName` seulement si unique et non vide) ; affiche montant (+ admin éventuel), **pas** la note admin ni « Your new balance is… » ; dismiss / View wallet → bulk ack `{ ids }` (file vidée tout de suite, pas de spinner « Saving… ») ; masquée en impersonation admin.
 
 **Templates** (chemins inchangés ; stockage = `partner_filter_sets` où `isTemplate=true`) :
 
@@ -606,7 +607,7 @@ UI : `/partner/contact` — formulaire topic + message → `POST /api/partner/co
 Flux (`deliverPartnerContact`) :
 
 1. Destinataire admin via `getContactRecipientEmail()` (`app_settings.contact_recipient_email`, fallback `sami@ffl-capital.com`)
-2. Email admin Resend (`FROM_EMAIL`, `replyTo` = email session partner) — sujet `[Partner Portal] {topic label}` ; label = `customTopic` si topic `other`
+2. Email admin Resend (`FROM_EMAIL`, `replyTo` = email session partner) — sujet `Partner contact: {topic label}` ; label = `customTopic` si topic `other`
 3. Confirmation partner Resend — recap topic + message ; footer « do not reply » avec email partner ; échec confirmation → succès avec `warning` ; échec admin → `502` message générique
 
 Helper partagé : `src/lib/email/send-resend-email.ts`. Setting PATCH via `/api/admin/settings` (`contactRecipientEmail`). Tests : `test/current/partner-contact-delivery.test.ts`.
