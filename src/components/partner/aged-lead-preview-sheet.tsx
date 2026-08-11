@@ -21,11 +21,11 @@ export type PartnerAgedLeadPreview = {
   intent: string;
   haveIul: string | null;
   primaryGoal: string | null;
+  price: number;
 };
 
 type Props = {
   lead: PartnerAgedLeadPreview | null;
-  agedPrice: number;
   agedDays: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,7 +38,6 @@ function displayValue(value: string | null | undefined): string {
 
 export function AgedLeadPreviewSheet({
   lead,
-  agedPrice,
   agedDays,
   open,
   onOpenChange,
@@ -82,7 +81,7 @@ export function AgedLeadPreviewSheet({
 
         <dl className="grid gap-3 sm:grid-cols-2">
           {[
-            { label: "Price", value: formatUsd(agedPrice), valueClassName: moneyValueClassName },
+            { label: "Price", value: formatUsd(lead.price), valueClassName: moneyValueClassName },
             { label: "Have IUL", value: displayValue(lead.haveIul) },
             { label: "Primary goal", value: displayValue(lead.primaryGoal) },
           ].map((item) => (

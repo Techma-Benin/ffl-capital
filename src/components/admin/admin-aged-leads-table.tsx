@@ -23,6 +23,7 @@ export type AdminAgedLeadRow = {
     leadTypeLabel: string;
   status: string;
   ageDays: number;
+  price: number;
   sheetLead: RefundLeadSnapshot;
 };
 
@@ -43,13 +44,11 @@ const COLUMNS: {
 
 export function AdminAgedLeadsTable({
   leads,
-  agedPrice,
   sort,
   dir,
   hrefBySortKey,
 }: {
   leads: AdminAgedLeadRow[];
-  agedPrice: number;
   sort: AdminAgedLeadSortKey;
   dir: SortDirection;
   hrefBySortKey: Record<AdminAgedLeadSortKey, string>;
@@ -110,7 +109,7 @@ export function AdminAgedLeadsTable({
               </td>
               <td className="capitalize">{lead.status.replace("_", " ")}</td>
               <td>{lead.ageDays}d</td>
-              <td className={moneyCellClass("font-semibold")}>{formatUsd(agedPrice)}</td>
+              <td className={moneyCellClass("font-semibold")}>{formatUsd(lead.price)}</td>
               <td className="text-right" onClick={(e) => e.stopPropagation()}>
                 <AdminAgedLeadRowActions leadId={lead.id} />
               </td>

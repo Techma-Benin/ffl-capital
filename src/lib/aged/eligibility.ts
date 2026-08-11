@@ -1,5 +1,10 @@
 import { LeadStatus, Prisma } from "@prisma/client";
 import { getAgedDaysThreshold } from "@/lib/settings/app-settings";
+import {
+  DEFAULT_AGED_PRICE_TIERS,
+  getNextAgedBracketStartFromTiers,
+  type AgedPriceTier,
+} from "@/lib/aged/price-tiers";
 
 export async function getAgedCutoffDate(): Promise<Date> {
   const days = await getAgedDaysThreshold();
@@ -13,37 +18,14 @@ export function getAgedCutoffDateSync(days = 30): Date {
 }
 
 /**
- * Given a lead's receivedAt and the standard day thresholds [30, 60, 90],
- * returns the DateTime at which the lead enters the NEXT age bracket.
- *
- * - If the lead is currently 30–60 days old → next bracket starts at receivedAt + 60 days
- * - If the lead is currently 60–90 days old → next bracket starts at receivedAt + 90 days
- * - If the lead is 90+ days old             → no next bracket; returns null
+ * Given a lead's receivedAt and price tiers, returns when the lead enters the
+ * next age band (receivedAt + next tier minDays). Last open-ended band → null.
  */
 export function getNextAgedBracketStart(
   receivedAt: Date,
-  thresholds = [30, 60, 90],
+  tiers: AgedPriceTier[] = DEFAULT_AGED_PRICE_TIERS,
 ): Date | null {
-  const ageDays =
-    (Date.now() - receivedAt.getTime()) / (1000 * 60 * 60 * 24);
-
-  // Find which bracket the lead currently sits in
-  const sorted = [...thresholds].sort((a, b) => a - b);
-  for (let i = 0; i < sorted.length; i++) {
-    const lower = sorted[i];
-    const upper = sorted[i + 1] ?? Infinity;
-    if (ageDays >= lower && ageDays < upper) {
-      if (upper === Infinity) {
-        // Already in the last bracket; no next bracket
-        return null;
-      }
-      // Next bracket starts when age reaches `upper`
-      const next = new Date(receivedAt.getTime());
-      next.setDate(next.getDate() + upper);
-      return next;
-    }
-  }
-  return null;
+  return getNextAgedBracketStartFromTiers(receivedAt, tiers);
 }
 
 /**

@@ -7,6 +7,9 @@
  *
  * Run: pnpm run test:aged-rules
  *
+ * Age buckets use tier minDays keys from default aged_price_tiers:
+ * "30" → 30–60, "61" → 61–90, "91" → 91–180, etc.
+ *
  * Time travel: after a purchase we set `aged_available_after` to the past and
  * backdate `received_at` so the lead sits in the next age bracket without
  * waiting on the clock.
@@ -230,7 +233,7 @@ async function main() {
     where: { email: "ca-partner@ffl-test.local" },
   });
 
-  // --- 1. Purchase in 30–60 hides immediately; reappears in 60–90 after aging ---
+  // --- 1. Purchase in 30–60 hides immediately; reappears in 61–90 after aging ---
   {
     const lead = await createTestLead(45, "bucket-30");
     if (!(await isLeadVisibleInBucket(lead.id, "30"))) {
@@ -244,46 +247,46 @@ async function main() {
     if (await isLeadVisibleInBucket(lead.id, "30")) {
       fail("30–60 post-purchase", "lead still visible in 30–60 after purchase");
     }
-    if (await isLeadVisibleInBucket(lead.id, "60")) {
-      fail("30–60 cooling", "lead visible in 60–90 during cooling-off");
+    if (await isLeadVisibleInBucket(lead.id, "61")) {
+      fail("30–60 cooling", "lead visible in 61–90 during cooling-off");
     }
 
     await patchLead(lead.id, {
-      receivedAt: daysAgo(65),
+      receivedAt: daysAgo(75),
       agedAvailableAfter: daysAgo(1),
     });
-    if (!(await isLeadVisibleInBucket(lead.id, "60"))) {
-      fail("30–60 → 60–90 reappear", "lead not visible in 60–90 after aging");
+    if (!(await isLeadVisibleInBucket(lead.id, "61"))) {
+      fail("30–60 → 61–90 reappear", "lead not visible in 61–90 after aging");
     }
     if (await isLeadVisibleInBucket(lead.id, "30")) {
-      fail("30–60 → 60–90 reappear", "lead incorrectly in 30–60");
+      fail("30–60 → 61–90 reappear", "lead incorrectly in 30–60");
     }
-    pass("purchase in 30–60 hides; reappears in 60–90 when aged");
+    pass("purchase in 30–60 hides; reappears in 61–90 when aged");
   }
 
-  // --- 2. Purchase in 60–90 hides; reappears in 90+ ---
+  // --- 2. Purchase in 61–90 hides; reappears in 91–180 ---
   {
-    const lead = await createTestLead(75, "bucket-60");
-    if (!(await isLeadVisibleInBucket(lead.id, "60"))) {
-      fail("60–90 pre-purchase visibility", "lead not in 60–90 bucket");
+    const lead = await createTestLead(75, "bucket-61");
+    if (!(await isLeadVisibleInBucket(lead.id, "61"))) {
+      fail("61–90 pre-purchase visibility", "lead not in 61–90 bucket");
     }
 
     await purchaseAs(partner.id, lead.id);
-    if (await isLeadVisibleInBucket(lead.id, "60")) {
-      fail("60–90 post-purchase", "lead still visible in 60–90 after purchase");
+    if (await isLeadVisibleInBucket(lead.id, "61")) {
+      fail("61–90 post-purchase", "lead still visible in 61–90 after purchase");
     }
 
     await patchLead(lead.id, {
-      receivedAt: daysAgo(95),
+      receivedAt: daysAgo(120),
       agedAvailableAfter: daysAgo(1),
     });
-    if (!(await isLeadVisibleInBucket(lead.id, "90"))) {
-      fail("60–90 → 90+ reappear", "lead not visible in 90+ after aging");
+    if (!(await isLeadVisibleInBucket(lead.id, "91"))) {
+      fail("61–90 → 91–180 reappear", "lead not visible in 91–180 after aging");
     }
-    if (await isLeadVisibleInBucket(lead.id, "60")) {
-      fail("60–90 → 90+ reappear", "lead incorrectly in 60–90");
+    if (await isLeadVisibleInBucket(lead.id, "61")) {
+      fail("61–90 → 91–180 reappear", "lead incorrectly in 61–90");
     }
-    pass("purchase in 60–90 hides; reappears in 90+ when aged");
+    pass("purchase in 61–90 hides; reappears in 91–180 when aged");
   }
 
   // --- 3. Second purchase permanently retires lead ---
@@ -291,10 +294,10 @@ async function main() {
     const lead = await createTestLead(45, "retire");
     await purchaseAs(partner.id, lead.id);
     await patchLead(lead.id, {
-      receivedAt: daysAgo(65),
+      receivedAt: daysAgo(75),
       agedAvailableAfter: daysAgo(1),
     });
-    if (!(await isLeadVisibleInBucket(lead.id, "60"))) {
+    if (!(await isLeadVisibleInBucket(lead.id, "61"))) {
       fail("retire setup", "lead not visible for second purchase");
     }
 
@@ -302,7 +305,7 @@ async function main() {
     const retired = await readAgedState(lead.id, cols);
     assert.equal(retired.saleCount, 2, "second purchase sets sale count to 2");
 
-    for (const bucket of ["30", "60", "90"] as const) {
+    for (const bucket of ["30", "61", "91"] as const) {
       if (await isLeadVisibleInBucket(lead.id, bucket)) {
         fail("retired visibility", `lead visible in ${bucket} after 2nd purchase`);
       }
@@ -313,19 +316,19 @@ async function main() {
   // --- 4. Never-purchased leads unchanged ---
   {
     const lead30 = await createTestLead(45, "never-30");
-    const lead60 = await createTestLead(75, "never-60");
-    const lead90 = await createTestLead(120, "never-90");
+    const lead61 = await createTestLead(75, "never-61");
+    const lead91 = await createTestLead(120, "never-91");
 
     assert.equal(await isLeadVisibleInBucket(lead30.id, "30"), true);
-    assert.equal(await isLeadVisibleInBucket(lead60.id, "60"), true);
-    assert.equal(await isLeadVisibleInBucket(lead90.id, "90"), true);
+    assert.equal(await isLeadVisibleInBucket(lead61.id, "61"), true);
+    assert.equal(await isLeadVisibleInBucket(lead91.id, "91"), true);
 
     const s30 = await readAgedState(lead30.id, cols);
-    const s60 = await readAgedState(lead60.id, cols);
-    const s90 = await readAgedState(lead90.id, cols);
+    const s61 = await readAgedState(lead61.id, cols);
+    const s91 = await readAgedState(lead91.id, cols);
     assert.equal(s30.saleCount, 0);
-    assert.equal(s60.saleCount, 0);
-    assert.equal(s90.saleCount, 0);
+    assert.equal(s61.saleCount, 0);
+    assert.equal(s91.saleCount, 0);
 
     pass("zero-purchase leads still appear in their age buckets");
   }

@@ -8,9 +8,21 @@ import {
   getResaleVendorConfigs,
   getResolvedResaleVendorPostUrl,
 } from "@/lib/settings/app-settings";
+import {
+  getAgedMarketplaceMinDays,
+  validateAgedPriceTiers,
+} from "@/lib/aged/price-tiers";
+
+const agedPriceTierSchema = z.object({
+  minDays: z.number().int().min(1),
+  maxDays: z.number().int().nullable(),
+  price: z.number().positive(),
+});
+
 const settingsSchema = z.object({
   defaultRealtimePrice: z.number().positive().optional(),
   defaultAgedPrice: z.number().positive().optional(),
+  agedPriceTiers: z.array(agedPriceTierSchema).optional(),
   adminApprovalRequired: z.boolean().optional(),
   integrationsMode: z.enum(["mock", "live"]).optional(),
   agedDaysThreshold: z.number().int().positive().optional(),
@@ -37,6 +49,7 @@ const settingsSchema = z.object({
 const KEY_MAP: Record<string, string> = {
   defaultRealtimePrice: APP_SETTING_KEYS.defaultRealtimePrice,
   defaultAgedPrice: APP_SETTING_KEYS.defaultAgedPrice,
+  agedPriceTiers: APP_SETTING_KEYS.agedPriceTiers,
   adminApprovalRequired: APP_SETTING_KEYS.adminApprovalRequired,
   integrationsMode: APP_SETTING_KEYS.integrationsMode,
   agedDaysThreshold: APP_SETTING_KEYS.agedDaysThreshold,
@@ -107,6 +120,39 @@ export async function PATCH(request: NextRequest) {
     const value = parsed.data[field as keyof typeof parsed.data];
     if (value !== undefined) {
       updates.push({ key, value });
+    }
+  }
+
+  if (parsed.data.agedPriceTiers !== undefined) {
+    const validated = validateAgedPriceTiers(parsed.data.agedPriceTiers);
+    if (!validated.ok) {
+      return NextResponse.json({ error: validated.error }, { status: 400 });
+    }
+    // Replace zod-parsed tiers with sorted validated tiers
+    const tiersIdx = updates.findIndex(
+      (u) => u.key === APP_SETTING_KEYS.agedPriceTiers,
+    );
+    if (tiersIdx >= 0) {
+      updates[tiersIdx] = {
+        key: APP_SETTING_KEYS.agedPriceTiers,
+        value: validated.tiers,
+      };
+    }
+    // Sync marketplace cutoff from first tier minDays
+    const syncedThreshold = getAgedMarketplaceMinDays(validated.tiers);
+    const thresholdIdx = updates.findIndex(
+      (u) => u.key === APP_SETTING_KEYS.agedDaysThreshold,
+    );
+    if (thresholdIdx >= 0) {
+      updates[thresholdIdx] = {
+        key: APP_SETTING_KEYS.agedDaysThreshold,
+        value: syncedThreshold,
+      };
+    } else {
+      updates.push({
+        key: APP_SETTING_KEYS.agedDaysThreshold,
+        value: syncedThreshold,
+      });
     }
   }
 

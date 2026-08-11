@@ -59,13 +59,18 @@ function navigateWithFilters(
 export function AdminAgedLeadsFilters({
   stateOptions,
   typeFilterOptions = ADMIN_AGED_TYPE_FILTER_OPTIONS,
+  ageFilterOptions = ADMIN_AGED_AGE_FILTER_OPTIONS,
 }: {
   stateOptions: { value: string; label: string }[];
   typeFilterOptions?: { value: AdminAgedLeadTypeFilter; label: string }[];
+  ageFilterOptions?: { value: AdminAgedLeadAgeFilterValue; label: string }[];
 }) {
   const { push } = useNavigateWithPending();
   const searchParams = useSearchParams();
   const knownTypes = typeFilterOptions
+    .map((option) => option.value)
+    .filter((value) => value !== "all");
+  const knownAgeBuckets = ageFilterOptions
     .map((option) => option.value)
     .filter((value) => value !== "all");
   const filters = parseAdminAgedLeadFilters(
@@ -76,6 +81,7 @@ export function AdminAgedLeadsFilters({
       age: searchParams.get(ADMIN_AGED_AGE_PARAM) ?? undefined,
     },
     knownTypes,
+    knownAgeBuckets,
   );
 
   const hasActiveFilters =
@@ -137,7 +143,7 @@ export function AdminAgedLeadsFilters({
         accent="teal"
         value={filters.age}
         allValue="all"
-        options={ADMIN_AGED_AGE_FILTER_OPTIONS}
+        options={ageFilterOptions}
         onChange={(age: AdminAgedLeadAgeFilterValue) => update({ age })}
         searchable={false}
       />

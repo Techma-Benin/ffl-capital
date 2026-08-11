@@ -1,4 +1,4 @@
-/** Matches `partnerAgedLeadMatchesAgeBucket` boundaries (30–60, 60–90, 90+). */
+/** Age chip bands relative to marketplace min days (youngest tier). */
 const AGE_CHIP_YOUNG_MAX_DAYS = 60;
 const AGE_CHIP_OLD_MIN_DAYS = 90;
 

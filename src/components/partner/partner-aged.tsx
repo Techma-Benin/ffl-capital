@@ -22,6 +22,7 @@ import {
   type PartnerAgedClientFilters,
   type PartnerAgedHaveIulFilterValue,
 } from "@/lib/admin/admin-aged-leads-filters";
+import { DEFAULT_AGED_PRICE_TIERS, type AgedPriceTier } from "@/lib/aged/price-tiers";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import {
   AgedLeadPreviewSheet,
@@ -42,7 +43,7 @@ type AgedFilters = PartnerAgedClientFilters;
 type PartnerAgedStorePayload = {
   leads: AgedLead[];
   agedDays: number;
-  agedPrice: number;
+  fromPrice: number;
   totalEligible: number;
   loadCapped: boolean;
 };
@@ -70,33 +71,37 @@ const agedSubtitleEmphasisClassName = "font-semibold text-slate-700";
 export function PartnerAgedView({
   allAgedLeads: initialLeads,
   agedDays,
-  agedPrice,
+  fromPrice,
   totalEligible,
   loadCapped,
   initialFilters,
   typeFilterOptions = ADMIN_AGED_TYPE_FILTER_OPTIONS,
+  ageFilterOptions = ADMIN_AGED_AGE_FILTER_OPTIONS,
+  priceTiers = DEFAULT_AGED_PRICE_TIERS,
 }: {
   allAgedLeads: AgedLead[];
   agedDays: number;
-  agedPrice: number;
+  fromPrice: number;
   totalEligible: number;
   loadCapped: boolean;
   initialFilters: AgedFilters;
   typeFilterOptions?: { value: AdminAgedLeadTypeFilter; label: string }[];
+  ageFilterOptions?: { value: AdminAgedLeadAgeFilterValue; label: string }[];
+  priceTiers?: AgedPriceTier[];
 }) {
   const { partner } = usePartner();
   const { router, push } = useNavigateWithPending();
-  const canBuy = partner.status === "active" && partner.walletBalance >= agedPrice;
+  const isActive = partner.status === "active";
 
   const initialPayload: PartnerAgedStorePayload = useMemo(
     () => ({
       leads: initialLeads,
       agedDays,
-      agedPrice,
+      fromPrice,
       totalEligible,
       loadCapped,
     }),
-    [initialLeads, agedDays, agedPrice, totalEligible, loadCapped],
+    [initialLeads, agedDays, fromPrice, totalEligible, loadCapped],
   );
 
   const { data: cached, mutate } = useClientResource<PartnerAgedStorePayload>(
@@ -124,8 +129,8 @@ export function PartnerAgedView({
   }
 
   const filteredLeads = useMemo(
-    () => filterPartnerAgedLeadsInMemory(leads, filters),
-    [leads, filters],
+    () => filterPartnerAgedLeadsInMemory(leads, filters, priceTiers),
+    [leads, filters, priceTiers],
   );
 
   const pageSize = DEFAULT_PAGE_SIZE;
@@ -136,6 +141,21 @@ export function PartnerAgedView({
     const start = (safePage - 1) * pageSize;
     return filteredLeads.slice(start, start + pageSize);
   }, [filteredLeads, safePage, pageSize]);
+
+  const leadPriceById = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const lead of leads) map.set(lead.id, lead.price);
+    return map;
+  }, [leads]);
+
+  const selectedTotal = useMemo(() => {
+    let sum = 0;
+    for (const id of selected) sum += leadPriceById.get(id) ?? 0;
+    return sum;
+  }, [selected, leadPriceById]);
+
+  const canBuySelected =
+    isActive && selected.size > 0 && partner.walletBalance >= selectedTotal;
 
   function updateFilter<K extends keyof AgedFilters>(
     key: K,
@@ -173,7 +193,15 @@ export function PartnerAgedView({
   }
 
   async function purchase(leadIds: string[]) {
-    if (!canBuy || leadIds.length === 0) return;
+    if (!isActive || leadIds.length === 0) return;
+    const total = leadIds.reduce(
+      (sum, id) => sum + (leadPriceById.get(id) ?? 0),
+      0,
+    );
+    if (partner.walletBalance < total) {
+      notify.error("Insufficient wallet balance for this selection.");
+      return;
+    }
     setPending(true);
     try {
       const res = await fetch("/api/leads/aged/purchase", {
@@ -236,8 +264,8 @@ export function PartnerAgedView({
         subtitle={
           <>
             Browse leads{" "}
-            <span className={agedSubtitleEmphasisClassName}>{agedDays}+</span> days old — only{" "}
-            <span className={agedSubtitleEmphasisClassName}>{formatUsd(agedPrice)}</span> each
+            <span className={agedSubtitleEmphasisClassName}>{agedDays}+</span> days old — from{" "}
+            <span className={agedSubtitleEmphasisClassName}>{formatUsd(fromPrice)}</span>
           </>
         }
       />
@@ -286,7 +314,7 @@ export function PartnerAgedView({
             accent="teal"
             value={(filters.age || "all") as AdminAgedLeadAgeFilterValue}
             allValue="all"
-            options={ADMIN_AGED_AGE_FILTER_OPTIONS}
+            options={ageFilterOptions}
             onChange={(age) => updateFilter("age", age === "all" ? "" : age)}
             searchable={false}
           />
@@ -334,7 +362,7 @@ export function PartnerAgedView({
               >
                 Clear selection
               </button>
-              {canBuy && (
+              {canBuySelected && (
                 <button
                   type="button"
                   disabled={pending}
@@ -343,7 +371,7 @@ export function PartnerAgedView({
                 >
                   {pending
                     ? "Purchasing…"
-                    : `Buy — ${formatUsd(selected.size * agedPrice)}`}
+                    : `Buy — ${formatUsd(selectedTotal)}`}
                 </button>
               )}
             </div>
@@ -363,6 +391,8 @@ export function PartnerAgedView({
               const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
               const ageChip = getPartnerAgedLeadAgeChipClassNames(ageDays, agedDays);
               const leadName = `${lead.firstName} ${lead.lastName}`;
+              const canBuyLead =
+                isActive && partner.walletBalance >= lead.price;
 
               function onRowKeyDown(e: React.KeyboardEvent) {
                 if (e.key === "Enter" || e.key === " ") {
@@ -416,6 +446,9 @@ export function PartnerAgedView({
                           <Clock size={11} className={ageChip.icon} aria-hidden />
                           {ageDays}d
                         </span>
+                        <span className="rounded bg-teal-50 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-teal-800">
+                          {formatUsd(lead.price)}
+                        </span>
                       </div>
                     </div>
 
@@ -425,10 +458,10 @@ export function PartnerAgedView({
                     >
                       <button
                         type="button"
-                        disabled={!canBuy || pending}
+                        disabled={!canBuyLead || pending}
                         onClick={() => purchase([lead.id])}
                         className={`btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          canBuy
+                          canBuyLead
                             ? "bg-brand-700 text-white hover:bg-brand-800"
                             : "cursor-not-allowed bg-slate-100 text-slate-400"
                         }`}
@@ -452,7 +485,6 @@ export function PartnerAgedView({
 
       <AgedLeadPreviewSheet
         lead={previewLead}
-        agedPrice={agedPrice}
         agedDays={agedDays}
         open={previewOpen}
         onOpenChange={setPreviewOpen}

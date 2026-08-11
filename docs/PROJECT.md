@@ -102,7 +102,7 @@ Un lead est **non vendu** quand aucun agent actif ne correspond aux critères (s
 4. Si toujours non vendu → **routage automatique** via la work queue :
    - **Partner-only** (`lifecycle_routing_enabled` off, défaut) : matching partenaires uniquement — **aucune** revente Integrity
    - **Lifecycle** (flag on) : 0–24 h Realtime ILC ; 24–48 h partner ou Storefront (priorité admin) ; 48 h–30 j partners seuls (cron auto partners contrôlé par `lifecycle_partner_auto_reprocess_enabled`) ; NCA → retry 15/30/60 min ; autres rejets métier Integrity → bloc permanent + suite partners
-5. Après **30 jours** → **aged lead** (5 $) marketplace ; exclus de la file de routage live auto
+5. Après **30 jours** (seuil = 1ʳᵉ tranche `aged_price_tiers`) → **aged lead** marketplace à prix selon tranche d’âge ; exclus de la file de routage live auto
 
 Exemple client : lead Wisconsin, personne ne veut cet état → rejeté temps réel, reste unmatched (**17:08 – 17:32** dans le transcript).
 
@@ -119,7 +119,7 @@ Un lead est **vendu** quand il est assigné à un agent :
 **Après la vente :**
 - Le lead **ne réapparaît pas** dans la file temps réel
 - Il **reste en base** (important pour aged leads)
-- Après **30 jours** : peut être proposé comme **aged lead** à 5 $ (même s’il avait déjà été vendu une fois — le client le confirme explicitement)
+- Après **30 jours** : peut être proposé comme **aged lead** (prix selon `aged_price_tiers` ; fallback `default_aged_price`) même s’il avait déjà été vendu une fois — le client le confirme explicitement
 - Possibilité de **rembourser** + **revendre** avec frais de retraitement
 - En temps normal : **1 seul propriétaire** par livraison (règle fixe, pas une config admin globale)
 - Exception : l’admin peut augmenter le plafond de ventes **sur un lead précis** lors d’un remboursement/revente (voir §4.1 et §7)
@@ -334,7 +334,7 @@ lead_categories                   -- classification produit (admin)
 | Cron reprocess unmatched + Integrity post (routes ; scheduler in-process `instrumentation.ts`) | ✅ |
 | Routage lifecycle + Azure ping Realtime IUL ; mode Partner-only si flag off | ✅ août 2026 |
 | File de routage fiable (due par fenêtre, claim lease, backoff NCA / partner miss, bloc Integrity terminal) | ✅ août 2026 |
-| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **Other fields** depuis `rawPayload`, **bulk reprocess allowlist partners**, Tracking phase/attempts/bloc Integrity), partners, refunds, **aged browse** (tri URL + pagination), **integrity postings** (liste triable client-side ; modal détail payloads/outcome/timeline + **Reprocess** immédiat, badge **Sold** / **No Campaign Available** ; Review payload = Connection test seul) + panneau test, settings (**lead categories** ; **Lead routing** — mode / fenêtres / automation / manual / intake ; **Partner contact recipient**), migration, filter list (+ templates) | ✅ |
+| Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **Other fields** depuis `rawPayload`, **bulk reprocess allowlist partners**, Tracking phase/attempts/bloc Integrity), partners, refunds, **aged browse** (tri URL + pagination, prix par tier), **integrity postings** (liste triable client-side ; modal détail payloads/outcome/timeline + **Reprocess** immédiat, badge **Sold** / **No Campaign Available** ; Review payload = Connection test seul) + panneau test, settings (**lead categories** ; **aged price tiers** ; **Lead routing** — mode / fenêtres / automation / manual / intake ; **Partner contact recipient**), migration, filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées avec périodes de livraison ; détail **Other fields** depuis `rawPayload`), wallet, aged, settings, **contact** (API Resend, plus de mailto), refunds, **modal crédit admin** (grants agrégés in-app, sans note / solde) | ✅ |
 | Table `lead_list_views` + CRUD vues admin/partner | ✅ |
 | Dev tools : `/dev/lead-simulator`, `/feeding-platform` | ✅ |
@@ -364,7 +364,7 @@ lead_categories                   -- classification produit (admin)
 - [x] Moteur de matching (filter sets + priorité + wallet actif)
 - [x] Statuts lead + file unmatched + work queue / cron routage
 - [x] Débit wallet + ledger
-- [x] Marketplace aged (seuil configurable)
+- [x] Marketplace aged (seuil + **price tiers** configurables)
 - [x] Emails (Resend si clé configurée) — livraison lead + Partner Contact Us
 - [x] Partner Contact Us : `/partner/contact` → `POST /api/partner/contact` (Resend) ; destinataire admin configurable (`contact_recipient_email`, défaut `sami@ffl-capital.com`)
 
@@ -536,7 +536,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | Domaine | **Mono-domaine** pour tous |
 | Email identifiants signup | **Non** — Clerk gère l’auth |
 | Aged UX V1 | **Achat unitaire + checkboxes** ; panier plus tard |
-| Tranches d’âge aged | **Plus tard** |
+| Tranches d’âge aged | **Oui** — `aged_price_tiers` (période + prix) éditables admin ; cooldown revente = début du tier suivant |
 | Factures PDF | **Pas obligatoire** V1 |
 | Recharge wallet | **Manuelle + récurrente** toutes les deux |
 
@@ -568,7 +568,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | Admin vs partner | **Portails séparés** (URLs / flux distincts) ; invite admin peut **promouvoir** un user Clerk non-admin existant (ex. partner) ; orphan `accepted` sans user → **Create account** (`create-user`) |
 | IntegrityCONNECT live | Code mock prêt ; **specs/API client** requises pour live |
 | TrustedForm | Certificat dans le payload webhook ; pas d'accès admin TF requis pour intake |
-| Seuil aged | Sera **configurable** en admin (défaut 30 jours) |
+| Seuil aged | **Dérivé** du premier `aged_price_tiers.minDays` (sync `aged_days_threshold` à la sauvegarde ; défaut 30) |
 | Stripe | **Test keys d'abord**, prod après validation E2E |
 
 Plan détaillé : [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md)

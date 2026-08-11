@@ -11,10 +11,17 @@ import {
   getNextAgedBracketStart,
   AGED_RETIRED_SENTINEL,
 } from "@/lib/aged/eligibility";
+import {
+  resolveAgedPriceForReceivedAt,
+  type AgedPriceTier,
+} from "@/lib/aged/price-tiers";
 import { deliverLead } from "@/lib/delivery/deliver-lead";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { debitWallet } from "@/lib/wallet/ledger";
-import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
+import {
+  getAgedPriceTiers,
+  getDefaultAgedPrice,
+} from "@/lib/settings/app-settings";
 
 export interface AgedPurchaseResult {
   purchased: Array<{
@@ -38,7 +45,10 @@ export async function purchaseAgedLeads(
     throw new Error("Partner account is not active");
   }
 
-  const agedPrice = await getDefaultAgedPrice();
+  const [fallbackPrice, tiers] = await Promise.all([
+    getDefaultAgedPrice(),
+    getAgedPriceTiers(),
+  ]);
   const purchased: AgedPurchaseResult["purchased"] = [];
   const failed: AgedPurchaseResult["failed"] = [];
 
@@ -47,7 +57,8 @@ export async function purchaseAgedLeads(
       const { deliveryId, firstName, lastName } = await purchaseSingleAgedLead(
         partnerId,
         leadId,
-        agedPrice,
+        tiers,
+        fallbackPrice,
       );
       purchased.push({ leadId, deliveryId, firstName, lastName });
     } catch (err) {
@@ -64,7 +75,8 @@ export async function purchaseAgedLeads(
 async function purchaseSingleAgedLead(
   partnerId: string,
   leadId: string,
-  agedPrice: number,
+  tiers: AgedPriceTier[],
+  fallbackPrice: number,
 ): Promise<{ deliveryId: string; firstName: string; lastName: string }> {
   const agedWhere = await buildAgedLeadWhere();
   const result = await prisma.$transaction(async (tx) => {
@@ -73,6 +85,12 @@ async function purchaseSingleAgedLead(
     });
 
     if (!lead) throw new Error("Lead not available for aged purchase");
+
+    const agedPrice = resolveAgedPriceForReceivedAt(
+      lead.receivedAt,
+      tiers,
+      fallbackPrice,
+    );
 
     const partner = await tx.partner.findUniqueOrThrow({
       where: { id: partnerId },
@@ -106,11 +124,11 @@ async function purchaseSingleAgedLead(
       agedAvailableAfter = AGED_RETIRED_SENTINEL;
     } else {
       // First sale — hide it until it ages into the next bracket
-      const nextBracket = getNextAgedBracketStart(lead.receivedAt);
+      const nextBracket = getNextAgedBracketStart(lead.receivedAt, tiers);
       if (nextBracket) {
         agedAvailableAfter = nextBracket;
       } else {
-        // Already in the final (90+) bracket; retire after first purchase too
+        // Already in the final open-ended bracket; retire after first purchase too
         agedAvailableAfter = AGED_RETIRED_SENTINEL;
       }
     }
@@ -127,6 +145,7 @@ async function purchaseSingleAgedLead(
       deliveryId: delivery.id,
       firstName: lead.firstName,
       lastName: lead.lastName,
+      agedPrice,
     };
   }, PRISMA_TX_OPTIONS);
 
@@ -139,9 +158,13 @@ async function purchaseSingleAgedLead(
     await emitLeadEvent(leadId, LeadEventType.aged_purchased, {
       deliveryId: result.deliveryId,
       partnerId,
-      price: agedPrice,
+      price: result.agedPrice,
     });
   }
 
-  return result;
+  return {
+    deliveryId: result.deliveryId,
+    firstName: result.firstName,
+    lastName: result.lastName,
+  };
 }

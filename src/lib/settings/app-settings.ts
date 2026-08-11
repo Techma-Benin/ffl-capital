@@ -15,14 +15,23 @@ import type {
   MidWindowPrimary,
 } from "@/lib/lead-routing/types";
 import { DEFAULT_CONTACT_RECIPIENT_EMAIL } from "@/lib/settings/contact-recipient";
+import {
+  DEFAULT_AGED_PRICE_TIERS,
+  getAgedMarketplaceMinDays,
+  parseAgedPriceTiers,
+  type AgedPriceTier,
+} from "@/lib/aged/price-tiers";
 
 export type { ResaleVendorConfig } from "@/lib/settings/resale-vendor-defaults";
 export { DEFAULT_RESALE_VENDOR_CONFIGS } from "@/lib/settings/resale-vendor-defaults";
 export { DEFAULT_CONTACT_RECIPIENT_EMAIL } from "@/lib/settings/contact-recipient";
+export type { AgedPriceTier } from "@/lib/aged/price-tiers";
+export { DEFAULT_AGED_PRICE_TIERS } from "@/lib/aged/price-tiers";
 
 export const APP_SETTING_KEYS = {
   defaultRealtimePrice: "default_realtime_price",
   defaultAgedPrice: "default_aged_price",
+  agedPriceTiers: "aged_price_tiers",
   adminApprovalRequired: "admin_approval_required",
   integrationsMode: "integrations_mode",
   agedDaysThreshold: "aged_days_threshold",
@@ -54,6 +63,15 @@ export async function getDefaultRealtimePrice(): Promise<number> {
 
 export async function getDefaultAgedPrice(): Promise<number> {
   return getSetting(APP_SETTING_KEYS.defaultAgedPrice, 5);
+}
+
+/** Admin-editable age bands for aged marketplace pricing and resale cooldown. */
+export async function getAgedPriceTiers(): Promise<AgedPriceTier[]> {
+  const raw = await getSetting<unknown>(
+    APP_SETTING_KEYS.agedPriceTiers,
+    DEFAULT_AGED_PRICE_TIERS,
+  );
+  return parseAgedPriceTiers(raw);
 }
 
 export async function isAdminApprovalRequired(): Promise<boolean> {
@@ -140,8 +158,13 @@ export async function getIntegrityStorefrontVendor(): Promise<ResolvedResaleVend
   return getResaleVendor(INTEGRITY_STOREFRONT_VENDOR_KEY);
 }
 
+/**
+ * Marketplace eligibility cutoff in days — derived from the first price tier
+ * (single source of truth). `aged_days_threshold` is synced on settings save.
+ */
 export async function getAgedDaysThreshold(): Promise<number> {
-  return getSetting(APP_SETTING_KEYS.agedDaysThreshold, 30);
+  const tiers = await getAgedPriceTiers();
+  return getAgedMarketplaceMinDays(tiers);
 }
 
 export async function isTrustedformValidationEnabled(): Promise<boolean> {
@@ -276,9 +299,16 @@ export async function seedAppSettings(): Promise<void> {
   const defaults: Array<{ key: string; value: Prisma.InputJsonValue }> = [
     { key: APP_SETTING_KEYS.defaultRealtimePrice, value: 25 },
     { key: APP_SETTING_KEYS.defaultAgedPrice, value: 5 },
+    {
+      key: APP_SETTING_KEYS.agedPriceTiers,
+      value: DEFAULT_AGED_PRICE_TIERS as Prisma.InputJsonValue,
+    },
     { key: APP_SETTING_KEYS.adminApprovalRequired, value: true },
     { key: APP_SETTING_KEYS.integrationsMode, value: "mock" },
-    { key: APP_SETTING_KEYS.agedDaysThreshold, value: 30 },
+    {
+      key: APP_SETTING_KEYS.agedDaysThreshold,
+      value: getAgedMarketplaceMinDays(DEFAULT_AGED_PRICE_TIERS),
+    },
     { key: APP_SETTING_KEYS.trustedformValidationEnabled, value: false },
     { key: APP_SETTING_KEYS.duplicateCheckEnabled, value: true },
     { key: APP_SETTING_KEYS.duplicateCheckWindowDays, value: 30 },

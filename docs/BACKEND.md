@@ -64,7 +64,8 @@
 | Remboursements bulk + admin-initiated | ✅ |
 | Driver CRM outbound + logging `crm_outbound` | ✅ |
 | Integrity payload builders + mode storefront | ✅ mock |
-| Seuil aged configurable | ✅ `aged_days_threshold` |
+| Seuil aged configurable | ✅ dérivé de `aged_price_tiers` (sync `aged_days_threshold`) |
+| Prix aged par tranche d’âge | ✅ `aged_price_tiers` (fallback `default_aged_price`) |
 | `scripts/verify-cron.mjs` | ✅ |
 | `scripts/verify-backend.mjs` étendu | ✅ |
 | Catégories lead flexibles (`lead_category_criteria`, résolution intake) | ✅ migration `20260730170000` |
@@ -285,14 +286,14 @@ Invalidate typique : actions partner (approve/block/delete), review refund, acha
 
 ### Admin aged browse (`/admin/aged`)
 
-Pas d’API dédiée — page SSR : `buildAdminAgedLeadsWhere()` (`src/lib/admin/admin-aged-leads-filters.ts` → `buildAgedLeadWhereWithCutoff`, seuil `aged_days_threshold`, exclut `status=dead`), prix affiché via `getDefaultAgedPrice()`.
+Pas d’API dédiée — page SSR : `buildAdminAgedLeadsWhere()` (`src/lib/admin/admin-aged-leads-filters.ts` → `buildAgedLeadWhereWithCutoff`, seuil dérivé du premier `aged_price_tiers.minDays` / `getAgedDaysThreshold()`, exclut `status=dead`), prix affiché **par lead** via les tiers (`resolveAgedPriceForAgeDays`).
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|
 | `state` | codes US comma-séparés (ex. `TX,CA`) | Filtre `state IN (...)` |
 | `type` | `traditional_iul` \| `high_intent_iul` | Filtre `leadType` |
 | `status` | `unmatched` \| `delivered` \| `integrity_posted` \| `aged_listed` \| `review` | Filtre `status` (hors `dead` déjà exclu) |
-| `age` | `30` \| `60` \| `90` | Bucket jours sur `receivedAt` (même logique que `/partner/aged`) |
+| `age` | `String(tier.minDays)` (ex. `30`, `61`, `91`…) | Bucket inclusif sur `receivedAt` depuis `aged_price_tiers` (même logique que `/partner/aged`) |
 | `page` | entier | Pagination (`parsePageParams`, 25/page) |
 | `sort` | `name` \| `state` \| `type` \| `status` \| `ageDays` \| `price` | Colonne de tri Prisma |
 | `dir` | `asc` \| `desc` | Sens ; défaut `desc` si `sort` absent, sinon `asc` si `dir` invalide |
@@ -303,18 +304,20 @@ Tri : `src/lib/admin/admin-aged-leads-sort.ts` (`buildAdminAgedLeadOrderBy` — 
 
 ### Partner aged marketplace (`/partner/aged`)
 
-Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil `aged_days_threshold`, hors `dead`). **Les filter sets partner ne restreignent pas** le listing ni l’achat aged — seuls le matching temps réel et les remboursements « wrong filter » s’appuient sur les filter sets (`partner_filter_sets.lead_type`).
+Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil depuis `aged_price_tiers`, hors `dead`). **Les filter sets partner ne restreignent pas** le listing ni l’achat aged — seuls le matching temps réel et les remboursements « wrong filter » s’appuient sur les filter sets (`partner_filter_sets.lead_type`).
 
-**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age/haveIul ; filtres et pagination appliqués **côté client** (pas de re-fetch SSR par changement de filtre). Paramètres URL (`state`, `type`, `age`, `haveIul`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc. Cache : clé `partner-aged` (`client-store`) ; invalidate / patch à l’achat.
+**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age/haveIul ; filtres et pagination appliqués **côté client** (pas de re-fetch SSR par changement de filtre). Paramètres URL (`state`, `type`, `age`, `haveIul`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc. Cache : clé `partner-aged` (`client-store`) ; invalidate / patch à l’achat. Chaque lead affiche le **prix de son tier** ; le panier somme des prix mixtes.
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|
 | `state` | code US 2 lettres (ex. `TX`) | Filtre client `state` (optionnel ; URL seulement) |
 | `type` | `traditional_iul` \| `high_intent_iul` | Filtre client `leadType` (optionnel) |
-| `age` | `30` \| `60` \| `90` | Bucket jours sur `receivedAt` (`filterPartnerAgedLeadsInMemory`) |
+| `age` | `String(tier.minDays)` | Bucket inclusif (`filterPartnerAgedLeadsInMemory` + tiers settings) |
 | `haveIul` | `Yes` \| `No` \| `empty` | Filtre client sur `haveIul` (`empty` = null/vide) |
 
-**Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet ; pas de garde filter set / min 15 états.
+**Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet au **prix du tier** (fallback `default_aged_price` si hors bande) ; 1ʳᵉ vente → `agedAvailableAfter` = début du tier suivant ; 2ᵉ vente → retrait permanent. Pas de garde filter set / min 15 états.
+
+**Settings** : `aged_price_tiers` (JSON `[{ minDays, maxDays|null, price }]`) éditable en admin ; à la sauvegarde, `aged_days_threshold` est synchronisé sur le `minDays` du premier tier. Helpers : `src/lib/aged/price-tiers.ts`.
 
 ---
 
@@ -704,7 +707,7 @@ pnpm stripe:listen       # webhook Stripe local
 | p9-2 | Rejet doublon email+téléphone ; idempotence `externalId` |
 | prd-ca / prd-wallet / prd-states / prd-fifo | Règles matching (état, solde, ≥15 états, FIFO) |
 | p9-3 | Limite **hebdomadaire** filter set → unmatched |
-| p9-4 | Éligibilité aged (seuil `aged_days_threshold`) |
+| p9-4 | Éligibilité aged (seuil depuis `aged_price_tiers` / `getAgedDaysThreshold`) |
 | p9-5 | Remboursement Type A (`wrong_filter` → unmatched) et Type B (`invalid_phone` → dead) |
 | p9-6 | Recherche admin par email et téléphone |
 | p9-7 | Cron `POST /api/cron/integrity-post` sur lead unmatched au-delà du délai |

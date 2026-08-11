@@ -10,9 +10,20 @@ import {
   isSystemResaleVendorKey,
   resaleVendorLabel,
 } from "@/lib/settings/resale-vendor-keys";
+import {
+  DEFAULT_AGED_PRICE_TIERS,
+  getAgedMarketplaceMinDays,
+  type AgedPriceTier,
+} from "@/lib/aged/price-tiers";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 import { notify } from "@/lib/notify";
+
+type AgedTierRow = {
+  minDays: number | "";
+  maxDays: number | "" | null;
+  price: number | "";
+};
 
 interface ResaleVendorRow {
   key: string;
@@ -401,6 +412,14 @@ export function AdminSettingsForm({
     contactRecipientEmail: DEFAULT_CONTACT_RECIPIENT_EMAIL,
   });
 
+  const [agedTiers, setAgedTiers] = useState<AgedTierRow[]>(
+    DEFAULT_AGED_PRICE_TIERS.map((t) => ({
+      minDays: t.minDays,
+      maxDays: t.maxDays,
+      price: t.price,
+    })),
+  );
+
   const [resaleVendors, setResaleVendors] = useState<ResaleVendorRow[]>([]);
 
   const [resaleModal, setResaleModal] = useState<{
@@ -447,6 +466,16 @@ export function AdminSettingsForm({
               ? s.contact_recipient_email.trim()
               : DEFAULT_CONTACT_RECIPIENT_EMAIL,
         });
+        const rawTiers = Array.isArray(s.aged_price_tiers)
+          ? (s.aged_price_tiers as AgedPriceTier[])
+          : DEFAULT_AGED_PRICE_TIERS;
+        setAgedTiers(
+          rawTiers.map((t) => ({
+            minDays: Number(t.minDays),
+            maxDays: t.maxDays == null ? null : Number(t.maxDays),
+            price: Number(t.price),
+          })),
+        );
         setResaleVendors(
           buildResaleRows(
             (s.resale_vendor_configs as Record<
@@ -477,17 +506,70 @@ export function AdminSettingsForm({
     }
   }
 
+  function updateAgedTier(
+    index: number,
+    field: keyof AgedTierRow,
+    raw: string,
+  ) {
+    setAgedTiers((prev) =>
+      prev.map((row, i) => {
+        if (i !== index) return row;
+        if (field === "maxDays" && (raw === "" || raw === "null")) {
+          return { ...row, maxDays: null };
+        }
+        const num = Number(raw);
+        return {
+          ...row,
+          [field]: Number.isFinite(num) ? num : "",
+        };
+      }),
+    );
+  }
+
+  function addAgedTier() {
+    setAgedTiers((prev) => {
+      const last = prev[prev.length - 1];
+      const nextMin =
+        typeof last?.maxDays === "number"
+          ? last.maxDays + 1
+          : typeof last?.minDays === "number"
+            ? last.minDays + 30
+            : 30;
+      return [
+        ...prev.map((row, i) =>
+          i === prev.length - 1 && row.maxDays == null
+            ? { ...row, maxDays: nextMin - 1 }
+            : row,
+        ),
+        { minDays: nextMin, maxDays: null, price: 1 },
+      ];
+    });
+  }
+
+  function removeAgedTier(index: number) {
+    setAgedTiers((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  }
+
   /* save */
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setPending(true);
     try {
+      const agedPriceTiers: AgedPriceTier[] = agedTiers.map((row) => ({
+        minDays: Number(row.minDays),
+        maxDays: row.maxDays === "" || row.maxDays == null ? null : Number(row.maxDays),
+        price: Number(row.price),
+      }));
+      const marketplaceMinDays = getAgedMarketplaceMinDays(
+        agedPriceTiers.filter((t) => Number.isFinite(t.minDays)),
+      );
       const resaleVendorConfigs = resaleToPayload(resaleVendors);
       const payload: Record<string, unknown> = {
         defaultRealtimePrice: form.defaultRealtimePrice,
         defaultAgedPrice: form.defaultAgedPrice,
+        agedPriceTiers,
         adminApprovalRequired: form.adminApprovalRequired,
-        agedDaysThreshold: form.agedDaysThreshold,
+        agedDaysThreshold: marketplaceMinDays,
         trustedformValidationEnabled: form.trustedformValidationEnabled,
         duplicateCheckEnabled: form.duplicateCheckEnabled,
         duplicateCheckWindowDays: form.duplicateCheckWindowDays,
@@ -508,11 +590,17 @@ export function AdminSettingsForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Save failed");
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(data?.error || "Save failed");
+      }
+      setForm((f) => ({ ...f, agedDaysThreshold: marketplaceMinDays }));
       notify.success("Settings saved");
       router.refresh();
-    } catch {
-      notify.error("Failed to save");
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setPending(false);
     }
@@ -656,7 +744,7 @@ export function AdminSettingsForm({
                         marginBottom: 6,
                       }}
                     >
-                      Aged price ($)
+                      Aged fallback price ($)
                     </label>
                     <input
                       type="number"
@@ -677,9 +765,123 @@ export function AdminSettingsForm({
                     marginTop: 12,
                   }}
                 >
+                  Used only when a lead’s age does not match any price tier.
                   Per-category prices in{" "}
                   <strong style={{ color: "#605BFF" }}>Categories</strong>{" "}
-                  override these globals.
+                  override realtime globals.
+                </p>
+              </div>
+            </div>
+
+            {/* Aged price tiers */}
+            <div className="bg-white rounded-[14px] shadow-[0_6px_24px_-14px_rgba(79,78,105,0.25)]">
+              <CardHead
+                iconBg="rgba(58,151,76,0.14)"
+                icon={<IconPricing />}
+                title="Aged price tiers"
+                hint="Period + price; drives purchase and resale cooldown"
+                right={
+                  <button
+                    type="button"
+                    onClick={addAgedTier}
+                    className="btn-secondary btn-sm"
+                  >
+                    Add tier
+                  </button>
+                }
+              />
+              <div style={{ padding: "12px 20px 18px" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr auto",
+                    gap: 8,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#8b8a99",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    marginBottom: 8,
+                  }}
+                >
+                  <span>Min days</span>
+                  <span>Max days</span>
+                  <span>Price ($)</span>
+                  <span />
+                </div>
+                {agedTiers.map((row, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr auto",
+                      gap: 8,
+                      marginBottom: 8,
+                      alignItems: "center",
+                    }}
+                  >
+                    <input
+                      type="number"
+                      min={1}
+                      value={row.minDays}
+                      onChange={(e) =>
+                        updateAgedTier(index, "minDays", e.target.value)
+                      }
+                      className="form-input"
+                      aria-label={`Tier ${index + 1} min days`}
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="∞"
+                      value={row.maxDays ?? ""}
+                      onChange={(e) =>
+                        updateAgedTier(index, "maxDays", e.target.value)
+                      }
+                      className="form-input"
+                      aria-label={`Tier ${index + 1} max days`}
+                    />
+                    <input
+                      type="number"
+                      min={0.01}
+                      step={0.01}
+                      value={row.price}
+                      onChange={(e) =>
+                        updateAgedTier(index, "price", e.target.value)
+                      }
+                      className="form-input"
+                      aria-label={`Tier ${index + 1} price`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeAgedTier(index)}
+                      disabled={agedTiers.length <= 1}
+                      className="btn-secondary btn-sm"
+                      aria-label={`Remove tier ${index + 1}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <p style={{ fontSize: 13, color: "#8b8a99", marginTop: 8 }}>
+                  Inclusive, non-overlapping bands. Leave max blank on the last
+                  tier for open-ended. Marketplace cutoff ={" "}
+                  <strong style={{ color: "#030229" }}>
+                    {getAgedMarketplaceMinDays(
+                      agedTiers
+                        .filter((t) => typeof t.minDays === "number")
+                        .map((t) => ({
+                          minDays: Number(t.minDays),
+                          maxDays:
+                            t.maxDays === "" || t.maxDays == null
+                              ? null
+                              : Number(t.maxDays),
+                          price: Number(t.price) || 1,
+                        })),
+                    )}
+                    + days
+                  </strong>
+                  .
                 </p>
               </div>
             </div>
@@ -712,22 +914,29 @@ export function AdminSettingsForm({
                       Aged days threshold
                     </div>
                     <div style={{ fontSize: 13, color: "#8b8a99", marginTop: 2 }}>
-                      Leads older than this enter the passive aged marketplace
-                      (excluded from automatic routing).
+                      Synced from the first aged price tier’s min days. Leads
+                      older than this enter the passive aged marketplace.
                     </div>
                   </div>
                   <input
                     type="number"
                     min={1}
-                    value={form.agedDaysThreshold}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        agedDaysThreshold: Number(e.target.value),
-                      })
-                    }
+                    value={getAgedMarketplaceMinDays(
+                      agedTiers
+                        .filter((t) => typeof t.minDays === "number")
+                        .map((t) => ({
+                          minDays: Number(t.minDays),
+                          maxDays:
+                            t.maxDays === "" || t.maxDays == null
+                              ? null
+                              : Number(t.maxDays),
+                          price: Number(t.price) || 1,
+                        })),
+                    )}
+                    readOnly
                     className="form-input"
-                    style={{ width: 88, flexShrink: 0 }}
+                    style={{ width: 88, flexShrink: 0, opacity: 0.85 }}
+                    aria-label="Aged days threshold (from tiers)"
                   />
                 </div>
 

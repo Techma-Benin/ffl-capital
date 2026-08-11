@@ -863,7 +863,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | key | string PK | |
 | value | jsonb | |
 
-**Clés initiales :** `default_realtime_price`, `default_aged_price`, `admin_approval_required`, `integrations_mode`, `lifecycle_routing_enabled` (défaut false = Partner-only), `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`), `lifecycle_partner_auto_reprocess_enabled` (défaut true), `reprocess_partner_picker_enabled`, `contact_recipient_email` (destinataire Partner Contact Us ; défaut `sami@ffl-capital.com`) ; `integrity_post_delay_hours` conservée pour rollback uniquement (plus active)
+**Clés initiales :** `default_realtime_price`, `default_aged_price`, `aged_price_tiers` (JSON bandes `{ minDays, maxDays|null, price }` — pricing marketplace + cooldown revente ; seuil marketplace = min `minDays`), `admin_approval_required`, `integrations_mode`, `lifecycle_routing_enabled` (défaut false = Partner-only), `lifecycle_realtime_cutoff_hours` (24), `lifecycle_storefront_cutoff_hours` (48), `lifecycle_mid_window_primary` (`partner` \| `storefront`), `lifecycle_partner_auto_reprocess_enabled` (défaut true), `reprocess_partner_picker_enabled`, `contact_recipient_email` (destinataire Partner Contact Us ; défaut `sami@ffl-capital.com`) ; `integrity_post_delay_hours` conservée pour rollback uniquement (plus active)
 
 ### Table `migration_jobs`
 

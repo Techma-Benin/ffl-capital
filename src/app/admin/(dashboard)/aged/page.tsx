@@ -3,7 +3,11 @@ import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Archive } from "@/lib/icons/ssr";
-import { getDefaultAgedPrice } from "@/lib/settings/app-settings";
+import {
+  getAgedDaysThreshold,
+  getAgedPriceTiers,
+  getDefaultAgedPrice,
+} from "@/lib/settings/app-settings";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { parsePageParams } from "@/lib/pagination";
 import { formatUsd } from "@/lib/format-money";
@@ -25,6 +29,10 @@ import {
   resolveLeadTypeDisplay,
   buildCategoryFilterOptions,
 } from "@/lib/lead-categories/category-labels";
+import {
+  buildAgedAgeFilterOptions,
+  resolveAgedPriceForAgeDays,
+} from "@/lib/aged/price-tiers";
 
 const BASE_PATH = "/admin/aged";
 
@@ -42,10 +50,18 @@ export default async function AdminAgedPage({
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const categories = await loadEnabledCategoryLabels();
+  const [categories, tiers, fallbackPrice, agedDays] = await Promise.all([
+    loadEnabledCategoryLabels(),
+    getAgedPriceTiers(),
+    getDefaultAgedPrice(),
+    getAgedDaysThreshold(),
+  ]);
+  const knownAgeBuckets = tiers.map((t) => String(t.minDays));
+  const ageFilterOptions = buildAgedAgeFilterOptions(tiers);
   const filters = parseAdminAgedLeadFilters(
     resolvedSearchParams,
     categories.map((category) => category.type),
+    knownAgeBuckets,
   );
   const agedWhere = await buildAdminAgedLeadsWhere(filters);
   const { page, pageSize, skip } = parsePageParams(resolvedSearchParams);
@@ -53,7 +69,7 @@ export default async function AdminAgedPage({
   const orderBy = buildAdminAgedLeadOrderBy(sort, dir);
   const hrefBySortKey = sortHrefMap(BASE_PATH, resolvedSearchParams);
 
-  const [leads, total, agedPrice, agedDays] = await Promise.all([
+  const [leads, total] = await Promise.all([
     prisma.lead.findMany({
       where: agedWhere,
       orderBy,
@@ -68,8 +84,6 @@ export default async function AdminAgedPage({
       },
     }),
     prisma.lead.count({ where: agedWhere }),
-    getDefaultAgedPrice(),
-    import("@/lib/settings/app-settings").then((m) => m.getAgedDaysThreshold()),
   ]);
 
   const stateOptions = US_STATE_CODES.map((code) => ({
@@ -82,33 +96,40 @@ export default async function AdminAgedPage({
     ...buildCategoryFilterOptions(categories),
   ];
 
-  const rows = leads.map((lead) => ({
-    id: lead.id,
-    firstName: lead.firstName,
-    lastName: lead.lastName,
-    state: lead.state,
-    leadType: lead.leadType ?? "",
-    leadTypeLabel: resolveLeadTypeDisplay({
-      leadType: lead.leadType,
-      categoryResolution: lead.categoryResolution,
-      categoryCandidateTypes: lead.categoryCandidateTypes,
-      categories,
-    }).label,
-    status: lead.status,
-    ageDays: Math.floor(
+  const lowestTierPrice = Math.min(...tiers.map((t) => t.price), fallbackPrice);
+
+  const rows = leads.map((lead) => {
+    const ageDays = Math.floor(
       (Date.now() - lead.receivedAt.getTime()) / (1000 * 60 * 60 * 24),
-    ),
-    sheetLead: refundLeadSnapshotFromAgedListing(lead, {
-      agedPrice,
-      latestDelivery: lead.leadDeliveries[0] ?? null,
-    }),
-  }));
+    );
+    const price = resolveAgedPriceForAgeDays(ageDays, tiers, fallbackPrice);
+    return {
+      id: lead.id,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      state: lead.state,
+      leadType: lead.leadType ?? "",
+      leadTypeLabel: resolveLeadTypeDisplay({
+        leadType: lead.leadType,
+        categoryResolution: lead.categoryResolution,
+        categoryCandidateTypes: lead.categoryCandidateTypes,
+        categories,
+      }).label,
+      status: lead.status,
+      ageDays,
+      price,
+      sheetLead: refundLeadSnapshotFromAgedListing(lead, {
+        agedPrice: price,
+        latestDelivery: lead.leadDeliveries[0] ?? null,
+      }),
+    };
+  });
 
   return (
     <div>
       <PageHeader
         title="Aged Leads"
-        subtitle={`Leads ${agedDays}+ days old — default price ${formatUsd(agedPrice)}`}
+        subtitle={`Leads ${agedDays}+ days old — from ${formatUsd(lowestTierPrice)} by age tier`}
         badge={
           <span
             title={`${total.toLocaleString()} available`}
@@ -127,6 +148,7 @@ export default async function AdminAgedPage({
         <AdminAgedLeadsFilters
           stateOptions={stateOptions}
           typeFilterOptions={typeFilterOptions}
+          ageFilterOptions={ageFilterOptions}
         />
       </Suspense>
 
@@ -136,13 +158,12 @@ export default async function AdminAgedPage({
             <EmptyState
               icon={Archive}
               title="No aged leads"
-              description="Leads become eligible 30 days after receipt."
+              description={`Leads become eligible ${agedDays} days after receipt.`}
               accent="teal"
             />
           ) : (
             <AdminAgedLeadsTable
               leads={rows}
-              agedPrice={agedPrice}
               sort={sort}
               dir={dir}
               hrefBySortKey={hrefBySortKey}

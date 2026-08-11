@@ -1,5 +1,13 @@
 import { LeadStatus, Prisma } from "@prisma/client";
 import { buildAgedLeadWhereWithCutoff, getAgedCutoffDate } from "@/lib/aged/eligibility";
+import {
+  DEFAULT_AGED_PRICE_TIERS,
+  buildAgedAgeFilterOptions,
+  partnerAgedLeadMatchesTier,
+  resolveAgedTierReceivedAtFilter,
+  type AgedPriceTier,
+} from "@/lib/aged/price-tiers";
+import { getAgedPriceTiers } from "@/lib/settings/app-settings";
 
 export const ADMIN_AGED_STATE_PARAM = "state";
 export const ADMIN_AGED_TYPE_PARAM = "type";
@@ -50,20 +58,20 @@ export const ADMIN_AGED_STATUS_FILTER_OPTIONS: {
   { value: "review", label: "Review" },
 ];
 
-export const ADMIN_AGED_AGE_BUCKETS = ["30", "60", "90"] as const;
-export type AdminAgedLeadAgeFilter = (typeof ADMIN_AGED_AGE_BUCKETS)[number];
+/** Default filter values = String(tier.minDays) from default tiers. */
+export const ADMIN_AGED_AGE_BUCKETS = DEFAULT_AGED_PRICE_TIERS.map((t) =>
+  String(t.minDays),
+);
+
+export type AdminAgedLeadAgeFilter = string;
 
 export type AdminAgedLeadAgeFilterValue = "all" | AdminAgedLeadAgeFilter;
 
+/** @deprecated Prefer buildAgedAgeFilterOptions(getAgedPriceTiers()) */
 export const ADMIN_AGED_AGE_FILTER_OPTIONS: {
   value: AdminAgedLeadAgeFilterValue;
   label: string;
-}[] = [
-  { value: "all", label: "All" },
-  { value: "30", label: "30–60 days" },
-  { value: "60", label: "60–90 days" },
-  { value: "90", label: "90+ days" },
-];
+}[] = buildAgedAgeFilterOptions(DEFAULT_AGED_PRICE_TIERS);
 
 export type AdminAgedLeadFilters = {
   states: string[];
@@ -92,6 +100,7 @@ export function parseAdminAgedLeadFilters(
     age?: string;
   },
   knownTypes: string[] = [],
+  knownAgeBuckets: string[] = ADMIN_AGED_AGE_BUCKETS,
 ): AdminAgedLeadFilters {
   const typeRaw = searchParams.type?.trim();
   const type: AdminAgedLeadTypeFilter =
@@ -108,9 +117,7 @@ export function parseAdminAgedLeadFilters(
 
   const ageRaw = searchParams.age?.trim();
   const age: AdminAgedLeadAgeFilterValue =
-    ageRaw && ADMIN_AGED_AGE_BUCKETS.includes(ageRaw as AdminAgedLeadAgeFilter)
-      ? (ageRaw as AdminAgedLeadAgeFilter)
-      : "all";
+    ageRaw && knownAgeBuckets.includes(ageRaw) ? ageRaw : "all";
 
   return {
     states: parseAdminAgedLeadStates(searchParams.state),
@@ -120,25 +127,25 @@ export function parseAdminAgedLeadFilters(
   };
 }
 
-/** Partner aged marketplace uses the same day buckets. */
+function findTierForAgeBucket(
+  age: AdminAgedLeadAgeFilter,
+  tiers: AgedPriceTier[],
+): AgedPriceTier | null {
+  return tiers.find((tier) => String(tier.minDays) === age) ?? null;
+}
+
+/** Prisma receivedAt filter for a tier age bucket. */
 export function resolveAgedLeadAgeReceivedAt(
   age: AdminAgedLeadAgeFilter,
+  tiers: AgedPriceTier[] = DEFAULT_AGED_PRICE_TIERS,
 ): Prisma.DateTimeFilter {
-  const minDays = Number(age);
-  const maxCutoff = new Date();
-  maxCutoff.setDate(maxCutoff.getDate() - minDays);
-
-  if (age === "30") {
-    const minCutoff = new Date();
-    minCutoff.setDate(minCutoff.getDate() - 60);
-    return { lte: maxCutoff, gte: minCutoff };
+  const tier = findTierForAgeBucket(age, tiers);
+  if (!tier) {
+    const maxCutoff = new Date();
+    maxCutoff.setDate(maxCutoff.getDate() - Number(age));
+    return { lte: maxCutoff };
   }
-  if (age === "60") {
-    const minCutoff = new Date();
-    minCutoff.setDate(minCutoff.getDate() - 90);
-    return { lte: maxCutoff, gte: minCutoff };
-  }
-  return { lte: maxCutoff };
+  return resolveAgedTierReceivedAtFilter(tier);
 }
 
 function intersectReceivedAt(
@@ -159,7 +166,10 @@ function intersectReceivedAt(
 export async function buildAdminAgedLeadsWhere(
   filters: AdminAgedLeadFilters,
 ): Promise<Prisma.LeadWhereInput> {
-  const cutoff = await getAgedCutoffDate();
+  const [cutoff, tiers] = await Promise.all([
+    getAgedCutoffDate(),
+    getAgedPriceTiers(),
+  ]);
   const extra: Prisma.LeadWhereInput = {};
 
   if (filters.states.length > 0) {
@@ -175,7 +185,7 @@ export async function buildAdminAgedLeadsWhere(
   if (filters.age !== "all") {
     extra.receivedAt = intersectReceivedAt(
       cutoff,
-      resolveAgedLeadAgeReceivedAt(filters.age),
+      resolveAgedLeadAgeReceivedAt(filters.age, tiers),
     );
   }
 
@@ -195,11 +205,11 @@ export function partnerAgedLeadAgeDays(receivedAt: Date | string): number {
 export function partnerAgedLeadMatchesAgeBucket(
   receivedAt: Date | string,
   bucket: AdminAgedLeadAgeFilter,
+  tiers: AgedPriceTier[] = DEFAULT_AGED_PRICE_TIERS,
 ): boolean {
-  const ageDays = partnerAgedLeadAgeDays(receivedAt);
-  if (bucket === "30") return ageDays >= 30 && ageDays <= 60;
-  if (bucket === "60") return ageDays >= 60 && ageDays <= 90;
-  return ageDays >= 90;
+  const tier = findTierForAgeBucket(bucket, tiers);
+  if (!tier) return false;
+  return partnerAgedLeadMatchesTier(receivedAt, tier);
 }
 
 export const PARTNER_AGED_HAVE_IUL_PARAM = "haveIul";
@@ -248,6 +258,7 @@ export function parsePartnerAgedClientFilters(
     haveIul?: string;
   },
   knownTypes: string[] = [],
+  knownAgeBuckets: string[] = ADMIN_AGED_AGE_BUCKETS,
 ): PartnerAgedClientFilters {
   const typeRaw = searchParams.type?.trim();
   const type =
@@ -255,9 +266,7 @@ export function parsePartnerAgedClientFilters(
 
   const ageRaw = searchParams.age?.trim();
   const age =
-    ageRaw && ADMIN_AGED_AGE_BUCKETS.includes(ageRaw as AdminAgedLeadAgeFilter)
-      ? ageRaw
-      : "";
+    ageRaw && knownAgeBuckets.includes(ageRaw) ? ageRaw : "";
 
   return {
     states: parseAdminAgedLeadStates(searchParams.state),
@@ -284,7 +293,12 @@ export function filterPartnerAgedLeadsInMemory<
     receivedAt: string | Date;
     haveIul?: string | null;
   },
->(leads: T[], filters: PartnerAgedClientFilters): T[] {
+>(
+  leads: T[],
+  filters: PartnerAgedClientFilters,
+  tiers: AgedPriceTier[] = DEFAULT_AGED_PRICE_TIERS,
+): T[] {
+  const knownBuckets = new Set(tiers.map((t) => String(t.minDays)));
   return leads.filter((lead) => {
     if (filters.states.length > 0 && !filters.states.includes(lead.state)) {
       return false;
@@ -292,11 +306,8 @@ export function filterPartnerAgedLeadsInMemory<
     if (filters.type && lead.leadType !== filters.type) return false;
     if (
       filters.age &&
-      ADMIN_AGED_AGE_BUCKETS.includes(filters.age as AdminAgedLeadAgeFilter) &&
-      !partnerAgedLeadMatchesAgeBucket(
-        lead.receivedAt,
-        filters.age as AdminAgedLeadAgeFilter,
-      )
+      knownBuckets.has(filters.age) &&
+      !partnerAgedLeadMatchesAgeBucket(lead.receivedAt, filters.age, tiers)
     ) {
       return false;
     }
