@@ -96,12 +96,6 @@ export default async function HomePage() {
                 title: "Refund Workflow",
                 desc: "In-app refund requests with Type A (wrong filter) and Type B (invalid phone) handling.",
               },
-              {
-                icon: ArrowRight,
-                color: "bg-red-50 text-red-500",
-                title: "Integrity Fallback",
-                desc: "Unmatched leads auto-route to IntegrityCONNECT after 24h via ping/post.",
-              },
             ].map((f) => (
               <div key={f.title} className="card p-5">
                 <div className={`mb-3 inline-flex rounded-xl p-2.5 ${f.color}`}>
