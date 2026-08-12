@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
-import { isClerkAPIResponseError } from "@clerk/shared/error";
+import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 import { resolveAppOrigin } from "@/lib/email/email-layout";

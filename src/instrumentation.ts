@@ -37,7 +37,7 @@ async function provisionAdminAccounts() {
     return;
   }
 
-  const { createClerkClient } = await import("@clerk/backend");
+  const { createClerkClient } = await import("@clerk/nextjs/server");
   const clerk = createClerkClient({ secretKey });
 
   for (const email of emails) {
@@ -86,7 +86,7 @@ async function provisionAdminAccounts() {
  * in-app to someone else is left untouched.
  */
 async function ensureSuperAdminBootstrap(
-  clerk: Awaited<ReturnType<typeof import("@clerk/backend").createClerkClient>>,
+  clerk: Awaited<ReturnType<typeof import("@clerk/nextjs/server").createClerkClient>>,
   firstAdminEmail: string,
 ) {
   try {
@@ -171,7 +171,7 @@ async function registerClerkProxy() {
   const proxyUrl = `${origin}/api/__clerk`;
 
   try {
-    const { createClerkClient } = await import("@clerk/backend");
+    const { createClerkClient } = await import("@clerk/nextjs/server");
     const clerk = createClerkClient({ secretKey });
 
     const { data: domains } = await clerk.domains.list();

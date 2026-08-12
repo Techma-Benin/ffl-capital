@@ -132,7 +132,7 @@ export default async function AdminLeadsPage({
       take: 1,
       select: { mode: true },
     },
-  } as const;
+  };
 
   const searchQuery = filters.q?.trim();
 

@@ -1,5 +1,5 @@
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
-import { isClerkAPIResponseError } from "@clerk/shared/error";
+import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { ShieldWarning } from "@/lib/icons/ssr";
 import Link from "next/link";
 import { getRoleFromMetadata } from "@/lib/auth/roles";
