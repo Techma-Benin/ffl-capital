@@ -15,7 +15,7 @@ export default async function HomePage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700">
             <Lightning size={16} className="text-white" />
           </div>
-          <span className="text-sm font-bold text-slate-900">FFL Capital</span>
+          <span className="text-sm font-bold text-slate-900">Capital Lead Solutions</span>
         </div>
         <div className="flex items-center gap-3">
           <Link
