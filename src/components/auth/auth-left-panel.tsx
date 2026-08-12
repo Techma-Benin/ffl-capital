@@ -26,7 +26,7 @@ export function AuthLeftPanel({ subtitle, children }: AuthLeftPanelProps) {
             <Lightning size={18} className="text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold leading-tight">FFL Capital</p>
+            <p className="text-sm font-bold leading-tight">Capital Lead Solutions</p>
             <p className="text-xs text-brand-200">{subtitle}</p>
           </div>
         </Link>
