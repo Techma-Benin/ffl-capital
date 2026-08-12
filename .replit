@@ -61,6 +61,7 @@ INTEGRITY_REALTIME_SUBMIT_URL = "https://app.leadconduit.com/flows/65c179646acc6
 INTEGRITY_STOREFRONT_SUBMIT_URL = "https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit"
 INTEGRATIONS_MODE = "live"
 CRON_INTERVAL_MS = "900000"
+FROM_EMAIL = "leads@capitalleadssolutions.com"
 
 [postMerge]
 path = "scripts/post-merge.sh"
