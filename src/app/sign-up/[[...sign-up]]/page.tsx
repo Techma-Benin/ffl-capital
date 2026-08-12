@@ -55,7 +55,7 @@ export default async function SignUpPage() {
 
           <h2 className="mb-2 text-2xl font-bold text-slate-900">Create your account</h2>
           <p className="mb-6 text-sm text-slate-500">
-            Join FFL Capital and start purchasing qualified IUL leads.
+            Join Capital Lead Solutions and start purchasing qualified IUL leads.
           </p>
 
           <SignUp forceRedirectUrl={AUTH_CONTINUE_PARTNER} appearance={authClerkAppearance} />
