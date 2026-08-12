@@ -39,7 +39,7 @@ export default async function HomePage() {
         <h1 className="text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
           IUL Lead Distribution,
           <br />
-          <span className="text-brand-700">Built for Scale</span>
+          <span className="text-brand-700">Built to Scale</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-slate-500">
           Automatically route ~500 daily Meta leads to your agents based on state, priority, and wallet balance. Plus a self-service aged leads marketplace.
