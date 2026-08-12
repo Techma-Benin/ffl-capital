@@ -91,23 +91,6 @@ export function PartnerContactView() {
       />
 
       <form onSubmit={handleSubmit} className="card p-6 sm:p-8">
-        <div className="mb-6 flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
-          <EnvelopeSimple
-            size={32}
-            weight={ICON_WEIGHT}
-            className="flex-shrink-0 text-cyan-700"
-          />
-          <div className="min-w-0 text-sm">
-            <p className="text-slate-500">Email</p>
-            <a
-              href={`mailto:${DEFAULT_CONTACT_RECIPIENT_EMAIL}`}
-              className="font-medium text-slate-900 hover:text-brand-600"
-            >
-              {DEFAULT_CONTACT_RECIPIENT_EMAIL}
-            </a>
-          </div>
-        </div>
-
         <div className="space-y-5">
           <div>
             <label htmlFor="contact-subject" className="form-label">
