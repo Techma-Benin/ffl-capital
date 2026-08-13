@@ -523,12 +523,16 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 **Décision :** fonctionnalité **prévue et livrée** en V1, exécution quand export disponible.
 
 **Scope import :**
-- Leads historiques (contact, état, dates, TrustedForm si présent, statuts)
+- Leads historiques (contact, état, dates, TrustedForm si présent, champs source métier)
+- Export/import CSV round-trip : l’export admin reprend tous les résultats de la vue sélectionnée, tous les champs métier reconnus et les clés dynamiques de `rawPayload` ; l’import accepte ces colonnes, leurs alias et les colonnes inconnues
+- Les colonnes système protégées (ID généré, statut, disponibilité/routage, audit et classification dérivée) ne sont pas écrites depuis le fichier ; `firstName`, `email` et `state` restent le minimum requis par ligne
+- Le CSV prend en charge les valeurs avec commas, guillemets échappés et retours à la ligne
 - **Classification catégorie** via la table `lead_categories` (même logique qu’intake) — plus de fallback implicite Traditional/High Intent depuis `SRC`
 - Optionnel : agents existants (mapping vers Clerk manuel ou invite)
 
 **Écran admin :**
 - Upload fichier
+- Le template téléchargeable reste un exemple minimal ; il ne représente pas le schéma complet d’export
 - Preview & validation
 - Import batch avec rapport erreurs
 - Ne pas bloquer le reste du build si import non exécuté jour 1

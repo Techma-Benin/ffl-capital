@@ -2,89 +2,28 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  IMPORTABLE_LEAD_FIELDS,
+  LEAD_FIELD_BY_ALIAS,
+  normalizeFieldName,
+} from "@/lib/leads/field-catalog";
+import { parseCsv as parseCsvDocument } from "@/lib/csv";
 
 // ---------------------------------------------------------------------------
 // Field definitions
 // ---------------------------------------------------------------------------
 
-const LEAD_FIELDS: { value: string; label: string; required?: boolean }[] = [
-  { value: "firstName", label: "First Name", required: true },
-  { value: "lastName", label: "Last Name" },
-  { value: "email", label: "Email", required: true },
-  { value: "phone", label: "Phone" },
-  { value: "state", label: "State", required: true },
-  { value: "leadType", label: "Lead Type" },
-  { value: "address", label: "Address" },
-  { value: "city", label: "City" },
-  { value: "zip", label: "ZIP Code" },
-  { value: "dob", label: "Date of Birth" },
-  { value: "age", label: "Age" },
-  { value: "intent", label: "Intent" },
-  { value: "haveIul", label: "Have IUL" },
-  { value: "primaryGoal", label: "Primary Goal" },
-  { value: "trustedformCertUrl", label: "TrustedForm Cert URL" },
-  { value: "tcpaConsent", label: "TCPA Consent" },
-  { value: "tcpaLanguage", label: "TCPA Language" },
-  { value: "leadidToken", label: "LeadID Token" },
-  { value: "source", label: "Source" },
-  { value: "landingPage", label: "Landing Page" },
-  { value: "subId", label: "Sub ID" },
-  { value: "pubId", label: "Pub ID" },
-  { value: "boberdooLeadType", label: "Boberdoo Lead Type" },
-  { value: "ipAddress", label: "IP Address" },
-  { value: "userAgent", label: "User Agent" },
-  { value: "externalId", label: "External ID" },
-  { value: "receivedAt", label: "Received At" },
-];
+const LEAD_FIELDS = IMPORTABLE_LEAD_FIELDS.map((field) => ({
+  value: field.key,
+  label: field.label,
+  required: field.required,
+}));
 
 const REQUIRED_FIELDS = new Set(["firstName", "email", "state"]);
 
 /** Auto-detect a lead field from a CSV header using known aliases */
-const ALIAS_MAP: Record<string, string> = {
-  first_name: "firstName",
-  firstname: "firstName",
-  last_name: "lastName",
-  lastname: "lastName",
-  email: "email",
-  phone: "phone",
-  primary_phone: "phone",
-  state: "state",
-  state_you_currently_live_in: "state",
-  lead_type: "leadType",
-  classification: "leadType",
-  address: "address",
-  city: "city",
-  zip: "zip",
-  dob: "dob",
-  date_of_birth: "dob",
-  age: "age",
-  intent: "intent",
-  have_iul: "haveIul",
-  haveiul: "haveIul",
-  primary_goal: "primaryGoal",
-  primarygoal: "primaryGoal",
-  trustedform_cert_url: "trustedformCertUrl",
-  trusted_form_url: "trustedformCertUrl",
-  tcpa_consent: "tcpaConsent",
-  tcpa_language: "tcpaLanguage",
-  leadid_token: "leadidToken",
-  leadi_d_token: "leadidToken",
-  source: "source",
-  src: "source",
-  landing_page: "landingPage",
-  sub_id: "subId",
-  pub_id: "pubId",
-  boberdoo_lead_type: "boberdooLeadType",
-  lead_type_id: "boberdooLeadType",
-  ip_address: "ipAddress",
-  user_agent: "userAgent",
-  external_id: "externalId",
-  unique_identifier: "externalId",
-  received_at: "receivedAt",
-};
-
 function autoDetectField(csvHeader: string): string {
-  return ALIAS_MAP[csvHeader.toLowerCase().replace(/\s+/g, "_")] ?? "skip";
+  return LEAD_FIELD_BY_ALIAS.get(normalizeFieldName(csvHeader)) ?? "skip";
 }
 
 // ---------------------------------------------------------------------------
@@ -178,32 +117,10 @@ function Stepper({ current }: { current: Step }) {
 // CSV parsing helpers (client-side)
 // ---------------------------------------------------------------------------
 
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (const char of line) {
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
 function parseCsv(text: string): { headers: string[]; rows: string[][] } {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length === 0) return { headers: [], rows: [] };
-  const headers = parseCsvLine(lines[0]).map((h) =>
-    h.toLowerCase().replace(/\s+/g, "_"),
-  );
-  const rows = lines.slice(1).map((l) => parseCsvLine(l));
-  return { headers, rows };
+  const [headers = [], ...rows] = parseCsvDocument(text);
+  const normalizedHeaders = headers.map((h) => normalizeFieldName(h));
+  return { headers: normalizedHeaders, rows };
 }
 
 /** Apply column mapping to a raw row array, returning keyed object */

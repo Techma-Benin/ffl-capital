@@ -1,5 +1,11 @@
 import { classifyImportedLead } from "@/lib/migration/import-category-classification";
 import type { LeadCategoryRule } from "@/lib/lead-categories/flexible-lead-categories";
+import {
+  isProtectedLeadField,
+  LEAD_FIELD_BY_KEY,
+  normalizeFieldName,
+  resolveLeadField,
+} from "@/lib/leads/field-catalog";
 
 function pick(row: Record<string, string>, ...keys: string[]): string | null {
   for (const key of keys) {
@@ -25,7 +31,10 @@ export function mapCsvRowToLead(
     .toUpperCase()
     .slice(0, 2);
 
-  const rawPayload: Record<string, string> = { ...row };
+  const rawPayload: Record<string, string> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (!isProtectedLeadField(key)) rawPayload[key] = value;
+  }
   const classification = classifyImportedLead(rawPayload, categories);
 
   return {
@@ -50,6 +59,20 @@ export function mapCsvRowToLead(
     stateYouCurrentlyLiveIn:
       pick(row, "state_you_currently_live_in")?.toUpperCase().slice(0, 2) ??
       null,
+    beneficiary: pick(row, "beneficiary", "beneficiary_thom"),
+    beneficiaryType: pick(
+      row,
+      "beneficiary_type",
+      "beneficiary_type_thom",
+      "relationship_of_beneficiary",
+    ),
+    historyOfCancer: pick(row, "history_of_cancer", "history_of_cancer_thom"),
+    mortgageLoanAmount: pick(
+      row,
+      "mortgage_loan_amount",
+      "mortgage_loan_amount_thom",
+      "mortgage.loan.amount",
+    ),
     trustedformCertUrl: pick(
       row,
       "trustedform_cert_url",
@@ -69,4 +92,19 @@ export function mapCsvRowToLead(
     receivedAt: row.received_at ? new Date(row.received_at) : new Date(),
     rawPayload,
   };
+}
+
+export function normalizeImportedRow(
+  row: Record<string, string>,
+): Record<string, string> {
+  const normalized: Record<string, string> = {};
+  for (const [header, value] of Object.entries(row)) {
+    const field = resolveLeadField(normalizeFieldName(header));
+    if (field && !isProtectedLeadField(field)) {
+      normalized[LEAD_FIELD_BY_KEY.get(field)?.aliases[0] ?? field] = value;
+    } else if (!field) {
+      normalized[header] = value;
+    }
+  }
+  return normalized;
 }

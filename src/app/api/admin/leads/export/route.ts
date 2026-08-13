@@ -6,50 +6,11 @@ import { buildAdminLeadsWhere } from "@/lib/admin/admin-leads-query";
 import { buildAdminLeadOrderBy } from "@/lib/admin/admin-leads-sort";
 import { getLeadViewById } from "@/lib/leads/lead-list-view-service";
 import { leadViewSortSchema, parseAdminFilters } from "@/lib/leads/list-view-schema";
-
-const EXPORT_FIELDS = [
-  "id",
-  "externalId",
-  "firstName",
-  "lastName",
-  "email",
-  "phone",
-  "address",
-  "city",
-  "state",
-  "zip",
-  "dob",
-  "age",
-  "leadType",
-  "intent",
-  "haveIul",
-  "primaryGoal",
-  "stateYouCurrentlyLiveIn",
-  "trustedformCertUrl",
-  "tcpaConsent",
-  "tcpaLanguage",
-  "leadidToken",
-  "source",
-  "landingPage",
-  "subId",
-  "pubId",
-  "boberdooLeadType",
-  "ipAddress",
-  "userAgent",
-  "receivedAt",
-  "status",
-  "available",
-  "refundable",
-] as const;
-
-function escapeCsv(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  const str = value instanceof Date ? value.toISOString() : String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
+import { escapeCsv } from "@/lib/csv";
+import {
+  IMPORTABLE_LEAD_FIELDS,
+  normalizeFieldName,
+} from "@/lib/leads/field-catalog";
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAdmin();
@@ -59,18 +20,6 @@ export async function GET(request: NextRequest) {
 
   const viewId = request.nextUrl.searchParams.get("viewId");
   const status = request.nextUrl.searchParams.get("status");
-  const limit = Math.min(
-    parseInt(request.nextUrl.searchParams.get("limit") ?? "500", 10),
-    5000,
-  );
-
-  const fieldsParam = request.nextUrl.searchParams.get("fields");
-  const fields = fieldsParam
-    ? fieldsParam.split(",").filter((f) =>
-        (EXPORT_FIELDS as readonly string[]).includes(f),
-      )
-    : [...EXPORT_FIELDS];
-
   let where: Prisma.LeadWhereInput | undefined = status
     ? { status: status as Prisma.EnumLeadStatusFilter["equals"] }
     : undefined;
@@ -94,12 +43,39 @@ export async function GET(request: NextRequest) {
   const leads = await prisma.lead.findMany({
     where,
     orderBy,
-    take: limit,
   });
 
-  const header = fields.join(",");
+  const fields = IMPORTABLE_LEAD_FIELDS.map((field) => field.key);
+  const knownFieldNames = new Set(
+    IMPORTABLE_LEAD_FIELDS.flatMap((field) =>
+      [field.key, ...field.aliases].map(normalizeFieldName),
+    ),
+  );
+  const dynamicFields = new Set<string>();
+  for (const lead of leads) {
+    if (lead.rawPayload && typeof lead.rawPayload === "object" && !Array.isArray(lead.rawPayload)) {
+      for (const key of Object.keys(lead.rawPayload)) {
+        if (!knownFieldNames.has(normalizeFieldName(key))) dynamicFields.add(key);
+      }
+    }
+  }
+  const allFields = [...fields, ...Array.from(dynamicFields).sort()];
+  const header = allFields.map(escapeCsv).join(",");
   const rows = leads.map((lead) =>
-    fields.map((f) => escapeCsv(lead[f as keyof typeof lead])).join(","),
+    allFields.map((field) => {
+      const typedValue = field in lead ? lead[field as keyof typeof lead] : undefined;
+      const definition = IMPORTABLE_LEAD_FIELDS.find((candidate) => candidate.key === field);
+      const rawPayload =
+        lead.rawPayload && typeof lead.rawPayload === "object" && !Array.isArray(lead.rawPayload)
+          ? (lead.rawPayload as Record<string, unknown>)
+          : undefined;
+      const rawValue = definition
+        ? [definition.key, ...definition.aliases]
+            .map((key) => rawPayload?.[key])
+            .find((value) => value !== undefined && value !== null && value !== "")
+        : rawPayload?.[field];
+      return escapeCsv(typedValue ?? rawValue);
+    }).join(","),
   );
 
   const csv = [header, ...rows].join("\n");

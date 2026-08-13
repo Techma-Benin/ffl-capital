@@ -2,50 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import { getPartnerId } from "@/lib/partner/session";
-import { mapCsvRowToLead } from "@/lib/migration/map-csv-row-to-lead";
+import { mapCsvRowToLead, normalizeImportedRow } from "@/lib/migration/map-csv-row-to-lead";
+import { csvToRecords, escapeCsv } from "@/lib/csv";
+import {
+  IMPORTABLE_LEAD_FIELDS,
+  normalizeFieldName,
+} from "@/lib/leads/field-catalog";
 
 // ---------------------------------------------------------------------------
 // Shared alias dictionary — used both server-side and exported for the UI
 // ---------------------------------------------------------------------------
 
 /** Maps canonical lead field names to all CSV aliases that resolve to them */
-const FIELD_ALIASES: Record<string, string[]> = {
-  firstName: ["first_name", "firstname"],
-  lastName: ["last_name", "lastname"],
-  email: ["email"],
-  phone: ["phone", "primary_phone"],
-  address: ["address"],
-  city: ["city"],
-  state: ["state", "state_you_currently_live_in"],
-  zip: ["zip"],
-  dob: ["dob", "date_of_birth"],
-  age: ["age"],
-  leadType: ["lead_type", "classification"],
-  intent: ["intent"],
-  haveIul: ["have_iul", "haveiul"],
-  primaryGoal: ["primary_goal", "primarygoal"],
-  stateYouCurrentlyLiveIn: ["state_you_currently_live_in"],
-  trustedformCertUrl: ["trustedform_cert_url", "trusted_form_url"],
-  tcpaConsent: ["tcpa_consent"],
-  tcpaLanguage: ["tcpa_language"],
-  leadidToken: ["leadid_token", "leadi_d_token"],
-  source: ["source", "src"],
-  landingPage: ["landing_page"],
-  subId: ["sub_id"],
-  pubId: ["pub_id"],
-  boberdooLeadType: ["boberdoo_lead_type", "lead_type_id"],
-  ipAddress: ["ip_address"],
-  userAgent: ["user_agent"],
-  externalId: ["external_id", "unique_identifier"],
-  receivedAt: ["received_at"],
-};
+const FIELD_ALIASES = Object.fromEntries(
+  IMPORTABLE_LEAD_FIELDS.map((field) => [field.key, [...field.aliases]]),
+);
 
 /** Build a reverse map: alias → fieldName */
 function buildReverseAliasMap(): Record<string, string> {
   const map: Record<string, string> = {};
   for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
-    for (const alias of aliases) {
-      map[alias] = field;
+    for (const alias of [field, ...aliases]) {
+      map[normalizeFieldName(alias)] = field;
     }
   }
   return map;
@@ -54,70 +32,36 @@ function buildReverseAliasMap(): Record<string, string> {
 const REVERSE_ALIAS_MAP = buildReverseAliasMap();
 
 // Template headers and sample row for download
-const TEMPLATE_HEADERS = [
-  "first_name",
-  "last_name",
-  "email",
-  "phone",
-  "state",
-  "lead_type",
-  "address",
-  "city",
-  "zip",
-  "dob",
-  "age",
-  "intent",
-  "have_iul",
-  "primary_goal",
-  "trustedform_cert_url",
-  "tcpa_consent",
-  "source",
-  "received_at",
-];
+const TEMPLATE_HEADERS = IMPORTABLE_LEAD_FIELDS.map(
+  (field) => field.aliases[0] ?? field.key,
+);
 
-const TEMPLATE_SAMPLE_ROW = [
-  "Jane",
-  "Smith",
-  "jane.smith@example.com",
-  "5555550100",
-  "TX",
-  "traditional_iul",
-  "123 Main St",
-  "Austin",
-  "78701",
-  "1975-06-15",
-  "49",
-  "retirement",
-  "no",
-  "wealth_building",
-  "",
-  "yes",
-  "boberdoo_migration",
-  new Date().toISOString().split("T")[0],
-];
+const TEMPLATE_SAMPLE_VALUES: Record<string, string> = {
+  first_name: "Jane",
+  last_name: "Smith",
+  email: "jane.smith@example.com",
+  phone: "5555550100",
+  state: "TX",
+  lead_type: "traditional_iul",
+  address: "123 Main St",
+  city: "Austin",
+  zip: "78701",
+  dob: "1975-06-15",
+  age: "49",
+  intent: "retirement",
+  have_iul: "no",
+  primary_goal: "wealth_building",
+  source: "boberdoo_migration",
+  received_at: new Date().toISOString().split("T")[0],
+};
+
+const TEMPLATE_SAMPLE_ROW = TEMPLATE_HEADERS.map(
+  (header) => TEMPLATE_SAMPLE_VALUES[header] ?? "",
+);
 
 // ---------------------------------------------------------------------------
 // CSV helpers
 // ---------------------------------------------------------------------------
-
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (const char of line) {
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
 
 /**
  * Apply a columnMapping (csvHeader → fieldName | "skip") to a raw row,
@@ -130,9 +74,13 @@ function applyColumnMapping(
   const remapped: Record<string, string> = {};
 
   for (const [csvHeader, fieldName] of Object.entries(columnMapping)) {
-    if (fieldName === "skip" || !fieldName) continue;
+    if (fieldName === "skip" || !fieldName) {
+      if (!REVERSE_ALIAS_MAP[normalizeFieldName(csvHeader)]) remapped[csvHeader] = rawRow[csvHeader] ?? "";
+      continue;
+    }
     // Use the first alias of the field as the canonical key
     const aliases = FIELD_ALIASES[fieldName];
+    if (!aliases) continue;
     const canonicalKey = aliases?.[0] ?? fieldName;
     const value = rawRow[csvHeader] ?? "";
     if (value !== undefined) {
@@ -142,8 +90,8 @@ function applyColumnMapping(
 
   // Also carry over any unmapped columns via reverse alias lookup
   for (const [csvHeader, value] of Object.entries(rawRow)) {
-    if (columnMapping[csvHeader]) continue; // already handled
-    const fieldName = REVERSE_ALIAS_MAP[csvHeader];
+    if (columnMapping[csvHeader]) continue;
+    const fieldName = REVERSE_ALIAS_MAP[normalizeFieldName(csvHeader)];
     if (fieldName) {
       const aliases = FIELD_ALIASES[fieldName];
       const canonicalKey = aliases?.[0] ?? csvHeader;
@@ -169,7 +117,7 @@ export async function GET(request: NextRequest) {
   const csvRows = [
     TEMPLATE_HEADERS.join(","),
     TEMPLATE_SAMPLE_ROW.map((v) =>
-      v.includes(",") ? `"${v}"` : v,
+    escapeCsv(v),
     ).join(","),
   ];
 
@@ -213,14 +161,11 @@ export async function POST(request: NextRequest) {
   }
 
   const text = await file.text();
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) {
+  const records = csvToRecords(text);
+  if (records.length === 0) {
     return NextResponse.json({ error: "CSV is empty" }, { status: 400 });
   }
 
-  const rawHeaders = parseCsvLine(lines[0]).map((h) =>
-    h.toLowerCase().replace(/\s+/g, "_"),
-  );
   const createdById = await getPartnerId();
 
   const categories = await prisma.leadCategory.findMany({
@@ -236,7 +181,7 @@ export async function POST(request: NextRequest) {
   const job = await prisma.migrationJob.create({
     data: {
       fileName: file.name,
-      totalRows: lines.length - 1,
+      totalRows: records.length,
       createdById: createdById ?? undefined,
       status: "running",
     },
@@ -246,17 +191,19 @@ export async function POST(request: NextRequest) {
   let errorRows = 0;
   const errors: string[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const cols = parseCsvLine(lines[i]);
-    let row: Record<string, string> = {};
-    rawHeaders.forEach((h, idx) => {
-      row[h] = cols[idx] ?? "";
-    });
+  for (let i = 0; i < records.length; i++) {
+    let row = Object.fromEntries(
+      Object.entries(records[i]).map(([key, value]) => [
+        key.toLowerCase().replace(/\s+/g, "_"),
+        value,
+      ]),
+    );
 
     // Apply column mapping if provided
     if (columnMapping) {
       row = applyColumnMapping(row, columnMapping);
     }
+    row = normalizeImportedRow(row);
 
     try {
       const mapped = mapCsvRowToLead(row, categories);
@@ -275,7 +222,7 @@ export async function POST(request: NextRequest) {
   await prisma.migrationJob.update({
     where: { id: job.id },
     data: {
-      status: errorRows === lines.length - 1 ? "failed" : "completed",
+      status: errorRows === records.length ? "failed" : "completed",
       successRows,
       errorRows,
       errorLog: errors.length > 0 ? errors.slice(0, 50) : undefined,

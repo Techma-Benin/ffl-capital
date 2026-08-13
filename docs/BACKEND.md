@@ -214,7 +214,7 @@ Compatibilité admin : l’ancien `state` unique est migré vers `states[]`; les
 
 **Réponse** (GET liste / détail / mutations) : enregistrement Prisma `LeadListView` — `id`, `scope`, `partnerId`, `name`, `filters`, `sort`, `columns`, `isDefault`, `createdByClerkUserId`, `createdAt`, `updatedAt`.
 
-**Export CSV admin** : `GET /api/admin/leads/export?viewId=<uuid>` applique filtres + tri de la vue (colonnes export inchangées côté serveur).
+**Export CSV admin** : `GET /api/admin/leads/export?viewId=<uuid>` applique les filtres + le tri de la vue et exporte tous les résultats correspondants, indépendamment de la pagination UI. Le fichier contient les champs métier typés du catalogue de migration ainsi que les clés dynamiques de `rawPayload` ; les valeurs CSV sont échappées lorsqu’elles contiennent des commas, guillemets ou retours à la ligne.
 
 **Service** : `src/lib/leads/lead-list-view-service.ts` ; requêtes liste : `admin-leads-query.ts` / `partner-leads-query.ts`.
 
@@ -400,7 +400,7 @@ UI : `admin-lead-category-assign-panel.tsx` (chips candidats + sélecteur catég
 
 ### Import et réparation historique
 
-- **Import CSV** : `import-category-classification.ts` + `map-csv-row-to-lead.ts` — même `evaluateLeadCategories` qu’à l’intake ; plus de fallback Traditional/High Intent depuis `SRC` seul.
+- **Import CSV** : l’écran `/admin/migration` accepte les exports produits par l’API ainsi que les CSV avec alias de colonnes reconnus. Le minimum requis par ligne reste `firstName`, `email`, `state` ; les champs inconnus sont conservés dans `rawPayload`, tandis que les champs système protégés (ID, statut, routage/disponibilité, audit et classification dérivée) sont ignorés/recalculés. Le parseur partagé supporte les commas, guillemets échappés et valeurs multilignes. `import-category-classification.ts` + `map-csv-row-to-lead.ts` utilisent la même classification qu’à l’intake ; plus de fallback Traditional/High Intent depuis `SRC` seul.
 - **Script réparation** : `pnpm run repair:category-classification` (dry-run par défaut) ; `--apply` pour persister. Réévalue tous les leads non finalisés (`delivered`, `integrity_posted`, `dead` exclus).
 
 ---
