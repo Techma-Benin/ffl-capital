@@ -133,7 +133,7 @@ Pour recevoir de **vrais** leads LeadConduit en local : ngrok + [LEADCONDUIT_SET
 
 | Portail | Routes |
 |---------|--------|
-| Admin | `/admin` — dashboard, leads, partners, refunds, aged, integrity, settings (lead categories, integrations, contact recipient), migration, filter list ; auth `/admin/sign-in`, invite-only `/admin/sign-up` |
+| Admin | `/admin` — dashboard, leads, partners, refunds, aged, integrity, settings (lead categories, integrations, contact recipient), migration (CSV sélection/glisser-déposer, auto-détection catalogue, mapping, preview, résultats), filter list ; auth `/admin/sign-in`, invite-only `/admin/sign-up` |
 | Partner | `/partner` — dashboard, leads, wallet, aged, settings, contact (Resend) ; auth `/sign-in`, `/sign-up` |
 
 ## Structure

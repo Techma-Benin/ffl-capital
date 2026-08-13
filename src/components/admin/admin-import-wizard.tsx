@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  IMPORTABLE_LEAD_FIELDS,
+  LEAD_FIELD_CATALOG,
   LEAD_FIELD_BY_ALIAS,
   normalizeFieldName,
 } from "@/lib/leads/field-catalog";
@@ -14,10 +14,11 @@ import { isFullMigrationCsv } from "@/lib/migration/map-csv-row-to-lead";
 // Field definitions
 // ---------------------------------------------------------------------------
 
-const LEAD_FIELDS = IMPORTABLE_LEAD_FIELDS.map((field) => ({
+const LEAD_FIELDS = LEAD_FIELD_CATALOG.map((field) => ({
   value: field.key,
   label: field.label,
   required: field.required,
+  protected: field.protected,
 }));
 
 const REQUIRED_FIELDS = new Set(["firstName", "email", "state"]);
@@ -180,8 +181,7 @@ export function AdminImportWizard() {
   // Step 1 — file selection
   // -------------------------------------------------------------------------
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
+  async function loadFile(f: File | null) {
     setFile(f);
     if (!f) return;
     const text = await f.text();
@@ -195,6 +195,15 @@ export function AdminImportWizard() {
       autoMapping[h] = autoDetectField(h);
     });
     setMapping(autoMapping);
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    await loadFile(e.target.files?.[0] ?? null);
+  }
+
+  async function handleFileDrop(e: React.DragEvent<HTMLLabelElement>) {
+    e.preventDefault();
+    await loadFile(e.dataTransfer.files?.[0] ?? null);
   }
 
   function handleProceedToMap() {
@@ -306,6 +315,8 @@ export function AdminImportWizard() {
 
             {/* Drop zone */}
             <label
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleFileDrop}
               style={{
                 border: "2px dashed #dcdaea",
                 borderRadius: 13,
@@ -325,18 +336,34 @@ export function AdminImportWizard() {
                   gap: 8,
                 }}
               >
-                <svg
-                  width={30}
-                  height={30}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#b3b3bf"
-                  strokeWidth={1.6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 7.5L12 3m0 0l4.5 4.5M12 3v13.5" />
-                </svg>
+                {file ? (
+                  <svg
+                    width={30}
+                    height={30}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#605BFF"
+                    strokeWidth={1.6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                    <path d="M14 2v6h6M8 13l2.5 2.5L16 10" />
+                  </svg>
+                ) : (
+                  <svg
+                    width={30}
+                    height={30}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#b3b3bf"
+                    strokeWidth={1.6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 7.5L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                )}
                 {file ? (
                   <span
                     style={{ fontSize: 13.5, fontWeight: 800, color: "#605BFF" }}
@@ -435,6 +462,7 @@ export function AdminImportWizard() {
                             <option key={f.value} value={f.value}>
                               {f.label}
                               {f.required ? " *" : ""}
+                              {f.protected ? " (system field)" : ""}
                             </option>
                           ))}
                         </select>
@@ -545,7 +573,7 @@ export function AdminImportWizard() {
             <div className="flex justify-between">
               <button
                 type="button"
-                onClick={() => setStep(1)}
+                onClick={() => setStep(fullMigration ? 0 : 1)}
                 className="btn-secondary btn-sm"
               >
                 ← Back

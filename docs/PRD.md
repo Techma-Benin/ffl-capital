@@ -308,8 +308,11 @@ Phase D — Migration Replit (livraison client)
 - *(Futur)* frais de retraitement
 
 #### Migration historique
-- Écran import : upload export Boberdoo (CSV/API selon format découvert)
-- Mapping champs, preview, import batch
+- Écran import : upload export Boberdoo (CSV/API selon format découvert), par sélection ou glisser-déposer ; le nom du fichier sélectionné et les volumes détectés restent visibles avant de continuer
+- Catalogue global des champs `Lead` pour auto-détecter les alias ; les champs système protégés sont identifiés dans le mapping et ne sont pas modifiables par l’import manuel
+- Mapping champs manuel pour les CSV classiques, puis preview des cinq premières lignes avant confirmation
+- Les exports full-fidelity sont détectés automatiquement via `id` + `raw_payload` et suivent directement le preview de migration sans étape de mapping
+- Import batch avec rapport erreurs par ligne
 - **Feature livrée en V1** même si exécution différée
 
 #### Revente Integrity
