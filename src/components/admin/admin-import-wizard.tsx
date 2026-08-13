@@ -207,7 +207,7 @@ export function AdminImportWizard() {
   }
 
   function handleProceedToMap() {
-    setStep(fullMigration ? 2 : 1);
+    setStep(1);
   }
 
   // -------------------------------------------------------------------------
@@ -573,7 +573,7 @@ export function AdminImportWizard() {
             <div className="flex justify-between">
               <button
                 type="button"
-                onClick={() => setStep(fullMigration ? 0 : 1)}
+                onClick={() => setStep(1)}
                 className="btn-secondary btn-sm"
               >
                 ← Back
