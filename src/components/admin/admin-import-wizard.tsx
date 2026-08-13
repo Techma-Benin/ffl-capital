@@ -8,6 +8,7 @@ import {
   normalizeFieldName,
 } from "@/lib/leads/field-catalog";
 import { parseCsv as parseCsvDocument } from "@/lib/csv";
+import { isFullMigrationCsv } from "@/lib/migration/map-csv-row-to-lead";
 
 // ---------------------------------------------------------------------------
 // Field definitions
@@ -157,6 +158,7 @@ export function AdminImportWizard() {
   const [file, setFile] = useState<File | null>(null);
   const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
   const [parsedRows, setParsedRows] = useState<string[][]>([]);
+  const [fullMigration, setFullMigration] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 2
@@ -186,6 +188,7 @@ export function AdminImportWizard() {
     const { headers, rows } = parseCsv(text);
     setParsedHeaders(headers);
     setParsedRows(rows);
+    setFullMigration(isFullMigrationCsv(headers));
     // Auto-initialize mapping
     const autoMapping: Record<string, string> = {};
     headers.forEach((h) => {
@@ -195,7 +198,7 @@ export function AdminImportWizard() {
   }
 
   function handleProceedToMap() {
-    setStep(1);
+    setStep(fullMigration ? 2 : 1);
   }
 
   // -------------------------------------------------------------------------
@@ -233,7 +236,7 @@ export function AdminImportWizard() {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("columnMapping", JSON.stringify(mapping));
+    if (!fullMigration) formData.append("columnMapping", JSON.stringify(mapping));
 
     try {
       const res = await fetch("/api/admin/migration/import", {
@@ -266,6 +269,7 @@ export function AdminImportWizard() {
     setFile(null);
     setParsedHeaders([]);
     setParsedRows([]);
+    setFullMigration(false);
     setMapping({});
     setResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -383,7 +387,7 @@ export function AdminImportWizard() {
                 onClick={handleProceedToMap}
                 className="btn-primary btn-sm disabled:opacity-50"
               >
-                Next: Map Columns →
+                {fullMigration ? "Next: Preview →" : "Next: Map Columns →"}
               </button>
             </div>
           </>

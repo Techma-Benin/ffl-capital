@@ -214,7 +214,18 @@ Compatibilité admin : l’ancien `state` unique est migré vers `states[]`; les
 
 **Réponse** (GET liste / détail / mutations) : enregistrement Prisma `LeadListView` — `id`, `scope`, `partnerId`, `name`, `filters`, `sort`, `columns`, `isDefault`, `createdByClerkUserId`, `createdAt`, `updatedAt`.
 
-**Export CSV admin** : `GET /api/admin/leads/export?viewId=<uuid>` applique les filtres + le tri de la vue et exporte tous les résultats correspondants, indépendamment de la pagination UI. Le fichier contient les champs métier typés du catalogue de migration ainsi que les clés dynamiques de `rawPayload` ; les valeurs CSV sont échappées lorsqu’elles contiennent des commas, guillemets ou retours à la ligne.
+**Export/import CSV admin** : `GET /api/admin/leads/export?viewId=<uuid>` applique les filtres + le tri de la vue et exporte tous les résultats correspondants, indépendamment de la pagination UI. Chaque ligne de l’export full-fidelity contient les champs scalaires suivants (noms de colonnes CSV en `snake_case`) :
+
+- **Identité/contact** : `id`, `external_id`, `first_name`, `last_name`, `email`, `phone`, `address`, `city`, `state`, `zip`, `dob`, `age`
+- **Classification et métier** : `lead_type`, `category_resolution`, `category_candidate_types`, `intent`, `have_iul`, `primary_goal`, `state_you_currently_live_in`, `beneficiary`, `beneficiary_type`, `history_of_cancer`, `mortgage_loan_amount`
+- **Conformité et source** : `trustedform_cert_url`, `trustedform_valid`, `trustedform_checked_at`, `tcpa_consent`, `tcpa_language`, `leadid_token`, `source`, `landing_page`, `sub_id`, `pub_id`, `boberdoo_lead_type`, `ip_address`, `user_agent`, `received_at`
+- **État interne/audit** : `available`, `refundable`, `status`, `aged_sale_count`, `aged_available_after`, `live_sold_at`, `live_sale_channel`, `last_routing_attempt_at`, `next_routing_attempt_at`, `routing_attempt_count`, `integrity_blocked_at`, `integrity_blocked_reason`, `routing_claimed_at`, `routing_claimed_by`, `routing_claim_expires_at`, `created_at`, `updated_at`
+
+La colonne `raw_payload` contient le payload complet sous forme de **chaîne JSON** (donc échappée comme toute valeur CSV). Les tableaux sont aussi des chaînes JSON (`category_candidate_types`), les booléens sont `true`/`false` et les dates sont des valeurs ISO lisibles par le parseur.
+
+L’import détecte automatiquement un export full-fidelity lorsque les colonnes `id` et `raw_payload` sont présentes (les alias sont normalisés). Il accepte les champs protégés, restaure l’ID, les scalaires, l’état, la classification, les dates et le payload sans reclasser le lead. Les dates, booléens, entiers, tableaux JSON et statuts/résolutions sont validés. Un doublon d’ID dans le fichier, un ID déjà présent, ou un `external_id` déjà présent produit une erreur de ligne ; les autres lignes continuent et le rapport du job les expose. Aucun écrasement ni upsert n’est effectué.
+
+Le flux manuel reste rétrocompatible : sans cette signature, l’écran `/admin/migration` conserve la détection d’alias, le mapping de colonnes, le template minimal et le minimum requis `firstName`, `email`, `state`. Les champs protégés sont ignorés/recalculés, les colonnes inconnues sont conservées dans `rawPayload` et la classification active est appliquée comme à l’intake. Les valeurs CSV sont échappées lorsqu’elles contiennent des commas, guillemets ou retours à la ligne.
 
 **Service** : `src/lib/leads/lead-list-view-service.ts` ; requêtes liste : `admin-leads-query.ts` / `partner-leads-query.ts`.
 

@@ -524,8 +524,10 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 **Scope import :**
 - Leads historiques (contact, état, dates, TrustedForm si présent, champs source métier)
-- Export/import CSV round-trip : l’export admin reprend tous les résultats de la vue sélectionnée, tous les champs métier reconnus et les clés dynamiques de `rawPayload` ; l’import accepte ces colonnes, leurs alias et les colonnes inconnues
-- Les colonnes système protégées (ID généré, statut, disponibilité/routage, audit et classification dérivée) ne sont pas écrites depuis le fichier ; `firstName`, `email` et `state` restent le minimum requis par ligne
+- Export/import CSV round-trip : l’export admin reprend tous les résultats de la vue sélectionnée, indépendamment de la pagination, avec tous les scalaires `Lead` — identité/contact (`id`, `external_id`, noms, coordonnées, état, ZIP, DOB, âge), classification/métier (`lead_type`, `category_resolution`, `category_candidate_types`, intent/IUL, champs produit), conformité/source (TrustedForm, TCPA, tracking, `received_at`) et état interne/audit (disponibilité, statut, aging, vente live, routage, bloc Integrity, timestamps) — plus `raw_payload`
+- Chaque valeur non scalaire du format full-fidelity est encodée en texte CSV : `raw_payload` est une chaîne JSON, `category_candidate_types` est un tableau JSON, les booléens utilisent `true`/`false` et les dates sont ISO. Les virgules, guillemets et retours à la ligne sont échappés par le format CSV.
+- L’import détecte automatiquement ce format grâce à `id` + `raw_payload`, accepte les champs système protégés et restaure l’ID, l’état exact, la classification, les dates et le payload sans reclassification. Les doublons d’ID dans le fichier, les conflits d’ID existants et les conflits d’`external_id` sont des erreurs de ligne, sans écrasement/upsert ; les autres lignes sont traitées et le rapport indique les erreurs.
+- Les imports manuels restent rétrocompatibles : mapping de colonnes et alias reconnus, template minimal inchangé, minimum requis `firstName`, `email`, `state`, champs protégés ignorés/recalculés, champs inconnus conservés dans `rawPayload` et classification identique à l’intake
 - Le CSV prend en charge les valeurs avec commas, guillemets échappés et retours à la ligne
 - **Classification catégorie** via la table `lead_categories` (même logique qu’intake) — plus de fallback implicite Traditional/High Intent depuis `SRC`
 - Optionnel : agents existants (mapping vers Clerk manuel ou invite)

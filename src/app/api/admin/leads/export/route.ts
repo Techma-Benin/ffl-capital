@@ -8,8 +8,7 @@ import { getLeadViewById } from "@/lib/leads/lead-list-view-service";
 import { leadViewSortSchema, parseAdminFilters } from "@/lib/leads/list-view-schema";
 import { escapeCsv } from "@/lib/csv";
 import {
-  IMPORTABLE_LEAD_FIELDS,
-  normalizeFieldName,
+  LEAD_FIELD_CATALOG,
 } from "@/lib/leads/field-catalog";
 
 export async function GET(request: NextRequest) {
@@ -45,37 +44,14 @@ export async function GET(request: NextRequest) {
     orderBy,
   });
 
-  const fields = IMPORTABLE_LEAD_FIELDS.map((field) => field.key);
-  const knownFieldNames = new Set(
-    IMPORTABLE_LEAD_FIELDS.flatMap((field) =>
-      [field.key, ...field.aliases].map(normalizeFieldName),
-    ),
-  );
-  const dynamicFields = new Set<string>();
-  for (const lead of leads) {
-    if (lead.rawPayload && typeof lead.rawPayload === "object" && !Array.isArray(lead.rawPayload)) {
-      for (const key of Object.keys(lead.rawPayload)) {
-        if (!knownFieldNames.has(normalizeFieldName(key))) dynamicFields.add(key);
-      }
-    }
-  }
-  const allFields = [...fields, ...Array.from(dynamicFields).sort()];
-  const header = allFields.map(escapeCsv).join(",");
+  const fields = LEAD_FIELD_CATALOG.filter((field) => field.key !== "rawPayload");
+  const headers = [...fields.map((field) => field.aliases[0] ?? field.key), "raw_payload"];
+  const header = headers.map(escapeCsv).join(",");
   const rows = leads.map((lead) =>
-    allFields.map((field) => {
-      const typedValue = field in lead ? lead[field as keyof typeof lead] : undefined;
-      const definition = IMPORTABLE_LEAD_FIELDS.find((candidate) => candidate.key === field);
-      const rawPayload =
-        lead.rawPayload && typeof lead.rawPayload === "object" && !Array.isArray(lead.rawPayload)
-          ? (lead.rawPayload as Record<string, unknown>)
-          : undefined;
-      const rawValue = definition
-        ? [definition.key, ...definition.aliases]
-            .map((key) => rawPayload?.[key])
-            .find((value) => value !== undefined && value !== null && value !== "")
-        : rawPayload?.[field];
-      return escapeCsv(typedValue ?? rawValue);
-    }).join(","),
+    [
+      ...fields.map((field) => escapeCsv(lead[field.key as keyof typeof lead])),
+      escapeCsv(JSON.stringify(lead.rawPayload ?? null)),
+    ].join(","),
   );
 
   const csv = [header, ...rows].join("\n");

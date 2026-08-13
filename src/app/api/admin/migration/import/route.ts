@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import { getPartnerId } from "@/lib/partner/session";
-import { mapCsvRowToLead, normalizeImportedRow } from "@/lib/migration/map-csv-row-to-lead";
+import {
+  isFullMigrationCsv,
+  mapCsvRowToLead,
+  mapFullMigrationRow,
+  normalizeImportedRow,
+} from "@/lib/migration/map-csv-row-to-lead";
 import { csvToRecords, escapeCsv } from "@/lib/csv";
 import {
   IMPORTABLE_LEAD_FIELDS,
@@ -167,6 +173,7 @@ export async function POST(request: NextRequest) {
   }
 
   const createdById = await getPartnerId();
+  const fullMigration = isFullMigrationCsv(Object.keys(records[0]));
 
   const categories = await prisma.leadCategory.findMany({
     where: { enabled: true },
@@ -190,9 +197,15 @@ export async function POST(request: NextRequest) {
   let successRows = 0;
   let errorRows = 0;
   const errors: string[] = [];
+  const seenIds = new Set<string>();
+  const seenExternalIds = new Set<string>();
 
   for (let i = 0; i < records.length; i++) {
-    let row = Object.fromEntries(
+    let row = fullMigration
+      ? Object.fromEntries(
+          Object.entries(records[i]).map(([key, value]) => [normalizeFieldName(key), value]),
+        )
+      : Object.fromEntries(
       Object.entries(records[i]).map(([key, value]) => [
         key.toLowerCase().replace(/\s+/g, "_"),
         value,
@@ -200,22 +213,52 @@ export async function POST(request: NextRequest) {
     );
 
     // Apply column mapping if provided
-    if (columnMapping) {
+    if (columnMapping && !fullMigration) {
       row = applyColumnMapping(row, columnMapping);
     }
-    row = normalizeImportedRow(row);
+    if (!fullMigration) row = normalizeImportedRow(row);
 
     try {
-      const mapped = mapCsvRowToLead(row, categories);
-      if (!mapped.firstName || !mapped.email || !mapped.state) {
-        throw new Error("Missing required fields");
+      if (fullMigration) {
+        const mapped = mapFullMigrationRow(row);
+        if (!mapped.firstName || !mapped.email || !mapped.state) {
+          throw new Error("Missing required fields");
+        }
+        const externalId = mapped.externalId;
+        if (seenIds.has(mapped.id)) throw new Error(`Duplicate ID ${mapped.id} in CSV`);
+        if (externalId && seenExternalIds.has(externalId)) {
+          throw new Error(`Duplicate external ID ${externalId} in CSV`);
+        }
+        const existingById = await prisma.lead.findUnique({ where: { id: mapped.id }, select: { id: true } });
+        if (existingById) throw new Error(`ID conflict: ${mapped.id} already exists`);
+        if (externalId) {
+          const existingByExternalId = await prisma.lead.findFirst({
+            where: { externalId },
+            select: { id: true },
+          });
+          if (existingByExternalId) {
+            throw new Error(`External ID conflict: ${externalId} already exists`);
+          }
+        }
+        seenIds.add(mapped.id);
+        if (externalId) seenExternalIds.add(externalId);
+        await prisma.lead.create({
+          data: {
+            ...mapped,
+            rawPayload: mapped.rawPayload === null ? Prisma.JsonNull : mapped.rawPayload,
+          },
+        });
+      } else {
+        const mapped = mapCsvRowToLead(row, categories);
+        if (!mapped.firstName || !mapped.email || !mapped.state) {
+          throw new Error("Missing required fields");
+        }
+        await prisma.lead.create({ data: mapped });
       }
-
-      await prisma.lead.create({ data: mapped });
       successRows++;
     } catch (err) {
       errorRows++;
-      errors.push(`Row ${i}: ${err instanceof Error ? err.message : "error"}`);
+      errors.push(`Row ${i + 2}: ${err instanceof Error ? err.message : "error"}`);
     }
   }
 
