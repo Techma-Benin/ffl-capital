@@ -117,10 +117,8 @@ function nullableDate(value: string | undefined): Date | null {
   return date;
 }
 
-function requiredDate(value: string | undefined, field: string): Date {
-  const date = nullableDate(value);
-  if (!date) throw new Error(`Missing required field ${field}`);
-  return date;
+function dateOrNow(value: string | undefined): Date {
+  return nullableDate(value) ?? new Date();
 }
 
 function booleanValue(value: string | undefined, field: string): boolean | null {
@@ -152,50 +150,85 @@ function arrayValue(value: string | undefined, field: string): string[] {
 }
 
 /**
- * Restores a row produced by the full migration export. Unlike manual imports,
- * this intentionally accepts protected/system fields and does not reclassify
- * the lead, so the destination receives the exact saved state.
+ * Restores a full migration row when present. Missing system fields are derived
+ * so a row can import as soon as first/email/state plus raw_payload or lead_type
+ * are available.
  */
-export function mapFullMigrationRow(row: CsvRow) {
-  const rawPayloadText = row.raw_payload ?? row.rawPayload;
-  if (!rawPayloadText) throw new Error("Missing required field raw_payload");
-  let rawPayload: unknown;
-  try {
-    rawPayload = JSON.parse(rawPayloadText);
-  } catch {
-    throw new Error("Invalid JSON in raw_payload");
-  }
+export function mapFullMigrationRow(
+  row: CsvRow,
+  categories: LeadCategoryRule[] = [],
+) {
   const field = (key: string) => {
     const definition = LEAD_FIELD_BY_KEY.get(key);
     return row[definition?.aliases[0] ?? key] ?? row[key];
   };
-  const id = field("id");
-  if (!id) throw new Error("Missing required field id");
-  const status = field("status");
-  const categoryResolution = field("categoryResolution");
-  const allowedStatuses = new Set(["unmatched", "delivered", "integrity_posted", "dead", "review"]);
-  const allowedResolutions = new Set(["matched", "no_match", "multiple_matches"]);
-  if (!status || !allowedStatuses.has(status)) throw new Error(`Invalid status "${status ?? ""}"`);
-  if (!categoryResolution || !allowedResolutions.has(categoryResolution)) {
-    throw new Error(`Invalid category resolution "${categoryResolution ?? ""}"`);
+
+  const rawPayloadText = field("rawPayload");
+  let rawPayload: Record<string, unknown>;
+  if (rawPayloadText) {
+    try {
+      const parsed = JSON.parse(rawPayloadText);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("Invalid JSON in raw_payload");
+      }
+      rawPayload = parsed as Record<string, unknown>;
+    } catch (err) {
+      if (err instanceof Error && err.message === "Invalid JSON in raw_payload") throw err;
+      throw new Error("Invalid JSON in raw_payload");
+    }
+  } else {
+    const leadType = nullableText(field("leadType"));
+    if (!leadType) {
+      throw new Error("Missing raw_payload or lead_type");
+    }
+    rawPayload = { lead_type: leadType };
   }
 
+  const classification = classifyImportedLead(rawPayload, categories);
+  const allowedStatuses = new Set([
+    "unmatched",
+    "delivered",
+    "integrity_posted",
+    "dead",
+    "review",
+  ]);
+  const allowedResolutions = new Set(["matched", "no_match", "multiple_matches"]);
+  const statusValue = field("status");
+  const resolutionValue = field("categoryResolution");
+  if (statusValue && !allowedStatuses.has(statusValue)) {
+    throw new Error(`Invalid status "${statusValue}"`);
+  }
+  if (resolutionValue && !allowedResolutions.has(resolutionValue)) {
+    throw new Error(`Invalid category resolution "${resolutionValue}"`);
+  }
+
+  const id = nullableText(field("id"));
+  const explicitLeadType = nullableText(field("leadType"));
+
   return {
-    id,
+    ...(id ? { id } : {}),
     externalId: nullableText(field("externalId")),
     firstName: field("firstName") ?? "",
     lastName: field("lastName") ?? "",
     email: field("email") ?? "",
-    phone: field("phone") ?? "",
+    phone: field("phone") ?? "0000000000",
     address: nullableText(field("address")),
     city: nullableText(field("city")),
     state: field("state") ?? "",
     zip: nullableText(field("zip")),
     dob: nullableText(field("dob")),
     age: nullableText(field("age")),
-    leadType: nullableText(field("leadType")),
-    categoryResolution: categoryResolution as "matched" | "no_match" | "multiple_matches",
-    categoryCandidateTypes: arrayValue(field("categoryCandidateTypes"), "category_candidate_types"),
+    leadType: explicitLeadType ?? classification.leadType,
+    categoryResolution: (resolutionValue ??
+      classification.categoryResolution) as
+      | "matched"
+      | "no_match"
+      | "multiple_matches",
+    categoryCandidateTypes:
+      field("categoryCandidateTypes") !== undefined &&
+      field("categoryCandidateTypes") !== ""
+        ? arrayValue(field("categoryCandidateTypes"), "category_candidate_types")
+        : classification.categoryCandidateTypes,
     intent: nullableText(field("intent")),
     haveIul: nullableText(field("haveIul")),
     primaryGoal: nullableText(field("primaryGoal")),
@@ -210,17 +243,23 @@ export function mapFullMigrationRow(row: CsvRow) {
     tcpaConsent: nullableText(field("tcpaConsent")),
     tcpaLanguage: nullableText(field("tcpaLanguage")),
     leadidToken: nullableText(field("leadidToken")),
-    source: field("source") ?? "",
+    source: field("source") || "boberdoo_migration",
     landingPage: nullableText(field("landingPage")),
     subId: nullableText(field("subId")),
     pubId: nullableText(field("pubId")),
     boberdooLeadType: nullableText(field("boberdooLeadType")),
     ipAddress: nullableText(field("ipAddress")),
     userAgent: nullableText(field("userAgent")),
-    receivedAt: requiredDate(field("receivedAt"), "received_at"),
-    available: booleanValue(field("available"), "available") ?? false,
-    refundable: booleanValue(field("refundable"), "refundable") ?? false,
-    status: status as "unmatched" | "delivered" | "integrity_posted" | "dead" | "review",
+    receivedAt: dateOrNow(field("receivedAt")),
+    available:
+      booleanValue(field("available"), "available") ?? classification.available,
+    refundable: booleanValue(field("refundable"), "refundable") ?? true,
+    status: (statusValue ?? classification.status) as
+      | "unmatched"
+      | "delivered"
+      | "integrity_posted"
+      | "dead"
+      | "review",
     rawPayload,
     agedSaleCount: integerValue(field("agedSaleCount"), "aged_sale_count"),
     agedAvailableAfter: nullableDate(field("agedAvailableAfter")),
@@ -234,8 +273,8 @@ export function mapFullMigrationRow(row: CsvRow) {
     routingClaimedAt: nullableDate(field("routingClaimedAt")),
     routingClaimedBy: nullableText(field("routingClaimedBy")),
     routingClaimExpiresAt: nullableDate(field("routingClaimExpiresAt")),
-    createdAt: requiredDate(field("createdAt"), "created_at"),
-    updatedAt: requiredDate(field("updatedAt"), "updated_at"),
+    createdAt: dateOrNow(field("createdAt")),
+    updatedAt: dateOrNow(field("updatedAt")),
   };
 }
 

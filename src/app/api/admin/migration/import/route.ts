@@ -220,18 +220,24 @@ export async function POST(request: NextRequest) {
 
     try {
       if (fullMigration) {
-        const mapped = mapFullMigrationRow(row);
+        const mapped = mapFullMigrationRow(row, categories);
         if (!mapped.firstName || !mapped.email || !mapped.state) {
           throw new Error("Missing required fields");
         }
         const externalId = mapped.externalId;
-        if (seenIds.has(mapped.id)) throw new Error(`Duplicate ID ${mapped.id} in CSV`);
-        if (externalId && seenExternalIds.has(externalId)) {
-          throw new Error(`Duplicate external ID ${externalId} in CSV`);
+        if (mapped.id) {
+          if (seenIds.has(mapped.id)) throw new Error(`Duplicate ID ${mapped.id} in CSV`);
+          const existingById = await prisma.lead.findUnique({
+            where: { id: mapped.id },
+            select: { id: true },
+          });
+          if (existingById) throw new Error(`ID conflict: ${mapped.id} already exists`);
+          seenIds.add(mapped.id);
         }
-        const existingById = await prisma.lead.findUnique({ where: { id: mapped.id }, select: { id: true } });
-        if (existingById) throw new Error(`ID conflict: ${mapped.id} already exists`);
         if (externalId) {
+          if (seenExternalIds.has(externalId)) {
+            throw new Error(`Duplicate external ID ${externalId} in CSV`);
+          }
           const existingByExternalId = await prisma.lead.findFirst({
             where: { externalId },
             select: { id: true },
@@ -239,9 +245,8 @@ export async function POST(request: NextRequest) {
           if (existingByExternalId) {
             throw new Error(`External ID conflict: ${externalId} already exists`);
           }
+          seenExternalIds.add(externalId);
         }
-        seenIds.add(mapped.id);
-        if (externalId) seenExternalIds.add(externalId);
         await prisma.lead.create({
           data: {
             ...mapped,

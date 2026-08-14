@@ -122,6 +122,42 @@ describe("lead CSV contract", () => {
     assert.deepEqual(mapped.rawPayload, payload);
   });
 
+  test("derives missing system fields when raw_payload is present", () => {
+    const mapped = mapFullMigrationRow({
+      first_name: "Jane",
+      email: "jane@example.com",
+      state: "TX",
+      raw_payload: JSON.stringify({ custom_answer: "kept" }),
+    });
+    assert.equal(mapped.id, undefined);
+    assert.ok(mapped.status === "unmatched" || mapped.status === "review");
+    assert.ok(mapped.receivedAt instanceof Date);
+    assert.ok(mapped.createdAt instanceof Date);
+    assert.ok(mapped.updatedAt instanceof Date);
+    assert.deepEqual(mapped.rawPayload, { custom_answer: "kept" });
+  });
+
+  test("requires lead_type when raw_payload is missing", () => {
+    assert.throws(
+      () =>
+        mapFullMigrationRow({
+          first_name: "Jane",
+          email: "jane@example.com",
+          state: "TX",
+        }),
+      /Missing raw_payload or lead_type/,
+    );
+
+    const mapped = mapFullMigrationRow({
+      first_name: "Jane",
+      email: "jane@example.com",
+      state: "TX",
+      lead_type: "traditional_iul",
+    });
+    assert.equal(mapped.leadType, "traditional_iul");
+    assert.deepEqual(mapped.rawPayload, { lead_type: "traditional_iul" });
+  });
+
   test("reports malformed full migration payload JSON", () => {
     assert.throws(
       () =>

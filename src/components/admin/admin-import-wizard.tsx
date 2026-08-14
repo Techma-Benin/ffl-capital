@@ -414,7 +414,7 @@ export function AdminImportWizard() {
                 onClick={handleProceedToMap}
                 className="btn-primary btn-sm disabled:opacity-50"
               >
-                {fullMigration ? "Next: Preview →" : "Next: Map Columns →"}
+                Next
               </button>
             </div>
           </>
@@ -488,7 +488,7 @@ export function AdminImportWizard() {
                 onClick={handleProceedToPreview}
                 className="btn-primary btn-sm"
               >
-                Next: Preview →
+                Next
               </button>
             </div>
           </>
