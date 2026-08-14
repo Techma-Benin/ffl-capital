@@ -19,11 +19,11 @@
 
 ### Platform alignment (FFL app, Aug 2026)
 
-Our implementation mirrors delivery **281** for Realtime IUL: Azure `IsAcceptingCampaign` ping (env-only `VendorId` + `x-functions-key`) before LeadConduit Realtime post. Storefront (delivery **273**) is **direct post** to the LeadConduit storefront URL — no LeadConduit ping gate. Lifecycle age windows ship behind admin flag `lifecycle_routing_enabled` (default off). See [BACKEND.md](BACKEND.md) § Lead routing and `docs/client_email_lead_routing_2026-08-03.txt`.
+This document preserves the Boberdoo configuration captured on 4 Aug, including delivery **281**’s Azure `IsAcceptingCampaign` ping. The FFL app no longer mirrors that gate: automatic and admin-test Realtime and Storefront flows submit directly to LeadConduit. Lifecycle age windows remain behind admin flag `lifecycle_routing_enabled` (default off). See [BACKEND.md](BACKEND.md) § Lead routing and `docs/client_email_lead_routing_2026-08-03.txt`.
 
 ---
 
-## Architecture (how Boberdoo talks to Integrity)
+## Historical architecture (how Boberdoo talked to Integrity)
 
 Almost every “Integrity” delivery is a **two-hop** setup:
 
@@ -206,10 +206,10 @@ Boberdoo tries Realtime first; on reject / no campaign, falls back to Storefront
 
 ---
 
-## Implications for our app
+## Historical capture implications and current app alignment
 
-1. **Post target is LeadConduit**, not IntegrityCONNECT HTTP directly — except the **ping** gate on realtime IUL (281).
+1. **Post target is LeadConduit**, not IntegrityCONNECT HTTP directly.
 2. Use exact `lead_type_thom` strings from the table above (Realtime vs Storefront differ for Veteran / MP).
-3. Realtime IUL needs Integrity ping (`VendorId` 1086 + prod function key) **before** LC post when mirroring 281.
+3. Boberdoo delivery 281 historically used the captured Azure ping credentials before its LC post; the FFL app does **not** mirror or require that ping.
 4. Shared LeadConduit source id: `64e4ee92a3947cf03fa9dcea`.
 5. Success: JSON `outcome === "success"`; price from `price` when payday JSON enabled.

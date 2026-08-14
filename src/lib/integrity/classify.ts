@@ -16,7 +16,7 @@ export type IntegrityClassificationInput = {
  * Classify Integrity / LeadConduit failures for lifecycle routing.
  * Only normalized "No Campaign Available" business failures are retryable.
  * Transport / 429 / 5xx are operational (bounded technical retry, no permanent block).
- * All other business failures permanently block both Integrity modes.
+ * All other business failures block the rejected Integrity mode only.
  */
 export function classifyIntegrityFailure(
   input: IntegrityClassificationInput,

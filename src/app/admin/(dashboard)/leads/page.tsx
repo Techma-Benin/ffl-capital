@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LeadListViewScope } from "@prisma/client";
+import { LeadEventType, LeadListViewScope, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -42,6 +42,7 @@ import {
   parseLeadViewDraft,
 } from "@/lib/leads/lead-view-draft";
 import { resolveIntegrityLiveSaleChannel } from "@/lib/leads/lead-status-label";
+import { isTerminalIntegrityRejectionEvent } from "@/lib/integrity/rejection-state";
 
 const BASE_PATH = "/admin/leads";
 
@@ -132,7 +133,7 @@ export default async function AdminLeadsPage({
       take: 1,
       select: { mode: true },
     },
-  };
+  } satisfies Prisma.LeadInclude;
 
   const searchQuery = filters.q?.trim();
 
@@ -197,6 +198,18 @@ export default async function AdminLeadsPage({
       include: leadListInclude,
     });
   }
+  const terminalRejectionEvents = await prisma.leadEvent.findMany({
+    where: {
+      leadId: { in: leads.map((lead) => lead.id) },
+      type: LeadEventType.integrity_rejected,
+    },
+    select: { leadId: true, payload: true },
+  });
+  const terminalRejectionLeadIds = new Set(
+    terminalRejectionEvents
+      .filter(isTerminalIntegrityRejectionEvent)
+      .map((event) => event.leadId),
+  );
   const filterSets = rawFilterSets.map((filterSet) => ({
     id: filterSet.id,
     name: filterSet.partner
@@ -270,6 +283,7 @@ export default async function AdminLeadsPage({
               categories,
             }).label,
             status: lead.status,
+            integrityRejected: terminalRejectionLeadIds.has(lead.id),
             liveSaleChannel: resolveIntegrityLiveSaleChannel(
               lead.liveSaleChannel,
               lead.resalePostings[0]?.mode,

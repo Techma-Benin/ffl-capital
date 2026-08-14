@@ -18,6 +18,10 @@ import { integrityTimelineLabel } from "@/lib/integrity/event-labels";
 import { evaluateLifecyclePolicy } from "@/lib/lead-routing/policy";
 import { LeadEventType, ResaleStatus } from "@prisma/client";
 import { resolveIntegrityLiveSaleChannel } from "@/lib/leads/lead-status-label";
+import {
+  hasIntegrityTerminalRejection,
+  resolveIntegrityModeRejections,
+} from "@/lib/integrity/rejection-state";
 
 const PARTNER_SHEET_AVATAR_PX = 48;
 import {
@@ -81,26 +85,32 @@ export default async function AdminLeadDetailPage({
   const reprocessPartnerPickerEnabled = await isReprocessPartnerPickerEnabled();
 
   const lifecycleSettings = await getLifecycleSettings();
+  const leadEvents = await getLeadEvents(id);
   const now = new Date();
   const ageHours =
     (now.getTime() - lead.receivedAt.getTime()) / (1000 * 60 * 60);
-  let integrityPosting: "none" | "pending" | "rejected" | "sold" = "none";
-  if (lead.resalePostings.some((p) => p.status === ResaleStatus.sold)) {
-    integrityPosting = "sold";
-  } else if (lead.resalePostings.some((p) => p.status === ResaleStatus.pending)) {
-    integrityPosting = "pending";
-  } else if (lead.resalePostings.some((p) => p.status === ResaleStatus.rejected)) {
-    integrityPosting = "rejected";
-  }
+  const postingStateForMode = (mode: "realtime" | "storefront") => {
+    const postings = lead.resalePostings.filter((posting) => posting.mode === mode);
+    if (postings.some((posting) => posting.status === ResaleStatus.sold)) return "sold";
+    if (postings.some((posting) => posting.status === ResaleStatus.pending)) return "pending";
+    if (postings.some((posting) => posting.status === ResaleStatus.rejected)) return "rejected";
+    return "none";
+  };
+  const integrityPostings = {
+    realtime: postingStateForMode("realtime"),
+    storefront: postingStateForMode("storefront"),
+  } as const;
+  const integrityBlockedModes = resolveIntegrityModeRejections(
+    lead.resalePostings,
+    leadEvents.filter((event) => event.type === LeadEventType.integrity_rejected),
+  );
   const routingPolicy = evaluateLifecyclePolicy({
     ageHours,
     liveSold: lead.liveSoldAt != null,
-    integrityPosting,
-    integrityBlocked: lead.integrityBlockedAt != null,
+    integrityPostings,
+    integrityBlockedModes,
     settings: lifecycleSettings,
   });
-
-  const leadEvents = await getLeadEvents(id);
 
   const integrityEventByPostingId = new Map<string, string>();
   for (const event of leadEvents) {
@@ -206,6 +216,7 @@ export default async function AdminLeadDetailPage({
         dob: lead.dob,
         age: lead.age,
         status: lead.status,
+        integrityRejected: hasIntegrityTerminalRejection(integrityBlockedModes),
         liveSaleChannel: resolveIntegrityLiveSaleChannel(
           lead.liveSaleChannel,
           latestPosting?.mode,

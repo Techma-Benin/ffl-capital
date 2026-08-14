@@ -39,6 +39,7 @@ type LeadRow = {
   leadType: string;
   leadTypeLabel: string;
   status: string;
+  integrityRejected: boolean;
   liveSaleChannel: string | null;
   available: boolean;
   receivedAt: Date;
@@ -311,7 +312,10 @@ export function AdminLeadsTable({
       case "status":
         return (
           <td key={key} className={cellClass({ first, last })}>
-            <LeadStatusBadge status={lead.status} />
+            <LeadStatusBadge
+              status={lead.status}
+              integrityRejected={lead.integrityRejected}
+            />
           </td>
         );
       case "partner": {

@@ -172,25 +172,20 @@ Prefer per-category Integrity labels in admin Settings. Canonical Realtime defau
 ### Environment variables
 
 ```env
-# RealTime flow — Azure ping (IUL only) then direct submit to LeadConduit
+# RealTime flow — direct submit to LeadConduit
 INTEGRITY_REALTIME_SUBMIT_URL=https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit
-INTEGRITY_REALTIME_PING_URL=https://ilc-functions-prod.azurewebsites.net/api/IsAcceptingCampaign
-INTEGRITY_PING_VENDOR_ID=
-INTEGRITY_PING_FUNCTIONS_KEY=
 
-# Storefront flow — direct post only (no LeadConduit ping gate)
+# Storefront flow — direct submit to LeadConduit
 INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
 ```
 
-After pull (local or Replit): `pnpm run ensure:integrity-env` fills blank **public** Integrity defaults into `.env` (URLs + VendorId; idempotent; never overwrites non-empty; never prints secrets). It does **not** write `INTEGRITY_PING_FUNCTIONS_KEY` — set that in Replit Secrets or `.env`. Hooked from `scripts/post-merge.sh`.
+After pull (local or Replit): `pnpm run ensure:integrity-env` fills blank **public** Integrity submit URL defaults into `.env` (idempotent; never overwrites non-empty). Hooked from `scripts/post-merge.sh`.
 
-Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override submit URLs when `postUrl` is set. Azure ping credentials are **env-only** — not stored in the database. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. Outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately, including prod); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset; default is `mock` in dev and `live` in prod. **Mock mode** (dev or prod): automatic Integrity posts (intake / cron / lifecycle / `integrityPostLead`) still send real HTTP to LeadConduit with `is_test=yes` via `applyIntegrityAutoPostTestFlag`; live auto posts do not force `is_test`. Realtime IUL Azure `IsAcceptingCampaign` is skipped in mock (auto-accept) so test leads do not gate or skew production campaign decisions. **Admin Integrity test buttons** always POST real HTTP to LeadConduit with `is_test=yes` (mock and live); `integrations_mode` does not short-circuit the test route.
+Admin **Resale vendors** (`integrity_realtime`, `integrity_storefront`) override submit URLs when `postUrl` is set. Each vendor has an **enabled** toggle — when disabled, posts are skipped (`integrity_skipped` lead event) and the lead stays `unmatched`. Outbound mode comes from `app_settings.integrations_mode` (admin Mode dropdown, saved immediately, including prod); env `INTEGRATIONS_MODE` is only a fallback when that setting is unset; default is `mock` in dev and `live` in prod. **Mock mode** (dev or prod): automatic Integrity posts (intake / cron / lifecycle / `integrityPostLead`) still send real HTTP to LeadConduit with `is_test=yes` via `applyIntegrityAutoPostTestFlag`; live auto posts do not force `is_test`. **Admin Integrity test buttons** always POST real HTTP to LeadConduit with `is_test=yes` (mock and live); `integrations_mode` does not short-circuit the test route.
 
 **Boberdoo parity:** Outbound posts (`src/lib/integrity/post.ts`) always send HTTP — no local pre-flight gate on `required-fields.ts`. LeadConduit accept/reject is recorded from the LC response (`integrity_posted` / `integrity_rejected` / `integrity_no_campaign` when the reason contains "No Campaign Available"). `required-fields.ts` is advisory for admin UI warnings only (MP: Beneficiary Type, History Of Cancer, Mortgage Loan Amount; FE: Beneficiary name).
 
 **Ensure env** (after pull / Replit): `pnpm run ensure:integrity-env`
-
-**Preflight Azure** (before enabling live Integrity): `pnpm run preflight:integrity-azure`
 
 ### Routing logic (Integrity post)
 
@@ -199,8 +194,6 @@ IF vendor (integrity_realtime | integrity_storefront) disabled:
   → Skip HTTP; emit integrity_skipped; lead stays unmatched
 
 IF resaleMode = realtime:
-  → IF Realtime IUL lead type → Azure IsAcceptingCampaign ping (env secrets)
-     (mock: skip live Azure call, treat as accepted; LC post still goes with is_test=yes)
   → POST to resolved integrity_realtime postUrl (DB or INTEGRITY_REALTIME_SUBMIT_URL)
      (mock auto post: same HTTP + is_test=yes; always HTTP — no local missing-field gate)
   → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
@@ -219,7 +212,9 @@ IF resaleMode = storefront:
 
 Admin flag `lifecycle_routing_enabled` (default **off**) in Settings → Lead lifecycle. When on, `src/lib/lead-routing/` applies client-approved age windows (0–24 h Realtime, 24–48 h partner/Storefront, 48 h–30 d partners, 30 d+ aged). Spec: `docs/client_email_lead_routing_2026-08-03.txt`. Preview: `POST /api/admin/lead-routing/preview`.
 
-When off, legacy flow: partner match during `integrity_post_delay_hours` (24 h), then Integrity Realtime post.
+When off, routing is **Partner-only** at every live age; no automatic Integrity post.
+
+Terminal business rejection state is derived independently for Realtime and Storefront from `ResalePosting.mode` plus `integrity_rejected` lead events. A Realtime rejection blocks only later automatic Realtime attempts and does not prevent Storefront when its lifecycle window arrives; Storefront is blocked only after its own rejection. “No Campaign Available” emits `integrity_no_campaign`, remains retryable, and does not set terminal rejection state. Network, 429 and 5xx failures are operational failures with technical backoff, also without a terminal block. Legacy `integrityBlockedAt` / reason fields remain for audit/display but do not globally gate routing. Manual posting Reprocess uses force-retry and bypasses the automatic mode block.
 
 ### Protocol details
 
@@ -260,9 +255,9 @@ LeadConduit can POST back a result after processing. This closes the loop: submi
 
 **Sync submit note:** On the outbound POST response, LeadConduit `outcome: success` already marks the posting **sold** (`soldAt`, `claimLiveSale`, `integrity_posted`). The webhook is optional confirmation and must stay idempotent when the posting is already sold. Legacy `integrity_accepted` rows may still exist in `lead_events`; UI labels them **Posted** and does not emit new ones.
 
-Outbound posts (`src/lib/integrity/post.ts`) refresh `postedAt` when a real Integrity post/reprocess starts; they store `requestPayload` and LeadConduit `response` on `integrity_posted`, `integrity_rejected`, and `integrity_no_campaign` events. Older postings may have legacy `integrity_missing_fields` events from a prior local pre-flight gate.
+Outbound posts (`src/lib/integrity/post.ts`) refresh `postedAt` when a real Integrity post/reprocess starts; they store `requestPayload` and LeadConduit `response` on `integrity_posted`, `integrity_rejected`, and `integrity_no_campaign` events. Older postings may have legacy `integrity_missing_fields` events from the former local validation gate.
 
-**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`) and includes `integrityOutcome` per row (e.g. `no_campaign_available`). UI badges: **Sold** (green) for success/sold; **No Campaign Available** (yellow) for `no_campaign_available` — not generic Rejected. Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, rejection reason derived from those events (empty for older postings without stored payloads), plus enriched lead fields. Modal header **Reprocess** POSTs immediately to `POST /api/admin/integrity/postings/[id]/reprocess` (loading on button; success closes PostingModal; error keeps open + toast) — reuses the posting’s mode via `integrityPostLead` (admin force-retry); blocked for live-sold leads and sold postings. Shared **Review payload** edit modal (`IntegrityPayloadEditModal`) is for Connection test only.
+**Admin inspection:** `/admin/integrity` list is light (`GET /api/admin/integrity/postings`) and includes `integrityOutcome` per row (e.g. `no_campaign_available`). UI badges: **Sold** (green) for success/sold; **No Campaign Available** (yellow) for `no_campaign_available` — not generic Rejected. Opening a posting lazy-loads `GET /api/admin/integrity/postings/[id]` for outcome, request/response JSON, event timeline, rejection reason derived from those events (empty for older postings without stored payloads), plus enriched lead fields. Modal header **Reprocess** POSTs immediately to `POST /api/admin/integrity/postings/[id]/reprocess` (loading on button; success closes PostingModal; error keeps open + toast) — reuses the posting’s mode via `integrityPostLead` (admin force-retry); blocked for live-sold leads and sold postings, but allowed despite that mode’s automatic rejection block. Shared **Review payload** edit modal (`IntegrityPayloadEditModal`) is for Connection test only. Admin Leads list/detail label unmatched leads with a terminal non-NCA business rejection as **Integrity - Rejected**; NCA and operational failures remain distinct and retryable.
 
 ---
 
@@ -328,13 +323,12 @@ Expected response: `{"outcome":"success","lead":{"id":"..."}}`
 ## Production cutover
 
 1. Deploy with stable HTTPS URL.
-2. Set all required env vars: `LEADCONDUIT_WEBHOOK_SECRET`, `INTEGRITY_REALTIME_SUBMIT_URL`, `INTEGRITY_STOREFRONT_SUBMIT_URL`, `INTEGRITY_WEBHOOK_SECRET`, and Azure ping vars (`INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY`). On Replit after pull, `pnpm run ensure:integrity-env` (via `post-merge.sh`) fills public Integrity URL/VendorId defaults; add `INTEGRITY_PING_FUNCTIONS_KEY` (and prefer VendorId) in Replit Secrets for production.
-3. Run `pnpm run preflight:integrity-azure` with rotated production secrets.
-4. In LeadConduit, update the recipient URL to `https://YOUR-DOMAIN/api/leads/intake`.
-5. Add the `X-Api-Key` header in LeadConduit delivery settings.
-6. Run test leads with `is_test=yes`; confirm `{ "outcome": "success" }`.
-7. Enable `lifecycle_routing_enabled` in admin only after controlled testing (defaults off).
-8. Monitor the unmatched queue and partner wallets before disabling Boberdoo.
+2. Set all required env vars: `LEADCONDUIT_WEBHOOK_SECRET`, `INTEGRITY_REALTIME_SUBMIT_URL`, `INTEGRITY_STOREFRONT_SUBMIT_URL`, and `INTEGRITY_WEBHOOK_SECRET`. On Replit after pull, `pnpm run ensure:integrity-env` (via `post-merge.sh`) fills public Integrity submit URL defaults.
+3. In LeadConduit, update the recipient URL to `https://YOUR-DOMAIN/api/leads/intake`.
+4. Add the `X-Api-Key` header in LeadConduit delivery settings.
+5. Run test leads with `is_test=yes`; confirm `{ "outcome": "success" }`.
+6. Enable `lifecycle_routing_enabled` in admin only after controlled testing (defaults off).
+7. Monitor the unmatched queue and partner wallets before disabling Boberdoo.
 
 ---
 

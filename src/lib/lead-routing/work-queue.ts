@@ -16,8 +16,6 @@ export type ClaimedLead = Pick<
   | "lastRoutingAttemptAt"
   | "nextRoutingAttemptAt"
   | "routingAttemptCount"
-  | "integrityBlockedAt"
-  | "integrityBlockedReason"
   | "liveSoldAt"
   | "status"
   | "available"
@@ -143,8 +141,6 @@ export async function findDueLeadsPage(input: {
       lastRoutingAttemptAt: true,
       nextRoutingAttemptAt: true,
       routingAttemptCount: true,
-      integrityBlockedAt: true,
-      integrityBlockedReason: true,
       liveSoldAt: true,
       status: true,
       available: true,

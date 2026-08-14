@@ -12,6 +12,7 @@ import {
   classifyIntegrityFailure,
   type IntegrityFailureClass,
 } from "@/lib/integrity/classify";
+import { getIntegrityModeRejections } from "@/lib/integrity/rejection-state";
 import { matchLead } from "@/lib/matching/engine";
 import {
   getLifecycleSettings,
@@ -28,7 +29,8 @@ import {
   realtimeWindowEndsAt,
 } from "./schedule";
 import type {
-  IntegrityPostingState,
+  IntegrityBlockedModes,
+  IntegrityPostingStates,
   LifecyclePolicyResult,
   LifecycleSettings,
   RoutingRoute,
@@ -71,36 +73,46 @@ function hoursSince(date: Date, now: Date): number {
   return (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 }
 
-async function resolveIntegrityPostingState(
+async function resolveIntegrityPostingStates(
   leadId: string,
-): Promise<IntegrityPostingState> {
+): Promise<IntegrityPostingStates> {
   const postings = await prisma.resalePosting.findMany({
     where: { leadId },
     orderBy: { postedAt: "desc" },
   });
 
-  if (postings.some((p) => p.status === ResaleStatus.sold)) {
-    return "sold";
-  }
-  if (postings.some((p) => p.status === ResaleStatus.pending)) {
-    return "pending";
-  }
-  if (postings.some((p) => p.status === ResaleStatus.rejected)) {
-    return "rejected";
-  }
-  return "none";
+  const resolveMode = (mode: ResaleMode) => {
+    const modePostings = postings.filter((posting) => posting.mode === mode);
+    if (modePostings.some((posting) => posting.status === ResaleStatus.sold)) return "sold";
+    if (modePostings.some((posting) => posting.status === ResaleStatus.pending)) return "pending";
+    if (modePostings.some((posting) => posting.status === ResaleStatus.rejected)) return "rejected";
+    return "none";
+  };
+
+  return {
+    realtime: resolveMode(ResaleMode.realtime),
+    storefront: resolveMode(ResaleMode.storefront),
+  };
 }
 
 export async function previewLeadRouting(input: {
   ageHours: number;
   liveSold: boolean;
-  integrityPosting: IntegrityPostingState;
+  integrityPosting: "none" | "pending" | "rejected" | "sold";
   integrityBlocked?: boolean;
 }): Promise<LifecyclePolicyResult & { preview: true; externalRequestSent: false }> {
   const settings = await getLifecycleSettings();
   const result = evaluateLifecyclePolicy({
-    ...input,
-    integrityBlocked: input.integrityBlocked ?? false,
+    ageHours: input.ageHours,
+    liveSold: input.liveSold,
+    integrityPostings: {
+      realtime: input.integrityPosting,
+      storefront: input.integrityPosting,
+    },
+    integrityBlockedModes: {
+      realtime: input.integrityBlocked ?? false,
+      storefront: input.integrityBlocked ?? false,
+    },
     settings,
   });
   return { preview: true, externalRequestSent: false, ...result };
@@ -255,15 +267,17 @@ export async function executeLeadRouting(
     return { action: "skipped", reason: "Automated reprocessing disabled" };
   }
 
-  const integrityPosting = await resolveIntegrityPostingState(leadId);
-  const integrityBlocked = lead.integrityBlockedAt != null;
+  const [integrityPostings, integrityBlockedModes] = await Promise.all([
+    resolveIntegrityPostingStates(leadId),
+    getIntegrityModeRejections(leadId),
+  ]);
   const ageHours = hoursSince(lead.receivedAt, now);
 
   const policy = evaluateLifecyclePolicy({
     ageHours,
     liveSold: lead.liveSoldAt != null,
-    integrityPosting,
-    integrityBlocked,
+    integrityPostings,
+    integrityBlockedModes,
     settings,
   });
 
@@ -298,7 +312,7 @@ export async function executeLeadRouting(
 
   if (policy.phase === "waiting") {
     const kind =
-      integrityBlocked && ageHours < settings.realtimeCutoffHours
+      integrityBlockedModes.realtime && ageHours < settings.realtimeCutoffHours
         ? "integrity_blocked_wait"
         : "waiting_pending";
     await recordAttemptAndBackoff({
@@ -429,6 +443,13 @@ export async function executeLeadRouting(
         settings,
         kind: "integrity_blocked_wait",
       });
+      if (!policy.fallbackRoute) {
+        return {
+          ...primaryResult,
+          phase: policy.phase,
+          integrityClass: failureClass,
+        };
+      }
       // Continue to fallback if available (mid-window partner)
     }
   }
@@ -436,15 +457,23 @@ export async function executeLeadRouting(
   const allowFallback =
     policy.fallbackRoute &&
     isDefinitiveFailure(primaryResult) &&
-    integrityPosting !== "pending" &&
+    !(
+      policy.fallbackRoute === "integrity_realtime" &&
+      integrityPostings.realtime === "pending"
+    ) &&
+    !(
+      policy.fallbackRoute === "integrity_storefront" &&
+      integrityPostings.storefront === "pending"
+    ) &&
     !(mode === "manual" && options?.strictPartnerAllowlist && options.includePartnerIds?.length);
 
   if (allowFallback && policy.fallbackRoute) {
-    // Skip Integrity fallback when permanently blocked
+    // Skip only the rejected Integrity mode; the other mode stays eligible.
     if (
-      integrityBlocked &&
-      (policy.fallbackRoute === "integrity_realtime" ||
-        policy.fallbackRoute === "integrity_storefront")
+      (policy.fallbackRoute === "integrity_realtime" &&
+        integrityBlockedModes.realtime) ||
+      (policy.fallbackRoute === "integrity_storefront" &&
+        integrityBlockedModes.storefront)
     ) {
       await recordAttemptAndBackoff({
         leadId,

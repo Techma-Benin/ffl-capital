@@ -2,15 +2,16 @@
 
 import { evaluateLifecyclePolicy, isPartnerPrimaryRoute } from "@/lib/lead-routing/policy";
 import type {
-  IntegrityPostingState,
+  IntegrityBlockedModes,
+  IntegrityPostingStates,
   LifecycleSettings,
 } from "@/lib/lead-routing/types";
 
 export function partnerPickerActiveForLead(input: {
   ageHours: number;
   liveSold: boolean;
-  integrityPosting: IntegrityPostingState;
-  integrityBlocked: boolean;
+  integrityPostings: IntegrityPostingStates;
+  integrityBlockedModes: IntegrityBlockedModes;
   settings: LifecycleSettings;
 }): boolean {
   const policy = evaluateLifecyclePolicy(input);

@@ -285,16 +285,9 @@ All shared fields from the RealTime flow are also accepted by this flow.
 
 The Storefront LeadConduit flow *can* support a ping/post model in the LeadConduit platform. **Our app does not use a LeadConduit ping gate for Storefront** — posts go directly to the submit URL.
 
-### Ping (Realtime IUL — Azure)
+### Realtime submission
 
-Boberdoo delivery **281** pings Azure `IsAcceptingCampaign` before posting to the Realtime LeadConduit flow. **Our app mirrors this for Realtime IUL leads only** (`traditional_iul`, `high_intent_iul`, or types containing `iul`). Other Realtime categories and all Storefront posts skip the Azure ping.
-
-- **URL:** `INTEGRITY_REALTIME_PING_URL` (prod: `https://ilc-functions-prod.azurewebsites.net/api/IsAcceptingCampaign`)
-- **Headers:** `VendorId`, `x-functions-key`, `Content-Type: application/json`
-- **Body:** `state`, `postal_code`, `lead_type_thom`
-- **Success:** response body `true` (string)
-- **Secrets:** env-only (`INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY`) — never stored in DB
-- **Preflight:** `pnpm run preflight:integrity-azure`
+The app posts Realtime leads directly to the LeadConduit submit URL. The historical Boberdoo Azure `IsAcceptingCampaign` ping is not part of either the automatic or admin-test flow.
 
 ---
 
@@ -336,7 +329,6 @@ These are the mappings from our internal lead object properties to the LeadCondu
 - `lead_type_thom` comes from the lead category row only: Realtime uses `integrity_label`; Storefront uses `integrity_label_storefront`, then `integrity_label` on the same category (`resolveIntegrityLabelForMode`). Built-in defaults are seeded at deploy — see `pnpm db:sync-integrity-labels` and `integrity-label-defaults.ts`.
 - Mortgage Protection–specific fields (`beneficiary_type_thom`, `beneficiary_thom`, `history_of_cancer_thom`, `mortgage.loan.amount`, plus `monthly_payment_thom` from raw payload when present) are included only for `mortgage_protection` leads, and omitted when missing. `beneficiary_thom` remains backward-compatible when a name is present.
 - Final Expense sends `beneficiary_thom` (name) only — **not** `beneficiary_type_thom`.
-- Ping payloads (`buildIntegrityPingPayload`) include only `first_name`, `last_name`, `state`, `lead_type_thom`, and `vendor_lead_id_thom`. **Deprecated for Storefront** — app no longer pings LeadConduit before Storefront post.
 
 | Internal Field | LeadConduit Parameter | Notes |
 |---|---|---|
@@ -389,18 +381,17 @@ Canonical Realtime strings (also useful as category defaults):
 IF vendor disabled → skip (integrity_skipped)
 
 IF resaleMode = realtime:
-  → IF lead type is Realtime IUL → Azure IsAcceptingCampaign ping (env secrets)
   → POST to INTEGRITY_REALTIME_SUBMIT_URL (or vendor postUrl) — always HTTP; no local missing-field gate
   → LC RealTime acceptance criteria: lead_type_thom, dob_mmddyyyy_thom, first_name, last_name, email, phone_1, state
   → LC success (outcome success) → ResalePosting **sold** immediately (`soldAt`, `claimLiveSale`, `integrity_posted`); not left `pending` for webhook. Posted implies accepted — no separate `integrity_accepted` event.
   → LC failure → integrity_rejected (outcome rejected) OR integrity_no_campaign (outcome no_campaign_available) when reason contains "No Campaign Available"; LC response body stored on event
-  → classifyIntegrityFailure: NCA = retryable (lead unmatched + nextRoutingAttemptAt 15/30/60 min); other business failure = permanent Integrity block (both modes); 429/5xx/network = operational backoff
+  → classifyIntegrityFailure: NCA = retryable (lead unmatched + nextRoutingAttemptAt 15/30/60 min); other business failure = terminal rejection for Realtime only; 429/5xx/network = operational backoff
 
 IF resaleMode = storefront:
   → POST directly to INTEGRITY_STOREFRONT_SUBMIT_URL (no LC ping gate) — always HTTP
   → LC Storefront acceptance criteria: lead_type_thom, first_name, last_name, phone_1, email, state, vendor_lead_id_thom
   → LC success → same immediate sold path as Realtime
-  → LC failure → integrity_rejected or integrity_no_campaign (same detection as Realtime); same classifyIntegrityFailure rules; LC response body stored on event
+  → LC failure → integrity_rejected or integrity_no_campaign (same detection as Realtime); terminal rejection blocks Storefront only; LC response body stored on event
 ```
 
 ### Integrity failure taxonomy (`classify.ts`)
@@ -408,7 +399,7 @@ IF resaleMode = storefront:
 | Class | Trigger | Lifecycle effect |
 |-------|---------|------------------|
 | `retryable_no_campaign` | Normalized reason « No Campaign Available » | Restore `unmatched`; cron backoff 15 / 30 / 60 min (`noCampaignBackoffMinutes`); Integrity may retry while in window |
-| `terminal_business_rejection` | Other LC business failure | Set `integrityBlockedAt` + reason; **no further auto Realtime or Storefront posts** (cron does not retry Integrity); continue via partners in partner-capable windows; manual Reprocess on posting modal still available |
+| `terminal_business_rejection` | Other LC business failure | Block future automatic posts for the rejected posting’s mode only; Realtime rejection does not block later Storefront, and Storefront is blocked only by its own rejection; continue via partners in partner-capable windows; manual Reprocess bypasses the automatic block |
 | `operational_failure` | Network error, HTTP 429 / 5xx (and similar transport) | Technical backoff (5 / 10 / 20 min); no permanent block |
 
 Async webhook rejections use the same classifier. Webhook `success` marks sold + emits `integrity_posted` if not already sold on sync submit; otherwise idempotent (no second event). Legacy `integrity_accepted` enum values remain for historical rows only (UI: **Posted**).
@@ -420,12 +411,12 @@ Async webhook rejections use the same classifier. Webhook `success` marks sold +
 | **Off** | **Partner-only** — partner match only; **never** Integrity Realtime or Storefront |
 | **On** | Age windows via `src/lib/lead-routing/policy.ts` |
 
-When enabled, policy uses lead age, `liveSoldAt`, Integrity posting state, and `integrityBlocked`:
+When enabled, policy uses lead age, `liveSoldAt`, posting state, and mode-specific terminal rejection state derived from `ResalePosting.mode` plus `integrity_rejected` events. Legacy `integrityBlockedAt` / reason remain audit/display fields and do not globally gate routing:
 
 | Age | Primary action |
 |-----|----------------|
-| 0 – 24 h | Integrity Realtime only (blocked → wait for partner-capable window) |
-| 24 – 48 h | Partner **or** Storefront first (admin `lifecycle_mid_window_primary`), then fallback; Integrity blocked → partner only |
+| 0 – 24 h | Integrity Realtime only (Realtime rejected → wait for partner/Storefront window) |
+| 24 – 48 h | Partner **or** Storefront first (admin `lifecycle_mid_window_primary`), then fallback; a prior Realtime rejection does not block Storefront |
 | 48 h – 30 d | Platform partners only (`lifecycle_partner_auto_reprocess_enabled`) |
 | 30 d+ | Aged marketplace (passive); excluded from automatic live queue |
 | `liveSoldAt` set | No automatic live routing |
@@ -441,28 +432,15 @@ Legacy key `integrity_post_delay_hours` is retained in settings for rollback onl
 ```env
 INTEGRITY_REALTIME_SUBMIT_URL=https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit
 INTEGRITY_STOREFRONT_SUBMIT_URL=https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit
-
-# Azure IsAcceptingCampaign — Realtime IUL only; env-only (never DB)
-INTEGRITY_REALTIME_PING_URL=https://ilc-functions-prod.azurewebsites.net/api/IsAcceptingCampaign
-INTEGRITY_PING_VENDOR_ID=
-INTEGRITY_PING_FUNCTIONS_KEY=
 ```
 
-After pull: `pnpm run ensure:integrity-env` fills blank public Integrity defaults into `.env` (URLs + VendorId; never writes the functions key). Hooked from `scripts/post-merge.sh`. Set `INTEGRITY_PING_FUNCTIONS_KEY` in Replit Secrets or `.env`. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
+After pull: `pnpm run ensure:integrity-env` fills blank public Integrity submit URL defaults into `.env`. Hooked from `scripts/post-merge.sh`. See [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md).
 
-Admin **Resale vendors** can override submit URLs. Azure ping secrets are **not** stored in `resale_vendor_configs` — env only.
+Admin **Resale vendors** can override submit URLs.
 
 ---
 
 ## Testing
-
-### Azure ping preflight
-
-```bash
-pnpm run preflight:integrity-azure
-```
-
-Requires `INTEGRITY_REALTIME_PING_URL`, `INTEGRITY_PING_VENDOR_ID`, `INTEGRITY_PING_FUNCTIONS_KEY`. Output is redacted — no secret values printed.
 
 ### Admin Integrity test panel (preferred)
 
@@ -500,7 +478,7 @@ curl -X POST \
 
 ## Current Codebase Status (Aug 2026)
 
-The items below were fixed in Phase 1–2 and the reliable routing pass (août 2026). Remaining work is **live credential rotation**, **preflight**, and **controlled lifecycle flag enablement**.
+The items below were fixed in Phase 1–2 and the reliable routing pass (août 2026). Remaining work is **live configuration validation** and **controlled lifecycle flag enablement**.
 
 | # | Issue | Status |
 |---|---|---|
@@ -508,7 +486,7 @@ The items below were fixed in Phase 1–2 and the reliable routing pass (août 2
 | 2 | Wrong field names | ✅ LeadConduit snake_case params |
 | 3 | Missing required fields | ✅ `dob_mmddyyyy_thom`, `vendor_lead_id_thom` |
 | 4 | Single URL | ✅ Split realtime / storefront vendors + env fallbacks |
-| 5 | Incorrect ping logic | ✅ Azure ping for Realtime IUL only ; Storefront direct post |
+| 5 | Obsolete ping gate | ✅ Removed; Realtime and Storefront submit directly to LeadConduit |
 | 6 | Lead type mapping | ✅ Category `integrity_label` / `integrity_label_storefront` |
 
 ---

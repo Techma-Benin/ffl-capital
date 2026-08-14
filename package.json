@@ -26,7 +26,6 @@
     "test:backend:planned": "node --import tsx --test test/planned/*.test.ts",
     "test:backend": "node --import tsx --test test/current/*.test.ts test/planned/*.test.ts",
     "ensure:integrity-env": "node scripts/ensure-integrity-env.mjs",
-    "preflight:integrity-azure": "pnpm exec tsx scripts/integrity-azure-preflight.ts",
     "repair:category-classification": "pnpm exec tsx scripts/repair-category-classification.ts",
     "verify": "node scripts/verify-backend.mjs",
     "verify:cron": "node scripts/verify-cron.mjs",

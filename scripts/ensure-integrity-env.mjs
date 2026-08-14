@@ -4,9 +4,7 @@
  * Idempotent: never overwrites non-empty values.
  * Never prints secret values — only SET / MISSING / filled key names.
  *
- * Public Integrity URL / VendorId defaults come from Boberdoo delivery 281.
- * INTEGRITY_PING_FUNCTIONS_KEY is never written by this script — set it in
- * Replit Secrets or .env (never commit the key).
+ * Public LeadConduit submit URL defaults come from the Integrity setup.
  *
  * Usage:
  *   pnpm run ensure:integrity-env
@@ -24,23 +22,11 @@ const envPath = join(root, ".env");
 
 /** Public defaults only (never overwrite existing). No function keys here. */
 const DEFAULTS = {
-  INTEGRITY_REALTIME_PING_URL:
-    "https://ilc-functions-prod.azurewebsites.net/api/IsAcceptingCampaign",
-  INTEGRITY_PING_VENDOR_ID: "1086",
   INTEGRITY_REALTIME_SUBMIT_URL:
     "https://app.leadconduit.com/flows/65c179646acc6f1fb9864345/sources/64e4ee92a3947cf03fa9dcea/submit",
   INTEGRITY_STOREFRONT_SUBMIT_URL:
     "https://app.leadconduit.com/flows/60affe1a00048c6680c27719/sources/64e4ee92a3947cf03fa9dcea/submit",
 };
-
-/** Must exist in process.env or .env; never bootstrapped from this repo. */
-const SECRET_KEYS_NO_DEFAULT = ["INTEGRITY_PING_FUNCTIONS_KEY"];
-
-/** Keys that should live in Replit Secrets for production runtime. */
-const REPLIT_SECRET_KEYS = new Set([
-  "INTEGRITY_PING_VENDOR_ID",
-  "INTEGRITY_PING_FUNCTIONS_KEY",
-]);
 
 const FILLABLE_KEYS = Object.keys(DEFAULTS);
 
@@ -166,18 +152,6 @@ function main() {
     }
   }
 
-  for (const key of SECRET_KEYS_NO_DEFAULT) {
-    if (isNonEmpty(process.env[key])) {
-      alreadyProcess.push(key);
-    } else if (isNonEmpty(fileValues.get(key))) {
-      alreadyFile.push(key);
-    } else {
-      console.log(
-        `  ${key}: MISSING (set in Replit Secrets or .env — never committed)`,
-      );
-    }
-  }
-
   for (const key of alreadyProcess) {
     console.log(`  ${key}: SET (process.env${replit ? " / Replit Secrets" : ""})`);
   }
@@ -223,40 +197,10 @@ function main() {
 
   /** @type {string[]} */
   const stillMissingPublic = [];
-  /** @type {string[]} */
-  const stillMissingSecrets = [];
-  /** @type {string[]} */
-  const replitSecretsNeeded = [];
-
   for (const key of FILLABLE_KEYS) {
     const inProcess = isNonEmpty(process.env[key]);
     const inFile = isNonEmpty(afterFile.get(key));
     if (!inProcess && !inFile) stillMissingPublic.push(key);
-    if (replit && !inProcess && REPLIT_SECRET_KEYS.has(key)) {
-      replitSecretsNeeded.push(key);
-    }
-  }
-
-  for (const key of SECRET_KEYS_NO_DEFAULT) {
-    const inProcess = isNonEmpty(process.env[key]);
-    const inFile = isNonEmpty(afterFile.get(key));
-    if (!inProcess && !inFile) stillMissingSecrets.push(key);
-    if (replit && !inProcess) replitSecretsNeeded.push(key);
-  }
-
-  if (replit && replitSecretsNeeded.length > 0) {
-    console.log("");
-    console.log("  Replit Secrets (required for production runtime):");
-    for (const key of replitSecretsNeeded) {
-      console.log(`    → Add ${key} to Replit Secrets`);
-    }
-  }
-
-  if (stillMissingSecrets.length > 0) {
-    console.warn("");
-    console.warn(
-      `  ⚠ Secret(s) not set (Azure Realtime IUL ping will fail until set): ${stillMissingSecrets.join(", ")}`,
-    );
   }
 
   if (stillMissingPublic.length > 0 || writeFailed) {

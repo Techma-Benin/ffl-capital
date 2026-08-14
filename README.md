@@ -34,7 +34,7 @@ Plateforme propriétaire de distribution de leads IUL pour FFL Capital (Integrit
 
 Pas besoin de **`DIRECT_URL`** (Supabase seulement) ; Prisma utilise uniquement **`DATABASE_URL`**.
 
-**Integrity env (Replit / après pull)** : `pnpm run ensure:integrity-env` remplit les defaults manquants (ping Azure + URLs submit) dans `.env` sans écraser les valeurs existantes. Les **Replit Secrets** déjà définis gagnent au runtime ; le script indique lesquels ajouter dans l’UI Secrets pour la prod.
+**Integrity env (Replit / après pull)** : `pnpm run ensure:integrity-env` remplit les URLs submit manquantes dans `.env` sans écraser les valeurs existantes. Les **Replit Secrets** déjà définis gagnent au runtime.
 
 ### Local / Supabase
 
@@ -93,9 +93,6 @@ pnpm run seed:aged-leads
 
 # Réévaluer la classification catégorie sur l'historique (dry-run ; --apply pour écrire)
 pnpm run repair:category-classification
-
-# Preflight Azure IsAcceptingCampaign (Realtime IUL ping — env secrets requis)
-pnpm run preflight:integrity-azure
 
 # Désigner le premier super admin (one-off, requiert un admin existant)
 pnpm run make-super-admin -- --email admin@example.com

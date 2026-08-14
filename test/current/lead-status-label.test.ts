@@ -16,6 +16,13 @@ describe("formatLeadStatusLabel", () => {
     assert.equal(formatLeadStatusLabel("delivered"), "Delivered");
     assert.equal(formatLeadStatusLabel("unmatched"), "Unmatched");
   });
+
+  test("shows terminal Integrity rejection instead of Unmatched", () => {
+    assert.equal(
+      formatLeadStatusLabel("unmatched", true),
+      "Integrity - Rejected",
+    );
+  });
 });
 
 describe("formatIntegrityEndpointPartnerLabel", () => {

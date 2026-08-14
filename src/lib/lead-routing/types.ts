@@ -15,6 +15,16 @@ export type RoutingRoute =
 
 export type IntegrityPostingState = "none" | "pending" | "rejected" | "sold";
 
+export type IntegrityPostingStates = {
+  realtime: IntegrityPostingState;
+  storefront: IntegrityPostingState;
+};
+
+export type IntegrityBlockedModes = {
+  realtime: boolean;
+  storefront: boolean;
+};
+
 export type MidWindowPrimary = "partner" | "storefront";
 
 export type LiveSaleChannel =
@@ -38,8 +48,8 @@ export interface LifecycleSettings {
 export interface LifecyclePolicyInput {
   ageHours: number;
   liveSold: boolean;
-  integrityPosting: IntegrityPostingState;
-  integrityBlocked: boolean;
+  integrityPostings: IntegrityPostingStates;
+  integrityBlockedModes: IntegrityBlockedModes;
   settings: LifecycleSettings;
 }
 

@@ -10,8 +10,6 @@ import {
   type IntegrityLabelSources,
 } from "@/lib/integrity/build-payload";
 import { logIntegrityAction } from "@/lib/integrity/log";
-import { realtimeIulCampaignPing } from "@/lib/integrity/azure-ping";
-import { redactSecrets } from "@/lib/integrity/redact-secrets";
 import { checkRequiredIntegrityFields } from "@/lib/integrity/required-fields";
 import {
   getIntegrationsMode,
@@ -165,18 +163,6 @@ export async function POST(request: NextRequest) {
 
   const encodedBody = encodeIntegrityFormBody(testFields);
 
-  let pingPreview: Record<string, unknown> | undefined;
-  if (flow === "realtime" && leadId) {
-    const ping = await realtimeIulCampaignPing(leadId);
-    pingPreview = redactSecrets({
-      eligible: true,
-      accepted: ping.accepted,
-      campaignAccepted: ping.campaignAccepted,
-      message: ping.message,
-      externalRequestSent: false,
-    });
-  }
-
   let rawResponse: unknown;
   let httpStatus: number;
 
@@ -220,7 +206,6 @@ export async function POST(request: NextRequest) {
       payload: testFields,
       encodedBody,
       encodedFields: Object.fromEntries(new URLSearchParams(encodedBody).entries()),
-      pingPreview,
       response: rawResponse,
       requiredFieldsCheck,
       integrationsMode,

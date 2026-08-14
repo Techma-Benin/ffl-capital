@@ -176,17 +176,6 @@ export function prepareManualIntegrityFields(
   return filtered;
 }
 
-export function buildRealtimeIulPingPayload(
-  lead: Lead,
-  leadTypeThom: string,
-): Record<string, string> {
-  return {
-    state: formatStateForIntegrity(lead.state),
-    postal_code: lead.zip ?? "",
-    lead_type_thom: leadTypeThom,
-  };
-}
-
 export function buildIntegrityLeadPayload(
   lead: Lead,
   integrityLabel?: string | null,

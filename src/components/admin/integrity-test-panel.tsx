@@ -229,7 +229,7 @@ export function IntegrityTestPanel({
   const modeHint =
     mode === "live"
       ? "Live mode is saved immediately. Partner email/CRM and Integrity auto posts send real requests (automatic posts do not include is_test)."
-      : "Partner email/CRM are logged only. Integrity auto posts still hit LeadConduit with is_test=yes; Azure ping is skipped.";
+      : "Partner email/CRM are logged only. Integrity auto posts still hit LeadConduit with is_test=yes.";
 
   const realtimeVendor = vendors?.realtime;
   const storefrontVendor = vendors?.storefront;

@@ -10,7 +10,9 @@ import {
   isPartnerPrimaryRoute,
 } from "@/lib/lead-routing/policy";
 import { getLifecycleSettings } from "@/lib/settings/app-settings";
-import { ResaleStatus } from "@prisma/client";
+import { LeadEventType, ResaleStatus } from "@prisma/client";
+import { resolveIntegrityModeRejections } from "@/lib/integrity/rejection-state";
+import type { IntegrityPostingStates } from "@/lib/lead-routing/types";
 
 export type { ReprocessJobResult } from "@/lib/lead-routing/coordinator";
 
@@ -26,17 +28,23 @@ export type ReprocessSingleLeadOptions = {
   mode?: "manual" | "cron";
 };
 
-async function resolveIntegrityPostingState(
-  leadId: string,
-): Promise<"none" | "pending" | "rejected" | "sold"> {
-  const postings = await prisma.resalePosting.findMany({
-    where: { leadId },
-    orderBy: { postedAt: "desc" },
-  });
-  if (postings.some((p) => p.status === ResaleStatus.sold)) return "sold";
-  if (postings.some((p) => p.status === ResaleStatus.pending)) return "pending";
-  if (postings.some((p) => p.status === ResaleStatus.rejected)) return "rejected";
-  return "none";
+function resolveIntegrityPostingStates(
+  postings: Array<{
+    mode: "realtime" | "storefront";
+    status: ResaleStatus;
+  }>,
+): IntegrityPostingStates {
+  const resolveMode = (mode: "realtime" | "storefront") => {
+    const modePostings = postings.filter((posting) => posting.mode === mode);
+    if (modePostings.some((posting) => posting.status === ResaleStatus.sold)) return "sold";
+    if (modePostings.some((posting) => posting.status === ResaleStatus.pending)) return "pending";
+    if (modePostings.some((posting) => posting.status === ResaleStatus.rejected)) return "rejected";
+    return "none";
+  };
+  return {
+    realtime: resolveMode("realtime"),
+    storefront: resolveMode("storefront"),
+  };
 }
 
 /** Whether the Partner picker should appear for these leads. */
@@ -45,19 +53,49 @@ export async function shouldShowPartnerPickerForLeads(
 ): Promise<boolean> {
   if (leadIds.length === 0) return false;
   const settings = await getLifecycleSettings();
-  const leads = await prisma.lead.findMany({ where: { id: { in: leadIds } } });
+  const [leads, rejectionEvents] = await Promise.all([
+    prisma.lead.findMany({
+      where: { id: { in: leadIds } },
+      include: {
+        resalePostings: {
+          select: { id: true, mode: true, status: true },
+        },
+      },
+    }),
+    prisma.leadEvent.findMany({
+      where: {
+        leadId: { in: leadIds },
+        type: LeadEventType.integrity_rejected,
+      },
+      select: { leadId: true, payload: true },
+    }),
+  ]);
   if (leads.length === 0) return false;
+
+  const rejectionEventsByLead = new Map<
+    string,
+    Array<(typeof rejectionEvents)[number]>
+  >();
+  for (const event of rejectionEvents) {
+    const events = rejectionEventsByLead.get(event.leadId) ?? [];
+    events.push(event);
+    rejectionEventsByLead.set(event.leadId, events);
+  }
 
   const now = new Date();
   for (const lead of leads) {
     const ageHours =
       (now.getTime() - lead.receivedAt.getTime()) / (1000 * 60 * 60);
-    const integrityPosting = await resolveIntegrityPostingState(lead.id);
+    const integrityPostings = resolveIntegrityPostingStates(lead.resalePostings);
+    const integrityBlockedModes = resolveIntegrityModeRejections(
+      lead.resalePostings,
+      rejectionEventsByLead.get(lead.id) ?? [],
+    );
     const policy = evaluateLifecyclePolicy({
       ageHours,
       liveSold: lead.liveSoldAt != null,
-      integrityPosting,
-      integrityBlocked: lead.integrityBlockedAt != null,
+      integrityPostings,
+      integrityBlockedModes,
       settings,
     });
     if (!isPartnerPrimaryRoute(policy)) {

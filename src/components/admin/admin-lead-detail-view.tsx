@@ -72,6 +72,7 @@ export type AdminLeadDetailEvent = LeadDetailEvent;
 export type AdminLeadDetailLead = LeadDetailPanelLead & {
   id: string;
   status: string;
+  integrityRejected: boolean;
   liveSaleChannel?: string | null;
   available: boolean;
   refundable: boolean;
@@ -156,7 +157,10 @@ export function AdminLeadDetailView({
         }
         badges={
           <>
-            <LeadStatusBadge status={lead.status} />
+            <LeadStatusBadge
+              status={lead.status}
+              integrityRejected={lead.integrityRejected}
+            />
             <LeadCategoryBadge
               leadType={lead.leadType || null}
               categoryResolution={lead.categoryResolution}

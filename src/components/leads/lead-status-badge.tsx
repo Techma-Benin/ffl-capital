@@ -1,7 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { formatLeadStatusLabel } from "@/lib/leads/lead-status-label";
 
-export function LeadStatusBadge({ status }: { status: string }) {
+export function LeadStatusBadge({
+  status,
+  integrityRejected = false,
+}: {
+  status: string;
+  integrityRejected?: boolean;
+}) {
   const variantByStatus: Record<
     string,
     "green" | "yellow" | "red" | "blue" | "slate"
@@ -12,8 +18,14 @@ export function LeadStatusBadge({ status }: { status: string }) {
     dead: "red",
     review: "yellow",
   };
-  const variant = variantByStatus[status] ?? "slate";
-  return <Badge variant={variant}>{formatLeadStatusLabel(status)}</Badge>;
+  const variant = integrityRejected && status === "unmatched"
+    ? "red"
+    : (variantByStatus[status] ?? "slate");
+  return (
+    <Badge variant={variant}>
+      {formatLeadStatusLabel(status, integrityRejected)}
+    </Badge>
+  );
 }
 
 export function PartnerDeliveryStatusBadge({

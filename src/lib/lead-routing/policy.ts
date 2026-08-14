@@ -26,8 +26,13 @@ function oppositeMidWindowRoute(primary: MidWindowPrimary): RoutingRoute {
 export function evaluateLifecyclePolicy(
   input: LifecyclePolicyInput,
 ): LifecyclePolicyResult {
-  const { ageHours, liveSold, integrityPosting, integrityBlocked, settings } =
-    input;
+  const {
+    ageHours,
+    liveSold,
+    integrityPostings,
+    integrityBlockedModes,
+    settings,
+  } = input;
 
   const agedHours = settings.agedDaysThreshold * 24;
 
@@ -56,27 +61,22 @@ export function evaluateLifecyclePolicy(
     };
   }
 
-  if (
-    integrityPosting === "pending" &&
-    ageHours >= settings.realtimeCutoffHours &&
-    ageHours < settings.storefrontCutoffHours
-  ) {
-    return {
-      phase: "waiting",
-      primaryRoute: null,
-      fallbackRoute: null,
-      reason: "Integrity posting pending — fallback blocked",
-    };
-  }
-
   if (ageHours < settings.realtimeCutoffHours) {
-    if (integrityBlocked) {
+    if (integrityPostings.realtime === "pending") {
+      return {
+        phase: "waiting",
+        primaryRoute: null,
+        fallbackRoute: null,
+        reason: "Integrity Realtime posting pending",
+      };
+    }
+    if (integrityBlockedModes.realtime) {
       return {
         phase: "waiting",
         primaryRoute: null,
         fallbackRoute: null,
         reason:
-          "Integrity permanently blocked — waiting for partner-capable window",
+          "Integrity Realtime rejected — waiting for partner-capable window",
       };
     }
     return {
@@ -87,12 +87,20 @@ export function evaluateLifecyclePolicy(
   }
 
   if (ageHours < settings.storefrontCutoffHours) {
-    if (integrityBlocked) {
+    if (integrityPostings.storefront === "pending") {
+      return {
+        phase: "waiting",
+        primaryRoute: null,
+        fallbackRoute: null,
+        reason: "Integrity Storefront posting pending",
+      };
+    }
+    if (integrityBlockedModes.storefront) {
       return {
         phase: "partner_or_storefront",
         primaryRoute: "partner",
         fallbackRoute: null,
-        reason: "Integrity blocked — partner only in mid window",
+        reason: "Integrity Storefront rejected — partner only in mid window",
       };
     }
     const primaryRoute: RoutingRoute =

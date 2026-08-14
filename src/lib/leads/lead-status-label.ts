@@ -46,7 +46,14 @@ export function formatAdminLeadPartnerLabel(
 }
 
 /** Human-readable admin lead status. Integrity destination is shown under Partner. */
-export function formatLeadStatusLabel(status: string): string {
+export function formatLeadStatusLabel(
+  status: string,
+  integrityRejected = false,
+): string {
+  if (status === "unmatched" && integrityRejected) {
+    return "Integrity - Rejected";
+  }
+
   const base: Record<string, string> = {
     delivered: "Delivered",
     unmatched: "Unmatched",

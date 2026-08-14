@@ -31,8 +31,8 @@ import {
   type IntegrityFailureClass,
 } from "./classify";
 import { logIntegrityAction, urlHost } from "./log";
-import { realtimeIulCampaignPing } from "./azure-ping";
 import { isNoCampaignAvailableReason } from "./no-campaign";
+import { getIntegrityModeRejections } from "./rejection-state";
 import { claimLiveSale } from "@/lib/lead-routing/live-sale";
 
 export interface IntegrityPostResult {
@@ -381,6 +381,17 @@ export async function integrityPostLead(
     return { posted: false, reason: "Posting not found for this lead and mode" };
   }
 
+  if (!forceAdminRetry) {
+    const rejectedModes = await getIntegrityModeRejections(leadId);
+    if (rejectedModes[integrityMode]) {
+      return {
+        posted: false,
+        reason: `Integrity ${resaleMode} previously rejected this lead`,
+        failureClass: "terminal_business_rejection",
+      };
+    }
+  }
+
   if (existing?.status === ResaleStatus.sold) {
     return {
       posted: false,
@@ -476,33 +487,6 @@ export async function integrityPostLead(
           reference: posting.id,
         };
   const builtPayload = applyIntegrityAutoPostTestFlag(rawPayload, integrationsMode);
-
-  if (resaleMode === ResaleMode.realtime) {
-    const ping = await realtimeIulCampaignPing(leadId, ResaleMode.realtime);
-    if (!ping.accepted) {
-      const failureClass = await failIntegrityPosting(
-        posting.id,
-        leadId,
-        ping.message ?? "Realtime IUL campaign ping declined",
-        vendorKey,
-        resaleMode,
-        {
-          requestPayload: builtPayload,
-          response: {
-            pingAccepted: false,
-            campaignAccepted: ping.campaignAccepted,
-            message: ping.message,
-          },
-          outcome: "failure",
-        },
-      );
-      return {
-        posted: false,
-        reason: ping.message ?? "Realtime IUL campaign ping declined",
-        failureClass,
-      };
-    }
-  }
 
   const result = await submitToIntegrity(submitUrl, builtPayload, logFields);
 

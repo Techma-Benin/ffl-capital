@@ -183,8 +183,7 @@ Phase D — Migration Replit (livraison client)
 | `RESEND_API_KEY` | Emails (livraison lead + Partner Contact Us) |
 | `FROM_EMAIL` | Expéditeur Resend (requis pour Contact Us et livraisons) |
 | `INTEGRATIONS_MODE` | `mock` \| `live` — fallback si `app_settings.integrations_mode` absent ; admin Mode (Integrations) prime et se sauvegarde immédiatement (prod inclus) ; défaut `mock` en dev, `live` en prod |
-| `INTEGRITY_*` | Submit URLs + Azure ping secrets (live only ; ping env-only) |
-| `INTEGRITY_REALTIME_PING_URL` / `INTEGRITY_PING_VENDOR_ID` / `INTEGRITY_PING_FUNCTIONS_KEY` | Azure `IsAcceptingCampaign` pour Realtime IUL — jamais en BDD |
+| `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` | URLs de soumission directe LeadConduit |
 | `ADMIN_APPROVAL_REQUIRED` | `true` par défaut — désactivable |
 
 ### Ce qu’on n’utilise PAS volontairement
@@ -243,7 +242,7 @@ Phase D — Migration Replit (livraison client)
 | **Wallet & billing** | Stripe top-up, ledger, statut actif |
 | **Aged marketplace** | Listing J+30, filtres, achat unitaire + checkboxes |
 | **Refund workflow** | Demande agent → validation admin → routage post-remboursement |
-| **Resale** | IntegrityCONNECT ping/post, storefront, réconciliation |
+| **Resale** | Posts directs LeadConduit Realtime/Storefront, réconciliation |
 | **Notifications** | Email lead livré ; alertes admin optionnelles |
 | **CRM delivery** | POST JSON optionnel par partner (endpoint + auth + mapping) — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | **Migration** | Import leads/agents depuis export Boberdoo |
@@ -289,7 +288,7 @@ Phase D — Migration Replit (livraison client)
 - Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live. L’éditeur peut **Apply** un brouillon sans le persister ; la liste l’utilise immédiatement, l’éditeur se ferme, et une action **Save view** reste visible jusqu’à l’enregistrement.
 - Un type sélectionné inclut les leads résolus dans ce type et les leads à matchs multiples où ce type est candidat ; plusieurs types sont combinés en OR
 - Badge statut `integrity_posted` = **Integrity** seul ; destination RealTime/Storefront via `resolveIntegrityLiveSaleChannel` (`liveSaleChannel`, sinon `mode` du dernier posting Integrity) affichée en colonne Partner **uniquement** quand le lead est vendu Integrity (`integrity_posted`) via `formatAdminLeadPartnerLabel` → **RealTime** / **Storefront**, sinon nom partenaire ; le filtre de vue « Integrity » (`integrity_posted`) reste unique
-- Détail lead : contact, TrustedForm cert, historique deliveries, **même badge statut Integrity** (plain, sans Realtime/Storefront) ; Tracking (phase routage, last/next attempt, bloc Integrity) ; **diagnostics payload** (champs critères catégories) ; section **Other fields** (libellés/valeurs lisibles depuis `rawPayload`, hors champs déjà affichés dans Contact/IUL/Compliance/Tracking) + collapsible **Raw Payload** (audit JSON) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
+- Détail lead : contact, TrustedForm cert, historique deliveries, **même badge statut Integrity** (plain, sans Realtime/Storefront) ; les leads unmatched avec rejet métier terminal `integrity_rejected` (hors NCA et échec opérationnel) affichent **Integrity - Rejected** sur liste/détail ; Tracking (phase routage, last/next attempt, champs legacy de bloc Integrity en audit) ; **diagnostics payload** (champs critères catégories) ; section **Other fields** (libellés/valeurs lisibles depuis `rawPayload`, hors champs déjà affichés dans Contact/IUL/Compliance/Tracking) + collapsible **Raw Payload** (audit JSON) ; libellés d’anomalie fixes **Unclassified** / **Multiple match**, avec libellés des catégories candidates depuis la table
 - Actions manuelles : reprocesser (allowlist partners si Partner actif ; pas de fallback Storefront), **assigner une catégorie** (leads `review` non résolus uniquement), voir file unmatched
 
 #### Remboursements
@@ -412,7 +411,7 @@ Phase D — Migration Replit (livraison client)
    - **24–48 h** : partner **ou** Storefront en premier (config admin `lifecycle_mid_window_primary`), puis l’autre si échec définitif ; un posting Integrity `pending` bloque le fallback
    - **48 h–30 j** : partners plateforme uniquement (cron auto contrôlé par `lifecycle_partner_auto_reprocess_enabled`, défaut on)
    - **30 j+** : éligibilité aged marketplace ; exclus de la file live auto
-5. **Échecs Integrity** : seul « No Campaign Available » est retryable (15/30/60 min) ; autres rejets métier → bloc permanent Integrity (Realtime + Storefront) puis suite partners en fenêtre partner-capable ; 429/5xx/réseau = opérationnel (backoff technique)
+5. **Échecs Integrity** : seul « No Campaign Available » est retryable (15/30/60 min) ; les autres rejets métier bloquent les futurs essais automatiques du mode rejeté seulement. Un rejet Realtime laisse donc Storefront disponible à sa fenêtre ; Storefront est bloqué indépendamment après son propre rejet. Les champs lead `integrityBlockedAt` / raison restent legacy pour audit/affichage et ne pilotent plus globalement le routage ; 429/5xx/réseau = opérationnel (backoff technique)
 6. **Une vente live** (partner, Realtime ou Storefront) pose `liveSoldAt` / `liveSaleChannel` et arrête tout routage live automatique
 7. Lead reste en base pour aging J+30
 8. **Reprocess manuel** : partenaires sélectionnés = allowlist stricte ; pas de fallback Storefront ; picker seulement si Partner est la route active
@@ -506,18 +505,18 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 ### 5.12 Revente IntegrityCONNECT
 
 **Modes :**
-- **Real-time post** : vente immédiate via LeadConduit ; pour les leads **IUL Realtime**, ping Azure `IsAcceptingCampaign` avant le post (parité Boberdoo delivery 281) ; `outcome: success` sur le submit → posting **sold** immédiatement + événement `integrity_posted` (Posted = accepté ; pas d’événement `integrity_accepted` séparé ; pas d’attente webhook)
+- **Real-time post** : vente immédiate par soumission directe LeadConduit, sans ping préalable ; `outcome: success` sur le submit → posting **sold** immédiatement + événement `integrity_posted` (Posted = accepté ; pas d’événement `integrity_accepted` séparé ; pas d’attente webhook)
 - **Storefront post** : envoi direct LeadConduit (pas de ping gate LC) ; même sold immédiat + `integrity_posted` sur success sync ; webhook callback optionnel / idempotent (émet `integrity_posted` seulement si pas déjà sold)
 
-**Mock :** les posts Integrity automatiques envoient toujours du HTTP vers LeadConduit avec `is_test=yes` ; le ping Azure Realtime IUL est skippé (auto-accept). Les posts live auto ne forcent pas `is_test`. Les boutons admin test incluent toujours `is_test=yes` et, en mock, short-circuitent sans HTTP.
+**Mock :** les posts Integrity automatiques envoient toujours du HTTP vers LeadConduit avec `is_test=yes`. Les posts live auto ne forcent pas `is_test`. Les boutons admin test incluent toujours `is_test=yes` et envoient eux aussi du HTTP LeadConduit.
 
 **Déclenchement :** selon fenêtre lifecycle (flag on) ou matching Partner-only (flag off — jamais Integrity auto).
 
-**Admin :** liste postings (badge **Sold** / **No Campaign Available**) ; détail payloads + événements ; **Reprocess** immédiat `POST /api/admin/integrity/postings/[id]/reprocess` (bloqué si sold / vente live) ; Connection test via modal Review payload ; preview routage (`POST /api/admin/lead-routing/preview`) ; preflight Azure (`pnpm run preflight:integrity-azure`).
+**Admin :** liste postings (badge **Sold** / **No Campaign Available**) ; détail payloads + événements ; **Reprocess** immédiat `POST /api/admin/integrity/postings/[id]/reprocess` (bloqué si sold / vente live, mais contourne le bloc automatique du mode) ; Connection test via modal Review payload ; preview routage (`POST /api/admin/lead-routing/preview`).
 
 **Routing mode :** `lifecycle_routing_enabled` (**off** par défaut = Partner-only) ; cutoffs 24 h / 48 h ; mid-window primary `partner` ou `storefront` ; `lifecycle_partner_auto_reprocess_enabled` pour le cron partners 48 h–30 j.
 
-**Échecs Integrity :** NCA → `retryable_no_campaign` (backoff cron 15/30/60 min) ; autres rejets métier → `terminal_business_rejection` (`integrityBlockedAt`, pas de retry Integrity auto ; Reprocess manuel disponible) ; 429/5xx/réseau = opérationnel.
+**Échecs Integrity :** NCA → `retryable_no_campaign` (backoff cron 15/30/60 min) ; autres rejets métier → `terminal_business_rejection`, dérivé séparément pour Realtime et Storefront depuis le mode des postings + événements `integrity_rejected` (pas de retry automatique du mode rejeté ; autre mode encore disponible ; Reprocess manuel disponible) ; 429/5xx/réseau = opérationnel. Aucune migration de schéma requise.
 
 **Implémentation :** `src/lib/lead-routing/` (policy, work-queue, coordinator) + `src/lib/integrity/` (dont `classify.ts`) ; specs Boberdoo : [BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md](BOBERDOO_INTEGRITY_DELIVERY_CAPTURE.md).
 
@@ -683,7 +682,7 @@ Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste 
 ### Retraitement unmatched
 
 - **Partner-only** (lifecycle off, défaut) : matching partenaires uniquement — pas d’Integrity automatique
-- **Lifecycle** (flag on) : fenêtres 0–24 h / 24–48 h / 48 h–30 j — voir `docs/client_email_lead_routing_2026-08-03.txt` ; file due + backoff ; NCA retryable ; rejets métier Integrity → bloc permanent
+- **Lifecycle** (flag on) : fenêtres 0–24 h / 24–48 h / 48 h–30 j — voir `docs/client_email_lead_routing_2026-08-03.txt` ; file due + backoff ; NCA et échecs opérationnels retryables ; rejet métier terminal → bloc automatique du mode rejeté uniquement
 - Preview admin sans effet : `POST /api/admin/lead-routing/preview`
 
 ### Changement des règles de catégorie
@@ -784,8 +783,8 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | last_routing_attempt_at | timestamp nullable | Dernière tentative de routage auto |
 | next_routing_attempt_at | timestamp nullable | Prochaine échéance due (work queue) |
 | routing_attempt_count | int | Compteur tentatives (backoff) |
-| integrity_blocked_at | timestamp nullable | Bloc permanent Integrity (rejet métier terminal) |
-| integrity_blocked_reason | string nullable | Raison normalisée du bloc |
+| integrity_blocked_at | timestamp nullable | Champ legacy d’audit/affichage ; le bloc effectif est dérivé par mode |
+| integrity_blocked_reason | string nullable | Raison legacy normalisée ; ne bloque pas globalement le routage |
 | routing_claimed_at / by / expires_at | timestamp / string nullable | Lease cron ou hold reprocess manuel |
 | available | boolean | Défaut true |
 | refundable | boolean | Défaut true |
@@ -923,7 +922,7 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 
 | Service | Comportement mock |
 |---------|-------------------|
-| Integrity | Auto posts : HTTP LeadConduit réel avec `is_test=yes` ; ping Azure Realtime IUL skippé (auto-accept). Admin test : pas d’HTTP |
+| Integrity | Auto posts et admin test : HTTP LeadConduit réel avec `is_test=yes` |
 | CRM outbound | Pas d’HTTP réel ; événements `crm_outbound` / échecs tracés |
 | Email | Console / Mailtrap |
 | Stripe | Vraies clés test (pas mock) |
@@ -933,7 +932,7 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 - [ ] Lead entre → match agent CA priorité 10
 - [ ] Wallet insuffisant → pas de livraison
 - [ ] Unmatched — Partner-only (flag off) : match partners, pas d’Integrity auto
-- [ ] Lifecycle on — fenêtres 0–24 / 24–48 / 48–30j ; NCA → retry ; rejet métier → bloc Integrity
+- [ ] Lifecycle on — fenêtres 0–24 / 24–48 / 48–30j ; NCA → retry ; rejet métier → bloc automatique du mode concerné uniquement
 - [ ] Seuil aged (1ᵉʳ tier) → aged listing **sans** `available=true` ; prix = tier
 - [ ] Achat aged checkboxes → débit wallet (prix par lead selon tier)
 - [ ] Remboursement type A → rematch priorité suivante, prix d’origine
@@ -1003,7 +1002,7 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 
 ### Phase 5 — Intégrations & migration (semaines 5–6) ⏳ partiel
 
-- IntegrityCONNECT live (preflight Azure + flag lifecycle) — **code prêt, activation contrôlée**
+- IntegrityCONNECT live (posts LeadConduit directs + flag lifecycle) — **code prêt, activation contrôlée**
 - CRM outbound POST self-service (wizard partner) — ✅ — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md)
 - **Migration Boberdoo** (écran import CSV) — ✅
 - Deploy Netlify + Supabase staging — ⏳

@@ -1,7 +1,7 @@
 # FFL Capital — Plateforme de distribution de leads
 
 > Mémoire projet pour l'équipe TECHMA et agents IA.  
-> Dernière mise à jour : 10 août 2026 (v15 — donut Delivering : `delivered` + `integrity_posted` comptent comme livrés)
+> Dernière mise à jour : 14 août 2026 (v16 — routage Integrity direct et rejets terminaux par mode)
 
 ---
 
@@ -46,7 +46,7 @@
 | **Unclassified / Multiple match** | Libellés UI fixes pour anomalies (`no_match` / `multiple_matches`) ; les catégories et candidats affichés utilisent `lead_categories.label`, pas de constantes IUL hardcodées |
 | **Lifecycle routing** | Quand `lifecycle_routing_enabled` est **on** : fenêtres d’âge (0–24 h Realtime ILC, 24–48 h partner ou Storefront, 48 h–30 j partners seuls, 30 j+ aged). Quand **off** (défaut) : mode **Partner-only** — matching partenaires uniquement, **jamais** Integrity. Spec client : `docs/client_email_lead_routing_2026-08-03.txt` |
 | **Routing work queue** | File due par fenêtre d’âge (0–24 / 24–48 / 48 h–30 j), claim lease BDD, backoff (NCA / partner miss / opérationnel) ; 30 j+ exclus du cron auto |
-| **Integrity block** | Rejet métier terminal (hors « No Campaign Available ») → `integrityBlockedAt` / raison ; bloque Realtime et Storefront ; le lead continue via partners dans les fenêtres partner-capable |
+| **Integrity rejection state** | Rejet métier terminal (hors « No Campaign Available ») dérivé par mode des postings + événements `integrity_rejected` : Realtime bloque seulement les prochains essais Realtime automatiques, Storefront seulement les essais Storefront. `integrityBlockedAt` / raison restent des champs legacy d’audit/affichage, pas une garde globale |
 | **Live sale** | Première vente live (partner, Realtime ou Storefront) enregistrée via `liveSoldAt` / `liveSaleChannel` ; bloque tout routage live automatique ultérieur jusqu’à action admin explicite |
 
 ---
@@ -101,7 +101,7 @@ Un lead est **non vendu** quand aucun agent actif ne correspond aux critères (s
 3. **Reprocess admin (bulk)** : sélection → **hold** (lease BDD, bloque cron) → si Partner est la route active, modal partenaires (allowlist stricte, **pas** de fallback Storefront) → matching → libération du hold
 4. Si toujours non vendu → **routage automatique** via la work queue :
    - **Partner-only** (`lifecycle_routing_enabled` off, défaut) : matching partenaires uniquement — **aucune** revente Integrity
-   - **Lifecycle** (flag on) : 0–24 h Realtime ILC ; 24–48 h partner ou Storefront (priorité admin) ; 48 h–30 j partners seuls (cron auto partners contrôlé par `lifecycle_partner_auto_reprocess_enabled`) ; NCA → retry 15/30/60 min ; autres rejets métier Integrity → bloc permanent + suite partners
+   - **Lifecycle** (flag on) : 0–24 h Realtime ILC ; 24–48 h partner ou Storefront (priorité admin) ; 48 h–30 j partners seuls (cron auto partners contrôlé par `lifecycle_partner_auto_reprocess_enabled`) ; NCA → retry 15/30/60 min ; rejet métier → bloc automatique du mode rejeté uniquement, donc un rejet Realtime n’empêche pas Storefront à sa fenêtre
 5. Après **30 jours** (seuil = 1ʳᵉ tranche `aged_price_tiers`) → **aged lead** marketplace à prix selon tranche d’âge ; exclus de la file de routage live auto
 
 Exemple client : lead Wisconsin, personne ne veut cet état → rejeté temps réel, reste unmatched (**17:08 – 17:32** dans le transcript).
@@ -256,7 +256,7 @@ leads
   ├── received_at
   ├── live_sold_at, live_sale_channel   -- provenance 1ère vente live (Phase 2)
   ├── last/next_routing_attempt_at, routing_attempt_count  -- file due
-  ├── integrity_blocked_at / reason     -- bloc permanent Integrity
+  ├── integrity_blocked_at / reason     -- legacy audit/affichage (pas de garde globale)
   ├── routing_claimed_*                 -- lease cron / hold manuel
   ├── available (boolean, default true)
   ├── refundable (boolean, default true — passe false après cycle remboursement+revente)
@@ -332,7 +332,7 @@ lead_categories                   -- classification produit (admin)
 | Remboursements Type A/B (partner + admin) | ✅ |
 | Marketplace aged (achat self-service) | ✅ |
 | Cron reprocess unmatched + Integrity post (routes ; scheduler in-process `instrumentation.ts`) | ✅ |
-| Routage lifecycle + Azure ping Realtime IUL ; mode Partner-only si flag off | ✅ août 2026 |
+| Routage lifecycle + posts directs LeadConduit ; mode Partner-only si flag off | ✅ août 2026 |
 | File de routage fiable (due par fenêtre, claim lease, backoff NCA / partner miss, bloc Integrity terminal) | ✅ août 2026 |
 | Admin : dashboard, leads (vues sauvegardées, colonnes, export par vue de tous les résultats filtrés, filtre Type unifié — catégories + Unclassified/Multiple category match — et attribution filter set, **assignation manuelle review**, diagnostics payload, **Other fields** depuis `rawPayload`, **bulk reprocess allowlist partners**, Tracking phase/attempts/bloc Integrity), partners, refunds, **aged browse** (tri URL + pagination, prix par tier), **integrity postings** (liste triable client-side ; modal détail payloads/outcome/timeline + **Reprocess** immédiat, badge **Sold** / **No Campaign Available** ; Review payload = Connection test seul) + panneau test, settings (**lead categories** ; **aged price tiers** ; **Lead routing** — mode / fenêtres / automation / manual / intake ; **Partner contact recipient**), migration CSV (catalogue global avec auto-détection des alias et indication des champs système ; sélection ou glisser-déposer avec nom/volumes détectés ; étape Map Columns pour tous les CSV avec mappings automatiques préremplis et boutons **Next**, puis preview ; full-fidelity détecté via `id` + `raw_payload`, champs système optionnels dérivés, `raw_payload` ou `lead_type`, sans appliquer le mapping affiché ; conflits ID/external ID seulement si présents, sans écrasement ; template et flow manuel rétrocompatibles), filter list (+ templates) | ✅ |
 | Partner : dashboard, leads (vues sauvegardées avec périodes de livraison ; détail **Other fields** depuis `rawPayload`), wallet, aged, settings, **contact** (API Resend, plus de mailto), refunds, **modal crédit admin** (grants agrégés in-app, sans note / solde) | ✅ |
@@ -344,7 +344,7 @@ lead_categories                   -- classification produit (admin)
 
 | Domaine | Statut |
 |---------|--------|
-| IntegrityCONNECT **live** (ping/post prod) | ⏸ specs/credentials client — mock en place |
+| IntegrityCONNECT **live** (posts directs LeadConduit) | ⏸ validation configuration client — mock en place |
 | Stripe **prod** | ⏳ après validation test keys |
 | Scheduler cron externe (optionnel ; aujourd’hui in-process via `instrumentation.ts`) | ⏳ déploiement / ops |
 | Parité UI Boberdoo complète (charts, multi lead types, billing PDF) | ⏳ hors scope V1 |
@@ -377,7 +377,7 @@ lead_categories                   -- classification produit (admin)
 - [x] Admin Filter List (`/admin/filter-list`) : sets live + templates SSR ; templates via `/admin/filter-sets/templates/new` et `…/[id]/edit` ; éditeur partagé `FilterSetEditorPage` / `FilterSetForm` (admin live, templates, partner) — plus de modal d’édition ; partner ne voit pas prix/priorité ; Attribution absente du formulaire filter set **et** de l’onboarding (clés stripées à la sauvegarde) ; Intent / Have IUL = multi-select partagé (`AdvancedFiltersFields`) — options = valeurs distinctes leads + **Empty** (`"empty"`), préfetchées SSR via `getLeadFilterCriteriaOptions()` (pas de fetch à l’ouverture du dropdown)
 - [x] Admin refunds : file pending + historique ; side sheet lead = `LeadPreviewSheet` partagé (même layout sectionné que partner aged) + CTA « View full lead »
 - [x] Admin aged (`/admin/aged`) : inventaire leads éligibles marketplace (âge ≥ seuil, hors `dead`), KPI Available + filtres URL (`state`, `type`, `status`, `age`), tableau triable (`?sort=` / `?dir=`, défaut `ageDays` desc), pagination 25/page, action ligne « mark dead » → `DELETE /api/admin/leads/:id` ; preview lead via `LeadPreviewSheet`
-- [x] Admin Integrity (`/admin/integrity`) : liste postings récente, tableau triable client-side (`PortalSortableHeaderCell` — Lead, State, Mode, Status, Lead Type, Posted ; défaut Posted desc ; puis pagination) ; badges **Sold** (vert) / **No Campaign Available** (jaune) ; modal détail à onglets horizontaux (Posting detail par défaut, Integrity payloads & outcome, Events — un onglet actif à la fois ; lazy `GET /api/admin/integrity/postings/[id]`) ; **Reprocess** en en-tête → `POST …/postings/[id]/reprocess` immédiat (loading ; succès ferme le modal ; erreur toast) ; panneau Connection test = modal **Review payload** ; submit LC `outcome: success` → sold immédiat + événement `integrity_posted` seul (Posted = accepté ; plus d’`integrity_accepted` émis ; webhook idempotent) ; raison de rejet depuis lead events ; `encodedBody` / `encodedFields`
+- [x] Admin Integrity (`/admin/integrity`) : liste postings récente, tableau triable client-side (`PortalSortableHeaderCell` — Lead, State, Mode, Status, Lead Type, Posted ; défaut Posted desc ; puis pagination) ; badges **Sold** (vert) / **No Campaign Available** (jaune) ; modal détail à onglets horizontaux (Posting detail par défaut, Integrity payloads & outcome, Events — un onglet actif à la fois ; lazy `GET /api/admin/integrity/postings/[id]`) ; **Reprocess** en en-tête → `POST …/postings/[id]/reprocess` immédiat (loading ; succès ferme le modal ; erreur toast) ; panneau Connection test = modal **Review payload** ; submit LC `outcome: success` → sold immédiat + événement `integrity_posted` seul (Posted = accepté ; plus d’`integrity_accepted` émis ; webhook idempotent) ; raison de rejet depuis lead events ; `encodedBody` / `encodedFields`. Les listes/détails Leads affichent **Integrity - Rejected** pour un lead unmatched ayant un rejet métier terminal `integrity_rejected` ; NCA et échecs opérationnels restent distincts et retryables
 - [x] Dashboard partner : stats, wallet Stripe, aged marketplace (`LeadPreviewSheet` / wrapper `AgedLeadPreviewSheet`)
 - [x] Partner settings (Profile + Lead delivery half/half ; wizard CRM `/partner/settings/crm-outbound`) ; création/édition filter sets via pages dédiées (`/partner/settings/filter-sets/new`, `/partner/settings/filter-sets/[id]/edit`) — formulaire partagé admin/partner/templates, plus de modal
 - [x] Partner Contact Us (`/partner/contact`) : topics + message ; topic `other` + champ custom ; envoi Resend (admin + confirmation avec recap + do-not-reply ; sujet admin `Partner contact: {topic}`), toasts loading/success/failure
@@ -423,10 +423,10 @@ lead_categories                   -- classification produit (admin)
 | **Stripe wallet** | Clés **test** (`sk_test_…`) — compte démo TECHMA ou `stripe sandbox create` | Clés prod client + webhook secret |
 | **Emails** | Console log / [Mailtrap](https://mailtrap.io) / Resend dev | SMTP ou Resend prod client (`RESEND_API_KEY`, `FROM_EMAIL` — aussi Contact Us) |
 | **CRM agent** | [webhook.site](https://webhook.site) ou endpoint local `/api/dev/crm-capture` | URL webhook fournie par chaque agent |
-| **IntegrityCONNECT** | Auto posts mock → LeadConduit avec `is_test=yes` (ping Azure skippé) ; admin test short-circuit mock | Doc API + credentials Integrity (fichier R client) |
+| **IntegrityCONNECT** | Auto posts mock → LeadConduit avec `is_test=yes` ; admin test → HTTP LeadConduit avec `is_test=yes` | URLs/configuration LeadConduit validées |
 | **LeadConduit réponse** | Retourner `{ "outcome": "success" }` sur notre endpoint | Idem |
 
-**Pattern recommandé :** mode sorties `mock|live` via admin Settings → Integrations (clé `app_settings.integrations_mode`, persistée dès le changement de Mode, prod inclus). En mock, CRM et la plupart des sorties loggent localement ; **Integrity auto posts** envoient du HTTP LeadConduit avec `is_test=yes` (ping Azure skippé). En live, vraies APIs. Résolution : `app_settings.integrations_mode` prime, puis env `INTEGRATIONS_MODE`, puis défaut (`mock` en dev, `live` en prod).
+**Pattern recommandé :** mode sorties `mock|live` via admin Settings → Integrations (clé `app_settings.integrations_mode`, persistée dès le changement de Mode, prod inclus). En mock, CRM et la plupart des sorties loggent localement ; **Integrity auto posts** envoient du HTTP LeadConduit avec `is_test=yes`. En live, les posts partent directement vers les URLs LeadConduit configurées. Résolution : `app_settings.integrations_mode` prime, puis env `INTEGRATIONS_MODE`, puis défaut (`mock` en dev, `live` en prod).
 
 ### Stripe (wallet prépayé)
 
@@ -457,7 +457,7 @@ Recharges : **manuelle ponctuelle** ET **récurrente hebdomadaire** (confirmé c
 | 1 | **Accès LeadConduit** (ou doc webhook + exemple payload) | Brancher le vrai flux d’intake en prod | Cutover — voir [LEADCONDUIT_SETUP.md](LEADCONDUIT_SETUP.md) |
 | 2 | **Exemple réel de payload lead** (avec champ TrustedForm) | Mapper les champs correctement | **Résolu** — fixture + exploration Boberdoo |
 | 3 | **Compte Stripe production** (clés API + webhook secret) | Paiements réels agents | Semaine 4 |
-| 4 | **Doc API IntegrityCONNECT** + credentials ping/post | Revente leads non matchés | Semaines 5–6 |
+| 4 | **Validation des flows LeadConduit Integrity** | Revente leads non matchés | Semaines 5–6 |
 | 5 | **Accès instance Boberdoo** (lecture seule) | Valider parité fonctionnelle | Dès que possible (QA) |
 
 ### 🟡 Important mais pas bloquant immédiat
@@ -665,5 +665,5 @@ Lors d’une reprise de contexte :
 | UI parité (essentiel) | Leads, partners, refunds, wallet, aged | ✅ |
 | Client store / load-once | Dashboard 90j (+ refetch API hors fenêtre), partners list, filter-list, refunds, partner aged — filtre client + `src/lib/client-store` ; listes leads unbounded restent paginées serveur | ✅ |
 
-**Prochaines étapes :** cutover LeadConduit prod, Integrity live (preflight Azure + activation lifecycle flag), Stripe prod, scheduler externe optionnel (mêmes routes cron), polish UI avancé (charts, billing PDF).
+**Prochaines étapes :** cutover LeadConduit prod, activation contrôlée d’Integrity live + lifecycle flag, Stripe prod, scheduler externe optionnel (mêmes routes cron), polish UI avancé (charts, billing PDF).
 

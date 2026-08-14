@@ -9,14 +9,16 @@ import {
 import { partnerPickerActiveForLead } from "../../src/lib/lead-routing/partner-picker";
 
 describe("Routing mode and partner picker policy", () => {
+  const noBlocks = { realtime: false, storefront: false };
+
   test("lifecycle off means partner primary at 0–24h and 24–48h", () => {
     const settings = { ...DEFAULT_LIFECYCLE_SETTINGS, enabled: false };
     for (const ageHours of [1, 30]) {
       const policy = evaluateLifecyclePolicy({
         ageHours,
         liveSold: false,
-        integrityPosting: "none",
-        integrityBlocked: false,
+        integrityPostings: { realtime: "none", storefront: "none" },
+        integrityBlockedModes: noBlocks,
         settings,
       });
       assert.equal(policy.primaryRoute, "partner");
@@ -30,8 +32,8 @@ describe("Routing mode and partner picker policy", () => {
       partnerPickerActiveForLead({
         ageHours: 5,
         liveSold: false,
-        integrityPosting: "none",
-        integrityBlocked: false,
+        integrityPostings: { realtime: "none", storefront: "none" },
+        integrityBlockedModes: noBlocks,
         settings,
       }),
       false,
@@ -48,8 +50,8 @@ describe("Routing mode and partner picker policy", () => {
       partnerPickerActiveForLead({
         ageHours: 30,
         liveSold: false,
-        integrityPosting: "rejected",
-        integrityBlocked: false,
+        integrityPostings: { realtime: "rejected", storefront: "none" },
+        integrityBlockedModes: noBlocks,
         settings,
       }),
       true,
@@ -66,8 +68,8 @@ describe("Routing mode and partner picker policy", () => {
       partnerPickerActiveForLead({
         ageHours: 30,
         liveSold: false,
-        integrityPosting: "rejected",
-        integrityBlocked: false,
+        integrityPostings: { realtime: "rejected", storefront: "none" },
+        integrityBlockedModes: noBlocks,
         settings,
       }),
       false,
@@ -80,8 +82,8 @@ describe("Routing mode and partner picker policy", () => {
       partnerPickerActiveForLead({
         ageHours: 60,
         liveSold: false,
-        integrityPosting: "rejected",
-        integrityBlocked: false,
+        integrityPostings: { realtime: "rejected", storefront: "rejected" },
+        integrityBlockedModes: noBlocks,
         settings,
       }),
       true,

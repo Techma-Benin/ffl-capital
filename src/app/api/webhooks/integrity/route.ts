@@ -162,19 +162,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    await emitLeadEvent(
-      posting.leadId,
-      noCampaign
-        ? LeadEventType.integrity_no_campaign
-        : LeadEventType.integrity_rejected,
-      {
-        postingId: resolvedPostingId,
-        reason,
-        outcome: noCampaign ? "no_campaign_available" : "rejected",
-        failureClass,
-        response: body,
-      },
-    );
+    const eventType = noCampaign
+      ? LeadEventType.integrity_no_campaign
+      : failureClass === "terminal_business_rejection"
+        ? LeadEventType.integrity_rejected
+        : LeadEventType.integrity_error;
+    await emitLeadEvent(posting.leadId, eventType, {
+      postingId: resolvedPostingId,
+      mode: posting.mode,
+      reason,
+      outcome: noCampaign
+        ? "no_campaign_available"
+        : failureClass === "terminal_business_rejection"
+          ? "rejected"
+          : "operational_failure",
+      failureClass,
+      response: body,
+    });
   } else {
     console.error(
       `[integrity-webhook] Error outcome for posting ${resolvedPostingId}: ${reason}`,

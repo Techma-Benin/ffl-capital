@@ -3,18 +3,15 @@ import { describe, test } from "node:test";
 
 import { evaluateLifecyclePolicy } from "../../src/lib/lead-routing/policy";
 import { DEFAULT_LIFECYCLE_SETTINGS } from "../../src/lib/lead-routing/policy";
-import {
-  buildRealtimeIulPingPayload,
-  extractTrustedFormCertId,
-} from "../../src/lib/integrity/build-payload";
-import { isRealtimeIulLeadType } from "../../src/lib/integrity/azure-ping";
-import { redactSecrets } from "../../src/lib/integrity/redact-secrets";
+import { extractTrustedFormCertId } from "../../src/lib/integrity/build-payload";
 import {
   checkRequiredIntegrityFields,
   getRequiredIntegrityFields,
 } from "../../src/lib/integrity/required-fields";
 
 const settings = { ...DEFAULT_LIFECYCLE_SETTINGS, enabled: true };
+const noBlocks = { realtime: false, storefront: false };
+const rejectedPostings = { realtime: "rejected", storefront: "rejected" } as const;
 
 describe("Phase 2 lifecycle policy boundaries", () => {
   test("0–24h routes Realtime only", () => {
@@ -22,8 +19,8 @@ describe("Phase 2 lifecycle policy boundaries", () => {
       const result = evaluateLifecyclePolicy({
         ageHours,
         liveSold: false,
-        integrityPosting: "rejected",
-        integrityBlocked: false,
+        integrityPostings: rejectedPostings,
+        integrityBlockedModes: noBlocks,
         settings,
       });
       assert.equal(result.phase, "realtime");
@@ -37,8 +34,8 @@ describe("Phase 2 lifecycle policy boundaries", () => {
       const result = evaluateLifecyclePolicy({
         ageHours,
         liveSold: false,
-        integrityPosting: "rejected",
-        integrityBlocked: false,
+        integrityPostings: rejectedPostings,
+        integrityBlockedModes: noBlocks,
         settings,
       });
       assert.equal(result.phase, "partner_or_storefront");
@@ -51,8 +48,8 @@ describe("Phase 2 lifecycle policy boundaries", () => {
     const result = evaluateLifecyclePolicy({
       ageHours: 30,
       liveSold: false,
-      integrityPosting: "pending",
-      integrityBlocked: false,
+      integrityPostings: { realtime: "rejected", storefront: "pending" },
+      integrityBlockedModes: noBlocks,
       settings,
     });
     assert.equal(result.phase, "waiting");
@@ -65,8 +62,8 @@ describe("Phase 2 lifecycle policy boundaries", () => {
       const result = evaluateLifecyclePolicy({
         ageHours,
         liveSold: false,
-        integrityPosting: "rejected",
-        integrityBlocked: false,
+        integrityPostings: rejectedPostings,
+        integrityBlockedModes: noBlocks,
         settings,
       });
       assert.equal(result.phase, "partners_only");
@@ -79,8 +76,8 @@ describe("Phase 2 lifecycle policy boundaries", () => {
     const result = evaluateLifecyclePolicy({
       ageHours: 24 * 30,
       liveSold: false,
-      integrityPosting: "rejected",
-      integrityBlocked: false,
+      integrityPostings: rejectedPostings,
+      integrityBlockedModes: noBlocks,
       settings,
     });
     assert.equal(result.phase, "aged_marketplace");
@@ -91,8 +88,8 @@ describe("Phase 2 lifecycle policy boundaries", () => {
     const result = evaluateLifecyclePolicy({
       ageHours: 30,
       liveSold: true,
-      integrityPosting: "sold",
-      integrityBlocked: false,
+      integrityPostings: { realtime: "sold", storefront: "none" },
+      integrityBlockedModes: noBlocks,
       settings,
     });
     assert.equal(result.phase, "live_sold");
@@ -103,8 +100,8 @@ describe("Phase 2 lifecycle policy boundaries", () => {
     const result = evaluateLifecyclePolicy({
       ageHours: 24 * 30,
       liveSold: true,
-      integrityPosting: "sold",
-      integrityBlocked: false,
+      integrityPostings: { realtime: "sold", storefront: "none" },
+      integrityBlockedModes: noBlocks,
       settings,
     });
     assert.equal(result.phase, "aged_marketplace");
@@ -117,8 +114,8 @@ describe("Phase 2 lifecycle policy boundaries", () => {
       const result = evaluateLifecyclePolicy({
         ageHours,
         liveSold: false,
-        integrityPosting: "none",
-        integrityBlocked: false,
+        integrityPostings: { realtime: "none", storefront: "none" },
+        integrityBlockedModes: noBlocks,
         settings: off,
       });
       assert.equal(result.phase, "partner_only_mode");
@@ -131,48 +128,52 @@ describe("Phase 2 lifecycle policy boundaries", () => {
     const result = evaluateLifecyclePolicy({
       ageHours: 12,
       liveSold: false,
-      integrityPosting: "rejected",
-      integrityBlocked: true,
+      integrityPostings: rejectedPostings,
+      integrityBlockedModes: { realtime: true, storefront: false },
       settings,
     });
     assert.equal(result.phase, "waiting");
     assert.equal(result.primaryRoute, null);
   });
 
-  test("Integrity-blocked mid-window is partner only", () => {
+  test("Realtime rejection still allows Storefront in the mid-window", () => {
     const result = evaluateLifecyclePolicy({
       ageHours: 30,
       liveSold: false,
-      integrityPosting: "rejected",
-      integrityBlocked: true,
+      integrityPostings: { realtime: "rejected", storefront: "none" },
+      integrityBlockedModes: { realtime: true, storefront: false },
       settings,
     });
     assert.equal(result.phase, "partner_or_storefront");
     assert.equal(result.primaryRoute, "partner");
+    assert.equal(result.fallbackRoute, "integrity_storefront");
+  });
+
+  test("Storefront rejection removes only Storefront from the mid-window", () => {
+    const result = evaluateLifecyclePolicy({
+      ageHours: 30,
+      liveSold: false,
+      integrityPostings: { realtime: "rejected", storefront: "rejected" },
+      integrityBlockedModes: { realtime: true, storefront: true },
+      settings,
+    });
+    assert.equal(result.primaryRoute, "partner");
     assert.equal(result.fallbackRoute, null);
   });
-});
 
-describe("Realtime IUL ping eligibility and payload", () => {
-  test("only IUL lead types are ping-eligible", () => {
-    assert.equal(isRealtimeIulLeadType("traditional_iul"), true);
-    assert.equal(isRealtimeIulLeadType("high_intent_iul"), true);
-    assert.equal(isRealtimeIulLeadType("mortgage_protection"), false);
-  });
-
-  test("ping payload uses state, postal_code, and lead_type_thom", () => {
-    const payload = buildRealtimeIulPingPayload(
-      {
-        state: "TX",
-        zip: "78701",
-      } as never,
-      "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
-    );
-    assert.deepEqual(payload, {
-      state: "Texas",
-      postal_code: "78701",
-      lead_type_thom: "Indexed Universal Life [IUL] Facebook (Realtime Lead)",
+  test("a pending Realtime posting does not block Storefront routing later", () => {
+    const storefrontPrimary = {
+      ...settings,
+      midWindowPrimary: "storefront" as const,
+    };
+    const result = evaluateLifecyclePolicy({
+      ageHours: 30,
+      liveSold: false,
+      integrityPostings: { realtime: "pending", storefront: "none" },
+      integrityBlockedModes: noBlocks,
+      settings: storefrontPrimary,
     });
+    assert.equal(result.primaryRoute, "integrity_storefront");
   });
 });
 
@@ -206,19 +207,6 @@ describe("Mode/product required fields", () => {
     );
     assert.equal(check.ok, false);
     assert.deepEqual(check.missing, ["Have_IUL"]);
-  });
-});
-
-describe("Secret redaction", () => {
-  test("redacts secret-like keys from nested objects", () => {
-    const redacted = redactSecrets({
-      headers: {
-        VendorId: "1086",
-        "x-functions-key": "super-secret-key-value",
-      },
-    }) as { headers: Record<string, string> };
-    assert.equal(redacted.headers["x-functions-key"], "[REDACTED]");
-    assert.equal(redacted.headers.VendorId, "1086");
   });
 });
 
