@@ -250,7 +250,9 @@ export async function POST(request: NextRequest) {
         await prisma.lead.create({
           data: {
             ...mapped,
-            rawPayload: mapped.rawPayload === null ? Prisma.JsonNull : mapped.rawPayload,
+            ...(mapped.rawPayload === null
+              ? { rawPayload: Prisma.JsonNull }
+              : { rawPayload: mapped.rawPayload as Prisma.InputJsonValue }),
           },
         });
       } else {
