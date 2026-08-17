@@ -12,6 +12,7 @@ export function buildCrmOutboundTestSourcePayload(partnerId: string, partnerEmai
     channel: DeliveryChannel.realtime,
     price: new Prisma.Decimal(25),
     deliveredAt: now,
+    partnerSoldAt: null,
     refundedAt: null,
     lastDeliveryError: null,
     createdAt: now,

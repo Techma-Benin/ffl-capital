@@ -10,6 +10,7 @@ import {
 } from "@/lib/lead-categories/category-labels";
 import { formatUsd } from "@/lib/format-money";
 import { formatDateTimeLong } from "@/lib/format-datetime";
+import { canPartnerMarkAgedLeadAsSold } from "@/lib/aged/partner-mark-sold";
 
 export default async function PartnerLeadDetailPage({
   params,
@@ -35,6 +36,13 @@ export default async function PartnerLeadDetailPage({
   const refundReq = delivery.refundRequests[0] ?? null;
   const isRefunded = !!delivery.refundedAt;
   const canRefund = lead.refundable && !isRefunded && !refundReq;
+  const canMarkSold = canPartnerMarkAgedLeadAsSold({
+    channel: delivery.channel,
+    partnerSoldAt: delivery.partnerSoldAt,
+    deliveredAt: delivery.deliveredAt,
+    agedSaleCount: lead.agedSaleCount,
+    isRefunded,
+  });
 
   const categories = await loadAllCategoryLabels();
   const leadTypeLabel = resolveLeadTypeDisplay({
@@ -56,6 +64,15 @@ export default async function PartnerLeadDetailPage({
       label: `Delivered (${delivery.channel})`,
       detail: `${channelLabel} · ${formatUsd(delivery.price)}`,
     },
+    ...(delivery.partnerSoldAt
+      ? [
+          {
+            at: delivery.partnerSoldAt.toISOString(),
+            label: "Marked sold",
+            detail: "Removed from aged marketplace",
+          },
+        ]
+      : []),
     ...(refundReq
       ? [
           {
@@ -132,6 +149,8 @@ export default async function PartnerLeadDetailPage({
       refundStatus={refundReq?.status ?? null}
       refundable={lead.refundable}
       trustedFormCertified={lead.trustedformValid ?? false}
+      canMarkSold={canMarkSold}
+      partnerSoldAt={delivery.partnerSoldAt?.toISOString() ?? null}
     />
   );
 }

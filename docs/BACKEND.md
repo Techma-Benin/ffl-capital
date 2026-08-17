@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 14 août 2026
+> Dernière mise à jour : 17 août 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -41,6 +41,7 @@
 | CRM outbound partner (POST self-service) | ✅ — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
 | Remboursements Type A / Type B | ✅ |
 | Marketplace aged (achat + débit wallet) | ✅ |
+| Partner mark-as-sold (1ʳᵉ vente aged, fenêtre 7 j) | ✅ `POST /api/partner/deliveries/[id]/mark-sold` |
 | Migration import CSV Boberdoo | ✅ |
 | Cron reprocess unmatched + Integrity post | ✅ (routes ; scheduler prod à configurer) |
 | IntegrityCONNECT direct post LeadConduit | ✅ mode mock ; live en attente specs client |
@@ -158,6 +159,9 @@ POST /api/leads/intake
 - `20260810120000_add_transaction_acknowledged_at` — `transactions.acknowledged_at` (modal in-app partenaire pour crédits admin ; backfill des grants existants)
 - `20260810140000_stripe_webhook_idempotency` — table `processed_stripe_events` ; unique sur `transactions.stripe_payment_intent_id` (doublons PI : garde la plus ancienne, nullifie les suivantes — ne recalcule pas les soldes historiques)
 - `20260810150000_add_beneficiary_type` — `leads.beneficiary_type` (`beneficiaryType`) pour Mortgage Protection
+- `20260817100000_add_partner_sold_at` — `lead_deliveries.partner_sold_at` ; `LeadEventType.aged_partner_sold`
+
+**`lead_deliveries` (mark-as-sold aged) :** `partner_sold_at` (timestamp nullable) — posé par le partenaire sur sa **1ʳᵉ** livraison `channel=aged` dans les **7 jours** suivant `delivered_at` ; retire le lead de la marketplace (`aged_available_after = AGED_RETIRED_SENTINEL`) sans attendre une 2ᵉ vente. Si non marqué, le flux aged existant (cooldown tier → 2ᵉ vente → retrait) est inchangé. Helpers : `src/lib/aged/partner-mark-sold.ts`.
 
 **`transactions.type` :** `top_up`, `admin_grant`, `lead_purchase`, `aged_purchase`, `refund`, `reprocessing_fee`. Les crédits admin (`admin_grant`) sont append-only comme les top-ups ; audit dans `description` (`{note} - by {Admin Name}` ou `by {Admin Name}` si note vide). `acknowledged_at` null = notification in-app partenaire en attente (modal portail). `stripe_payment_intent_id` unique (nullable) — empêche un double crédit pour le même PaymentIntent Stripe.
 
@@ -323,7 +327,13 @@ Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil d
 | `type` | types catégorie comma-séparés (ex. `traditional_iul,high_intent_iul`) | Filtre client `leadType IN (...)` (optionnel) |
 | `age` | `String(tier.minDays)` comma-séparés (ex. `30,61`) | Buckets inclusifs OR (`filterPartnerAgedLeadsInMemory` + tiers settings) |
 
-**Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet au **prix du tier** (fallback `default_aged_price` si hors bande) ; 1ʳᵉ vente → `agedAvailableAfter` = début du tier suivant ; 2ᵉ vente → retrait permanent. Pas de garde filter set / min 15 états.
+**Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet au **prix du tier** (fallback `default_aged_price` si hors bande) ; 1ʳᵉ vente → `agedAvailableAfter` = début du tier suivant (sauf mark-as-sold) ; 2ᵉ vente → retrait permanent. Pas de garde filter set / min 15 états.
+
+**Mark as sold (1ʳᵉ vente aged)** : sur `/partner/leads/[id]`, bouton **Mark as sold** si livraison `channel=aged`, `agedSaleCount=1`, pas encore `partner_sold_at`, non remboursée, et `delivered_at` ≤ 7 jours ; badge **Marked sold** une fois posé. API :
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| POST | `/api/partner/deliveries/[id]/mark-sold` | `requirePartner` ; body vide ; `200` `{ ok, partnerSoldAt }` ; `404` delivery absente / autre partner ; `400` inéligible (refunded, 2ᵉ vente, hors fenêtre, déjà marqué). Transaction : `partner_sold_at`, `aged_available_after = AGED_RETIRED_SENTINEL`, événement `aged_partner_sold`. |
 
 **Settings** : `aged_price_tiers` (JSON `[{ minDays, maxDays|null, price }]`, défauts 30–60@$5, 61–90@$4, 91–180@$3, 181–365@$2, 366+@$1) éditable en admin ; à la sauvegarde, `aged_days_threshold` est synchronisé sur le `minDays` du premier tier ; `default_aged_price` = fallback hors bande. Helpers : `src/lib/aged/price-tiers.ts`.
 
@@ -790,3 +800,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-10 | Admin Integrity postings : tri client-side (`IntegrityPostingsTable` + `PortalSortableHeaderCell`) ; colonnes Lead / State / Mode / Status / Lead Type / Posted ; défaut Posted desc ; pas de changement API |
 | 2026-08-10 | `resolveAppOrigin` : URLs absolues emails / invite admin / Stripe success-cancel — `NEXT_PUBLIC_APP_URL` non-loopback → `REPLIT_DOMAINS` → origine explicite non-loopback → `http://localhost:3000` ; builders (grant / lead / CRM échec) rejettent aussi les overrides loopback |
 | 2026-08-14 | Integrity : suppression complète du ping Azure/preflight ; posts Realtime et Storefront directs vers LeadConduit ; rejets terminaux dérivés par mode depuis postings + événements, champs `integrityBlocked*` conservés pour audit ; NCA toujours retryable ; reprocess manuel inchangé et forcé ; UI Leads **Integrity - Rejected** ; aucune migration |
+| 2026-08-17 | Partner mark-as-sold aged : `lead_deliveries.partner_sold_at` ; fenêtre 7 j depuis `delivered_at` sur 1ʳᵉ vente aged uniquement ; retrait marketplace immédiat (`AGED_RETIRED_SENTINEL`) ; événement `aged_partner_sold` ; `POST /api/partner/deliveries/[id]/mark-sold` ; UI détail partner |

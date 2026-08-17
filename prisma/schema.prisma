@@ -45,6 +45,7 @@ enum LeadEventType {
   integrity_error
   integrity_missing_fields
   aged_purchased
+  aged_partner_sold
   reprocessed
   duplicate_rejected
   trustedform_failed
@@ -346,6 +347,7 @@ model LeadDelivery {
   channel           DeliveryChannel
   price             Decimal         @db.Decimal(10, 2)
   deliveredAt       DateTime        @default(now()) @map("delivered_at")
+  partnerSoldAt     DateTime?       @map("partner_sold_at")
   refundedAt        DateTime?       @map("refunded_at")
   lastDeliveryError String?         @map("last_delivery_error")
   createdAt         DateTime        @default(now()) @map("created_at")

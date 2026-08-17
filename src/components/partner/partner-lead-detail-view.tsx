@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { PartnerRefundButton } from "@/components/partner/partner-refund-button";
+import { PartnerMarkSoldButton } from "@/components/partner/partner-mark-sold-button";
 import { formatDateTimeLong } from "@/lib/format-datetime";
 import {
   LeadDetailCompliancePanel,
@@ -50,6 +51,8 @@ export type PartnerLeadDetailViewProps = {
   refundStatus: string | null;
   refundable: boolean;
   trustedFormCertified: boolean;
+  canMarkSold: boolean;
+  partnerSoldAt: string | null;
 };
 
 export function PartnerLeadDetailView({
@@ -65,6 +68,8 @@ export function PartnerLeadDetailView({
   refundStatus,
   refundable,
   trustedFormCertified,
+  canMarkSold,
+  partnerSoldAt,
 }: PartnerLeadDetailViewProps) {
   const [tab, setTab] = useState<PartnerTabId>("contact");
 
@@ -111,12 +116,22 @@ export function PartnerLeadDetailView({
               isRefunded={isRefunded}
               refundStatus={refundStatus}
             />
+            {partnerSoldAt ? (
+              <Badge variant="green">Marked sold</Badge>
+            ) : null}
           </>
         }
         subtitle={subtitleParts.join(" · ")}
         actions={
-          canRefund ? (
-            <PartnerRefundButton leadDeliveryId={deliveryId} />
+          canRefund || canMarkSold ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {canMarkSold ? (
+                <PartnerMarkSoldButton deliveryId={deliveryId} />
+              ) : null}
+              {canRefund ? (
+                <PartnerRefundButton leadDeliveryId={deliveryId} />
+              ) : null}
+            </div>
           ) : undefined
         }
         kpis={

@@ -20,6 +20,8 @@
 import assert from "node:assert/strict";
 import { LeadStatus, Prisma, PrismaClient } from "@prisma/client";
 import { purchaseAgedLeads } from "../src/lib/aged/purchase-aged-leads";
+import { markPartnerAgedLeadSold } from "../src/lib/aged/partner-mark-sold";
+import { AGED_RETIRED_SENTINEL } from "../src/lib/aged/eligibility";
 import {
   buildAdminAgedLeadsWhere,
   type AdminAgedLeadAgeFilter,
@@ -162,12 +164,13 @@ async function cleanupTestLeads() {
   }
 }
 
-async function purchaseAs(partnerId: string, leadId: string) {
+async function purchaseAs(partnerId: string, leadId: string): Promise<string> {
   const result = await purchaseAgedLeads(partnerId, [leadId]);
   if (result.purchased.length !== 1) {
     const reason = result.failed[0]?.reason ?? "unknown";
     fail("purchaseAgedLeads", reason);
   }
+  return result.purchased[0].deliveryId;
 }
 
 async function preflight(): Promise<Issue82Columns> {
@@ -331,6 +334,40 @@ async function main() {
     assert.equal(s91.saleCount, 0);
 
     pass("zero-purchase leads still appear in their age buckets");
+  }
+
+  // --- 5. Partner mark-as-sold retires lead after first aged purchase ---
+  {
+    const lead = await createTestLead(45, "mark-sold");
+    const deliveryId = await purchaseAs(partner.id, lead.id);
+    await markPartnerAgedLeadSold(deliveryId, partner.id);
+
+    const delivery = await prisma.leadDelivery.findUniqueOrThrow({
+      where: { id: deliveryId },
+      select: { partnerSoldAt: true },
+    });
+    if (!delivery.partnerSoldAt) {
+      fail("mark-as-sold", "partner_sold_at not set on delivery");
+    }
+
+    const retired = await readAgedState(lead.id, cols);
+    assert.equal(retired.saleCount, 1, "mark-as-sold keeps sale count at 1");
+    assert.equal(
+      retired.availableAfter?.getTime(),
+      AGED_RETIRED_SENTINEL.getTime(),
+      "mark-as-sold sets permanent retirement",
+    );
+
+    await patchLead(lead.id, {
+      receivedAt: daysAgo(75),
+      agedAvailableAfter: daysAgo(1),
+    });
+    for (const bucket of ["30", "61", "91"] as const) {
+      if (await isLeadVisibleInBucket(lead.id, bucket)) {
+        fail("mark-as-sold visibility", `lead visible in ${bucket} after mark sold`);
+      }
+    }
+    pass("partner mark-as-sold permanently retires lead after first aged purchase");
   }
 
   console.log(`\nAll ${passed} acceptance checks passed.\n`);

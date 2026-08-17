@@ -332,6 +332,7 @@ Phase D — Migration Replit (livraison client)
 - Liste des leads livrés (temps réel + aged achetés)
 - Vues sauvegardées avec périodes today / yesterday / 7 derniers jours / mois dernier / custom, appliquées à la date de livraison ; un brouillon appliqué reste disponible à la réouverture de l’éditeur et ne devient persistant qu’avec **Save view**
 - Détail : contact, état, date, prix payé, certificat TrustedForm ; section **Other fields** (mêmes lignes lisibles depuis `rawPayload` que l’admin — pas de dump JSON brut)
+- Bouton **Mark as sold** sur la **1ʳᵉ** livraison aged (≤ 7 j depuis la livraison, non remboursée) ; badge **Marked sold** une fois confirmé — retire le lead de la marketplace sans 2ᵉ vente
 - Bouton **demander remboursement** (si delivery `refundable`)
 
 #### Wallet
@@ -430,7 +431,7 @@ Phase D — Migration Replit (livraison client)
 - Lead toujours éligible aged au moment de l’achat (même règles d’âge / hors `dead`)
 - **Pas** de contrôle état ∈ filter set ni égalité `lead_type` compte (distinct du matching temps réel)
 - Créer `lead_delivery` channel=`aged`
-- 1ʳᵉ vente aged → cooldown jusqu’au début du tier suivant (`agedAvailableAfter`) ; 2ᵉ vente → retrait permanent
+- 1ʳᵉ vente aged → cooldown jusqu’au début du tier suivant (`agedAvailableAfter`) **ou** retrait immédiat si le partenaire **mark as sold** dans les 7 jours (`partner_sold_at`) ; 2ᵉ vente (flux sans mark-as-sold) → retrait permanent
 - `available` **reste `false`** (déjà vendu ou non — inchangé)
 - Email + CRM
 
@@ -649,7 +650,7 @@ Un lead peut apparaître en marketplace aged quand :
 
 Requête indicative : âge + état + type IUL + filtres partner — **pas** le booléen `available`.
 
-Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste `false` ; cooldown revente = début du tier suivant.
+Après achat aged : nouvelle `lead_delivery` channel=`aged` ; `available` reste `false` ; cooldown revente = début du tier suivant (sauf mark-as-sold ≤ 7 j sur 1ʳᵉ vente → retrait permanent).
 
 ### Filtres agent
 
@@ -806,6 +807,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 | price | decimal | Prix facturé |
 | delivered_at | timestamp | |
 | refunded_at | timestamp nullable | |
+| partner_sold_at | timestamp nullable | 1ʳᵉ vente aged : partenaire confirme la vente (≤ 7 j) → retrait marketplace |
 | created_at | timestamp | |
 
 **Index :** agent_id, lead_id, refunded_at
