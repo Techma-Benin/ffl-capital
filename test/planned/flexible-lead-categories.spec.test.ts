@@ -315,4 +315,25 @@ describe("planned category API validation", () => {
       false,
     );
   });
+
+  test("accepts maxRealtimeSells between 1 and 20", async () => {
+    const feature = await loadFeature();
+
+    assert.equal(
+      feature.categoryCreateSchema.safeParse({
+        label: "Cage Protection",
+        criteria: [{ field: "SRC", value: "AP-Cage" }],
+        maxRealtimeSells: 2,
+      }).success,
+      true,
+    );
+    assert.equal(
+      feature.categoryCreateSchema.safeParse({
+        label: "Cage Protection",
+        criteria: [{ field: "SRC", value: "AP-Cage" }],
+        maxRealtimeSells: 0,
+      }).success,
+      false,
+    );
+  });
 });

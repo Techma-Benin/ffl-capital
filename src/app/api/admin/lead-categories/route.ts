@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
         label: parsed.data.label,
         defaultPrice: parsed.data.defaultPrice ?? null,
         enabled: parsed.data.enabled ?? true,
+        maxRealtimeSells: parsed.data.maxRealtimeSells ?? 1,
         integrityLabel: parsed.data.integrityLabel ?? null,
         integrityLabelStorefront: parsed.data.integrityLabelStorefront ?? null,
         criteria: {

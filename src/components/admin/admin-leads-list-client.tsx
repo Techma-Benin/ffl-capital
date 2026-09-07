@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { FileText, ArrowsClockwise } from "@/lib/icons/client";
+import { FileText, ArrowsClockwise, PaperPlaneTilt } from "@/lib/icons/client";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { PortalDataTableColumn } from "@/components/ui/portal-data-table";
 import { LeadListTableShell } from "@/components/leads/lead-list-table-shell";
@@ -12,6 +12,7 @@ import { PartnersTableLayoutToggle } from "@/components/admin/partners-table-lay
 import { useAdminLeadsTableLayout } from "@/components/admin/use-admin-leads-table-layout";
 import { LeadToolbarColumnSettingsButton } from "@/components/leads/lead-table-column-picker-button";
 import { useAdminReprocess } from "@/components/admin/use-admin-reprocess";
+import { useAdminSendToPartner } from "@/components/admin/use-admin-send-to-partner";
 import type { LeadColumnDef } from "@/lib/leads/list-view-columns";
 import type { LeadViewEditorState } from "@/components/leads/lead-view-editor-sheet";
 
@@ -99,13 +100,26 @@ export function AdminLeadsListClient({
       onSuccess: handleReprocessSuccess,
     });
 
+  const { sendLeadsToPartner, dialog: sendDialog } = useAdminSendToPartner(
+    handleReprocessSuccess,
+  );
+
   const handleBulkReprocessClick = useCallback(() => {
     void reprocessLeads(reprocessLeadIds);
   }, [reprocessLeadIds, reprocessLeads]);
 
+  const handleBulkSendClick = useCallback(() => {
+    sendLeadsToPartner(reprocessLeadIds);
+  }, [reprocessLeadIds, sendLeadsToPartner]);
+
   const handleRowReprocess = useCallback(
     (leadId: string) => reprocessLeads([leadId]),
     [reprocessLeads],
+  );
+
+  const handleRowSend = useCallback(
+    (leadId: string) => sendLeadsToPartner([leadId]),
+    [sendLeadsToPartner],
   );
 
   const selectionAction =
@@ -122,6 +136,14 @@ export function AdminLeadsListClient({
         >
           <ArrowsClockwise size={13} />
           {reprocessPending ? "Processing…" : `Reprocess (${selectedIds.size})`}
+        </button>
+        <button
+          type="button"
+          onClick={handleBulkSendClick}
+          className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+        >
+          <PaperPlaneTilt size={13} />
+          Send to partner
         </button>
         <button
           type="button"
@@ -180,9 +202,11 @@ export function AdminLeadsListClient({
           selectedIds={selectedIds}
           onSelectedChange={handleSelectedChange}
           onReprocessLead={handleRowReprocess}
+          onSendLead={handleRowSend}
         />
       </LeadListTableShell>
       {reprocessDialog}
+      {sendDialog}
     </LeadColumnSettingsBridge>
   );
 }

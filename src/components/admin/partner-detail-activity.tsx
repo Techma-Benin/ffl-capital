@@ -6,6 +6,7 @@ import { formatTypeLabel } from "@/lib/format-type-label";
 const TYPE_BADGE: Record<string, string> = {
   top_up: "bg-blue-100 text-blue-800",
   admin_grant: "bg-emerald-100 text-emerald-800",
+  admin_debit: "bg-amber-100 text-amber-800",
   lead_purchase: "bg-indigo-100 text-indigo-800",
   aged_purchase: "bg-teal-100 text-teal-800",
   refund: "bg-orange-100 text-orange-800",

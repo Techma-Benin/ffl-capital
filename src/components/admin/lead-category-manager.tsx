@@ -19,6 +19,7 @@ export interface LeadCategory {
   label: string;
   defaultPrice: number | null;
   enabled: boolean;
+  maxRealtimeSells: number;
   integrityLabel: string | null;
   integrityLabelStorefront: string | null;
   criteria: LeadCategoryCriterion[];
@@ -79,6 +80,7 @@ interface CategoryFormData {
   enabled: boolean;
   integrityLabel: string;
   integrityLabelStorefront: string;
+  maxRealtimeSells: string;
   criteria: LeadCategoryCriterion[];
 }
 
@@ -93,6 +95,7 @@ function emptyForm(): CategoryFormData {
     enabled: true,
     integrityLabel: "",
     integrityLabelStorefront: "",
+    maxRealtimeSells: "1",
     criteria: [emptyCriterion()],
   };
 }
@@ -104,6 +107,7 @@ function categoryToForm(cat: LeadCategory): CategoryFormData {
     enabled: cat.enabled,
     integrityLabel: cat.integrityLabel ?? "",
     integrityLabelStorefront: cat.integrityLabelStorefront ?? "",
+    maxRealtimeSells: String(cat.maxRealtimeSells ?? 1),
     criteria: cat.criteria.length ? cat.criteria : [emptyCriterion()],
   };
 }
@@ -295,6 +299,21 @@ function CategoryModal({
           />
         </Field>
 
+        <Field
+          label="Max realtime sales"
+          hint="How many times a lead in this category can be sold to different partners. Default 1. Extra sales are sent by an admin to a chosen partner."
+        >
+          <input
+            type="number"
+            min={1}
+            max={20}
+            step={1}
+            value={form.maxRealtimeSells}
+            onChange={(e) => set({ maxRealtimeSells: e.target.value })}
+            className="form-input"
+          />
+        </Field>
+
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
@@ -391,6 +410,10 @@ export function LeadCategoryManager() {
       enabled: data.enabled,
       integrityLabel: data.integrityLabel || null,
       integrityLabelStorefront: data.integrityLabelStorefront || null,
+      maxRealtimeSells: Math.min(
+        20,
+        Math.max(1, parseInt(data.maxRealtimeSells, 10) || 1),
+      ),
     };
 
     const res = await fetch(url, {
@@ -456,6 +479,9 @@ export function LeadCategoryManager() {
                   Price
                 </th>
                 <th className="px-3.5 py-2.5 text-left text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap">
+                  Max sales
+                </th>
+                <th className="px-3.5 py-2.5 text-left text-xs font-extrabold text-[#b3b3bf] uppercase tracking-wide bg-[#f7f7fb] border-b border-[#f0eef6] whitespace-nowrap">
                   Status
                 </th>
               </tr>
@@ -510,6 +536,9 @@ export function LeadCategoryManager() {
                       <span style={{ color: "#8b8a99" }}>global</span>
                     )}
                   </td>
+                  <td className="px-3.5 py-[11px] text-sm font-semibold text-[#030229]">
+                    {cat.maxRealtimeSells ?? 1}
+                  </td>
                   <td className="px-3.5 py-[11px]">
                     <span
                       className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-extrabold"
@@ -527,7 +556,7 @@ export function LeadCategoryManager() {
               {categories.length === 0 && (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-3.5 py-8 text-center text-sm text-[#8b8a99]"
                   >
                     No categories yet

@@ -76,6 +76,9 @@ export async function PATCH(
           ? { defaultPrice: parsed.data.defaultPrice }
           : {}),
         ...(parsed.data.enabled !== undefined ? { enabled: parsed.data.enabled } : {}),
+        ...(parsed.data.maxRealtimeSells !== undefined
+          ? { maxRealtimeSells: parsed.data.maxRealtimeSells }
+          : {}),
         ...(parsed.data.integrityLabel !== undefined
           ? { integrityLabel: parsed.data.integrityLabel }
           : {}),

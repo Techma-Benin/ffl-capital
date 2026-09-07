@@ -387,6 +387,7 @@ function TransactionTypeBadge({ type }: { type: string }) {
   const map: Record<string, { variant: "green" | "yellow" | "blue" | "slate" | "red"; label: string }> = {
     top_up:           { variant: "green",  label: "Top-up" },
     admin_grant:      { variant: "green",  label: "Admin Credit" },
+    admin_debit:      { variant: "red",    label: "Admin Debit" },
     lead_purchase:    { variant: "blue",   label: "Lead Purchase" },
     aged_purchase:    { variant: "blue",   label: "Aged Purchase" },
     refund:           { variant: "yellow", label: "Refund" },

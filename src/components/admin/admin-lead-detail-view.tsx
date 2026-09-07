@@ -7,6 +7,7 @@ import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import type { LeadCategoryResolution } from "@/lib/lead-categories/category-badge-variant";
 import { LeadReprocessButton } from "@/components/admin/lead-reprocess-button";
 import { useAdminReprocess } from "@/components/admin/use-admin-reprocess";
+import { useAdminSendToPartner } from "@/components/admin/use-admin-send-to-partner";
 import { LeadRedeliverButton } from "@/components/admin/lead-redeliver-button";
 import { AdminLeadRefundButton } from "@/components/admin/admin-lead-refund-button";
 import { AdminLeadEditModal } from "@/components/admin/admin-lead-edit-form";
@@ -132,6 +133,7 @@ export function AdminLeadDetailView({
 
   const { reprocessLeads, reprocessDialog, pending: reprocessPending } =
     useAdminReprocess({ reprocessPartnerPickerEnabled });
+  const { sendLeadsToPartner, dialog: sendDialog } = useAdminSendToPartner();
 
   function handleReprocess() {
     return reprocessLeads([lead.id]);
@@ -198,6 +200,15 @@ export function AdminLeadDetailView({
                 leadId={lead.id}
                 excludePartnerId={actions.excludePartnerId}
               />
+            )}
+            {lead.status !== "dead" && (
+              <button
+                type="button"
+                onClick={() => sendLeadsToPartner([lead.id])}
+                className="btn-secondary btn-sm"
+              >
+                Send to partner
+              </button>
             )}
             {actions.refundableDeliveryId && (
               <AdminLeadRefundButton
@@ -358,6 +369,7 @@ export function AdminLeadDetailView({
         onOpenChange={setPartnerSheetOpen}
       />
       {reprocessDialog}
+      {sendDialog}
     </div>
   );
 }

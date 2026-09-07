@@ -47,6 +47,7 @@ export const categoryCreateSchema = z
     criteria: criteriaSchema,
     defaultPrice: z.number().positive().nullable().optional(),
     enabled: z.boolean().optional(),
+    maxRealtimeSells: z.number().int().min(1).max(20).optional(),
     integrityLabel: z.string().trim().min(1).nullable().optional(),
     integrityLabelStorefront: z.string().trim().min(1).nullable().optional(),
   })
@@ -58,6 +59,7 @@ export const categoryUpdateSchema = z
     criteria: criteriaSchema.optional(),
     defaultPrice: z.number().positive().nullable().optional(),
     enabled: z.boolean().optional(),
+    maxRealtimeSells: z.number().int().min(1).max(20).optional(),
     integrityLabel: z.string().trim().min(1).nullable().optional(),
     integrityLabelStorefront: z.string().trim().min(1).nullable().optional(),
   })

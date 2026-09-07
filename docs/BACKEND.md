@@ -22,6 +22,8 @@
 | Moteur matching V1 (FIFO) | ✅ |
 | Wallet ledger append-only | ✅ |
 | Admin credit grants (`admin_grant`) | ✅ |
+| Admin credit clawback (`admin_debit`) | ✅ any admin; reduce or set to $0; never below $0 |
+| Category max realtime sales + admin send-to-partner | ✅ default 1; extra sales are manual to a chosen partner |
 | Seed partners test | ✅ `pnpm run seed` |
 | Simulateur dev `/dev/lead-simulator` | ✅ |
 | Feeding platform `/feeding-platform` | ✅ |
@@ -453,6 +455,10 @@ Transaction atomique à la livraison :
 **CRUD partner (live sets)** : `/api/admin/partners/[id]/filter-sets` (+ `[filterSetId]`), `/api/partners/filter-sets` (+ `[filterSetId]`). Les partners ne peuvent pas poser `isTemplate`.
 
 **Grant wallet credits** : `POST /api/admin/partners/[id]/grant-credits` — admin only ; partenaire `active` uniquement ; body `{ amount, note? }` ; limites : admin régulier $0.01–$1 000, super-admin >0 sans plafond ; `creditWallet(..., admin_grant)` + email partner (best-effort, échec email ne rollback pas ; CTA wallet via `resolveAppOrigin`) ; service `grantPartnerCredits()` dans `src/lib/wallet/grant-partner-credits.ts` ; template `buildPartnerCreditGrantEmail` — sujet `$X.XX credit added to your account` (pas de préfixe `[Partner Portal]`), corps sans note admin. UI : bouton « Grant credits » sur `/admin/partners/[id]` (partenaires actifs). Total Funded (partner reports/wallet + admin transactions funding) = somme `top_up` + `admin_grant`.
+
+**Adjust / clawback credits** : `POST /api/admin/partners/[id]/adjust-credits` — any admin, active partners only ; body `{ mode: "reduce" | "zero", amount?, note? }` (`amount` required for `reduce`) ; debit cannot exceed current balance and cannot go below $0 ; `debitWallet(..., admin_debit)` ; email via `buildPartnerCreditAdjustEmail`. UI : « Adjust credits » on `/admin/partners/[id]`. Does not change historical grant rows.
+
+**Admin send already-sold leads** : `POST /api/admin/leads/send-to-partner` — body `{ leadIds[], partnerId }` ; any admin. Creates another `LeadDelivery` (realtime) to the **chosen** partner, charges their wallet, emails/CRM as usual. Guards: not dead/review; matched category; partner active and filter-eligible; partner has not already received a non-refunded realtime copy; non-refunded realtime sale count `< LeadCategory.maxRealtimeSells` (default **1**, so production stays exclusive until a category is edited). Automatic live matching is unchanged (still one winner then lock). UI: bulk + row + lead detail « Send to partner ». Category field `maxRealtimeSells` on Lead Categories (1–20). Migration `20260907180000_admin_debit_and_max_realtime_sells`.
 
 ### Wallet / Stripe
 

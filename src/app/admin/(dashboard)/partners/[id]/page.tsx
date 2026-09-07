@@ -95,6 +95,7 @@ export default async function AdminPartnerDetailPage({
           partnerStatus={partner.status}
           displayName={displayName}
           isSuperAdmin={isSuperAdmin}
+          currentBalance={walletBalance}
         />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">

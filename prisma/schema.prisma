@@ -73,6 +73,7 @@ enum DeliveryChannel {
 enum TransactionType {
   top_up
   admin_grant
+  admin_debit
   lead_purchase
   aged_purchase
   refund
@@ -123,6 +124,8 @@ model LeadCategory {
   label                    String
   defaultPrice             Decimal? @map("default_price") @db.Decimal(10, 2)
   enabled                  Boolean  @default(true)
+  /// Max non-refunded realtime partner sales. Default 1 keeps production exclusive.
+  maxRealtimeSells         Int      @default(1) @map("max_realtime_sells")
   integrityLabel           String?  @map("integrity_label")
   integrityLabelStorefront String?  @map("integrity_label_storefront")
   createdAt                DateTime @default(now()) @map("created_at")
