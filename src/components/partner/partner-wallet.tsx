@@ -35,19 +35,22 @@ export function PartnerWalletView({
   totalTopUp,
   totalSpent,
   subscription,
-  availableLeadTypes = [],
   pausedLeadTypes = [],
 }: {
   transactions: Transaction[];
   totalTopUp: number;
   totalSpent: number;
   subscription: Subscription | null;
-  availableLeadTypes?: Array<{ type: string; label: string }>;
   pausedLeadTypes?: Array<{ type: string; label: string }>;
 }) {
   const { partner } = usePartner();
   const balance = partner.walletBalance;
   const walletOk = balance >= 25;
+  const pausedLabels = pausedLeadTypes.map((row) => row.label);
+  const pausedNotice =
+    pausedLeadTypes.length === 1
+      ? `${pausedLeadTypes[0].label} is paused on one of your filter sets. You will not receive that type until it is available again.`
+      : `${pausedLabels.join(", ")} are paused on your filter sets. You will not receive those types until they are available again.`;
 
   const [selectedAmount, setSelectedAmount] = useState<number | null>(250);
   const [customAmount, setCustomAmount] = useState("");
@@ -55,15 +58,14 @@ export function PartnerWalletView({
   const [subscribePending, setSubscribePending] = useState(false);
   const [cancelPending, setCancelPending] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [payConfirm, setPayConfirm] = useState<"checkout" | "subscribe" | null>(null);
   const [weeklyAmount, setWeeklyAmount] = useState("500");
-  const [selectedLeadTypes, setSelectedLeadTypes] = useState<string[]>([]);
 
   const checkoutAmount = customAmount ? Number(customAmount) : selectedAmount;
   const checkoutValid =
     checkoutAmount !== null &&
     Number.isFinite(checkoutAmount) &&
-    checkoutAmount >= 25 &&
-    selectedLeadTypes.length > 0;
+    checkoutAmount >= 25;
 
   async function startCheckout() {
     if (!checkoutValid || !checkoutAmount) return;
@@ -74,7 +76,6 @@ export function PartnerWalletView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: checkoutAmount,
-          leadTypes: selectedLeadTypes,
         }),
       });
       const data = await res.json();
@@ -122,12 +123,39 @@ export function PartnerWalletView({
     }
   }
 
+  function requestCheckout() {
+    if (!checkoutValid) return;
+    if (pausedLeadTypes.length > 0) {
+      setPayConfirm("checkout");
+      return;
+    }
+    void startCheckout();
+  }
+
+  function requestSubscribe() {
+    if (Number(weeklyAmount) < 25) return;
+    if (pausedLeadTypes.length > 0) {
+      setPayConfirm("subscribe");
+      return;
+    }
+    void startSubscribe();
+  }
+
   return (
     <div>
       <PageHeader
         title="Wallet"
         subtitle="Manage your balance and top up your account"
       />
+
+      {pausedLeadTypes.length > 0 && (
+        <div
+          role="alert"
+          className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          {pausedNotice}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
 
@@ -166,13 +194,6 @@ export function PartnerWalletView({
 
           {/* One-Time Top-Up card */}
           <div className="card p-6">
-            {pausedLeadTypes.length > 0 && (
-              <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                {pausedLeadTypes.length === 1
-                  ? `${pausedLeadTypes[0].label} is not active for partners right now, so you cannot select it when adding funds.`
-                  : `${pausedLeadTypes.map((row) => row.label).join(", ")} are not active for partners right now, so you cannot select them when adding funds.`}
-              </div>
-            )}
             <div className="group mb-5 flex items-center gap-3">
               <EmptyStateBlobIcon
                 icon={ArrowUpRight}
@@ -226,46 +247,10 @@ export function PartnerWalletView({
               })}
             </div>
 
-            <p className="mb-2 text-xs font-medium text-slate-600">
-              Lead types this credit is for
-            </p>
-            {availableLeadTypes.length === 0 ? (
-              <p className="mb-5 text-sm text-slate-500">
-                No lead types are active for partners right now.
-              </p>
-            ) : (
-              <div className="mb-5 flex flex-wrap gap-2">
-                {availableLeadTypes.map((category) => {
-                  const selected = selectedLeadTypes.includes(category.type);
-                  return (
-                    <button
-                      key={category.type}
-                      type="button"
-                      onClick={() => {
-                        setSelectedLeadTypes((prev) =>
-                          prev.includes(category.type)
-                            ? prev.filter((type) => type !== category.type)
-                            : [...prev, category.type],
-                        );
-                      }}
-                      className={clsx(
-                        "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
-                        selected
-                          ? "border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-brand-300",
-                      )}
-                    >
-                      {category.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
             <button
               type="button"
               disabled={!checkoutValid || checkoutPending}
-              onClick={startCheckout}
+              onClick={requestCheckout}
               className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50"
             >
               {checkoutPending ? "Redirecting to Stripe…" : "Proceed to the payment"}
@@ -339,7 +324,7 @@ export function PartnerWalletView({
               </div>
               <button
                 type="button"
-                onClick={startSubscribe}
+                onClick={requestSubscribe}
                 disabled={subscribePending || Number(weeklyAmount) < 25}
                 className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
@@ -415,6 +400,26 @@ export function PartnerWalletView({
         </div>
 
       </div>
+
+      <ConfirmDialog
+        open={payConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open && !checkoutPending && !subscribePending) setPayConfirm(null);
+        }}
+        title="Add funds anyway?"
+        description={`${pausedNotice} You can still add funds to your wallet.`}
+        confirmLabel="Yes, continue to payment"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={checkoutPending || subscribePending}
+        onConfirm={() => {
+          if (payConfirm === "subscribe") {
+            void startSubscribe();
+            return;
+          }
+          void startCheckout();
+        }}
+      />
 
       <ConfirmDialog
         open={cancelConfirm}

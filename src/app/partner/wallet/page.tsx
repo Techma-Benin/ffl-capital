@@ -3,16 +3,13 @@ import { prisma } from "@/lib/db";
 import { getPartnerId } from "@/lib/partner/session";
 import { PartnerWalletView } from "@/components/partner/partner-wallet";
 import { FUNDING_TRANSACTION_TYPES } from "@/lib/wallet/grant-partner-credits";
-import {
-  loadPartnerAvailableCategoryLabels,
-  listPausedTypesForPartnerFilterSets,
-} from "@/lib/lead-categories/partner-availability";
+import { listPausedTypesForPartnerFilterSets } from "@/lib/lead-categories/partner-availability";
 
 export default async function PartnerWalletPage() {
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
-  const [transactions, subscription, availableTypes, pausedTypes] = await Promise.all([
+  const [transactions, subscription, pausedTypes] = await Promise.all([
     prisma.transaction.findMany({
       where: { partnerId },
       orderBy: { createdAt: "desc" },
@@ -22,7 +19,6 @@ export default async function PartnerWalletPage() {
       where: { partnerId, active: true },
       orderBy: { createdAt: "desc" },
     }),
-    loadPartnerAvailableCategoryLabels(),
     listPausedTypesForPartnerFilterSets(partnerId),
   ]);
 
@@ -56,7 +52,6 @@ export default async function PartnerWalletPage() {
         balanceAfter: Number(t.balanceAfter),
         createdAt: t.createdAt.toISOString(),
       }))}
-      availableLeadTypes={availableTypes}
       pausedLeadTypes={pausedTypes}
     />
   );
