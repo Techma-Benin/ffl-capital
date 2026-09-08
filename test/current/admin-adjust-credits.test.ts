@@ -7,6 +7,7 @@ import {
   adjustPartnerCredits,
   resolveCreditAdjustAmount,
 } from "../../src/lib/wallet/adjust-partner-credits";
+import { remainingUnusedAdminCredit } from "../../src/lib/wallet/remaining-admin-credit";
 import type { SendResendEmailParams } from "../../src/lib/email/send-resend-email";
 
 const mockAdminUser = {
@@ -23,43 +24,98 @@ const activePartner = {
   lastName: "Lovelace",
   email: "partner@example.com",
   status: "active" as const,
-  walletBalance: 6,
+  walletBalance: 60,
 };
 
-describe("resolveCreditAdjustAmount", () => {
-  test("zero uses the full current balance", () => {
+describe("remainingUnusedAdminCredit", () => {
+  test("grants then spend then deposit leaves only unused grant", () => {
     assert.equal(
-      resolveCreditAdjustAmount({ mode: "zero", currentBalance: 6 }),
-      6,
+      remainingUnusedAdminCredit({
+        grantTotal: 60,
+        clawbackTotal: 0,
+        netSpend: 50,
+        walletBalance: 60,
+      }),
+      10,
     );
   });
 
-  test("rejects zero when balance is already 0", () => {
+  test("partners with deposits only have nothing to claw back", () => {
+    assert.equal(
+      remainingUnusedAdminCredit({
+        grantTotal: 0,
+        clawbackTotal: 0,
+        netSpend: 20,
+        walletBalance: 80,
+      }),
+      0,
+    );
+  });
+
+  test("fully spent grants cannot be clawed back", () => {
+    assert.equal(
+      remainingUnusedAdminCredit({
+        grantTotal: 60,
+        clawbackTotal: 0,
+        netSpend: 70,
+        walletBalance: 40,
+      }),
+      0,
+    );
+  });
+
+  test("refunds restore unused grant before deposits", () => {
+    assert.equal(
+      remainingUnusedAdminCredit({
+        grantTotal: 60,
+        clawbackTotal: 0,
+        netSpend: 30,
+        walletBalance: 80,
+      }),
+      30,
+    );
+  });
+});
+
+describe("resolveCreditAdjustAmount", () => {
+  test("zero uses unused admin credit, not the full wallet", () => {
+    assert.equal(
+      resolveCreditAdjustAmount({ mode: "zero", remainingUnusedCredit: 10 }),
+      10,
+    );
+  });
+
+  test("rejects when there is no unused admin credit", () => {
     assert.throws(
-      () => resolveCreditAdjustAmount({ mode: "zero", currentBalance: 0 }),
+      () =>
+        resolveCreditAdjustAmount({
+          mode: "zero",
+          remainingUnusedCredit: 0,
+        }),
       (err: unknown) =>
-        err instanceof AdjustPartnerCreditsError && err.code === "already_zero",
+        err instanceof AdjustPartnerCreditsError &&
+        err.code === "no_unused_credit",
     );
   });
 
-  test("reduce cannot exceed balance or go negative", () => {
+  test("reduce cannot exceed unused admin credit", () => {
     assert.throws(
       () =>
         resolveCreditAdjustAmount({
           mode: "reduce",
-          amount: 10,
-          currentBalance: 6,
+          amount: 11,
+          remainingUnusedCredit: 10,
         }),
       (err: unknown) =>
         err instanceof AdjustPartnerCreditsError &&
-        err.code === "exceeds_balance",
+        err.code === "exceeds_unused_credit",
     );
     assert.throws(
       () =>
         resolveCreditAdjustAmount({
           mode: "reduce",
           amount: 0,
-          currentBalance: 6,
+          remainingUnusedCredit: 10,
         }),
       (err: unknown) =>
         err instanceof AdjustPartnerCreditsError &&
@@ -67,14 +123,14 @@ describe("resolveCreditAdjustAmount", () => {
     );
   });
 
-  test("reduce returns the requested amount when within balance", () => {
+  test("reduce returns the requested amount when within unused credit", () => {
     assert.equal(
       resolveCreditAdjustAmount({
         mode: "reduce",
-        amount: 6,
-        currentBalance: 6,
+        amount: 10,
+        remainingUnusedCredit: 10,
       }),
-      6,
+      10,
     );
   });
 });
@@ -97,7 +153,7 @@ describe("buildPartnerCreditAdjustEmail", () => {
 });
 
 describe("adjustPartnerCredits service", () => {
-  test("debits wallet and emails partner on success", async () => {
+  test("debits unused credit only and emails partner on success", async () => {
     const { prisma } = await import("../../src/lib/db");
     const originalFindUnique = prisma.partner.findUnique;
     prisma.partner.findUnique = async () =>
@@ -110,20 +166,24 @@ describe("adjustPartnerCredits service", () => {
         {
           partnerId: activePartner.id,
           mode: "reduce",
-          amount: 6,
-          note: "Zero leftover",
+          amount: 10,
+          note: "Unused grant leftover",
           adminUser: mockAdminUser,
         },
         {
+          remainingUnusedCreditFn: async () => 10,
           debitWalletFn: async (partnerId, amount, type, options) => {
             assert.equal(partnerId, activePartner.id);
-            assert.equal(amount, 6);
+            assert.equal(amount, 10);
             assert.equal(type, "admin_debit");
-            assert.equal(options?.description, "Zero leftover - by Jane Admin");
+            assert.equal(
+              options?.description,
+              "Unused grant leftover - by Jane Admin",
+            );
             return {
               id: "tx_debit_1",
-              amount: -6,
-              balanceAfter: 0,
+              amount: -10,
+              balanceAfter: 50,
             } as Awaited<
               ReturnType<
                 typeof import("../../src/lib/wallet/ledger").debitWallet
@@ -138,8 +198,8 @@ describe("adjustPartnerCredits service", () => {
       );
 
       assert.equal(result.emailSent, true);
-      assert.equal(result.newBalance, 0);
-      assert.equal(result.removed, 6);
+      assert.equal(result.newBalance, 50);
+      assert.equal(result.removed, 10);
       assert.equal(sent.length, 1);
       assert.match(sent[0]?.subject ?? "", /removed|\$0\.00/);
     } finally {

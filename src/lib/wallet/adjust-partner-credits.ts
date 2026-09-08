@@ -11,6 +11,7 @@ import {
   getAdminIdentityFromUser,
   validateGrantNote,
 } from "@/lib/wallet/grant-partner-credits";
+import { getRemainingUnusedAdminCredit } from "@/lib/wallet/remaining-admin-credit";
 
 export class AdjustPartnerCreditsError extends Error {
   constructor(
@@ -19,8 +20,8 @@ export class AdjustPartnerCreditsError extends Error {
       | "not_found"
       | "inactive"
       | "invalid_amount"
-      | "already_zero"
-      | "exceeds_balance",
+      | "no_unused_credit"
+      | "exceeds_unused_credit",
   ) {
     super(message);
     this.name = "AdjustPartnerCreditsError";
@@ -32,24 +33,25 @@ export type CreditAdjustMode = "reduce" | "zero";
 export function resolveCreditAdjustAmount(input: {
   mode: CreditAdjustMode;
   amount?: number;
-  currentBalance: number;
+  remainingUnusedCredit: number;
 }): number {
-  const balance = Number(input.currentBalance);
-  if (!Number.isFinite(balance) || balance < 0) {
+  const remaining = Number(input.remainingUnusedCredit);
+  if (!Number.isFinite(remaining) || remaining < 0) {
     throw new AdjustPartnerCreditsError(
-      "Invalid current balance",
+      "Invalid unused credit amount",
       "invalid_amount",
     );
   }
 
+  if (remaining <= 0) {
+    throw new AdjustPartnerCreditsError(
+      "No unused admin credit to remove",
+      "no_unused_credit",
+    );
+  }
+
   if (input.mode === "zero") {
-    if (balance <= 0) {
-      throw new AdjustPartnerCreditsError(
-        "Wallet is already at $0.00",
-        "already_zero",
-      );
-    }
-    return roundMoney(balance);
+    return roundMoney(remaining);
   }
 
   const amount = input.amount;
@@ -68,10 +70,10 @@ export function resolveCreditAdjustAmount(input: {
     );
   }
 
-  if (rounded > balance) {
+  if (rounded > remaining) {
     throw new AdjustPartnerCreditsError(
-      "Amount cannot exceed the current wallet balance",
-      "exceeds_balance",
+      "Amount cannot exceed unused admin credit",
+      "exceeds_unused_credit",
     );
   }
 
@@ -103,6 +105,7 @@ export type AdjustPartnerCreditsResult = {
 export type AdjustPartnerCreditsDeps = {
   sendEmail?: typeof sendResendEmail;
   debitWalletFn?: typeof debitWallet;
+  remainingUnusedCreditFn?: typeof getRemainingUnusedAdminCredit;
 };
 
 export async function adjustPartnerCredits(
@@ -111,6 +114,8 @@ export async function adjustPartnerCredits(
 ): Promise<AdjustPartnerCreditsResult> {
   const sendEmail = deps.sendEmail ?? sendResendEmail;
   const debitWalletFn = deps.debitWalletFn ?? debitWallet;
+  const remainingUnusedCreditFn =
+    deps.remainingUnusedCreditFn ?? getRemainingUnusedAdminCredit;
 
   const trimmedNote = validateGrantNote(input.note);
 
@@ -129,10 +134,14 @@ export async function adjustPartnerCredits(
     );
   }
 
+  const remainingUnusedCredit = await remainingUnusedCreditFn(
+    input.partnerId,
+    Number(partner.walletBalance),
+  );
   const removed = resolveCreditAdjustAmount({
     mode: input.mode,
     amount: input.amount,
-    currentBalance: Number(partner.walletBalance),
+    remainingUnusedCredit,
   });
 
   const { displayName } = getAdminIdentityFromUser(input.adminUser);
@@ -155,7 +164,7 @@ export async function adjustPartnerCredits(
   const emailContent = buildPartnerCreditAdjustEmail({
     partner: partnerForEmail,
     amount: removed,
-    zeroed: input.mode === "zero" || newBalance === 0,
+    zeroed: newBalance === 0,
     walletUrl: input.walletUrl,
     appOrigin: input.appOrigin,
   });
