@@ -35,11 +35,15 @@ export function PartnerWalletView({
   totalTopUp,
   totalSpent,
   subscription,
+  availableLeadTypes = [],
+  pausedLeadTypes = [],
 }: {
   transactions: Transaction[];
   totalTopUp: number;
   totalSpent: number;
   subscription: Subscription | null;
+  availableLeadTypes?: Array<{ type: string; label: string }>;
+  pausedLeadTypes?: Array<{ type: string; label: string }>;
 }) {
   const { partner } = usePartner();
   const balance = partner.walletBalance;
@@ -52,12 +56,14 @@ export function PartnerWalletView({
   const [cancelPending, setCancelPending] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [weeklyAmount, setWeeklyAmount] = useState("500");
+  const [selectedLeadTypes, setSelectedLeadTypes] = useState<string[]>([]);
 
   const checkoutAmount = customAmount ? Number(customAmount) : selectedAmount;
   const checkoutValid =
     checkoutAmount !== null &&
     Number.isFinite(checkoutAmount) &&
-    checkoutAmount >= 25;
+    checkoutAmount >= 25 &&
+    selectedLeadTypes.length > 0;
 
   async function startCheckout() {
     if (!checkoutValid || !checkoutAmount) return;
@@ -66,7 +72,10 @@ export function PartnerWalletView({
       const res = await fetch("/api/wallet/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: checkoutAmount }),
+        body: JSON.stringify({
+          amount: checkoutAmount,
+          leadTypes: selectedLeadTypes,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Checkout failed");
@@ -157,6 +166,13 @@ export function PartnerWalletView({
 
           {/* One-Time Top-Up card */}
           <div className="card p-6">
+            {pausedLeadTypes.length > 0 && (
+              <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {pausedLeadTypes.length === 1
+                  ? `${pausedLeadTypes[0].label} is not active for partners right now, so you cannot select it when adding funds.`
+                  : `${pausedLeadTypes.map((row) => row.label).join(", ")} are not active for partners right now, so you cannot select them when adding funds.`}
+              </div>
+            )}
             <div className="group mb-5 flex items-center gap-3">
               <EmptyStateBlobIcon
                 icon={ArrowUpRight}
@@ -209,6 +225,42 @@ export function PartnerWalletView({
                 );
               })}
             </div>
+
+            <p className="mb-2 text-xs font-medium text-slate-600">
+              Lead types this credit is for
+            </p>
+            {availableLeadTypes.length === 0 ? (
+              <p className="mb-5 text-sm text-slate-500">
+                No lead types are active for partners right now.
+              </p>
+            ) : (
+              <div className="mb-5 flex flex-wrap gap-2">
+                {availableLeadTypes.map((category) => {
+                  const selected = selectedLeadTypes.includes(category.type);
+                  return (
+                    <button
+                      key={category.type}
+                      type="button"
+                      onClick={() => {
+                        setSelectedLeadTypes((prev) =>
+                          prev.includes(category.type)
+                            ? prev.filter((type) => type !== category.type)
+                            : [...prev, category.type],
+                        );
+                      }}
+                      className={clsx(
+                        "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                        selected
+                          ? "border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-brand-300",
+                      )}
+                    >
+                      {category.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <button
               type="button"

@@ -4,9 +4,11 @@ import { prisma } from "@/lib/db";
 import { requirePartner } from "@/lib/auth/session";
 import { resolveAppOrigin } from "@/lib/email/email-layout";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
+import { isLeadTypeAvailableToPartners } from "@/lib/lead-categories/partner-availability";
 
 const checkoutSchema = z.object({
   amount: z.number().min(25).max(10000),
+  leadTypes: z.array(z.string().min(1)).min(1),
 });
 
 export async function POST(request: NextRequest) {
@@ -25,7 +27,27 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const parsed = checkoutSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid amount (min $25)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid amount (min $25) or missing lead type" },
+      { status: 400 },
+    );
+  }
+
+  const unavailable: string[] = [];
+  for (const leadType of parsed.data.leadTypes) {
+    if (!(await isLeadTypeAvailableToPartners(leadType))) {
+      unavailable.push(leadType);
+    }
+  }
+  if (unavailable.length > 0) {
+    return NextResponse.json(
+      {
+        error:
+          "One or more selected lead types are not active for partners right now.",
+        unavailable,
+      },
+      { status: 422 },
+    );
   }
 
   const partner = await prisma.partner.findUniqueOrThrow({

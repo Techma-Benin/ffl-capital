@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 17 août 2026
+> Dernière mise à jour : 8 sept. 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -39,8 +39,9 @@
 | Email livraison lead (Resend) | ✅ (si `RESEND_API_KEY`) |
 | Partner Contact Us (Resend → admin + confirmation) | ✅ `POST /api/partner/contact` |
 | CRM outbound partner (POST self-service) | ✅ — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
-| Remboursements Type A / Type B | ✅ |
-| Marketplace aged (achat + débit wallet) | ✅ |
+| Remboursements invalid phone only (lead `dead`, masqué du dashboard partner) | ✅ |
+| Marketplace aged (Stripe Checkout, wallet live inchangé) | ✅ |
+| Catégorie `partner_enabled` (pause partners, Integrity inchangé) | ✅ |
 | Partner mark-as-sold (1ʳᵉ vente aged, fenêtre 7 j) | ✅ `POST /api/partner/deliveries/[id]/mark-sold` |
 | Migration import CSV Boberdoo | ✅ |
 | Cron reprocess unmatched + Integrity post | ✅ (routes ; scheduler prod à configurer) |
@@ -327,7 +328,7 @@ Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil d
 | `type` | types catégorie comma-séparés (ex. `traditional_iul,high_intent_iul`) | Filtre client `leadType IN (...)` (optionnel) |
 | `age` | `String(tier.minDays)` comma-séparés (ex. `30,61`) | Buckets inclusifs OR (`filterPartnerAgedLeadsInMemory` + tiers settings) |
 
-**Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet au **prix du tier** (fallback `default_aged_price` si hors bande) ; 1ʳᵉ vente → `agedAvailableAfter` = début du tier suivant (sauf mark-as-sold) ; 2ᵉ vente → retrait permanent. Pas de garde filter set / min 15 états.
+**Achat** : `POST /api/leads/aged/purchase` ouvre un Stripe Checkout (`type=aged_purchase`) ; le webhook `checkout.session.completed` (et `POST /api/leads/aged/complete-checkout`) appelle `fulfillAgedCheckout` → `purchaseAgedLeads()` **sans** débiter le wallet live. Hold `aged_hold_*` pendant 30 min. 1ʳᵉ vente → `agedAvailableAfter` = début du tier suivant (sauf mark-as-sold) ; 2ᵉ vente → retrait permanent. Catégories `partner_enabled=false` absentes du store partner.
 
 **Mark as sold (1ʳᵉ vente aged)** : sur `/partner/leads/[id]`, bouton **Mark as sold** si livraison `channel=aged`, `agedSaleCount=1`, pas encore `partner_sold_at`, non remboursée, et `delivered_at` ≤ 7 jours ; badge **Marked sold** une fois posé. API :
 
@@ -724,7 +725,7 @@ pnpm stripe:listen       # webhook Stripe local
 | prd-ca / prd-wallet / prd-states / prd-fifo | Règles matching (état, solde, ≥15 états, FIFO) |
 | p9-3 | Limite **hebdomadaire** filter set → unmatched |
 | p9-4 | Éligibilité aged (seuil depuis `aged_price_tiers` / `getAgedDaysThreshold`) |
-| p9-5 | Remboursement Type A (`wrong_filter` → unmatched) et Type B (`invalid_phone` → dead) |
+| p9-5 | Remboursement `invalid_phone` → lead `dead`, delivery `refundedAt`, masqué du listing partner |
 | p9-6 | Recherche admin par email et téléphone |
 | p9-7 | Cron `POST /api/cron/integrity-post` sur lead unmatched au-delà du délai |
 | p9-8 | Persistance champs lead étendus (import / migration) |

@@ -76,6 +76,9 @@ export async function PATCH(
           ? { defaultPrice: parsed.data.defaultPrice }
           : {}),
         ...(parsed.data.enabled !== undefined ? { enabled: parsed.data.enabled } : {}),
+        ...(parsed.data.partnerEnabled !== undefined
+          ? { partnerEnabled: parsed.data.partnerEnabled }
+          : {}),
         ...(parsed.data.integrityLabel !== undefined
           ? { integrityLabel: parsed.data.integrityLabel }
           : {}),

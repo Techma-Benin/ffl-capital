@@ -19,10 +19,8 @@ import {
   buildAgedAgeFilterOptions,
   resolveAgedPriceForReceivedAt,
 } from "@/lib/aged/price-tiers";
-import {
-  loadEnabledCategoryLabels,
-  resolveLeadTypeDisplay,
-} from "@/lib/lead-categories/category-labels";
+import { resolveLeadTypeDisplay } from "@/lib/lead-categories/category-labels";
+import { loadPartnerAvailableCategoryLabels } from "@/lib/lead-categories/partner-availability";
 import { extractOtherPayloadFields } from "@/lib/leads/other-payload-fields";
 import { LEAD_PREVIEW_COLUMN_PAYLOAD_KEYS } from "@/lib/leads/lead-preview";
 
@@ -40,20 +38,28 @@ export default async function PartnerAgedPage({
   const partnerId = await getPartnerId();
   if (!partnerId) redirect("/onboarding");
 
-  const agedWhere = await buildAdminAgedLeadsWhere(parseAdminAgedLeadFilters({}));
+  const partnerCategories = await loadPartnerAvailableCategoryLabels();
+  const partnerTypes = partnerCategories.map((category) => category.type);
+  const agedWhere = await buildAdminAgedLeadsWhere({
+    ...parseAdminAgedLeadFilters({}),
+  });
+  const marketplaceWhere =
+    partnerTypes.length > 0
+      ? { AND: [agedWhere, { leadType: { in: partnerTypes } }] }
+      : { AND: [agedWhere, { id: { in: [] } }] };
 
   const [agedLeads, totalEligible, fallbackPrice, agedDays, tiers, categories] =
     await Promise.all([
       prisma.lead.findMany({
-        where: agedWhere,
+        where: marketplaceWhere,
         orderBy: { receivedAt: "asc" },
         take: PARTNER_AGED_CLIENT_LOAD_LIMIT,
       }),
-      prisma.lead.count({ where: agedWhere }),
+      prisma.lead.count({ where: marketplaceWhere }),
       getDefaultAgedPrice(),
       getAgedDaysThreshold(),
       getAgedPriceTiers(),
-      loadEnabledCategoryLabels(),
+      loadPartnerAvailableCategoryLabels(),
     ]);
 
   const knownTypes = categories.map((category) => category.type);

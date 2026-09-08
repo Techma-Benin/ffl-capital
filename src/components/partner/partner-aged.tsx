@@ -1,7 +1,7 @@
 "use client";
 
 import { useNavigateWithPending } from "@/hooks/use-navigate-with-pending";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { LeadCategoryBadge } from "@/components/leads/lead-category-badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -106,7 +106,7 @@ export function PartnerAgedView({
     [initialLeads, agedDays, fromPrice, totalEligible, loadCapped],
   );
 
-  const { data: cached, mutate } = useClientResource<PartnerAgedStorePayload>(
+  const { data: cached } = useClientResource<PartnerAgedStorePayload>(
     ClientStoreKeys.partnerAged,
     { initialData: initialPayload },
   );
@@ -124,6 +124,47 @@ export function PartnerAgedView({
     leads: AgedPurchaseSuccessLead[];
     totalCount: number;
   } | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get("checkout");
+    const sessionId = params.get("session_id");
+    if (checkout === "cancelled") {
+      notify.error("Checkout cancelled. Those leads are available again shortly.");
+      window.history.replaceState(null, "", "/partner/aged");
+      return;
+    }
+    if (checkout !== "success" || !sessionId) return;
+
+    let cancelled = false;
+    setPending(true);
+    fetch("/api/leads/aged/complete-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error ?? "Could not complete purchase");
+        if (cancelled) return;
+        notify.success("Aged leads purchased. They will appear in your leads shortly.");
+        window.history.replaceState(null, "", "/partner/aged");
+        router.refresh();
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        notify.error(
+          err instanceof Error ? err.message : "Could not complete aged purchase.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setPending(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   function openPreview(lead: AgedLead) {
     setPreviewLead(lead);
@@ -156,8 +197,7 @@ export function PartnerAgedView({
     return sum;
   }, [selected, leadPriceById]);
 
-  const canBuySelected =
-    isActive && selected.size > 0 && partner.walletBalance >= selectedTotal;
+  const canBuySelected = isActive && selected.size > 0;
 
   function updateFilter<K extends keyof AgedFilters>(
     key: K,
@@ -208,14 +248,6 @@ export function PartnerAgedView({
 
   async function purchase(leadIds: string[]) {
     if (!isActive || leadIds.length === 0) return;
-    const total = leadIds.reduce(
-      (sum, id) => sum + (leadPriceById.get(id) ?? 0),
-      0,
-    );
-    if (partner.walletBalance < total) {
-      notify.error("Insufficient wallet balance for this selection.");
-      return;
-    }
     setPending(true);
     try {
       const res = await fetch("/api/leads/aged/purchase", {
@@ -223,46 +255,19 @@ export function PartnerAgedView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ leadIds }),
       });
-      if (!res.ok) throw new Error("Purchase failed");
-      const data: {
-        purchased: Array<{ leadId: string; firstName: string; lastName: string }>;
-        failed: Array<{ leadId: string; reason: string }>;
-      } = await res.json();
-      const purchased = new Set(leadIds);
-      mutate((prev) => {
-        const base = prev ?? initialPayload;
-        return {
-          ...base,
-          leads: base.leads.filter((l) => !purchased.has(l.id)),
-          totalEligible: Math.max(0, base.totalEligible - leadIds.length),
-        };
-      });
-      setSelected((prev) => {
-        const next = new Set(prev);
-        for (const id of leadIds) next.delete(id);
-        return next;
-      });
-      router.refresh();
-
-      if (data.purchased.length > 0) {
-        setPurchaseSuccess({
-          leads: data.purchased.map((p) => ({
-            leadId: p.leadId,
-            firstName: p.firstName,
-            lastName: p.lastName,
-          })),
-          totalCount: data.purchased.length,
-        });
+      const data: { url?: string; error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? "Purchase failed");
       }
-      if (data.failed.length > 0) {
-        notify.error(
-          data.failed.length === 1
-            ? `1 lead could not be purchased: ${data.failed[0].reason}`
-            : `${data.failed.length} leads could not be purchased.`,
-        );
+      if (data.url) {
+        window.location.href = data.url;
+        return;
       }
-    } catch {
-      notify.error("Purchase failed — please try again.");
+      throw new Error("Checkout did not return a URL");
+    } catch (err) {
+      notify.error(
+        err instanceof Error ? err.message : "Purchase failed — please try again.",
+      );
     } finally {
       setPending(false);
     }
@@ -382,8 +387,8 @@ export function PartnerAgedView({
                   className="btn-primary btn-sm"
                 >
                   {pending
-                    ? "Purchasing…"
-                    : `Buy — ${formatUsd(selectedTotal)}`}
+                    ? "Opening checkout…"
+                    : `Checkout — ${formatUsd(selectedTotal)}`}
                 </button>
               )}
             </div>
@@ -403,8 +408,7 @@ export function PartnerAgedView({
               const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
               const ageChip = getPartnerAgedLeadAgeChipClassNames(ageDays, agedDays);
               const leadName = `${lead.firstName} ${lead.lastName}`;
-              const canBuyLead =
-                isActive && partner.walletBalance >= lead.price;
+              const canBuyLead = isActive;
 
               function onRowKeyDown(e: React.KeyboardEvent) {
                 if (e.key === "Enter" || e.key === " ") {

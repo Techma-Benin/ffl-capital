@@ -97,6 +97,12 @@ enum ResaleStatus {
   reconciled
 }
 
+enum AgedCheckoutStatus {
+  pending
+  paid
+  expired
+}
+
 enum MigrationJobStatus {
   pending
   running
@@ -123,6 +129,7 @@ model LeadCategory {
   label                    String
   defaultPrice             Decimal? @map("default_price") @db.Decimal(10, 2)
   enabled                  Boolean  @default(true)
+  partnerEnabled           Boolean  @default(true) @map("partner_enabled")
   integrityLabel           String?  @map("integrity_label")
   integrityLabelStorefront String?  @map("integrity_label_storefront")
   createdAt                DateTime @default(now()) @map("created_at")
@@ -186,10 +193,29 @@ model Partner {
   filterSets           PartnerFilterSet[]
   leadListViews        LeadListView[]
   crmOutboundConfig    PartnerCrmOutboundConfig?
+  agedCheckouts        AgedCheckout[]
 
   @@index([status])
   @@index([priority])
   @@map("partners")
+}
+
+model AgedCheckout {
+  id                      String              @id @default(uuid()) @db.Uuid
+  partnerId               String              @map("partner_id") @db.Uuid
+  stripeCheckoutSessionId String?             @unique @map("stripe_checkout_session_id")
+  leadIds                 String[]            @map("lead_ids")
+  quotedTotal             Decimal             @map("quoted_total") @db.Decimal(10, 2)
+  status                  AgedCheckoutStatus  @default(pending)
+  expiresAt               DateTime            @map("expires_at")
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+
+  partner    Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  heldLeads  Lead[]
+
+  @@index([partnerId, status])
+  @@map("aged_checkouts")
 }
 
 model PartnerCrmOutboundConfig {
@@ -297,6 +323,8 @@ model Lead {
   rawPayload              Json?                  @map("raw_payload")
   agedSaleCount           Int                    @default(0) @map("aged_sale_count")
   agedAvailableAfter      DateTime?              @map("aged_available_after")
+  agedHoldCheckoutId      String?                @map("aged_hold_checkout_id") @db.Uuid
+  agedHoldExpiresAt       DateTime?              @map("aged_hold_expires_at")
   liveSoldAt              DateTime?              @map("live_sold_at")
   liveSaleChannel         String?                @map("live_sale_channel")
   lastRoutingAttemptAt    DateTime?              @map("last_routing_attempt_at")
@@ -313,6 +341,7 @@ model Lead {
   leadDeliveries LeadDelivery[]
   resalePostings ResalePosting[]
   events         LeadEvent[]
+  agedHoldCheckout AgedCheckout? @relation(fields: [agedHoldCheckoutId], references: [id], onDelete: SetNull)
 
   @@index([state, status, available])
   @@index([receivedAt])
@@ -320,6 +349,7 @@ model Lead {
   @@index([status, available, nextRoutingAttemptAt])
   @@index([status, available, receivedAt])
   @@index([routingClaimExpiresAt])
+  @@index([agedHoldExpiresAt])
   @@index([externalId])
   @@index([email, phone])
   @@map("leads")

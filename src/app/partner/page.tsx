@@ -14,19 +14,21 @@ export default async function PartnerDashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const notRefunded = { partnerId, refundedAt: null };
+
   const [deliveriesAll, deliveriesToday, recentDeliveries, spentAggregate, categories] = await Promise.all([
-    prisma.leadDelivery.count({ where: { partnerId } }),
+    prisma.leadDelivery.count({ where: notRefunded }),
     prisma.leadDelivery.count({
-      where: { partnerId, deliveredAt: { gte: today } },
+      where: { ...notRefunded, deliveredAt: { gte: today } },
     }),
     prisma.leadDelivery.findMany({
-      where: { partnerId },
+      where: notRefunded,
       include: { lead: true },
       orderBy: { deliveredAt: "desc" },
       take: 5,
     }),
     prisma.leadDelivery.aggregate({
-      where: { partnerId },
+      where: notRefunded,
       _sum: { price: true },
     }),
     loadEnabledCategoryLabels(),

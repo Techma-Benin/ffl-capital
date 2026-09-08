@@ -5,6 +5,11 @@ import { prisma } from "@/lib/db";
 import { creditWallet } from "@/lib/wallet/ledger";
 import { getStripe } from "@/lib/stripe/client";
 import { claimStripeEvent } from "@/lib/stripe/webhook-idempotency";
+import {
+  deliverAgedCheckoutPurchases,
+  expireAgedCheckoutByStripeSession,
+  fulfillAgedCheckout,
+} from "@/lib/aged/fulfill-aged-checkout";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -91,6 +96,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const agedBox: {
+      current: Awaited<ReturnType<typeof fulfillAgedCheckout>> | null;
+    } = { current: null };
+
     await prisma.$transaction(async (tx) => {
       const claimed = await claimStripeEvent(event.id, event.type, tx);
       if (!claimed) return;
@@ -101,6 +110,16 @@ export async function POST(request: NextRequest) {
         const type = session.metadata?.type;
 
         if (partnerId && session.payment_status === "paid") {
+          if (type === "aged_purchase" && session.metadata?.agedCheckoutId) {
+            agedBox.current = await fulfillAgedCheckout({
+              checkoutId: session.metadata.agedCheckoutId,
+              partnerId,
+              paymentIntentId: paymentIntentIdFrom(session.payment_intent),
+              tx,
+              deliver: false,
+            });
+          }
+
           if (type === "top_up" && session.amount_total) {
             const amount = session.amount_total / 100;
             await creditWalletOnce(partnerId, amount, "top_up", {
@@ -143,6 +162,13 @@ export async function POST(request: NextRequest) {
               }
             }
           }
+        }
+      }
+
+      if (event.type === "checkout.session.expired") {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.type === "aged_purchase" && session.id) {
+          await expireAgedCheckoutByStripeSession(session.id, tx);
         }
       }
 
@@ -202,6 +228,10 @@ export async function POST(request: NextRequest) {
         });
       }
     });
+
+    if (agedBox.current && !agedBox.current.alreadyPaid) {
+      await deliverAgedCheckoutPurchases(agedBox.current);
+    }
   } catch (error) {
     console.error("Stripe webhook processing failed:", error);
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });

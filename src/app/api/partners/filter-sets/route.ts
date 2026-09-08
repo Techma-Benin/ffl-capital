@@ -7,6 +7,7 @@ import { MIN_FILTER_STATES } from "@/lib/partner/constants";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
 import { findFilterSetTemplate } from "@/lib/filter-sets/templates";
+import { isLeadTypeAvailableToPartners } from "@/lib/lead-categories/partner-availability";
 import type { FilterCriteria } from "@/lib/matching/types";
 import type { PartnerFilterSet } from "@prisma/client";
 
@@ -109,6 +110,13 @@ export async function POST(request: NextRequest) {
     filterCriteria,
   } = parsed.data;
   const filterStates = Array.from(new Set(rawStates.map((s) => s.toUpperCase())));
+
+  if (!(await isLeadTypeAvailableToPartners(leadType))) {
+    return NextResponse.json(
+      { error: "That lead type is not active for partners right now." },
+      { status: 422 },
+    );
+  }
 
   // Enforce 15-state minimum for active sets
   if (active && filterStates.length < MIN_FILTER_STATES) {

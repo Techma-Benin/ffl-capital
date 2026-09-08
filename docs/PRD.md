@@ -427,7 +427,8 @@ Phase D — Migration Replit (livraison client)
 
 **Achat partner :**
 - Manuel (unitaire ou checkboxes) ; débit wallet au **prix du tier** d’âge (`aged_price_tiers` ; fallback `default_aged_price` si hors bande)
-- Compte `active` + solde wallet suffisant
+- Compte `active`
+- Paiement Stripe Checkout pour la sélection (n’utilise **pas** le wallet live)
 - Lead toujours éligible aged au moment de l’achat (même règles d’âge / hors `dead`)
 - **Pas** de contrôle état ∈ filter set ni égalité `lead_type` compte (distinct du matching temps réel)
 - Créer `lead_delivery` channel=`aged`
@@ -439,41 +440,24 @@ Phase D — Migration Replit (livraison client)
 
 ### 5.8 Remboursements
 
-**Workflow in-app obligatoire** (confirmé call review #1). Deux **types** distincts :
+**Workflow in-app obligatoire.** Le seul type de remboursement partenaire est **invalid phone**. Pas de rematch / Type A.
 
-#### Type A — Mauvais critère / mauvais état
-
-Ex. : l’agent voulait le Texas, a reçu un lead Californie.
-
-```
-Agent → demande remboursement (raison : wrong_filter)
-  → Admin approuve
-       - delivery.refunded_at = now
-       - Crédit wallet agent (montant delivery.price)
-       - lead.available = true
-       - Rematch immédiat vers le partner/agent suivant (même critères, priorité inférieure)
-       - Prix de revente = prix d’origine (ex. 25 $)
-```
-
-#### Type B — Numéro invalide / hors service
-
-Ex. : numéro Meta incorrect ; admin appelle et confirme.
+#### Invalid phone
 
 ```
 Agent → demande remboursement (raison : invalid_phone)
-  → Admin vérifie (appel) → approuve ou refuse
+  → Admin vérifie → approuve ou refuse
   → Si approuvé :
        - delivery.refunded_at = now
        - Crédit wallet agent (montant delivery.price)
-       - lead.available = false, status = dead (ou équivalent)
-       - Lead **non redistribué** — mort définitivement
+       - lead.available = false, status = dead
+       - Lead **non redistribué**
+       - La delivery disparaît du listing / dashboard partner (email déjà envoyé inchangé)
 ```
 
 **Buffer 15 % :** règle métier **verbale** de la cliente (leads Meta) — **non automatisée dans Boberdoo** (vérifié browser 29 juin). V1 : workflow manuel identique à Boberdoo ; pas de compteur ni blocage auto dans l’app.
 
-**Cycle remboursement + revente (type A) :** après revente post-remboursement, `refundable = false` — plus de second remboursement sur ce lead.
-
-**Note :** l’ancienne règle interne TECHMA « routage post-remboursement par âge (< 2 j / Integrity / aged) » est **remplacée** par ce modèle validé cliente (voir §7).
+**Note :** un lead remboursé invalid-phone n’est jamais revendu.
 
 ### 5.9 Wallet Stripe
 

@@ -3,8 +3,6 @@ import { prisma } from "@/lib/db";
 import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import { creditWallet } from "@/lib/wallet/ledger";
-import { matchLead } from "@/lib/matching/engine";
-import { deliverLead } from "@/lib/delivery/deliver-lead";
 
 export async function processRefundApproval(
   refundRequestId: string,
@@ -20,6 +18,9 @@ export async function processRefundApproval(
 
   if (!request) throw new Error("Refund request not found");
   if (request.status !== "pending") throw new Error("Refund already reviewed");
+  if (request.refundType !== "invalid_phone") {
+    throw new Error("Only invalid-phone refunds can be approved");
+  }
 
   const { leadDelivery, partner } = request;
   const price = Number(leadDelivery.price);
@@ -39,17 +40,10 @@ export async function processRefundApproval(
       data: { refundedAt: new Date() },
     });
 
-    if (request.refundType === "invalid_phone") {
-      await tx.lead.update({
-        where: { id: leadDelivery.leadId },
-        data: { available: false, status: "dead" },
-      });
-    } else {
-      await tx.lead.update({
-        where: { id: leadDelivery.leadId },
-        data: { available: true, status: "unmatched" },
-      });
-    }
+    await tx.lead.update({
+      where: { id: leadDelivery.leadId },
+      data: { available: false, status: "dead" },
+    });
   }, PRISMA_TX_OPTIONS);
 
   await creditWallet(partner.id, price, "refund", {

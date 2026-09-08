@@ -33,22 +33,7 @@ export async function buildPartnerLeadsWhere(
   if (locations.length) leadWhere.state = { in: locations };
   if (types.length) leadWhere.leadType = { in: types };
 
-  const statusConditions: Prisma.LeadDeliveryWhereInput[] = [];
-  if (!statuses.length || statuses.includes("active")) {
-    statusConditions.push({
-      refundedAt: null,
-      refundRequests: { none: {} },
-    });
-  }
-  if (!statuses.length || statuses.includes("refund_pending")) {
-    statusConditions.push({
-      refundedAt: null,
-      refundRequests: { some: {} },
-    });
-  }
-  if (!statuses.length || statuses.includes("refunded")) {
-    statusConditions.push({ refundedAt: { not: null } });
-  }
+  const statusWhere = partnerLeadStatusWhere(statuses);
 
   return {
     partnerId,
@@ -56,8 +41,36 @@ export async function buildPartnerLeadsWhere(
     ...(Object.keys(leadWhere).length ? { lead: leadWhere } : {}),
     ...(channels.length ? { channel: { in: channels } } : {}),
     ...(deliveredAt ? { deliveredAt } : {}),
-    ...(statuses.length && statuses.length < 3
-      ? { OR: statusConditions }
-      : {}),
+    ...statusWhere,
   };
+}
+
+export function partnerLeadStatusWhere(
+  statuses: string[],
+): Prisma.LeadDeliveryWhereInput {
+  const includeActive = !statuses.length || statuses.includes("active");
+  const includePending = !statuses.length || statuses.includes("refund_pending");
+  const includeRefunded = statuses.includes("refunded");
+
+  const statusConditions: Prisma.LeadDeliveryWhereInput[] = [];
+  if (includeActive) {
+    statusConditions.push({
+      refundedAt: null,
+      refundRequests: { none: {} },
+    });
+  }
+  if (includePending) {
+    statusConditions.push({
+      refundedAt: null,
+      refundRequests: { some: {} },
+    });
+  }
+  if (includeRefunded) {
+    statusConditions.push({ refundedAt: { not: null } });
+  }
+
+  if (statusConditions.length === 1) {
+    return statusConditions[0] ?? {};
+  }
+  return { OR: statusConditions };
 }
