@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { Lead, Partner, PartnerFilterSet } from "@prisma/client";
-import { isFilterSetEligibleForLead } from "../../src/lib/matching/eligibility";
+import {
+  explainPartnerFilterIneligibility,
+  isFilterSetEligibleForLead,
+} from "../../src/lib/matching/eligibility";
 
 const states = [
   "AL",
@@ -73,6 +76,45 @@ describe("isFilterSetEligibleForLead wallet option", () => {
         false,
       ),
       true,
+    );
+  });
+});
+
+describe("explainPartnerFilterIneligibility", () => {
+  test("says there is no active filter set", () => {
+    assert.equal(
+      explainPartnerFilterIneligibility([], partner, "GA", "traditional_iul", lead),
+      "This partner has no active filter set.",
+    );
+  });
+
+  test("names a category miss before a state miss", () => {
+    const otherType = {
+      ...filterSet,
+      leadType: "final_expense",
+    } as PartnerFilterSet;
+    assert.equal(
+      explainPartnerFilterIneligibility(
+        [otherType],
+        partner,
+        "GA",
+        "traditional_iul",
+        lead,
+      ),
+      "This partner has no filter set for this lead category.",
+    );
+  });
+
+  test("names a state miss when the category matches", () => {
+    assert.equal(
+      explainPartnerFilterIneligibility(
+        [filterSet],
+        partner,
+        "NJ",
+        "traditional_iul",
+        lead,
+      ),
+      "This partner does not target this lead's state.",
     );
   });
 });

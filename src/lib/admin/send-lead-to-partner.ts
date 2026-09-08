@@ -18,6 +18,7 @@ import {
 } from "@/lib/leads/realtime-sale-cap";
 import { claimLiveSale } from "@/lib/lead-routing/live-sale";
 import {
+  explainPartnerFilterIneligibility,
   getEffectivePrice,
   isFilterSetEligibleForLead,
 } from "@/lib/matching/eligibility";
@@ -186,7 +187,13 @@ export async function sendLeadToPartner(
 
   if (filterMatches.length === 0) {
     throw new SendLeadToPartnerError(
-      "Partner does not match this lead's filters",
+      explainPartnerFilterIneligibility(
+        partner.filterSets,
+        partner,
+        lead.state,
+        leadType,
+        lead,
+      ),
       "no_filter_match",
     );
   }
