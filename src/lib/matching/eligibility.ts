@@ -105,6 +105,43 @@ function matchesFilterCriteria(
   return true;
 }
 
+export type FilterSetIneligibilityReason =
+  | "inactive"
+  | "template"
+  | "partner_inactive"
+  | "too_few_states"
+  | "state"
+  | "lead_type"
+  | "wallet"
+  | "criteria";
+
+export function filterSetIneligibilityReason(
+  filterSet: PartnerFilterSet,
+  partner: Partner,
+  leadState: string,
+  leadType: string,
+  effectivePrice: number,
+  lead?: Lead,
+  requireWallet = true,
+): FilterSetIneligibilityReason | null {
+  if (!filterSet.active) return "inactive";
+  if (filterSet.isTemplate) return "template";
+  if (partner.status !== PartnerStatus.active) return "partner_inactive";
+  if (filterSet.filterStates.length < MIN_FILTER_STATES) return "too_few_states";
+  if (!filterSet.filterStates.includes(leadState)) return "state";
+  if (filterSet.leadType !== leadType) return "lead_type";
+  if (requireWallet && Number(partner.walletBalance) < effectivePrice) {
+    return "wallet";
+  }
+  if (lead) {
+    const criteria = parseFilterCriteria(filterSet.filterCriteria);
+    if (!matchesFilterCriteria(criteria, lead, filterSet.filterStates)) {
+      return "criteria";
+    }
+  }
+  return null;
+}
+
 export function isFilterSetEligibleForLead(
   filterSet: PartnerFilterSet,
   partner: Partner,
@@ -112,23 +149,61 @@ export function isFilterSetEligibleForLead(
   leadType: string,
   effectivePrice: number,
   lead?: Lead,
+  requireWallet = true,
 ): boolean {
-  if (!filterSet.active) return false;
-  if (filterSet.isTemplate) return false;
-  if (partner.status !== PartnerStatus.active) return false;
-  if (filterSet.filterStates.length < MIN_FILTER_STATES) return false;
-  if (!filterSet.filterStates.includes(leadState)) return false;
-  if (filterSet.leadType !== leadType) return false;
-  if (Number(partner.walletBalance) < effectivePrice) return false;
+  return (
+    filterSetIneligibilityReason(
+      filterSet,
+      partner,
+      leadState,
+      leadType,
+      effectivePrice,
+      lead,
+      requireWallet,
+    ) === null
+  );
+}
 
-  // Extended filter criteria check
-  if (lead) {
-    const criteria = parseFilterCriteria(filterSet.filterCriteria);
-    if (!matchesFilterCriteria(criteria, lead, filterSet.filterStates))
-      return false;
+/** Why none of this partner's live filter sets can take the lead (wallet excluded). */
+export function explainPartnerFilterIneligibility(
+  filterSets: PartnerFilterSet[],
+  partner: Partner,
+  leadState: string,
+  leadType: string,
+  lead?: Lead,
+): string {
+  const live = filterSets.filter((set) => set.active && !set.isTemplate);
+  if (live.length === 0) {
+    return "This partner has no active filter set.";
   }
 
-  return true;
+  const reasons = new Set(
+    live.map((filterSet) =>
+      filterSetIneligibilityReason(
+        filterSet,
+        partner,
+        leadState,
+        leadType,
+        0,
+        lead,
+        false,
+      ),
+    ),
+  );
+
+  if (reasons.has("criteria")) {
+    return "This partner's filter set criteria do not match this lead.";
+  }
+  if (reasons.has("lead_type")) {
+    return "This partner has no filter set for this lead category.";
+  }
+  if (reasons.has("state")) {
+    return "This partner does not target this lead's state.";
+  }
+  if (reasons.has("too_few_states")) {
+    return "This partner's filter sets need at least 15 target states.";
+  }
+  return "This partner has no eligible filter set for this lead.";
 }
 
 async function countDeliveriesInWindow(

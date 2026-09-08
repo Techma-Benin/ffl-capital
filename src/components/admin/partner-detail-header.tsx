@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ViewAsPartnerButton } from "@/components/admin/view-as-partner-button";
 import { BlockPartnerButton } from "@/components/admin/block-partner-button";
 import { PartnerGrantCreditsButton } from "@/components/admin/partner-grant-credits-button";
+import { PartnerAdjustCreditsButton } from "@/components/admin/partner-adjust-credits-button";
 import { usePartnerDetailEdit } from "@/components/admin/partner-detail-edit-provider";
 import {
   ArrowLeft,
@@ -18,6 +19,8 @@ type PartnerDetailHeaderProps = {
   partnerStatus: string;
   displayName: string;
   isSuperAdmin: boolean;
+  currentBalance: number;
+  remainingUnusedCredit: number;
 };
 
 export function PartnerDetailHeader({
@@ -26,6 +29,8 @@ export function PartnerDetailHeader({
   partnerStatus,
   displayName,
   isSuperAdmin,
+  currentBalance,
+  remainingUnusedCredit,
 }: PartnerDetailHeaderProps) {
   const { openPartnerEdit } = usePartnerDetailEdit();
 
@@ -47,6 +52,13 @@ export function PartnerDetailHeader({
           displayName={displayName}
           partnerStatus={partnerStatus}
           isSuperAdmin={isSuperAdmin}
+        />
+        <PartnerAdjustCreditsButton
+          partnerId={partnerId}
+          displayName={displayName}
+          partnerStatus={partnerStatus}
+          currentBalance={currentBalance}
+          remainingUnusedCredit={remainingUnusedCredit}
         />
         <button
           type="button"

@@ -26,6 +26,7 @@ import {
   ArrowUpRight,
   DotsThreeVertical,
   Eye,
+  PaperPlaneTilt,
   ICON_WEIGHT_LINEAR,
 } from "@/lib/icons/client";
 
@@ -48,22 +49,32 @@ type LeadRow = {
   price: string | null;
 };
 
+function isSelectableLead(lead: LeadRow): boolean {
+  return lead.status !== "dead";
+}
+
 function isEligibleForReprocess(lead: LeadRow): boolean {
   return lead.status === "unmatched" && lead.available;
 }
 
 function adminLeadHasExtraRowActions(lead: LeadRow): boolean {
-  return !!lead.trustedformCertUrl || isEligibleForReprocess(lead);
+  return (
+    !!lead.trustedformCertUrl ||
+    isEligibleForReprocess(lead) ||
+    isSelectableLead(lead)
+  );
 }
 
 function AdminLeadRowMenu({
   lead,
   layout,
   onReprocessLead,
+  onSendLead,
 }: {
   lead: LeadRow;
   layout: PortalDataTableLayout;
   onReprocessLead?: (leadId: string) => void | Promise<void>;
+  onSendLead?: (leadId: string) => void;
 }) {
   const { push } = useNavigateWithPending();
   const [open, setOpen] = useState(false);
@@ -71,8 +82,12 @@ function AdminLeadRowMenu({
   const closeMenu = useCallback(() => setOpen(false), []);
 
   const canReprocess = isEligibleForReprocess(lead);
+  const canSend = isSelectableLead(lead);
   const menuItemCount =
-    1 + (lead.trustedformCertUrl ? 1 : 0) + (canReprocess ? 1 : 0);
+    1 +
+    (lead.trustedformCertUrl ? 1 : 0) +
+    (canReprocess ? 1 : 0) +
+    (canSend ? 1 : 0);
   const { buttonRef, menuRef, menuStyle } = usePortalAnchoredMenu({
     open,
     onClose: closeMenu,
@@ -141,6 +156,20 @@ function AdminLeadRowMenu({
           </a>
         )}
 
+        {canSend && (
+          <button
+            type="button"
+            className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            onClick={() => {
+              setOpen(false);
+              onSendLead?.(lead.id);
+            }}
+          >
+            <PaperPlaneTilt size={14} className="text-slate-400" />
+            Send to partner
+          </button>
+        )}
+
         {canReprocess && (
           <button
             type="button"
@@ -169,6 +198,7 @@ export function AdminLeadsTable({
   selectedIds,
   onSelectedChange,
   onReprocessLead,
+  onSendLead,
 }: {
   leads: LeadRow[];
   columns: PortalDataTableColumn[];
@@ -182,19 +212,19 @@ export function AdminLeadsTable({
   selectedIds: Set<string>;
   onSelectedChange: (ids: Set<string>) => void;
   onReprocessLead?: (leadId: string) => void | Promise<void>;
+  onSendLead?: (leadId: string) => void;
 }) {
-  const eligibleLeads = leads.filter(isEligibleForReprocess);
-  const eligibleIds = new Set(eligibleLeads.map((l) => l.id));
+  const selectableLeads = leads.filter(isSelectableLead);
 
-  const allEligibleSelected =
-    eligibleLeads.length > 0 &&
-    eligibleLeads.every((l) => selectedIds.has(l.id));
+  const allSelectableSelected =
+    selectableLeads.length > 0 &&
+    selectableLeads.every((l) => selectedIds.has(l.id));
 
   function toggleAll() {
-    if (allEligibleSelected) {
+    if (allSelectableSelected) {
       onSelectedChange(new Set());
     } else {
-      onSelectedChange(new Set(eligibleLeads.map((l) => l.id)));
+      onSelectedChange(new Set(selectableLeads.map((l) => l.id)));
     }
   }
 
@@ -210,11 +240,11 @@ export function AdminLeadsTable({
 
   // Build the checkbox column with header content
   const checkboxHeaderContent =
-    eligibleLeads.length > 0 ? (
+    selectableLeads.length > 0 ? (
       <input
         type="checkbox"
-        aria-label="Select all eligible leads"
-        checked={allEligibleSelected}
+        aria-label="Select all leads"
+        checked={allSelectableSelected}
         onChange={toggleAll}
         className="h-4 w-4 rounded border-slate-300 text-brand-600 accent-brand-600 cursor-pointer"
       />
@@ -243,14 +273,14 @@ export function AdminLeadsTable({
     const last = index === total - 1;
     switch (key) {
       case "_checkbox": {
-        const eligible = isEligibleForReprocess(lead);
+        const selectable = isSelectableLead(lead);
         return (
           <td
             key={key}
             className={cellClass({ first, last, className: "w-8" })}
             onClick={(e) => e.stopPropagation()}
           >
-            {eligible && (
+            {selectable && (
               <input
                 type="checkbox"
                 aria-label="Select lead"
@@ -393,6 +423,7 @@ export function AdminLeadsTable({
                 lead={lead}
                 layout={layout}
                 onReprocessLead={onReprocessLead}
+                onSendLead={onSendLead}
               />
             ) : null}
           </td>

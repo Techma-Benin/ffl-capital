@@ -61,6 +61,7 @@ export type PartnerOption = {
 const TRANSACTION_TYPES = [
   { value: "top_up", label: "Top-up" },
   { value: "admin_grant", label: "Admin Credit" },
+  { value: "admin_debit", label: "Admin Debit" },
   { value: "lead_purchase", label: "Lead Purchase" },
   { value: "aged_purchase", label: "Aged Purchase" },
   { value: "refund", label: "Refund" },
@@ -80,6 +81,7 @@ const PAYMENT_METHODS = [
 const TYPE_BADGE: Record<string, string> = {
   top_up: "bg-blue-100 text-blue-800",
   admin_grant: "bg-emerald-100 text-emerald-800",
+  admin_debit: "bg-amber-100 text-amber-800",
   lead_purchase: "bg-indigo-100 text-indigo-800",
   aged_purchase: "bg-teal-100 text-teal-800",
   refund: "bg-orange-100 text-orange-800",
@@ -89,6 +91,7 @@ const TYPE_BADGE: Record<string, string> = {
 const TYPE_LABEL: Record<string, string> = {
   top_up: "Top-up",
   admin_grant: "Admin Credit",
+  admin_debit: "Admin Debit",
   lead_purchase: "Lead Purchase",
   aged_purchase: "Aged Purchase",
   refund: "Refund",
