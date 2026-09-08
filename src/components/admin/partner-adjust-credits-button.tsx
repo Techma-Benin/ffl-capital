@@ -9,6 +9,7 @@ type PartnerAdjustCreditsButtonProps = {
   displayName: string;
   partnerStatus: string;
   currentBalance: number;
+  remainingUnusedCredit: number;
 };
 
 export function PartnerAdjustCreditsButton({
@@ -16,10 +17,11 @@ export function PartnerAdjustCreditsButton({
   displayName,
   partnerStatus,
   currentBalance,
+  remainingUnusedCredit,
 }: PartnerAdjustCreditsButtonProps) {
   const [open, setOpen] = useState(false);
 
-  if (partnerStatus !== "active") return null;
+  if (partnerStatus !== "active" || remainingUnusedCredit <= 0) return null;
 
   return (
     <>
@@ -42,6 +44,7 @@ export function PartnerAdjustCreditsButton({
           partnerId={partnerId}
           displayName={displayName}
           currentBalance={currentBalance}
+          remainingUnusedCredit={remainingUnusedCredit}
           onClose={() => setOpen(false)}
         />
       )}

@@ -20,6 +20,7 @@ type PartnerDetailHeaderProps = {
   displayName: string;
   isSuperAdmin: boolean;
   currentBalance: number;
+  remainingUnusedCredit: number;
 };
 
 export function PartnerDetailHeader({
@@ -29,6 +30,7 @@ export function PartnerDetailHeader({
   displayName,
   isSuperAdmin,
   currentBalance,
+  remainingUnusedCredit,
 }: PartnerDetailHeaderProps) {
   const { openPartnerEdit } = usePartnerDetailEdit();
 
@@ -56,6 +58,7 @@ export function PartnerDetailHeader({
           displayName={displayName}
           partnerStatus={partnerStatus}
           currentBalance={currentBalance}
+          remainingUnusedCredit={remainingUnusedCredit}
         />
         <button
           type="button"

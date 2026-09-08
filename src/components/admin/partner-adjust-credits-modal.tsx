@@ -10,6 +10,7 @@ type PartnerAdjustCreditsModalProps = {
   partnerId: string;
   displayName: string;
   currentBalance: number;
+  remainingUnusedCredit: number;
   onClose: () => void;
 };
 
@@ -20,6 +21,7 @@ export function PartnerAdjustCreditsModal({
   partnerId,
   displayName,
   currentBalance,
+  remainingUnusedCredit,
   onClose,
 }: PartnerAdjustCreditsModalProps) {
   const router = useRouter();
@@ -46,20 +48,22 @@ export function PartnerAdjustCreditsModal({
   const parsedAmount = parseFloat(amount);
   const reduceAmount =
     mode === "zero"
-      ? currentBalance
+      ? remainingUnusedCredit
       : Number.isFinite(parsedAmount)
         ? parsedAmount
         : NaN;
   const noteTrimmed = note.trim();
 
   function validateForm(): string | null {
-    if (currentBalance <= 0) return "This wallet is already at $0.00.";
+    if (remainingUnusedCredit <= 0) {
+      return "There is no unused admin credit to remove.";
+    }
     if (mode === "reduce") {
       if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
         return "Enter an amount greater than zero.";
       }
-      if (parsedAmount > currentBalance) {
-        return "Amount cannot exceed the current balance.";
+      if (parsedAmount > remainingUnusedCredit) {
+        return "Amount cannot exceed unused admin credit.";
       }
     }
     return null;
@@ -111,7 +115,9 @@ export function PartnerAdjustCreditsModal({
       if (data.emailWarning) {
         notify.warning(data.emailWarning);
       } else if (mode === "zero") {
-        notify.success(`Wallet for ${displayName} set to $0.00`);
+        notify.success(
+          `${formatUsd(remainingUnusedCredit)} unused credit removed from ${displayName}`,
+        );
       } else {
         notify.success(
           `${formatUsd(parsedAmount)} removed from ${displayName}`,
@@ -150,7 +156,12 @@ export function PartnerAdjustCreditsModal({
               Adjust credits
             </h2>
             <p className="mt-0.5 text-xs text-slate-500">
-              Current balance for {displayName}: {formatUsd(currentBalance)}
+              Unused admin credit for {displayName}:{" "}
+              {formatUsd(remainingUnusedCredit)}
+              <span className="text-slate-400">
+                {" "}
+                (wallet {formatUsd(currentBalance)})
+              </span>
             </p>
           </div>
           <button
@@ -188,7 +199,7 @@ export function PartnerAdjustCreditsModal({
                       : "bg-slate-100 text-slate-600"
                   }`}
                 >
-                  Set to $0
+                  Set unused to $0
                 </button>
               </div>
 
@@ -204,7 +215,7 @@ export function PartnerAdjustCreditsModal({
                     id="adjust-amount"
                     type="number"
                     min={0.01}
-                    max={currentBalance}
+                    max={remainingUnusedCredit}
                     step={0.01}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
@@ -215,8 +226,9 @@ export function PartnerAdjustCreditsModal({
                 </div>
               ) : (
                 <p className="text-sm text-slate-600">
-                  This removes {formatUsd(currentBalance)} and leaves the
-                  wallet at $0.00. The balance cannot go negative.
+                  This removes all unused admin credit (
+                  {formatUsd(remainingUnusedCredit)}). Deposited funds stay in
+                  the wallet.
                 </p>
               )}
 
@@ -290,7 +302,7 @@ export function PartnerAdjustCreditsModal({
               <button
                 type="button"
                 onClick={handleReview}
-                disabled={loading || currentBalance <= 0}
+                disabled={loading || remainingUnusedCredit <= 0}
                 className="btn-primary btn-sm"
               >
                 Review

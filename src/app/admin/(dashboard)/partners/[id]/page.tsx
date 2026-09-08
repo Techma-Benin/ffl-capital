@@ -12,6 +12,7 @@ import { PartnerAccountCrmCard } from "@/components/admin/partner-account-crm-ca
 import { PartnerDetailActivity } from "@/components/admin/partner-detail-activity";
 import { Funnel, Wallet, UsersThree } from "@/lib/icons/ssr";
 import { formatUsd, moneyValueClassName } from "@/lib/format-money";
+import { getRemainingUnusedAdminCredit } from "@/lib/wallet/remaining-admin-credit";
 import { clsx } from "clsx";
 
 export default async function AdminPartnerDetailPage({
@@ -58,6 +59,10 @@ export default async function AdminPartnerDetailPage({
   const avatarUrl = await getClerkPartnerImageUrl(partner.clerkUserId);
 
   const walletBalance = Number(partner.walletBalance);
+  const remainingUnusedCredit = await getRemainingUnusedAdminCredit(
+    partner.id,
+    walletBalance,
+  );
   const walletLow = walletBalance < 25;
   const displayName = `${partner.firstName} ${partner.lastName}`;
   const filterSetRows = partner.filterSets.map((fs) => ({
@@ -96,6 +101,7 @@ export default async function AdminPartnerDetailPage({
           displayName={displayName}
           isSuperAdmin={isSuperAdmin}
           currentBalance={walletBalance}
+          remainingUnusedCredit={remainingUnusedCredit}
         />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">

@@ -283,6 +283,7 @@ Phase D — Migration Replit (livraison client)
 #### Gestion agents
 - Liste tous les agents : statut, priorité, solde, états, type lead
 - Actions : approuver/rejeter inscription, activer/désactiver, modifier priorité (1–10), prix personnalisé, voir historique
+- Détail partner : **Grant credits** (partenaire `active`) ; **Adjust credits** seulement si `active` **et** crédit admin inutilisé > 0 — clawback du reste unused (`admin_grant` consommé avant les dépôts), jamais les fonds déposés ; mode « zero » = ce reste, pas tout le wallet
 
 #### Gestion leads
 - Liste tous les leads avec vues sauvegardées : statut, état, date de réception, Type multi-select (catégories + Unclassified + Multiple category match) et attribution à un filter set live. L’éditeur peut **Apply** un brouillon sans le persister ; la liste l’utilise immédiatement, l’éditeur se ferme, et une action **Save view** reste visible jusqu’à l’enregistrement.
@@ -484,7 +485,9 @@ Recharge Stripe → argent compte Stripe cliente → webhook → +wallet_balance
 Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 ```
 
-**Modes recharge :** manuelle ponctuelle + récurrente hebdomadaire (les deux en V1).
+**Modes recharge :** manuelle ponctuelle + récurrente hebdomadaire (les deux en V1). L’admin peut aussi **accorder** des crédits (`admin_grant`) et **reprendre** uniquement le crédit admin encore inutilisé (`admin_debit`) — jamais un dépôt Stripe.
+
+**Crédit admin inutilisé :** `admin_grant` − `admin_debit` − dépenses nettes (achats realtime/aged + `reprocessing_fee` − `refund`) ; grants consommés avant dépôts. Ex. grants 20 $+40 $, dépense 50 $, dépôt 50 $ → wallet 60 $, clawback max 10 $.
 
 **Statut actif :** `wallet_balance >= prix_effectif_agent`.
 
@@ -832,7 +835,7 @@ Contrainte : un seul critère par `field` par catégorie ; tous les critères d�
 |---------|------|-------------|
 | id | UUID PK | |
 | agent_id | FK | |
-| type | enum | top_up \| admin_grant \| lead_purchase \| aged_purchase \| refund \| reprocessing_fee |
+| type | enum | top_up \| admin_grant \| admin_debit \| lead_purchase \| aged_purchase \| refund \| reprocessing_fee |
 | amount | decimal | Positif = crédit, négatif = débit |
 | balance_after | decimal | Snapshot solde |
 | stripe_payment_intent_id | string nullable | |
@@ -940,6 +943,7 @@ Le mode effectif vient de `app_settings.integrations_mode` (dropdown admin Mode,
 - [ ] Remboursement type A → rematch priorité suivante, prix d’origine
 - [ ] Remboursement type B → crédit wallet, lead mort (pas de redistribution)
 - [ ] Admin grant credits → partenaire `active`, ledger `admin_grant`, email partner, Total Funded inclut le grant
+- [ ] Admin adjust credits → partenaire `active` + unused admin credit > 0 ; `admin_debit` ≤ unused (jamais les dépôts) ; mode zero = reste unused, pas tout le wallet
 - [ ] Signup → portail non actif → onboarding → admin approve → ≥ 15 états → active
 - [ ] Migration import dry-run
 

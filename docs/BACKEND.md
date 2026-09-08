@@ -22,7 +22,7 @@
 | Moteur matching V1 (FIFO) | ✅ |
 | Wallet ledger append-only | ✅ |
 | Admin credit grants (`admin_grant`) | ✅ |
-| Admin credit clawback (`admin_debit`) | ✅ any admin; reduce or set to $0; never below $0 |
+| Admin credit clawback (`admin_debit`) | ✅ any admin; unused admin credit only (grants minus spend minus prior clawbacks); never deposited funds |
 | Category max realtime sales + admin send-to-partner | ✅ default 1; extra sales are manual to a chosen partner |
 | Seed partners test | ✅ `pnpm run seed` |
 | Simulateur dev `/dev/lead-simulator` | ✅ |
@@ -165,7 +165,7 @@ POST /api/leads/intake
 
 **`lead_deliveries` (mark-as-sold aged) :** `partner_sold_at` (timestamp nullable) — posé par le partenaire sur sa **1ʳᵉ** livraison `channel=aged` dans les **7 jours** suivant `delivered_at` ; retire le lead de la marketplace (`aged_available_after = AGED_RETIRED_SENTINEL`) sans attendre une 2ᵉ vente. Si non marqué, le flux aged existant (cooldown tier → 2ᵉ vente → retrait) est inchangé. Helpers : `src/lib/aged/partner-mark-sold.ts`.
 
-**`transactions.type` :** `top_up`, `admin_grant`, `lead_purchase`, `aged_purchase`, `refund`, `reprocessing_fee`. Les crédits admin (`admin_grant`) sont append-only comme les top-ups ; audit dans `description` (`{note} - by {Admin Name}` ou `by {Admin Name}` si note vide). `acknowledged_at` null = notification in-app partenaire en attente (modal portail). `stripe_payment_intent_id` unique (nullable) — empêche un double crédit pour le même PaymentIntent Stripe.
+**`transactions.type` :** `top_up`, `admin_grant`, `admin_debit`, `lead_purchase`, `aged_purchase`, `refund`, `reprocessing_fee`. Les crédits admin (`admin_grant`) sont append-only comme les top-ups ; audit dans `description` (`{note} - by {Admin Name}` ou `by {Admin Name}` si note vide). `acknowledged_at` null = notification in-app partenaire en attente (modal portail). `stripe_payment_intent_id` unique (nullable) — empêche un double crédit pour le même PaymentIntent Stripe. Le crédit admin inutilisé = `admin_grant` − `admin_debit` − dépenses nettes (`lead_purchase` + `aged_purchase` + `reprocessing_fee` − `refund`), les grants étant consommés avant les dépôts ; un clawback ne peut pas dépasser ce reste ni le solde wallet.
 
 **`processed_stripe_events` :** idempotence webhook Stripe — `id` = `event.id` Stripe ; claim avant crédit / maj récurrence (`src/lib/stripe/webhook-idempotency.ts`).
 
@@ -456,7 +456,7 @@ Transaction atomique à la livraison :
 
 **Grant wallet credits** : `POST /api/admin/partners/[id]/grant-credits` — admin only ; partenaire `active` uniquement ; body `{ amount, note? }` ; limites : admin régulier $0.01–$1 000, super-admin >0 sans plafond ; `creditWallet(..., admin_grant)` + email partner (best-effort, échec email ne rollback pas ; CTA wallet via `resolveAppOrigin`) ; service `grantPartnerCredits()` dans `src/lib/wallet/grant-partner-credits.ts` ; template `buildPartnerCreditGrantEmail` — sujet `$X.XX credit added to your account` (pas de préfixe `[Partner Portal]`), corps sans note admin. UI : bouton « Grant credits » sur `/admin/partners/[id]` (partenaires actifs). Total Funded (partner reports/wallet + admin transactions funding) = somme `top_up` + `admin_grant`.
 
-**Adjust / clawback credits** : `POST /api/admin/partners/[id]/adjust-credits` — any admin, active partners only ; body `{ mode: "reduce" | "zero", amount?, note? }` (`amount` required for `reduce`) ; debit cannot exceed current balance and cannot go below $0 ; `debitWallet(..., admin_debit)` ; email via `buildPartnerCreditAdjustEmail`. UI : « Adjust credits » on `/admin/partners/[id]`. Does not change historical grant rows.
+**Adjust / clawback credits** : `POST /api/admin/partners/[id]/adjust-credits` — any admin, active partners only ; body `{ mode: "reduce" | "zero", amount?, note? }` (`amount` required for `reduce`) ; debit cannot exceed **unused admin credit** (grants consumed before deposits) and cannot take deposited funds ; `mode: "zero"` removes remaining unused credit, not the whole wallet ; service errors `no_unused_credit` / `exceeds_unused_credit` (HTTP 400) ; helper `getRemainingUnusedAdminCredit()` (`src/lib/wallet/remaining-admin-credit.ts`) ; `debitWallet(..., admin_debit)` via `adjustPartnerCredits()` ; email via `buildPartnerCreditAdjustEmail`. UI : « Adjust credits » on `/admin/partners/[id]` only when unused admin credit is greater than $0. Does not change historical grant rows.
 
 **Admin send already-sold leads** : `POST /api/admin/leads/send-to-partner` — body `{ leadIds[], partnerId }` ; any admin. Creates another `LeadDelivery` (realtime) to the **chosen** partner, charges their wallet, emails/CRM as usual. Guards: not dead/review; matched category; partner active and filter-eligible; partner has not already received a non-refunded realtime copy; non-refunded realtime sale count `< LeadCategory.maxRealtimeSells` (default **1**, so production stays exclusive until a category is edited). Automatic live matching is unchanged (still one winner then lock). UI: bulk + row + lead detail « Send to partner ». Category field `maxRealtimeSells` on Lead Categories (1–20). Migration `20260907180000_admin_debit_and_max_realtime_sells`.
 
