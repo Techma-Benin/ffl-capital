@@ -160,7 +160,8 @@ export async function sendLeadToPartner(
     );
   }
 
-  const matchingSets = partner.filterSets
+  const leadType = lead.leadType ?? "";
+  const filterMatches = partner.filterSets
     .map((filterSet) => ({
       filterSet,
       effectivePrice: getEffectivePrice(filterSet, defaultPrice),
@@ -170,9 +171,10 @@ export async function sendLeadToPartner(
         filterSet,
         partner,
         lead.state,
-        lead.leadType ?? "",
+        leadType,
         effectivePrice,
         lead,
+        false,
       ),
     )
     .sort((a, b) => {
@@ -182,11 +184,21 @@ export async function sendLeadToPartner(
       return a.filterSet.createdAt.getTime() - b.filterSet.createdAt.getTime();
     });
 
-  const winner = matchingSets[0];
-  if (!winner) {
+  if (filterMatches.length === 0) {
     throw new SendLeadToPartnerError(
       "Partner does not match this lead's filters",
       "no_filter_match",
+    );
+  }
+
+  const affordable = filterMatches.filter(
+    ({ effectivePrice }) => Number(partner.walletBalance) >= effectivePrice,
+  );
+  const winner = affordable[0];
+  if (!winner) {
+    throw new SendLeadToPartnerError(
+      "Partner does not have enough wallet balance",
+      "insufficient_balance",
     );
   }
 

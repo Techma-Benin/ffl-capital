@@ -112,6 +112,7 @@ export function isFilterSetEligibleForLead(
   leadType: string,
   effectivePrice: number,
   lead?: Lead,
+  requireWallet = true,
 ): boolean {
   if (!filterSet.active) return false;
   if (filterSet.isTemplate) return false;
@@ -119,7 +120,9 @@ export function isFilterSetEligibleForLead(
   if (filterSet.filterStates.length < MIN_FILTER_STATES) return false;
   if (!filterSet.filterStates.includes(leadState)) return false;
   if (filterSet.leadType !== leadType) return false;
-  if (Number(partner.walletBalance) < effectivePrice) return false;
+  if (requireWallet && Number(partner.walletBalance) < effectivePrice) {
+    return false;
+  }
 
   // Extended filter criteria check
   if (lead) {
