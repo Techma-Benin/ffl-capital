@@ -55,11 +55,6 @@ export default async function PartnerLeadDetailPage({
 
   const timeline: LeadDetailTimelineItem[] = [
     {
-      at: lead.receivedAt.toISOString(),
-      label: "Lead received",
-      detail: lead.source ? `Source: ${lead.source}` : "Lead ingested",
-    },
-    {
       at: delivery.deliveredAt.toISOString(),
       label: `Delivered (${delivery.channel})`,
       detail: `${channelLabel} · ${formatUsd(delivery.price)}`,
@@ -133,7 +128,6 @@ export default async function PartnerLeadDetailPage({
         haveIul: lead.haveIul,
         primaryGoal: lead.primaryGoal,
         stateYouCurrentlyLiveIn: lead.stateYouCurrentlyLiveIn,
-        receivedAt: lead.receivedAt.toISOString(),
         trustedformCertUrl: lead.trustedformCertUrl,
         tcpaConsent: lead.tcpaConsent,
         tcpaLanguage: lead.tcpaLanguage,

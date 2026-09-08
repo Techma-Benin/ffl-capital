@@ -1,6 +1,6 @@
 # Partner CRM outbound — self-service POST delivery
 
-> Dernière mise à jour : 10 août 2026
+> Dernière mise à jour : 8 septembre 2026
 
 Spécification produit et technique pour la livraison CRM optionnelle côté partner, en complément de l’email Resend (toujours envoyé).
 
@@ -72,7 +72,7 @@ Admin : plus d’édition CRM sur fiche partner ; carte compte = lecture seule (
 
 ## Champs source (mapping UI)
 
-Liste fermée alignée sur `buildLeadDeliveryPayload` (`src/lib/delivery/lead-payload.ts`) : identité, contact, IUL, compliance, tracking, prix, ids livraison/partner, etc.
+Liste fermée `LEAD_DELIVERY_SOURCE_FIELDS` alignée sur `buildLeadDeliveryPayload` (`src/lib/delivery/lead-payload.ts`) : identité, contact, IUL, compliance, tracking, prix, ids livraison/partner, etc. **Pas** de `receivedAt` (timestamp d’intake). Un mapping déjà enregistré vers `receivedAt` est ignoré à l’envoi (`buildFlatOutboundPayload` dans `src/lib/delivery/outbound-payload.ts`).
 
 ---
 

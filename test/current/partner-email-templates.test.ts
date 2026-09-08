@@ -3,7 +3,10 @@ import { describe, test } from "node:test";
 import type { Lead, LeadDelivery, Partner } from "@prisma/client";
 
 import { buildCrmOutboundFailureEmail } from "../../src/lib/delivery/crm-outbound-failure-email";
-import { buildLeadDeliveryEmailHtml } from "../../src/lib/delivery/lead-payload";
+import {
+  buildLeadDeliveryEmailHtml,
+  buildLeadDeliveryPayload,
+} from "../../src/lib/delivery/lead-payload";
 
 function minimalLead(overrides: Partial<Lead> = {}): Lead {
   return {
@@ -85,6 +88,19 @@ describe("buildLeadDeliveryEmailHtml", () => {
     assert.match(html, /Open in portal/);
     assert.match(html, /https:\/\/app\.example\.com\/partner\/leads\/delivery_1/);
     assert.match(html, /#0B3D91/);
+    assert.match(html, /\bDelivered\b/);
+    assert.doesNotMatch(html, />Received</);
+    assert.doesNotMatch(html, /2026-08-01T12:00:00/);
+  });
+
+  test("omits platform receivedAt from partner delivery payload", () => {
+    const payload = buildLeadDeliveryPayload(
+      minimalDelivery(),
+      minimalLead(),
+      minimalPartner(),
+    );
+    assert.equal("receivedAt" in payload, false);
+    assert.ok(payload.deliveredAt);
   });
 });
 

@@ -20,7 +20,9 @@ export type LeadPreviewModel = {
   age: string | null;
   leadType: string;
   leadTypeLabel: string;
-  receivedAt: string;
+  receivedAt?: string;
+  /** Precomputed age for partner marketplace (avoids exposing receivedAt). */
+  ageDays?: number;
   intent?: string;
   haveIul: string | null;
   primaryGoal: string | null;

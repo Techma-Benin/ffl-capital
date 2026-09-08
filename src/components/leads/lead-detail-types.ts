@@ -25,7 +25,7 @@ export type LeadDetailPanelLead = {
   primaryGoal: string | null;
   stateYouCurrentlyLiveIn: string | null;
   boberdooLeadType?: string | null;
-  receivedAt: string;
+  receivedAt?: string;
   trustedformCertUrl: string | null;
   tcpaConsent: string | null;
   tcpaLanguage: string | null;

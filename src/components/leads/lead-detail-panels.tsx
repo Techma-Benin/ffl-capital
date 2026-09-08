@@ -23,7 +23,14 @@ export function LeadDetailContactPanel({ lead }: { lead: LeadDetailPanelLead }) 
   );
 }
 
-export function LeadDetailIulPanel({ lead }: { lead: LeadDetailPanelLead }) {
+export function LeadDetailIulPanel({
+  lead,
+  showReceived = true,
+}: {
+  lead: LeadDetailPanelLead;
+  /** Platform intake time — admin only. Partners must not see receivedAt. */
+  showReceived?: boolean;
+}) {
   return (
     <LeadDetailFieldList>
       <div className="flex justify-between gap-4 text-sm">
@@ -51,10 +58,12 @@ export function LeadDetailIulPanel({ lead }: { lead: LeadDetailPanelLead }) {
           value={lead.boberdooLeadType}
         />
       )}
-      <LeadDetailFieldRow
-        label="Received"
-        value={formatDateTimeLong(lead.receivedAt) ?? undefined}
-      />
+      {showReceived && lead.receivedAt ? (
+        <LeadDetailFieldRow
+          label="Received"
+          value={formatDateTimeLong(lead.receivedAt) ?? undefined}
+        />
+      ) : null}
     </LeadDetailFieldList>
   );
 }
@@ -170,10 +179,12 @@ export function LeadDetailPurchasePanel({
 /** Readable rows for intake payload keys not already shown in curated panels. */
 export function LeadDetailOtherFieldsPanel({
   rawPayload,
+  omitKeys,
 }: {
   rawPayload: unknown;
+  omitKeys?: Iterable<string>;
 }) {
-  const fields = extractOtherPayloadFields(rawPayload);
+  const fields = extractOtherPayloadFields(rawPayload, { omitKeys });
   if (fields.length === 0) {
     return (
       <p className="text-sm text-slate-400">No additional payload fields</p>

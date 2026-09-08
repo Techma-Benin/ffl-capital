@@ -164,14 +164,26 @@ export function PartnerLeadDetailView({
           <>
             <LeadDetailSectionCard title={partnerTabTitle(tab)}>
               {tab === "contact" && <LeadDetailContactPanel lead={lead} />}
-              {tab === "iul" && <LeadDetailIulPanel lead={lead} />}
+              {tab === "iul" && (
+                <LeadDetailIulPanel lead={lead} showReceived={false} />
+              )}
               {tab === "compliance" && <LeadDetailCompliancePanel lead={lead} />}
               {tab === "purchase" && <LeadDetailPurchasePanel purchase={purchase} />}
             </LeadDetailSectionCard>
 
             {rawPayload != null && (
               <LeadDetailSectionCard title="Other fields">
-                <LeadDetailOtherFieldsPanel rawPayload={rawPayload} />
+                <LeadDetailOtherFieldsPanel
+                  rawPayload={rawPayload}
+                  omitKeys={[
+                    "receivedAt",
+                    "received_at",
+                    "received",
+                    "lead_date",
+                    "leadDate",
+                    "lead_date_thom",
+                  ]}
+                />
               </LeadDetailSectionCard>
             )}
           </>

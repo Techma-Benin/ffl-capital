@@ -332,7 +332,7 @@ Phase D — Migration Replit (livraison client)
 #### Mes leads
 - Liste des leads livrés (temps réel + aged achetés)
 - Vues sauvegardées avec périodes today / yesterday / 7 derniers jours / mois dernier / custom, appliquées à la date de livraison ; un brouillon appliqué reste disponible à la réouverture de l’éditeur et ne devient persistant qu’avec **Save view**
-- Détail : contact, état, date, prix payé, certificat TrustedForm ; section **Other fields** (mêmes lignes lisibles depuis `rawPayload` que l’admin — pas de dump JSON brut)
+- Détail : contact, état, **date de livraison** (`LeadDelivery.deliveredAt`), prix payé, certificat TrustedForm — **jamais** le timestamp d’intake `Lead.receivedAt` (pas de ligne « Lead received » / Received). Section **Other fields** lisible depuis `rawPayload` (pas de dump JSON brut) ; omet les clés `receivedAt`, `received_at`, `received`, `lead_date`, `leadDate`, `lead_date_thom`. L’admin continue d’afficher Received
 - Bouton **Mark as sold** sur la **1ʳᵉ** livraison aged (≤ 7 j depuis la livraison, non remboursée) ; badge **Marked sold** une fois confirmé — retire le lead de la marketplace sans 2ᵉ vente
 - Bouton **demander remboursement** (si delivery `refundable`)
 
@@ -344,7 +344,7 @@ Phase D — Migration Replit (livraison client)
 
 #### Marketplace aged leads
 - Filtres **UI** (optionnels, multi-select) : états, types IUL, tranches d’âge (clés `String(tier.minDays)` depuis `aged_price_tiers` ; URL comma-séparées ; OR dans une dimension, AND entre dimensions ; vide = tous) — **pas** de filtre Have IUL, **pas** de restriction par filter set ni par `lead_type` compte
-- Liste : même éligibilité que admin (âge ≥ seuil 1ᵉʳ tier, `status != dead`) ; **pas** de condition `available = true` ; **prix affiché par lead** selon la tranche
+- Liste : même éligibilité que admin (âge ≥ seuil 1ᵉʳ tier, `status != dead`) ; **pas** de condition `available = true` ; **prix affiché par lead** selon la tranche ; âge affiché en **jours** (`ageDays`), pas le datetime d’intake
 - **Achat unitaire** : bouton acheter sur une ligne
 - **Sélection multiple** : checkboxes + « Acheter la sélection »
 - Débit wallet, livraison email + CRM
@@ -493,7 +493,7 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 ### 5.10 Notifications email
 
-- Agent : email à chaque lead livré (temps réel ou aged)
+- Agent : email à chaque lead livré (temps réel ou aged) — ligne **Delivered** (`deliveredAt`) ; **pas** de ligne Received / `receivedAt`
 - Admin : optionnel — spike unmatched, demandes remboursement
 - Pas d’email mot de passe (Clerk)
 
@@ -501,7 +501,7 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 - Chaque agent configure **un profil POST** via `/partner/settings/crm-outbound` (accès depuis la carte Lead delivery) : URL, auth (`none` / bearer / header / basic / champs body), mapping source → clés JSON plat, règle de succès optionnelle
 - Settings affiche email + CRM : **configuré** (URL sauvegardée) distinct de **activé** (`enabled`) — host + badge Ready/Off, toggle Power (GET puis PATCH), Test (modal, retourne aussi `requestPayload`), Delete ; sans config → Connect CRM seul
-- À chaque livraison matchée : **email toujours** (Resend) ; si config **activée** (`enabled`), POST vers l’endpoint partner
+- À chaque livraison matchée : **email toujours** (Resend) ; si config **activée** (`enabled`), POST vers l’endpoint partner. Catalogue source = `buildLeadDeliveryPayload` (**sans** `receivedAt`) ; un mapping existant vers `receivedAt` est ignoré au POST (`buildFlatOutboundPayload`)
 - Échec POST : pas de retry ; email partner avec raison (**sans** payload lead)
 - Spécification complète : [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) (SSRF, test fixture, admin lecture seule)
 - Mode `integrations_mode=mock` (valeur `app_settings` prime sur env) : pas d’appels HTTP CRM réels ; événements lead tracés

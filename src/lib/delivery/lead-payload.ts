@@ -68,7 +68,6 @@ export function buildLeadDeliveryPayload(
     boberdooLeadType: lead.boberdooLeadType,
     ipAddress: lead.ipAddress,
     userAgent: lead.userAgent,
-    receivedAt: lead.receivedAt.toISOString(),
     price: Number(delivery.price),
     deliveredAt: delivery.deliveredAt.toISOString(),
     partnerId: partner.id,
@@ -127,7 +126,10 @@ export function buildLeadDeliveryEmailHtml(
     { label: "User Agent", value: lead.userAgent },
     { label: "Channel", value: delivery.channel },
     { label: "Price", value: formatUsd(delivery.price) },
-    { label: "Received", value: new Date(lead.receivedAt).toLocaleString() },
+    {
+      label: "Delivered",
+      value: new Date(delivery.deliveredAt).toLocaleString(),
+    },
   ]);
 
   const bodyHtml = `

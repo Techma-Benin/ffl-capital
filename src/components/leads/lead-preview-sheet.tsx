@@ -114,7 +114,9 @@ export function LeadPreviewSheet({
   if (!lead) return null;
 
   const name = `${lead.firstName} ${lead.lastName}`.trim();
-  const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
+  const ageDays =
+    lead.ageDays ??
+    (lead.receivedAt != null ? partnerAgedLeadAgeDays(lead.receivedAt) : 0);
   const ageChip = getPartnerAgedLeadAgeChipClassNames(ageDays, agedDaysMin);
   const statusKey = lead.status?.trim() || null;
   const statusLabel = statusKey

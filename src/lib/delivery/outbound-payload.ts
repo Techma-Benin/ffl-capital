@@ -10,6 +10,7 @@ export function buildFlatOutboundPayload(
   const out: Record<string, string | number | boolean | null> = {};
 
   for (const { source: srcKey, target } of mappings) {
+    if (srcKey === "receivedAt") continue;
     if (!(srcKey in source)) continue;
     const value = source[srcKey];
     if (value === undefined) continue;

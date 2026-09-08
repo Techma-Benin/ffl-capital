@@ -400,7 +400,11 @@ export function PartnerAgedView({
         ) : (
           <ul className="divide-y divide-slate-100" aria-label="Available aged leads">
             {visibleLeads.map((lead) => {
-              const ageDays = partnerAgedLeadAgeDays(lead.receivedAt);
+              const ageDays =
+                lead.ageDays ??
+                (lead.receivedAt != null
+                  ? partnerAgedLeadAgeDays(lead.receivedAt)
+                  : 0);
               const ageChip = getPartnerAgedLeadAgeChipClassNames(ageDays, agedDays);
               const leadName = `${lead.firstName} ${lead.lastName}`;
               const canBuyLead =

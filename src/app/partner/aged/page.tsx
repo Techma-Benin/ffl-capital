@@ -13,6 +13,7 @@ import {
   buildAdminAgedTypeFilterOptions,
   parseAdminAgedLeadFilters,
   parsePartnerAgedClientFilters,
+  partnerAgedLeadAgeDays,
   PARTNER_AGED_CLIENT_LOAD_LIMIT,
 } from "@/lib/admin/admin-aged-leads-filters";
 import {
@@ -87,7 +88,7 @@ export default async function PartnerAgedPage({
             categoryCandidateTypes: lead.categoryCandidateTypes,
             categories,
           }).label,
-          receivedAt: lead.receivedAt.toISOString(),
+          ageDays: partnerAgedLeadAgeDays(lead.receivedAt),
           intent: lead.intent ?? "",
           haveIul: lead.haveIul,
           primaryGoal: lead.primaryGoal,
@@ -96,7 +97,15 @@ export default async function PartnerAgedPage({
           historyOfCancer: lead.historyOfCancer,
           mortgageLoanAmount: lead.mortgageLoanAmount,
           otherAnswers: extractOtherPayloadFields(lead.rawPayload, {
-            omitKeys: LEAD_PREVIEW_COLUMN_PAYLOAD_KEYS,
+            omitKeys: [
+              ...LEAD_PREVIEW_COLUMN_PAYLOAD_KEYS,
+              "receivedAt",
+              "received_at",
+              "received",
+              "lead_date",
+              "leadDate",
+              "lead_date_thom",
+            ],
           }).map(({ label, value }) => ({ label, value })),
           price: resolveAgedPriceForReceivedAt(
             lead.receivedAt,

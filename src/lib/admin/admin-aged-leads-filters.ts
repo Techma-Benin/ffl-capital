@@ -200,14 +200,28 @@ export function partnerAgedLeadAgeDays(receivedAt: Date | string): number {
 }
 
 /** Mirrors `resolveAgedLeadAgeReceivedAt` buckets for in-memory partner filtering. */
-export function partnerAgedLeadMatchesAgeBucket(
-  receivedAt: Date | string,
+export function partnerAgedLeadMatchesAgeDays(
+  ageDays: number,
   bucket: AdminAgedLeadAgeFilter,
   tiers: AgedPriceTier[] = DEFAULT_AGED_PRICE_TIERS,
 ): boolean {
   const tier = findTierForAgeBucket(bucket, tiers);
   if (!tier) return false;
-  return partnerAgedLeadMatchesTier(receivedAt, tier);
+  if (ageDays < tier.minDays) return false;
+  if (tier.maxDays == null) return true;
+  return ageDays <= tier.maxDays;
+}
+
+export function partnerAgedLeadMatchesAgeBucket(
+  receivedAt: Date | string,
+  bucket: AdminAgedLeadAgeFilter,
+  tiers: AgedPriceTier[] = DEFAULT_AGED_PRICE_TIERS,
+): boolean {
+  return partnerAgedLeadMatchesAgeDays(
+    partnerAgedLeadAgeDays(receivedAt),
+    bucket,
+    tiers,
+  );
 }
 
 export type PartnerAgedClientFilters = {
@@ -253,7 +267,8 @@ export function filterPartnerAgedLeadsInMemory<
   T extends {
     state: string;
     leadType: string;
-    receivedAt: string | Date;
+    receivedAt?: string | Date;
+    ageDays?: number;
   },
 >(
   leads: T[],
@@ -269,11 +284,18 @@ export function filterPartnerAgedLeadsInMemory<
       return false;
     }
     if (filters.ages.length > 0) {
-      const matchesAge = filters.ages.some(
-        (age) =>
-          knownBuckets.has(age) &&
-          partnerAgedLeadMatchesAgeBucket(lead.receivedAt, age, tiers),
-      );
+      const ageDays =
+        lead.ageDays ??
+        (lead.receivedAt != null
+          ? partnerAgedLeadAgeDays(lead.receivedAt)
+          : null);
+      const matchesAge =
+        ageDays != null &&
+        filters.ages.some(
+          (age) =>
+            knownBuckets.has(age) &&
+            partnerAgedLeadMatchesAgeDays(ageDays, age, tiers),
+        );
       if (!matchesAge) return false;
     }
     return true;

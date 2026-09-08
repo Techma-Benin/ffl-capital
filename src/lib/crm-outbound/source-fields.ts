@@ -31,7 +31,6 @@ export const LEAD_DELIVERY_SOURCE_FIELDS = [
   "boberdooLeadType",
   "ipAddress",
   "userAgent",
-  "receivedAt",
   "price",
   "deliveredAt",
   "partnerId",

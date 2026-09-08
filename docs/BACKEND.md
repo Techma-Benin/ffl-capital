@@ -1,7 +1,7 @@
 # FFL Capital — Backend
 
 > Journal d'implémentation backend  
-> Dernière mise à jour : 17 août 2026
+> Dernière mise à jour : 8 septembre 2026
 
 **Plan backend core :** [CORE_BACKEND_PLAN.md](CORE_BACKEND_PLAN.md) — ✅ **9 phases complétées** (juil. 2026).
 
@@ -321,7 +321,7 @@ Tri : `src/lib/admin/admin-aged-leads-sort.ts` (`buildAdminAgedLeadOrderBy` — 
 
 Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil depuis `aged_price_tiers`, hors `dead`). **Les filter sets partner ne restreignent pas** le listing ni l’achat aged — seuls le matching temps réel et les remboursements « wrong filter » s’appuient sur les filter sets (`partner_filter_sets.lead_type`).
 
-**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age ; filtres et pagination appliqués **côté client** (`PartnerAgedClientFilters` = `{ states, types, ages }` ; `filterPartnerAgedLeadsInMemory` — OR dans une dimension, AND entre dimensions ; sélection vide = tous). Pas de filtre UI `haveIul` (le champ lead reste affiché en preview). Paramètres URL (`state`, `type`, `age`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc. Cache : clé `partner-aged` (`client-store`) ; invalidate / patch à l’achat. Chaque lead affiche le **prix de son tier** ; le panier somme des prix mixtes. Admin aged (`/admin/aged`) reste en single-select pour `type` / `age`.
+**Chargement** : SSR charge une fois jusqu’à `PARTNER_AGED_CLIENT_LOAD_LIMIT` (2500) leads éligibles sans filtre state/type/age ; filtres et pagination appliqués **côté client** (`PartnerAgedClientFilters` = `{ states, types, ages }` ; `filterPartnerAgedLeadsInMemory` — OR dans une dimension, AND entre dimensions ; sélection vide = tous). Pas de filtre UI `haveIul` (le champ lead reste affiché en preview). Paramètres URL (`state`, `type`, `age`) synchronisés via `history.replaceState` pour partage. Si le pool dépasse la limite, bannière + sous-ensemble trié par `receivedAt` asc **côté serveur** ; le payload client expose `ageDays` (pas `receivedAt`) — l’UI affiche l’âge en jours. Cache : clé `partner-aged` (`client-store`) ; invalidate / patch à l’achat. Chaque lead affiche le **prix de son tier** ; le panier somme des prix mixtes. Admin aged (`/admin/aged`) reste en single-select pour `type` / `age`.
 
 | Param | Valeurs | Effet |
 |-------|---------|--------|
@@ -401,7 +401,7 @@ Libellés de statut lead (admin) : `formatLeadStatusLabel` (`lead-status-label.t
 
 ### Other fields (détail lead admin + partner)
 
-`other-payload-fields.ts` — aplatit `rawPayload` (chemins pointés pour le nested), ignore null/vides, omet les clés déjà couvertes par les panneaux Contact / IUL / Compliance / Tracking (alias LeadConduit + camelCase), humanise les libellés. UI partagée `LeadDetailOtherFieldsPanel` ; admin conserve aussi le JSON **Raw Payload** (audit) ; partner n’affiche que la liste lisible (pas de dump JSON). Aucune colonne BDD ajoutée.
+`other-payload-fields.ts` — aplatit `rawPayload` (chemins pointés pour le nested), ignore null/vides, omet les clés déjà couvertes par les panneaux Contact / IUL / Compliance / Tracking (alias LeadConduit + camelCase), humanise les libellés. UI partagée `LeadDetailOtherFieldsPanel` ; admin conserve aussi le JSON **Raw Payload** (audit) ; partner n’affiche que la liste lisible (pas de dump JSON) et **omet** les clés d’intake `receivedAt`, `received_at`, `received`, `lead_date`, `leadDate`, `lead_date_thom`. Détail partner : `receivedAt` n’est pas sérialisé vers le client ; timeline sans « Lead received » ; panneau IUL sans Received. Admin inchangé. Aucune colonne BDD ajoutée.
 
 ### Assignation manuelle (review uniquement)
 
@@ -551,8 +551,8 @@ Sur `*.replit.app`, pas de CNAME Clerk → la Frontend API est proxifiée via `/
 | Intégration | Mode | Variables / notes |
 |-------------|------|-------------------|
 | Stripe wallet | test puis prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — webhook prod : events `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted` ; secret = endpoint `https://ffl-capital.replit.app/api/webhooks/stripe` (pas une URL Replit éphémère) ; migrate `20260810140000_stripe_webhook_idempotency` requis |
-| Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` — livraison lead **et** Partner Contact Us ; destinataire Contact Us = `app_settings.contact_recipient_email` (défaut `sami@ffl-capital.com`, UI Admin → Settings → General → Platform) ; CTAs absolus (grant credits, invites, Stripe return, lead delivery, échec CRM) via `resolveAppOrigin` — préférer `NEXT_PUBLIC_APP_URL` non-loopback (sinon `REPLIT_DOMAINS`) ; builders email ignorent aussi les overrides d’URL absolue loopback |
-| CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
+| Resend email | optionnel | `RESEND_API_KEY`, `FROM_EMAIL` — livraison lead **et** Partner Contact Us ; email lead : ligne **Delivered** (`deliveredAt`), **sans** Received / `receivedAt` ; destinataire Contact Us = `app_settings.contact_recipient_email` (défaut `sami@ffl-capital.com`, UI Admin → Settings → General → Platform) ; CTAs absolus (grant credits, invites, Stripe return, lead delivery, échec CRM) via `resolveAppOrigin` — préférer `NEXT_PUBLIC_APP_URL` non-loopback (sinon `REPLIT_DOMAINS`) ; builders email ignorent aussi les overrides d’URL absolue loopback |
+| CRM outbound POST | par partner (BDD) | `partner_crm_outbound_configs` — [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) ; `buildLeadDeliveryPayload` / `LEAD_DELIVERY_SOURCE_FIELDS` **sans** `receivedAt` ; mappings `receivedAt` ignorés au POST (`buildFlatOutboundPayload`) |
 | IntegrityCONNECT | mock/live (admin + env) | Vendors `integrity_realtime` / `integrity_storefront` dans `resale_vendor_configs` (enabled + postUrl) ; fallback env `INTEGRITY_REALTIME_SUBMIT_URL` / `INTEGRITY_STOREFRONT_SUBMIT_URL` ; Realtime et Storefront postent directement vers LeadConduit, sans ping préalable ; mode sorties via `getIntegrationsMode()` : `app_settings.integrations_mode` prime, env `INTEGRATIONS_MODE` si pas de valeur DB, défaut `mock` (dev) / `live` (prod). Dropdown Mode (Settings → Integrations / Integrity Connect) visible et persistable en prod ; **PATCH immédiat** `/api/admin/settings` — pas besoin de Save du formulaire. **Mock auto posts** : HTTP réel vers LeadConduit avec `is_test=yes` (`applyIntegrityAutoPostTestFlag`). Live auto posts ne forcent pas `is_test`. **Boberdoo parity** : posts auto toujours HTTP — pas de gate local `required-fields.ts` ; rejets LC → `integrity_rejected` (outcome `rejected`) ou `integrity_no_campaign` (outcome `no_campaign_available`) quand la raison contient « No Campaign Available » (`src/lib/integrity/no-campaign.ts`) ; body LC stocké sur l’événement. `required-fields.ts` = avertissements admin seulement. Boutons admin test : toujours HTTP réel + `is_test=yes` (mock et live) |
 | Cron jobs | routes prêtes | `CRON_SECRET` (dev : défaut `dev-cron-secret` si unset) + `pnpm run verify:cron` |
 
@@ -807,3 +807,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-10 | `resolveAppOrigin` : URLs absolues emails / invite admin / Stripe success-cancel — `NEXT_PUBLIC_APP_URL` non-loopback → `REPLIT_DOMAINS` → origine explicite non-loopback → `http://localhost:3000` ; builders (grant / lead / CRM échec) rejettent aussi les overrides loopback |
 | 2026-08-14 | Integrity : suppression complète du ping Azure/preflight ; posts Realtime et Storefront directs vers LeadConduit ; rejets terminaux dérivés par mode depuis postings + événements, champs `integrityBlocked*` conservés pour audit ; NCA toujours retryable ; reprocess manuel inchangé et forcé ; UI Leads **Integrity - Rejected** ; aucune migration |
 | 2026-08-17 | Partner mark-as-sold aged : `lead_deliveries.partner_sold_at` ; fenêtre 7 j depuis `delivered_at` sur 1ʳᵉ vente aged uniquement ; retrait marketplace immédiat (`AGED_RETIRED_SENTINEL`) ; événement `aged_partner_sold` ; `POST /api/partner/deliveries/[id]/mark-sold` ; UI détail partner |
+| 2026-09-08 | Partner : jamais `Lead.receivedAt` (détail / Other fields / preview aged / email / `buildLeadDeliveryPayload` / catalogue CRM) ; `deliveredAt` et `ageDays` OK ; mappings CRM `receivedAt` skippés ; admin inchangé |
