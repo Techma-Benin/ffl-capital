@@ -487,7 +487,7 @@ Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 
 **Modes recharge :** manuelle ponctuelle + récurrente hebdomadaire (les deux en V1). L’admin peut aussi **accorder** des crédits (`admin_grant`) et **reprendre** uniquement le crédit admin encore inutilisé (`admin_debit`) — jamais un dépôt Stripe.
 
-**Crédit admin inutilisé :** `admin_grant` − `admin_debit` − dépenses nettes (achats realtime/aged + `reprocessing_fee` − `refund`) ; grants consommés avant dépôts. Ex. grants 20 $+40 $, dépense 50 $, dépôt 50 $ → wallet 60 $, clawback max 10 $.
+**Crédit admin inutilisé :** replay du ledger (ordre `created_at`, `id`), pas totaux grants − dépenses. Enveloppe à 0 ; `admin_grant` ajoute ; achats realtime/aged + `reprocessing_fee` consomment l’enveloppe d’abord (le reste sur les dépôts) ; `refund` remet la part crédit de ce `lead_delivery_id` ; `admin_debit` ne réduit que l’enveloppe (pas sous 0) ; `top_up` ignoré. Plafond clawback = min(enveloppe, solde wallet). Ex. grants 20 $+40 $, dépense 50 $, dépôt 50 $ → wallet 60 $, clawback max 10 $.
 
 **Statut actif :** `wallet_balance >= prix_effectif_agent`.
 

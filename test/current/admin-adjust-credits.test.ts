@@ -30,48 +30,71 @@ const activePartner = {
 describe("remainingUnusedAdminCredit", () => {
   test("grants then spend then deposit leaves only unused grant", () => {
     assert.equal(
-      remainingUnusedAdminCredit({
-        grantTotal: 60,
-        clawbackTotal: 0,
-        netSpend: 50,
-        walletBalance: 60,
-      }),
+      remainingUnusedAdminCredit(
+        [
+          { type: "admin_grant", amount: 20 },
+          { type: "admin_grant", amount: 40 },
+          { type: "lead_purchase", amount: -50, leadDeliveryId: "d1" },
+          { type: "top_up", amount: 50 },
+        ],
+        60,
+      ),
+      10,
+    );
+  });
+
+  test("a grant after spend is still clawable", () => {
+    assert.equal(
+      remainingUnusedAdminCredit(
+        [
+          { type: "lead_purchase", amount: -25, leadDeliveryId: "d1" },
+          { type: "lead_purchase", amount: -25, leadDeliveryId: "d2" },
+          { type: "admin_grant", amount: 10 },
+        ],
+        11,
+      ),
       10,
     );
   });
 
   test("partners with deposits only have nothing to claw back", () => {
     assert.equal(
-      remainingUnusedAdminCredit({
-        grantTotal: 0,
-        clawbackTotal: 0,
-        netSpend: 20,
-        walletBalance: 80,
-      }),
+      remainingUnusedAdminCredit(
+        [
+          { type: "top_up", amount: 100 },
+          { type: "lead_purchase", amount: -20, leadDeliveryId: "d1" },
+        ],
+        80,
+      ),
       0,
     );
   });
 
   test("fully spent grants cannot be clawed back", () => {
     assert.equal(
-      remainingUnusedAdminCredit({
-        grantTotal: 60,
-        clawbackTotal: 0,
-        netSpend: 70,
-        walletBalance: 40,
-      }),
+      remainingUnusedAdminCredit(
+        [
+          { type: "admin_grant", amount: 60 },
+          { type: "lead_purchase", amount: -70, leadDeliveryId: "d1" },
+          { type: "top_up", amount: 50 },
+        ],
+        40,
+      ),
       0,
     );
   });
 
-  test("refunds restore unused grant before deposits", () => {
+  test("refunds restore the credit taken on that purchase", () => {
     assert.equal(
-      remainingUnusedAdminCredit({
-        grantTotal: 60,
-        clawbackTotal: 0,
-        netSpend: 30,
-        walletBalance: 80,
-      }),
+      remainingUnusedAdminCredit(
+        [
+          { type: "admin_grant", amount: 60 },
+          { type: "lead_purchase", amount: -50, leadDeliveryId: "d1" },
+          { type: "refund", amount: 20, leadDeliveryId: "d1" },
+          { type: "top_up", amount: 50 },
+        ],
+        80,
+      ),
       30,
     );
   });

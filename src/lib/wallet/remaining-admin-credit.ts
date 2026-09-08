@@ -3,38 +3,77 @@ import { prisma } from "@/lib/db";
 
 type LedgerClient = {
   transaction: {
-    groupBy: typeof prisma.transaction.groupBy;
+    findMany: typeof prisma.transaction.findMany;
   };
+};
+
+const SPEND_TYPES = new Set([
+  "lead_purchase",
+  "aged_purchase",
+  "reprocessing_fee",
+]);
+
+export type AdminCreditLedgerEntry = {
+  type: string;
+  amount: number;
+  leadDeliveryId?: string | null;
 };
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function sumByType(
-  grouped: Array<{ type: string; _sum: { amount: number | null } }>,
-  type: string,
-): number {
-  return Number(grouped.find((row) => row.type === type)?._sum.amount ?? 0);
-}
-
 /**
  * Unused admin credit still sitting in the wallet.
- * Admin grants are consumed before deposits; clawbacks only return unused grants.
+ * Replay grants/spends/refunds/clawbacks in time order; grants are spent before deposits.
  */
-export function remainingUnusedAdminCredit(input: {
-  grantTotal: number;
-  clawbackTotal: number;
-  netSpend: number;
-  walletBalance: number;
-}): number {
-  const unusedGranted = roundMoney(
-    Math.max(
-      0,
-      input.grantTotal - input.clawbackTotal - Math.max(0, input.netSpend),
-    ),
+export function remainingUnusedAdminCredit(
+  entries: AdminCreditLedgerEntry[],
+  walletBalance: number,
+): number {
+  let envelope = 0;
+  const creditTakenByDelivery = new Map<string, number>();
+
+  for (const entry of entries) {
+    const amount = Number(entry.amount);
+    if (!Number.isFinite(amount) || amount === 0) continue;
+
+    if (entry.type === "admin_grant") {
+      envelope = roundMoney(envelope + amount);
+      continue;
+    }
+
+    if (entry.type === "admin_debit") {
+      envelope = roundMoney(Math.max(0, envelope - Math.abs(amount)));
+      continue;
+    }
+
+    if (SPEND_TYPES.has(entry.type)) {
+      const fromCredit = roundMoney(Math.min(envelope, Math.abs(amount)));
+      envelope = roundMoney(envelope - fromCredit);
+      const deliveryId = entry.leadDeliveryId;
+      if (deliveryId && fromCredit > 0) {
+        creditTakenByDelivery.set(
+          deliveryId,
+          roundMoney((creditTakenByDelivery.get(deliveryId) ?? 0) + fromCredit),
+        );
+      }
+      continue;
+    }
+
+    if (entry.type === "refund") {
+      const deliveryId = entry.leadDeliveryId;
+      if (!deliveryId) continue;
+      const taken = creditTakenByDelivery.get(deliveryId) ?? 0;
+      const restore = roundMoney(Math.min(taken, Math.abs(amount)));
+      envelope = roundMoney(envelope + restore);
+      creditTakenByDelivery.set(deliveryId, roundMoney(taken - restore));
+    }
+  }
+
+  return roundMoney(
+    Math.min(Math.max(0, envelope), Math.max(0, walletBalance)),
   );
-  return roundMoney(Math.min(unusedGranted, Math.max(0, input.walletBalance)));
 }
 
 export async function getRemainingUnusedAdminCredit(
@@ -42,26 +81,18 @@ export async function getRemainingUnusedAdminCredit(
   walletBalance: number,
   client: LedgerClient | Prisma.TransactionClient = prisma,
 ): Promise<number> {
-  const grouped = await client.transaction.groupBy({
-    by: ["type"],
+  const rows = await client.transaction.findMany({
     where: { partnerId },
-    _sum: { amount: true },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { type: true, amount: true, leadDeliveryId: true },
   });
 
-  const grantTotal = sumByType(grouped, "admin_grant");
-  const clawbackTotal = Math.abs(sumByType(grouped, "admin_debit"));
-  const purchaseOutflow = -(
-    sumByType(grouped, "lead_purchase") +
-    sumByType(grouped, "aged_purchase") +
-    sumByType(grouped, "reprocessing_fee")
-  );
-  const refunds = sumByType(grouped, "refund");
-  const netSpend = roundMoney(purchaseOutflow - refunds);
-
-  return remainingUnusedAdminCredit({
-    grantTotal,
-    clawbackTotal,
-    netSpend,
+  return remainingUnusedAdminCredit(
+    rows.map((row) => ({
+      type: row.type,
+      amount: Number(row.amount),
+      leadDeliveryId: row.leadDeliveryId,
+    })),
     walletBalance,
-  });
+  );
 }
