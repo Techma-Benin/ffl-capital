@@ -6,6 +6,7 @@ import {
   countNonRefundedRealtimeSales,
   evaluateRealtimeSaleGuard,
   partnerOwnsNonRefundedRealtimeSale,
+  uniquePartnerIdsWithNonRefundedRealtimeSale,
 } from "../../src/lib/leads/realtime-sale-cap";
 
 describe("realtime sale cap", () => {
@@ -16,6 +17,18 @@ describe("realtime sale cap", () => {
       { partnerId: "c", channel: "aged", refundedAt: null },
     ]);
     assert.equal(count, 1);
+  });
+
+  test("lists unique partners with a live realtime copy", () => {
+    assert.deepEqual(
+      uniquePartnerIdsWithNonRefundedRealtimeSale([
+        { partnerId: "p1", channel: "realtime", refundedAt: null },
+        { partnerId: "p1", channel: "realtime", refundedAt: null },
+        { partnerId: "p2", channel: "realtime", refundedAt: new Date() },
+        { partnerId: "p3", channel: "aged", refundedAt: null },
+      ]),
+      ["p1"],
+    );
   });
 
   test("detects an existing non-refunded realtime sale to the partner", () => {

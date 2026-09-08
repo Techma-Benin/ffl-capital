@@ -53,7 +53,11 @@ export function SendLeadsToPartnerDialog({
     setPartnerId("");
     setQuery("");
 
-    fetch("/api/admin/partners/active")
+    fetch(
+      `/api/admin/partners/active?${new URLSearchParams({
+        leadIds: leadIds.join(","),
+      })}`,
+    )
       .then(async (res) => {
         if (!res.ok) {
           const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -179,7 +183,11 @@ export function SendLeadsToPartnerDialog({
           ) : fetchError ? (
             <p className="text-sm text-red-600">{fetchError}</p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-slate-500">No active partners found.</p>
+            <p className="text-sm text-slate-500">
+              {query.trim()
+                ? "No matching partners."
+                : "No eligible partners — they already received a non-refunded copy of this lead, or none are active."}
+            </p>
           ) : (
             <ul className="max-h-72 space-y-1 overflow-y-auto">
               {filtered.map((partner) => {

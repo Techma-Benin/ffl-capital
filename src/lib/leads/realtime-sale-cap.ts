@@ -16,15 +16,27 @@ export function countNonRefundedRealtimeSales(
   ).length;
 }
 
+export function uniquePartnerIdsWithNonRefundedRealtimeSale(
+  deliveries: RealtimeSaleDelivery[],
+): string[] {
+  return [
+    ...new Set(
+      deliveries
+        .filter(
+          (delivery) =>
+            delivery.channel === "realtime" && delivery.refundedAt == null,
+        )
+        .map((delivery) => delivery.partnerId),
+    ),
+  ];
+}
+
 export function partnerOwnsNonRefundedRealtimeSale(
   deliveries: RealtimeSaleDelivery[],
   partnerId: string,
 ): boolean {
-  return deliveries.some(
-    (delivery) =>
-      delivery.partnerId === partnerId &&
-      delivery.channel === "realtime" &&
-      delivery.refundedAt == null,
+  return uniquePartnerIdsWithNonRefundedRealtimeSale(deliveries).includes(
+    partnerId,
   );
 }
 
