@@ -22,9 +22,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid leadIds" }, { status: 400 });
   }
 
-  const partners = await listActivePartnersForPicker(
+  const { partners, resale } = await listActivePartnersForPicker(
     parsedLeadIds.success ? parsedLeadIds.data : [],
   );
 
-  return NextResponse.json({ partners });
+  return NextResponse.json({ partners, resale });
 }

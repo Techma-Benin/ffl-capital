@@ -12,9 +12,9 @@ import { deliverLead } from "@/lib/delivery/deliver-lead";
 import { emitLeadEvent } from "@/lib/leads/lead-events";
 import {
   DEFAULT_MAX_REALTIME_SELLS,
-  countNonRefundedRealtimeSales,
   evaluateRealtimeSaleGuard,
   partnerOwnsNonRefundedRealtimeSale,
+  realtimeSalesOnLead,
 } from "@/lib/leads/realtime-sale-cap";
 import { claimLiveSale } from "@/lib/lead-routing/live-sale";
 import {
@@ -133,7 +133,10 @@ export async function sendLeadToPartner(
 
   const maxRealtimeSells =
     category?.maxRealtimeSells ?? DEFAULT_MAX_REALTIME_SELLS;
-  const soldCount = countNonRefundedRealtimeSales(lead.leadDeliveries);
+  const soldCount = realtimeSalesOnLead({
+    deliveries: lead.leadDeliveries,
+    status: lead.status,
+  });
   const alreadySoldToPartner = partnerOwnsNonRefundedRealtimeSale(
     lead.leadDeliveries,
     partnerId,
@@ -228,7 +231,10 @@ export async function sendLeadToPartner(
       where: { id: partnerId },
     });
 
-    const freshSold = countNonRefundedRealtimeSales(freshLead.leadDeliveries);
+    const freshSold = realtimeSalesOnLead({
+      deliveries: freshLead.leadDeliveries,
+      status: freshLead.status,
+    });
     const freshOwns = partnerOwnsNonRefundedRealtimeSale(
       freshLead.leadDeliveries,
       partnerId,

@@ -13,6 +13,13 @@ type ActivePartner = {
   affiliation: string | null;
 };
 
+type LeadResaleSummary = {
+  remaining: number;
+  soldCount: number;
+  maxRealtimeSells: number;
+  blocked: boolean;
+};
+
 type SendLeadsToPartnerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,6 +37,7 @@ export function SendLeadsToPartnerDialog({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [partners, setPartners] = useState<ActivePartner[]>([]);
+  const [resale, setResale] = useState<LeadResaleSummary | null>(null);
   const [query, setQuery] = useState("");
   const [partnerId, setPartnerId] = useState("");
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -52,6 +60,7 @@ export function SendLeadsToPartnerDialog({
     setFetchError(null);
     setPartnerId("");
     setQuery("");
+    setResale(null);
 
     fetch(
       `/api/admin/partners/active?${new URLSearchParams({
@@ -63,10 +72,16 @@ export function SendLeadsToPartnerDialog({
           const data = (await res.json().catch(() => ({}))) as { error?: string };
           throw new Error(data.error ?? "Failed to load partners");
         }
-        return res.json() as Promise<{ partners: ActivePartner[] }>;
+        return res.json() as Promise<{
+          partners: ActivePartner[];
+          resale?: LeadResaleSummary | null;
+        }>;
       })
       .then((data) => {
-        if (!cancelled) setPartners(data.partners);
+        if (!cancelled) {
+          setPartners(data.partners);
+          setResale(data.resale ?? null);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -105,7 +120,7 @@ export function SendLeadsToPartnerDialog({
   }
 
   async function handleSubmit() {
-    if (!partnerId || submitting) return;
+    if (!partnerId || submitting || resale?.blocked) return;
     setSubmitting(true);
     try {
       const res = await fetch("/api/admin/leads/send-to-partner", {
@@ -155,8 +170,10 @@ export function SendLeadsToPartnerDialog({
               Send to partner
             </h2>
             <p className="mt-0.5 text-xs text-slate-500">
-              {leadIds.length} lead{leadIds.length === 1 ? "" : "s"} — billed to
-              the selected partner if the category sale cap allows it.
+              {leadIds.length} lead{leadIds.length === 1 ? "" : "s"}
+              {resale
+                ? ` — ${resale.remaining} resale${resale.remaining === 1 ? "" : "s"} remaining (${resale.soldCount} of ${resale.maxRealtimeSells} used).`
+                : " — billed only if this lead still has a resale remaining."}
             </p>
           </div>
           <button
@@ -186,7 +203,9 @@ export function SendLeadsToPartnerDialog({
             <p className="text-sm text-slate-500">
               {query.trim()
                 ? "No matching partners."
-                : "No eligible partners — they already received a non-refunded copy of this lead, or none are active."}
+                : resale?.blocked
+                  ? `This lead has no remaining resales (${resale.soldCount} of ${resale.maxRealtimeSells} used).`
+                  : "No eligible partners — they already received a non-refunded copy of this lead, or none are active."}
             </p>
           ) : (
             <ul className="max-h-72 space-y-1 overflow-y-auto">
@@ -231,7 +250,7 @@ export function SendLeadsToPartnerDialog({
           <button
             type="button"
             onClick={() => void handleSubmit()}
-            disabled={submitting || !partnerId}
+            disabled={submitting || !partnerId || Boolean(resale?.blocked)}
             className="btn-primary btn-sm"
           >
             {submitting ? "Sending…" : "Send"}

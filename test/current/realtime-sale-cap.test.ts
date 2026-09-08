@@ -6,6 +6,8 @@ import {
   countNonRefundedRealtimeSales,
   evaluateRealtimeSaleGuard,
   partnerOwnsNonRefundedRealtimeSale,
+  realtimeSalesOnLead,
+  remainingRealtimeResales,
   uniquePartnerIdsWithNonRefundedRealtimeSale,
 } from "../../src/lib/leads/realtime-sale-cap";
 
@@ -51,6 +53,22 @@ describe("realtime sale cap", () => {
   test("default cap of 1 blocks a second sale", () => {
     assert.equal(canAcceptAnotherRealtimeSale(1, 1), false);
     assert.equal(canAcceptAnotherRealtimeSale(1, 2), true);
+    assert.equal(remainingRealtimeResales(1, 1), 0);
+    assert.equal(remainingRealtimeResales(1, 2), 1);
+  });
+
+  test("counts a delivered lead as already sold even without a realtime row", () => {
+    assert.equal(
+      realtimeSalesOnLead({ deliveries: [], status: "delivered" }),
+      1,
+    );
+    assert.equal(
+      realtimeSalesOnLead({
+        deliveries: [{ partnerId: "a", channel: "realtime", refundedAt: null }],
+        status: "available",
+      }),
+      1,
+    );
   });
 
   test("blocks dead, review, duplicate partner, and cap", () => {
@@ -76,17 +94,19 @@ describe("realtime sale cap", () => {
       }).ok,
       false,
     );
-    assert.equal(
-      evaluateRealtimeSaleGuard({
-        status: "delivered",
-        leadType: "cage",
-        categoryResolution: "matched",
-        maxRealtimeSells: 1,
-        soldCount: 1,
-        alreadySoldToPartner: false,
-      }).ok,
-      false,
-    );
+    const cap = evaluateRealtimeSaleGuard({
+      status: "delivered",
+      leadType: "cage",
+      categoryResolution: "matched",
+      maxRealtimeSells: 1,
+      soldCount: 1,
+      alreadySoldToPartner: false,
+    });
+    assert.equal(cap.ok, false);
+    if (!cap.ok) {
+      assert.equal(cap.code, "sale_cap");
+      assert.match(cap.message, /no remaining resales/);
+    }
     assert.equal(
       evaluateRealtimeSaleGuard({
         status: "delivered",
@@ -98,5 +118,15 @@ describe("realtime sale cap", () => {
       }).ok,
       true,
     );
+    const soldUnmatched = evaluateRealtimeSaleGuard({
+      status: "delivered",
+      leadType: "cage",
+      categoryResolution: "no_match",
+      maxRealtimeSells: 1,
+      soldCount: 1,
+      alreadySoldToPartner: false,
+    });
+    assert.equal(soldUnmatched.ok, false);
+    if (!soldUnmatched.ok) assert.equal(soldUnmatched.code, "sale_cap");
   });
 });

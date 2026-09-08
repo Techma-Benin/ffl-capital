@@ -44,7 +44,26 @@ export function canAcceptAnotherRealtimeSale(
   soldCount: number,
   maxRealtimeSells: number,
 ): boolean {
-  return soldCount < maxRealtimeSells;
+  return remainingRealtimeResales(soldCount, maxRealtimeSells) > 0;
+}
+
+/** Sales already used on this lead. Delivered with no counted copy still uses 1 slot. */
+export function realtimeSalesOnLead(input: {
+  deliveries: RealtimeSaleDelivery[];
+  status?: string;
+}): number {
+  const counted = countNonRefundedRealtimeSales(input.deliveries);
+  if (counted > 0) return counted;
+  if (input.status === "delivered") return 1;
+  return 0;
+}
+
+export function remainingRealtimeResales(
+  soldCount: number,
+  maxRealtimeSells: number,
+): number {
+  const max = Math.max(0, maxRealtimeSells);
+  return Math.max(0, max - soldCount);
 }
 
 export type RealtimeSaleGuardInput = {
@@ -73,13 +92,6 @@ export function evaluateRealtimeSaleGuard(
       message: "Leads in review cannot be sent until a category is assigned",
     };
   }
-  if (!input.leadType || input.categoryResolution !== "matched") {
-    return {
-      ok: false,
-      code: "unclassified",
-      message: "Lead has no matched category",
-    };
-  }
   if (input.alreadySoldToPartner) {
     return {
       ok: false,
@@ -87,13 +99,22 @@ export function evaluateRealtimeSaleGuard(
       message: "This partner already received this lead",
     };
   }
-  if (
-    !canAcceptAnotherRealtimeSale(input.soldCount, input.maxRealtimeSells)
-  ) {
+  const remaining = remainingRealtimeResales(
+    input.soldCount,
+    input.maxRealtimeSells,
+  );
+  if (remaining <= 0) {
     return {
       ok: false,
       code: "sale_cap",
-      message: `This category allows at most ${input.maxRealtimeSells} realtime sale${input.maxRealtimeSells === 1 ? "" : "s"}`,
+      message: `This lead has no remaining resales (${input.soldCount} of ${input.maxRealtimeSells} used)`,
+    };
+  }
+  if (!input.leadType || input.categoryResolution !== "matched") {
+    return {
+      ok: false,
+      code: "unclassified",
+      message: "Lead has no matched category",
     };
   }
   return { ok: true };
