@@ -19,6 +19,7 @@ export interface LeadCategory {
   label: string;
   defaultPrice: number | null;
   enabled: boolean;
+  partnerEnabled: boolean;
   maxRealtimeSells: number;
   integrityLabel: string | null;
   integrityLabelStorefront: string | null;
@@ -78,6 +79,7 @@ interface CategoryFormData {
   label: string;
   defaultPrice: string;
   enabled: boolean;
+  partnerEnabled: boolean;
   integrityLabel: string;
   integrityLabelStorefront: string;
   maxRealtimeSells: string;
@@ -93,6 +95,7 @@ function emptyForm(): CategoryFormData {
     label: "",
     defaultPrice: "",
     enabled: true,
+    partnerEnabled: true,
     integrityLabel: "",
     integrityLabelStorefront: "",
     maxRealtimeSells: "1",
@@ -105,6 +108,7 @@ function categoryToForm(cat: LeadCategory): CategoryFormData {
     label: cat.label,
     defaultPrice: cat.defaultPrice != null ? String(cat.defaultPrice) : "",
     enabled: cat.enabled,
+    partnerEnabled: cat.partnerEnabled,
     integrityLabel: cat.integrityLabel ?? "",
     integrityLabelStorefront: cat.integrityLabelStorefront ?? "",
     maxRealtimeSells: String(cat.maxRealtimeSells ?? 1),
@@ -321,7 +325,17 @@ function CategoryModal({
             onChange={(e) => set({ enabled: e.target.checked })}
             className="rounded border-slate-300"
           />
-          Active — accept and route leads of this category
+          Active — classify incoming leads of this category (including Integrity)
+        </label>
+
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={form.partnerEnabled}
+            onChange={(e) => set({ partnerEnabled: e.target.checked })}
+            className="rounded border-slate-300"
+          />
+          Available to partners — they can select this type and receive these leads
         </label>
 
         <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
@@ -408,6 +422,7 @@ export function LeadCategoryManager() {
       criteria: data.criteria.map(({ field, value }) => ({ field, value })),
       defaultPrice: data.defaultPrice !== "" ? Number(data.defaultPrice) : null,
       enabled: data.enabled,
+      partnerEnabled: data.partnerEnabled,
       integrityLabel: data.integrityLabel || null,
       integrityLabelStorefront: data.integrityLabelStorefront || null,
       maxRealtimeSells: Math.min(

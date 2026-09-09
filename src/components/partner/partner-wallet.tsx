@@ -35,15 +35,22 @@ export function PartnerWalletView({
   totalTopUp,
   totalSpent,
   subscription,
+  pausedLeadTypes = [],
 }: {
   transactions: Transaction[];
   totalTopUp: number;
   totalSpent: number;
   subscription: Subscription | null;
+  pausedLeadTypes?: Array<{ type: string; label: string }>;
 }) {
   const { partner } = usePartner();
   const balance = partner.walletBalance;
   const walletOk = balance >= 25;
+  const pausedLabels = pausedLeadTypes.map((row) => row.label);
+  const pausedNotice =
+    pausedLeadTypes.length === 1
+      ? `${pausedLeadTypes[0].label} is paused on one of your filter sets. You will not receive that type until it is available again.`
+      : `${pausedLabels.join(", ")} are paused on your filter sets. You will not receive those types until they are available again.`;
 
   const [selectedAmount, setSelectedAmount] = useState<number | null>(250);
   const [customAmount, setCustomAmount] = useState("");
@@ -51,6 +58,7 @@ export function PartnerWalletView({
   const [subscribePending, setSubscribePending] = useState(false);
   const [cancelPending, setCancelPending] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [payConfirm, setPayConfirm] = useState<"checkout" | "subscribe" | null>(null);
   const [weeklyAmount, setWeeklyAmount] = useState("500");
 
   const checkoutAmount = customAmount ? Number(customAmount) : selectedAmount;
@@ -66,7 +74,9 @@ export function PartnerWalletView({
       const res = await fetch("/api/wallet/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: checkoutAmount }),
+        body: JSON.stringify({
+          amount: checkoutAmount,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Checkout failed");
@@ -113,12 +123,39 @@ export function PartnerWalletView({
     }
   }
 
+  function requestCheckout() {
+    if (!checkoutValid) return;
+    if (pausedLeadTypes.length > 0) {
+      setPayConfirm("checkout");
+      return;
+    }
+    void startCheckout();
+  }
+
+  function requestSubscribe() {
+    if (Number(weeklyAmount) < 25) return;
+    if (pausedLeadTypes.length > 0) {
+      setPayConfirm("subscribe");
+      return;
+    }
+    void startSubscribe();
+  }
+
   return (
     <div>
       <PageHeader
         title="Wallet"
         subtitle="Manage your balance and top up your account"
       />
+
+      {pausedLeadTypes.length > 0 && (
+        <div
+          role="alert"
+          className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          {pausedNotice}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
 
@@ -213,7 +250,7 @@ export function PartnerWalletView({
             <button
               type="button"
               disabled={!checkoutValid || checkoutPending}
-              onClick={startCheckout}
+              onClick={requestCheckout}
               className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50"
             >
               {checkoutPending ? "Redirecting to Stripe…" : "Proceed to the payment"}
@@ -287,7 +324,7 @@ export function PartnerWalletView({
               </div>
               <button
                 type="button"
-                onClick={startSubscribe}
+                onClick={requestSubscribe}
                 disabled={subscribePending || Number(weeklyAmount) < 25}
                 className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
@@ -363,6 +400,26 @@ export function PartnerWalletView({
         </div>
 
       </div>
+
+      <ConfirmDialog
+        open={payConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open && !checkoutPending && !subscribePending) setPayConfirm(null);
+        }}
+        title="Add funds anyway?"
+        description={`${pausedNotice} You can still add funds to your wallet.`}
+        confirmLabel="Yes, continue to payment"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={checkoutPending || subscribePending}
+        onConfirm={() => {
+          if (payConfirm === "subscribe") {
+            void startSubscribe();
+            return;
+          }
+          void startCheckout();
+        }}
+      />
 
       <ConfirmDialog
         open={cancelConfirm}

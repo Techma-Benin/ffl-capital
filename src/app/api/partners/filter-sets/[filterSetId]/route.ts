@@ -5,6 +5,7 @@ import { getPartnerId } from "@/lib/partner/session";
 import { MIN_FILTER_STATES } from "@/lib/partner/constants";
 import { US_STATE_CODES } from "@/lib/constants/us-states";
 import { stripAttributionCriteria } from "@/lib/filter-sets/sanitize-criteria";
+import { isLeadTypeAvailableToPartners } from "@/lib/lead-categories/partner-availability";
 import type { FilterCriteria } from "@/lib/matching/types";
 import type { PartnerFilterSet } from "@prisma/client";
 
@@ -109,6 +110,14 @@ export async function PATCH(
     active,
     filterCriteria,
   } = parsed.data;
+
+  const nextLeadType = leadType ?? existing.leadType;
+  if (!(await isLeadTypeAvailableToPartners(nextLeadType))) {
+    return NextResponse.json(
+      { error: "That lead type is not active for partners right now." },
+      { status: 422 },
+    );
+  }
 
   // Deduplicate states if provided
   const filterStates = rawStates

@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const parsed = checkoutSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid amount (min $25)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid amount (min $25)" },
+      { status: 400 },
+    );
   }
 
   const partner = await prisma.partner.findUniqueOrThrow({

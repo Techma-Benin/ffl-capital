@@ -255,9 +255,9 @@ export async function findEligibleFilterSets(
   // Skip matching if the category is disabled
   const category = await prisma.leadCategory.findUnique({
     where: { type: leadType },
-    select: { enabled: true },
+    select: { enabled: true, partnerEnabled: true },
   });
-  if (!category || !category.enabled) {
+  if (!category || !category.enabled || !category.partnerEnabled) {
     return [];
   }
 

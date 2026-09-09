@@ -64,6 +64,40 @@ export async function creditWallet(
   });
 }
 
+export async function recordNonWalletTransaction(
+  partnerId: string,
+  amount: number,
+  type: TransactionType,
+  options?: Omit<LedgerEntryInput, "partnerId" | "amount" | "type">,
+) {
+  if (amount === 0) throw new Error("Amount must be non-zero");
+
+  const run = async (client: TxClient) => {
+    const partner = await client.partner.findUniqueOrThrow({
+      where: { id: partnerId },
+      select: { walletBalance: true },
+    });
+
+    return client.transaction.create({
+      data: {
+        partnerId,
+        type,
+        amount,
+        balanceAfter: partner.walletBalance,
+        description: options?.description,
+        stripePaymentIntentId: options?.stripePaymentIntentId,
+        leadDeliveryId: options?.leadDeliveryId,
+      },
+    });
+  };
+
+  if (options?.tx) {
+    return run(options.tx);
+  }
+
+  return prisma.$transaction(run);
+}
+
 export async function debitWallet(
   partnerId: string,
   amount: number,

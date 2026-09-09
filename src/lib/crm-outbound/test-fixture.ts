@@ -62,6 +62,8 @@ export function buildCrmOutboundTestSourcePayload(partnerId: string, partnerEmai
     rawPayload: null,
     agedSaleCount: 0,
     agedAvailableAfter: null,
+    agedHoldCheckoutId: null,
+    agedHoldExpiresAt: null,
     liveSoldAt: null,
     liveSaleChannel: null,
     lastRoutingAttemptAt: null,

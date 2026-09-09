@@ -302,7 +302,7 @@ Phase D — Migration Replit (livraison client)
 #### Configuration globale
 - Prix lead temps réel par type (défaut IUL = 25 $)
 - **Aged price tiers** (`/admin/settings` → table éditable `aged_price_tiers`) : bandes `{ minDays, maxDays|null, price }` — pricing marketplace + cooldown revente ; défauts 30–60@$5, 61–90@$4, 91–180@$3, 181–365@$2, 366+@$1 ; seuil marketplace = `minDays` du 1ᵉʳ tier (sync `aged_days_threshold`) ; `default_aged_price` = fallback hors bande seulement
-- **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label` (Realtime) + `integrity_label_storefront` (Storefront, fallback Realtime), prix par défaut ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
+- **Catégories lead** (`/admin/settings` → Lead categories) : label admin, critères multi-champs (match exact sur payload), `integrity_label` (Realtime) + `integrity_label_storefront` (Storefront, fallback Realtime), prix par défaut, `partner_enabled` (pause partners) ; clé interne `type` générée (non éditable). Créer/supprimer une catégorie active ou modifier ses critères/état enabled réévalue automatiquement les leads non finalisés avec les mêmes règles que l’intake
 - **Destinataire Contact Us partner** (`/admin/settings` → General → Platform) : `contact_recipient_email` (défaut `sami@ffl-capital.com`)
 - **Lead routing** (`/admin/settings` → Lead routing) : mode Partner-only vs lifecycle ; fenêtres 24 h / 48 h / mid-window primary ; automation partners 48 h–30 j ; partner picker reprocess ; intake (TrustedForm / doublons)
 - *(Futur)* frais de retraitement
@@ -337,9 +337,10 @@ Phase D — Migration Replit (livraison client)
 - Bouton **demander remboursement** (si delivery `refundable`)
 
 #### Wallet
-- Solde en temps réel
-- **Recharge manuelle** : montant libre
-- **Recharge récurrente** : ex. 500 $/semaine, carte enregistrée
+- Solde en temps réel (crédit **non typé** — pas de choix de type de lead à la recharge)
+- **Recharge manuelle** : montant libre, **minimum 25 $**
+- **Recharge récurrente** : ex. 500 $/semaine (min 25 $), carte enregistrée
+- Si un filter set utilise une catégorie `partner_enabled=false` : alerte rouge au chargement ; confirm avant one-shot ou auto-recharge hebdo — le paiement reste possible
 - Historique transactions (pas de PDF facture obligatoire V1)
 
 #### Marketplace aged leads
@@ -390,6 +391,7 @@ Phase D — Migration Replit (livraison client)
 4. `length(filter_states) ≥ 15`
 5. `wallet_balance ≥ prix_effectif` (prix global ou `price_override`)
 6. Lead `available = true`
+7. Catégorie du lead `partner_enabled=true` (type pausé = inéligible au matching live)
 
 **Sélection gagnant :** priorité la plus haute (1–10). **Égalité de priorité → FIFO** (partner inscrit le plus tôt en premier — confirmé équipe).
 
@@ -428,7 +430,8 @@ Phase D — Migration Replit (livraison client)
 
 **Achat partner :**
 - Manuel (unitaire ou checkboxes) ; débit wallet au **prix du tier** d’âge (`aged_price_tiers` ; fallback `default_aged_price` si hors bande)
-- Compte `active` + solde wallet suffisant
+- Compte `active`
+- Paiement Stripe Checkout pour la sélection (n’utilise **pas** le wallet live)
 - Lead toujours éligible aged au moment de l’achat (même règles d’âge / hors `dead`)
 - **Pas** de contrôle état ∈ filter set ni égalité `lead_type` compte (distinct du matching temps réel)
 - Créer `lead_delivery` channel=`aged`
@@ -440,41 +443,24 @@ Phase D — Migration Replit (livraison client)
 
 ### 5.8 Remboursements
 
-**Workflow in-app obligatoire** (confirmé call review #1). Deux **types** distincts :
+**Workflow in-app obligatoire.** Le seul type de remboursement partenaire est **invalid phone**. Pas de rematch / Type A.
 
-#### Type A — Mauvais critère / mauvais état
-
-Ex. : l’agent voulait le Texas, a reçu un lead Californie.
-
-```
-Agent → demande remboursement (raison : wrong_filter)
-  → Admin approuve
-       - delivery.refunded_at = now
-       - Crédit wallet agent (montant delivery.price)
-       - lead.available = true
-       - Rematch immédiat vers le partner/agent suivant (même critères, priorité inférieure)
-       - Prix de revente = prix d’origine (ex. 25 $)
-```
-
-#### Type B — Numéro invalide / hors service
-
-Ex. : numéro Meta incorrect ; admin appelle et confirme.
+#### Invalid phone
 
 ```
 Agent → demande remboursement (raison : invalid_phone)
-  → Admin vérifie (appel) → approuve ou refuse
+  → Admin vérifie → approuve ou refuse
   → Si approuvé :
        - delivery.refunded_at = now
        - Crédit wallet agent (montant delivery.price)
-       - lead.available = false, status = dead (ou équivalent)
-       - Lead **non redistribué** — mort définitivement
+       - lead.available = false, status = dead
+       - Lead **non redistribué**
+       - La delivery disparaît du listing / dashboard partner (email déjà envoyé inchangé)
 ```
 
 **Buffer 15 % :** règle métier **verbale** de la cliente (leads Meta) — **non automatisée dans Boberdoo** (vérifié browser 29 juin). V1 : workflow manuel identique à Boberdoo ; pas de compteur ni blocage auto dans l’app.
 
-**Cycle remboursement + revente (type A) :** après revente post-remboursement, `refundable = false` — plus de second remboursement sur ce lead.
-
-**Note :** l’ancienne règle interne TECHMA « routage post-remboursement par âge (< 2 j / Integrity / aged) » est **remplacée** par ce modèle validé cliente (voir §7).
+**Note :** un lead remboursé invalid-phone n’est jamais revendu.
 
 ### 5.9 Wallet Stripe
 
@@ -485,7 +471,7 @@ Recharge Stripe → argent compte Stripe cliente → webhook → +wallet_balance
 Livraison lead → -wallet_balance BDD (pas de nouvelle charge Stripe)
 ```
 
-**Modes recharge :** manuelle ponctuelle + récurrente hebdomadaire (les deux en V1). L’admin peut aussi **accorder** des crédits (`admin_grant`) et **reprendre** uniquement le crédit admin encore inutilisé (`admin_debit`) — jamais un dépôt Stripe.
+**Modes recharge :** manuelle ponctuelle + récurrente hebdomadaire (les deux en V1), body `{ amount }` seulement (min 25 $) — le crédit n’est **pas** affecté à un type de lead. L’admin peut aussi **accorder** des crédits (`admin_grant`) et **reprendre** uniquement le crédit admin encore inutilisé (`admin_debit`) — jamais un dépôt Stripe. Une catégorie pausée (`partner_enabled=false`) bloque filter sets et matching live, **pas** le checkout wallet (alerte + confirm seulement).
 
 **Crédit admin inutilisé :** replay du ledger (ordre `created_at`, `id`), pas totaux grants − dépenses. Enveloppe à 0 ; `admin_grant` ajoute ; achats realtime/aged + `reprocessing_fee` consomment l’enveloppe d’abord (le reste sur les dépôts) ; `refund` remet la part crédit de ce `lead_delivery_id` ; `admin_debit` ne réduit que l’enveloppe (pas sous 0) ; `top_up` ignoré. Plafond clawback = min(enveloppe, solde wallet). Ex. grants 20 $+40 $, dépense 50 $, dépôt 50 $ → wallet 60 $, clawback max 10 $.
 
@@ -753,6 +739,7 @@ migration_jobs                    │
 | label | string | Libellé admin |
 | default_price | decimal nullable | Prix temps réel suggéré |
 | enabled | boolean | Exclue de l’évaluation si false |
+| partner_enabled | boolean | Pause partners si false : pas de filter set / matching live / store aged ; Integrity inchangé ; wallet top-up toujours autorisé |
 | integrity_label | string nullable | Chaîne exacte `lead_type_thom` pour Integrity **Realtime** |
 | integrity_label_storefront | string nullable | Chaîne `lead_type_thom` pour Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL |
 | created_at, updated_at | timestamp | |

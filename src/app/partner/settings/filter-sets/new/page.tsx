@@ -1,10 +1,10 @@
-import { prisma } from "@/lib/db";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
 import {
   listFilterSetTemplates,
   serializeTemplatePickerItemForPartner,
 } from "@/lib/filter-sets/templates";
 import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
+import { loadPartnerAvailableCategoryLabels } from "@/lib/lead-categories/partner-availability";
 
 const DEFAULT_FORM = {
   name: "",
@@ -20,16 +20,14 @@ const DEFAULT_FORM = {
 
 export default async function PartnerFilterSetNewPage() {
   const [categories, templateRows, criteriaOptions] = await Promise.all([
-    prisma.leadCategory.findMany({
-      orderBy: { createdAt: "asc" },
-      select: { type: true, label: true },
-    }),
+    loadPartnerAvailableCategoryLabels(),
     listFilterSetTemplates(),
     getLeadFilterCriteriaOptions(),
   ]);
 
-  const categoryOptions =
-    categories.length > 0 ? categories : [];
+  const availableTypes = new Set(categories.map((category) => category.type));
+  const templates = templateRows.filter((row) => availableTypes.has(row.leadType));
+  const defaultLeadType = categories[0]?.type ?? "traditional_iul";
 
   return (
     <FilterSetEditorPage
@@ -39,11 +37,11 @@ export default async function PartnerFilterSetNewPage() {
       backHref="/partner/settings#filters"
       backLabel="Back to settings"
       subtitle="Define targeting rules for your lead delivery."
-      initial={DEFAULT_FORM}
-      categories={categoryOptions}
+      initial={{ ...DEFAULT_FORM, leadType: defaultLeadType }}
+      categories={categories}
       criteriaOptions={criteriaOptions}
       showTemplatePicker
-      initialTemplates={templateRows.map(serializeTemplatePickerItemForPartner)}
+      initialTemplates={templates.map(serializeTemplatePickerItemForPartner)}
     />
   );
 }

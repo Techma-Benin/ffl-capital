@@ -1,0 +1,112 @@
+import { AgedCheckoutStatus, LeadEventType } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { PRISMA_TX_OPTIONS } from "@/lib/db-transaction";
+import { deliverLead } from "@/lib/delivery/deliver-lead";
+import { emitLeadEvent } from "@/lib/leads/lead-events";
+import { purchaseAgedLeads } from "@/lib/aged/purchase-aged-leads";
+import { releaseAgedCheckoutHold } from "@/lib/aged/create-aged-checkout";
+
+type TxClient = Prisma.TransactionClient;
+
+export type AgedCheckoutFulfillment = {
+  purchasedCount: number;
+  failedCount: number;
+  alreadyPaid: boolean;
+  deliveryIds: string[];
+  purchased: Array<{ leadId: string; deliveryId: string }>;
+  partnerId: string;
+};
+
+export async function fulfillAgedCheckout(input: {
+  checkoutId: string;
+  partnerId: string;
+  paymentIntentId?: string;
+  tx?: TxClient;
+  deliver?: boolean;
+}): Promise<AgedCheckoutFulfillment> {
+  const deliver = input.deliver ?? !input.tx;
+
+  const run = async (tx: TxClient): Promise<AgedCheckoutFulfillment> => {
+    const checkout = await tx.agedCheckout.findUnique({
+      where: { id: input.checkoutId },
+    });
+    if (!checkout) {
+      throw new Error("Aged checkout not found");
+    }
+    if (checkout.partnerId !== input.partnerId) {
+      throw new Error("Aged checkout partner mismatch");
+    }
+    if (checkout.status === AgedCheckoutStatus.paid) {
+      return {
+        purchasedCount: 0,
+        failedCount: 0,
+        alreadyPaid: true,
+        deliveryIds: [],
+        purchased: [],
+        partnerId: checkout.partnerId,
+      };
+    }
+    if (checkout.status !== AgedCheckoutStatus.pending) {
+      throw new Error("Aged checkout is no longer pending");
+    }
+
+    const result = await purchaseAgedLeads(checkout.partnerId, checkout.leadIds, {
+      stripePaymentIntentId: input.paymentIntentId,
+      checkoutId: checkout.id,
+      skipDelivery: true,
+      tx,
+    });
+
+    await tx.agedCheckout.update({
+      where: { id: checkout.id },
+      data: { status: AgedCheckoutStatus.paid },
+    });
+
+    return {
+      purchasedCount: result.purchased.length,
+      failedCount: result.failed.length,
+      alreadyPaid: false,
+      deliveryIds: result.purchased.map((row) => row.deliveryId),
+      purchased: result.purchased.map((row) => ({
+        leadId: row.leadId,
+        deliveryId: row.deliveryId,
+      })),
+      partnerId: checkout.partnerId,
+    };
+  };
+
+  const result = input.tx
+    ? await run(input.tx)
+    : await prisma.$transaction(run, PRISMA_TX_OPTIONS);
+
+  if (deliver && !result.alreadyPaid) {
+    await deliverAgedCheckoutPurchases(result);
+  }
+
+  return result;
+}
+
+export async function deliverAgedCheckoutPurchases(
+  result: Pick<AgedCheckoutFulfillment, "purchased" | "partnerId">,
+): Promise<void> {
+  for (const row of result.purchased) {
+    await deliverLead(row.deliveryId);
+    await emitLeadEvent(row.leadId, LeadEventType.aged_purchased, {
+      deliveryId: row.deliveryId,
+      partnerId: result.partnerId,
+    });
+  }
+}
+
+export async function expireAgedCheckoutByStripeSession(
+  stripeCheckoutSessionId: string,
+  tx?: Prisma.TransactionClient,
+): Promise<void> {
+  const client = tx ?? prisma;
+  const checkout = await client.agedCheckout.findUnique({
+    where: { stripeCheckoutSessionId },
+  });
+  if (!checkout || checkout.status !== AgedCheckoutStatus.pending) return;
+  await releaseAgedCheckoutHold(checkout.id, tx);
+}

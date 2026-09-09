@@ -4,6 +4,7 @@ import { getPartnerId } from "@/lib/partner/session";
 import { FilterSetEditorPage } from "@/components/filter-sets/filter-set-editor-page";
 import { toFormData } from "@/components/filter-sets/filter-set-types";
 import { getLeadFilterCriteriaOptions } from "@/lib/filter-sets/criteria-options";
+import { loadPartnerAvailableCategoryLabels } from "@/lib/lead-categories/partner-availability";
 import type { FilterCriteria } from "@/lib/matching/types";
 
 export default async function PartnerFilterSetEditPage({
@@ -19,16 +20,23 @@ export default async function PartnerFilterSetEditPage({
     prisma.partnerFilterSet.findFirst({
       where: { id, partnerId, isTemplate: false },
     }),
-    prisma.leadCategory.findMany({
-      orderBy: { createdAt: "asc" },
-      select: { type: true, label: true },
-    }),
+    loadPartnerAvailableCategoryLabels(),
     getLeadFilterCriteriaOptions(),
   ]);
 
   if (!filterSet) notFound();
 
-  const categoryOptions = categories.length > 0 ? categories : [];
+  const categoryOptions = [...categories];
+  if (
+    filterSet.leadType &&
+    !categoryOptions.some((category) => category.type === filterSet.leadType)
+  ) {
+    const current = await prisma.leadCategory.findUnique({
+      where: { type: filterSet.leadType },
+      select: { type: true, label: true },
+    });
+    if (current) categoryOptions.push(current);
+  }
 
   return (
     <FilterSetEditorPage

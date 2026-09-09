@@ -41,8 +41,9 @@
 | Email livraison lead (Resend) | ✅ (si `RESEND_API_KEY`) |
 | Partner Contact Us (Resend → admin + confirmation) | ✅ `POST /api/partner/contact` |
 | CRM outbound partner (POST self-service) | ✅ — voir [PARTNER_CRM_OUTBOUND.md](PARTNER_CRM_OUTBOUND.md) |
-| Remboursements Type A / Type B | ✅ |
-| Marketplace aged (achat + débit wallet) | ✅ |
+| Remboursements invalid phone only (lead `dead`, masqué du dashboard partner) | ✅ |
+| Marketplace aged (Stripe Checkout, wallet live inchangé) | ✅ |
+| Catégorie `partner_enabled` (pause partners, Integrity inchangé) | ✅ |
 | Partner mark-as-sold (1ʳᵉ vente aged, fenêtre 7 j) | ✅ `POST /api/partner/deliveries/[id]/mark-sold` |
 | Migration import CSV Boberdoo | ✅ |
 | Cron reprocess unmatched + Integrity post | ✅ (routes ; scheduler prod à configurer) |
@@ -169,7 +170,7 @@ POST /api/leads/intake
 
 **`processed_stripe_events` :** idempotence webhook Stripe — `id` = `event.id` Stripe ; claim avant crédit / maj récurrence (`src/lib/stripe/webhook-idempotency.ts`).
 
-**`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`. Defaults IUL : `traditional_iul` / `high_intent_iul` partagent `SRC=IUL_LeadConduit` et se distinguent par `Intent_Type` (`Standard` / `High`).
+**`lead_categories` :** source de vérité pour la classification produit. Chaque ligne a un `type` interne immuable (snake_case généré à la création), un `label` admin, `integrity_label` (Integrity **Realtime** → `lead_type_thom`), `integrity_label_storefront` (Integrity **Storefront** ; blank → fallback Realtime puis défaut IUL), `enabled`, `partner_enabled` (false = pause partners : filter sets + matching live + store aged ; Integrity inchangé), et des **critères** enfants (`field` + `value`, correspondance exacte case-sensitive sur une clé top-level du payload webhook). Plus de colonne `src` — les anciennes valeurs SRC ont été migrées en lignes `field='SRC'`. Defaults IUL : `traditional_iul` / `high_intent_iul` partagent `SRC=IUL_LeadConduit` et se distinguent par `Intent_Type` (`Standard` / `High`).
 
 **`leads` (catégorisation) :** `lead_type` (string, nullable) ; `category_resolution` (`matched` \| `no_match` \| `multiple_matches`) ; `category_candidate_types` (text[], types des catégories qui ont matché). Zéro ou plusieurs matchs → `status=review`, `available=false`, pas de matching partenaire ni post Integrity.
 
@@ -329,7 +330,7 @@ Même **pool** d’éligibilité que admin (`buildAdminAgedLeadsWhere` / seuil d
 | `type` | types catégorie comma-séparés (ex. `traditional_iul,high_intent_iul`) | Filtre client `leadType IN (...)` (optionnel) |
 | `age` | `String(tier.minDays)` comma-séparés (ex. `30,61`) | Buckets inclusifs OR (`filterPartnerAgedLeadsInMemory` + tiers settings) |
 
-**Achat** : `POST /api/leads/aged/purchase` — `purchaseAgedLeads()` : partenaire `active`, lead dans le where aged, débit wallet au **prix du tier** (fallback `default_aged_price` si hors bande) ; 1ʳᵉ vente → `agedAvailableAfter` = début du tier suivant (sauf mark-as-sold) ; 2ᵉ vente → retrait permanent. Pas de garde filter set / min 15 états.
+**Achat** : `POST /api/leads/aged/purchase` ouvre un Stripe Checkout (`type=aged_purchase`) ; le webhook `checkout.session.completed` (et `POST /api/leads/aged/complete-checkout`) appelle `fulfillAgedCheckout` → `purchaseAgedLeads()` **sans** débiter le wallet live. Hold `aged_hold_*` pendant 30 min. 1ʳᵉ vente → `agedAvailableAfter` = début du tier suivant (sauf mark-as-sold) ; 2ᵉ vente → retrait permanent. Catégories `partner_enabled=false` absentes du store partner.
 
 **Mark as sold (1ʳᵉ vente aged)** : sur `/partner/leads/[id]`, bouton **Mark as sold** si livraison `channel=aged`, `agedSaleCount=1`, pas encore `partner_sold_at`, non remboursée, et `delivered_at` ≤ 7 jours ; badge **Marked sold** une fois posé. API :
 
@@ -378,7 +379,7 @@ UI : `/admin/settings` → onglet **Lead categories** (`LeadCategoryManager`). M
 |---------|-------|-------------|
 | GET | `/api/admin/lead-categories` | Liste (avec `criteria`) |
 | POST | `/api/admin/lead-categories` | Création — `type` **interdit** (généré snake_case depuis `label`) ; reclassification si créée active |
-| PATCH | `/api/admin/lead-categories/[id]` | `label`, `criteria`, `defaultPrice`, `enabled`, `integrityLabel`, `integrityLabelStorefront` ; reclassification si `criteria` ou `enabled` change |
+| PATCH | `/api/admin/lead-categories/[id]` | `label`, `criteria`, `defaultPrice`, `enabled`, `partnerEnabled`, `integrityLabel`, `integrityLabelStorefront` ; reclassification si `criteria` ou `enabled` change (`partnerEnabled` ne reclasse pas) |
 | DELETE | `/api/admin/lead-categories/[id]` | Refusé si des leads référencent le `type` ; sinon reclassification si la catégorie était active |
 
 Schémas Zod : `categoryCreateSchema`, `categoryUpdateSchema`. Critères : au moins un par catégorie ; `field` unique par catégorie. `integrityLabel` = label Realtime (`lead_type_thom`) ; `integrityLabelStorefront` = label Storefront (nullable ; blank → Realtime sur la même catégorie). Valeurs par défaut des types built-in : `src/lib/lead-categories/integrity-label-defaults.ts` + migration / `pnpm db:sync-integrity-labels` (ne remplace pas les valeurs admin non vides). UI Settings : deux champs avec texte d’aide routage.
@@ -437,6 +438,7 @@ Critères d'éligibilité partner :
 5. `lead_type` compatible (filter set)
 6. **≥ 15 états** dans `filter_states`
 7. `wallet_balance >= prix_effectif` (`price_override` ou `default_realtime_price`)
+8. Catégorie `enabled` et `partner_enabled` (type pausé = inéligible)
 
 Tri : `priority DESC`, puis `created_at ASC` (FIFO).
 
@@ -452,7 +454,7 @@ Transaction atomique à la livraison :
 
 ## Filter sets & templates
 
-**CRUD partner (live sets)** : `/api/admin/partners/[id]/filter-sets` (+ `[filterSetId]`), `/api/partners/filter-sets` (+ `[filterSetId]`). Les partners ne peuvent pas poser `isTemplate`.
+**CRUD partner (live sets)** : `/api/admin/partners/[id]/filter-sets` (+ `[filterSetId]`), `/api/partners/filter-sets` (+ `[filterSetId]`). Les partners ne peuvent pas poser `isTemplate`. Types `partner_enabled=false` refusés à la création/édition.
 
 **Grant wallet credits** : `POST /api/admin/partners/[id]/grant-credits` — admin only ; partenaire `active` uniquement ; body `{ amount, note? }` ; limites : admin régulier $0.01–$1 000, super-admin >0 sans plafond ; `creditWallet(..., admin_grant)` + email partner (best-effort, échec email ne rollback pas ; CTA wallet via `resolveAppOrigin`) ; service `grantPartnerCredits()` dans `src/lib/wallet/grant-partner-credits.ts` ; template `buildPartnerCreditGrantEmail` — sujet `$X.XX credit added to your account` (pas de préfixe `[Partner Portal]`), corps sans note admin. UI : bouton « Grant credits » sur `/admin/partners/[id]` (partenaires actifs). Total Funded (partner reports/wallet + admin transactions funding) = somme `top_up` + `admin_grant`.
 
@@ -468,8 +470,8 @@ Transaction atomique à la livraison :
 
 | Méthode | Route | Rôle |
 |---------|-------|------|
-| POST | `/api/wallet/checkout` | Checkout one-shot (`mode=payment`, metadata `type=top_up`) ; `success_url` / `cancel_url` via `resolveAppOrigin` |
-| GET/POST/DELETE | `/api/wallet/subscribe` | Abonnement hebdo ; POST annule d’abord toute sub Stripe active, puis Checkout `mode=subscription` avec `billingRecurrenceId` + `subscription_data.metadata.partnerId` ; URLs retour via `resolveAppOrigin` |
+| POST | `/api/wallet/checkout` | Checkout one-shot (`mode=payment`, metadata `type=top_up`, body `{ amount }` only — no lead type, min $25) ; crédit wallet non typé ; `success_url` / `cancel_url` via `resolveAppOrigin`. `/partner/wallet` shows a red notice if a filter set uses a `partner_enabled=false` category, and confirms before Stripe; top-up is still allowed. |
+| GET/POST/DELETE | `/api/wallet/subscribe` | Abonnement hebdo ; POST body `{ amount }` only (min $25, no lead type) ; annule d’abord toute sub Stripe active, puis Checkout `mode=subscription` avec `billingRecurrenceId` + `subscription_data.metadata.partnerId` ; même confirm UI pause que le one-shot ; URLs retour via `resolveAppOrigin` |
 | POST | `/api/webhooks/stripe` | Webhook signé (`STRIPE_WEBHOOK_SECRET`) |
 
 **Webhook** (`src/app/api/webhooks/stripe/route.ts`) :
@@ -730,7 +732,7 @@ pnpm stripe:listen       # webhook Stripe local
 | prd-ca / prd-wallet / prd-states / prd-fifo | Règles matching (état, solde, ≥15 états, FIFO) |
 | p9-3 | Limite **hebdomadaire** filter set → unmatched |
 | p9-4 | Éligibilité aged (seuil depuis `aged_price_tiers` / `getAgedDaysThreshold`) |
-| p9-5 | Remboursement Type A (`wrong_filter` → unmatched) et Type B (`invalid_phone` → dead) |
+| p9-5 | Remboursement `invalid_phone` → lead `dead`, delivery `refundedAt`, masqué du listing partner |
 | p9-6 | Recherche admin par email et téléphone |
 | p9-7 | Cron `POST /api/cron/integrity-post` sur lead unmatched au-delà du délai |
 | p9-8 | Persistance champs lead étendus (import / migration) |
@@ -808,3 +810,4 @@ pnpm stripe:listen       # webhook Stripe local
 | 2026-08-14 | Integrity : suppression complète du ping Azure/preflight ; posts Realtime et Storefront directs vers LeadConduit ; rejets terminaux dérivés par mode depuis postings + événements, champs `integrityBlocked*` conservés pour audit ; NCA toujours retryable ; reprocess manuel inchangé et forcé ; UI Leads **Integrity - Rejected** ; aucune migration |
 | 2026-08-17 | Partner mark-as-sold aged : `lead_deliveries.partner_sold_at` ; fenêtre 7 j depuis `delivered_at` sur 1ʳᵉ vente aged uniquement ; retrait marketplace immédiat (`AGED_RETIRED_SENTINEL`) ; événement `aged_partner_sold` ; `POST /api/partner/deliveries/[id]/mark-sold` ; UI détail partner |
 | 2026-09-08 | Partner : jamais `Lead.receivedAt` (détail / Other fields / preview aged / email / `buildLeadDeliveryPayload` / catalogue CRM) ; `deliveredAt` et `ageDays` OK ; mappings CRM `receivedAt` skippés ; admin inchangé |
+| 2026-09-08 | Wallet top-up / subscribe : `{ amount }` only (min $25), crédit non typé ; types `partner_enabled=false` bloqués filter sets + matching, plus le checkout (alerte + confirm `/partner/wallet`) |

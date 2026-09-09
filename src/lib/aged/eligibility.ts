@@ -37,22 +37,37 @@ export const AGED_RETIRED_SENTINEL = new Date("2999-01-01T00:00:00.000Z");
 export function buildAgedLeadWhereWithCutoff(
   cutoff: Date,
   extra?: Prisma.LeadWhereInput,
+  options?: { heldByCheckoutId?: string },
 ): Prisma.LeadWhereInput {
+  const now = new Date();
+  const holdOr: Prisma.LeadWhereInput[] = [
+    { agedHoldExpiresAt: null },
+    { agedHoldExpiresAt: { lte: now } },
+  ];
+  if (options?.heldByCheckoutId) {
+    holdOr.push({ agedHoldCheckoutId: options.heldByCheckoutId });
+  }
   return {
-    receivedAt: { lte: cutoff },
-    status: { not: LeadStatus.dead },
-    agedSaleCount: { lt: 2 },
-    OR: [
-      { agedAvailableAfter: null },
-      { agedAvailableAfter: { lte: new Date() } },
+    AND: [
+      {
+        receivedAt: { lte: cutoff },
+        status: { not: LeadStatus.dead },
+        agedSaleCount: { lt: 2 },
+        OR: [
+          { agedAvailableAfter: null },
+          { agedAvailableAfter: { lte: now } },
+        ],
+      },
+      { OR: holdOr },
+      extra ?? {},
     ],
-    ...extra,
   };
 }
 
 export async function buildAgedLeadWhere(
   extra?: Prisma.LeadWhereInput,
+  options?: { heldByCheckoutId?: string },
 ): Promise<Prisma.LeadWhereInput> {
   const cutoff = await getAgedCutoffDate();
-  return buildAgedLeadWhereWithCutoff(cutoff, extra);
+  return buildAgedLeadWhereWithCutoff(cutoff, extra, options);
 }
